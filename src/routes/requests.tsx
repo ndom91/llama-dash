@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
+import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { api, type ApiRequest } from '../lib/api'
 
@@ -67,16 +68,21 @@ function Requests() {
               <span>log</span>
               <span className="topbar-chip-num">{rows.length}</span>
             </span>
-            <button
-              type="button"
-              className="btn btn-ghost btn-icon"
-              onClick={loadFirst}
-              disabled={loading}
-              aria-label="Refresh request log"
-              title="Refresh"
-            >
-              <RefreshCw className={`icon-14${loading ? ' animate-spin' : ''}`} strokeWidth={1.75} aria-hidden="true" />
-            </button>
+            <Tooltip label="Refresh">
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon"
+                onClick={loadFirst}
+                disabled={loading}
+                aria-label="Refresh request log"
+              >
+                <RefreshCw
+                  className={`icon-14${loading ? ' animate-spin' : ''}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              </button>
+            </Tooltip>
           </>
         }
       />

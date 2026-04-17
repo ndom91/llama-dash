@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-r
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
+import { TooltipProvider } from '../components/Tooltip'
 import { LiveDataProvider } from '../lib/live-data'
 
 import appCss from '../styles.css?url'
@@ -32,10 +33,12 @@ function RootDocument() {
       </head>
       <body>
         <LiveDataProvider>
-          <div className="app-shell">
-            <Sidebar />
-            <Outlet />
-          </div>
+          <TooltipProvider>
+            <div className="app-shell">
+              <Sidebar />
+              <Outlet />
+            </div>
+          </TooltipProvider>
           <Toaster
             position="bottom-center"
             theme="system"

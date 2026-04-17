@@ -3,6 +3,7 @@ import { Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { StatusDot, stateTone } from '../components/StatusDot'
+import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { api, type ApiModel } from '../lib/api'
 import { useLiveData } from '../lib/live-data'
@@ -58,20 +59,21 @@ function Models() {
       <TopBar
         actions={
           <>
-            <button
-              type="button"
-              className="btn btn-ghost btn-icon"
-              onClick={doRefresh}
-              disabled={refreshing}
-              aria-label="Refresh models"
-              title="Refresh"
-            >
-              <RefreshCw
-                className={`icon-14${refreshing ? ' animate-spin' : ''}`}
-                strokeWidth={1.75}
-                aria-hidden="true"
-              />
-            </button>
+            <Tooltip label="Refresh">
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon"
+                onClick={doRefresh}
+                disabled={refreshing}
+                aria-label="Refresh models"
+              >
+                <RefreshCw
+                  className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+                  strokeWidth={1.75}
+                  aria-hidden="true"
+                />
+              </button>
+            </Tooltip>
             <button
               type="button"
               className="btn btn-danger-ghost btn-xs"

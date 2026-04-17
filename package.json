@@ -23,6 +23,7 @@
   "dependencies": {
     "@fontsource/geist-sans": "^5.2.5",
     "@fontsource/jetbrains-mono": "^5.2.8",
+    "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-devtools": "^0.10.2",
     "@tanstack/react-router": "^1.168.22",

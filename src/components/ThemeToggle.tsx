@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Tooltip } from './Tooltip'
 
 type ThemeMode = 'light' | 'dark' | 'auto'
 
@@ -53,11 +54,13 @@ export function ThemeToggle() {
   }
 
   const Icon = mode === 'auto' ? Monitor : mode === 'dark' ? Moon : Sun
-  const label = `Theme: ${mode}. Click to cycle.`
+  const label = `Theme: ${mode} — click to cycle`
 
   return (
-    <button type="button" onClick={cycle} aria-label={label} title={label} className="btn btn-ghost btn-icon">
-      <Icon className="icon-14" strokeWidth={1.75} />
-    </button>
+    <Tooltip label={label}>
+      <button type="button" onClick={cycle} aria-label={label} className="btn btn-ghost btn-icon">
+        <Icon className="icon-14" strokeWidth={1.75} aria-hidden="true" />
+      </button>
+    </Tooltip>
   )
 }
