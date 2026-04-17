@@ -604,24 +604,40 @@ button:disabled {
   flex-wrap: wrap;
 }
 
-.token-status {
+.token-strip {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 0;
   flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-2);
 }
 .token-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 14px;
+}
+.token-stat-accent {
+  background: var(--bg-3);
+}
+.token-stat-accent .token-value {
+  color: var(--accent);
+  font-weight: 600;
+}
+.token-strip-div {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
 }
 .token-value {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--fg);
-}
-.token-bold {
-  font-weight: 600;
+  line-height: 1;
 }
 .token-label {
   font-family: var(--font-mono);
@@ -629,12 +645,7 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--fg-dim);
-}
-.token-sep {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--fg-dim);
-  margin-top: -10px;
+  line-height: 1;
 }
 
 .detail-grid {
@@ -738,6 +749,24 @@ button:disabled {
   max-height: 600px;
   color: var(--fg);
 }
+
+/* headers table — key column auto-sizes, capped at 50% */
+.headers-table {
+  table-layout: auto;
+}
+.header-key {
+  white-space: nowrap;
+  max-width: 50%;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* JSON syntax highlighting */
+.jh-key { color: var(--accent); }
+.jh-str { color: var(--ok); }
+.jh-num { color: var(--warn); }
+.jh-bool { color: var(--info); }
+.jh-punct { color: var(--fg-dim); }
 
 .req-res-columns {
   display: grid;

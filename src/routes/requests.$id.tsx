@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, ChevronDown, ChevronRight, Clipboard, Check } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Clipboard } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { StatusCell } from '../components/StatusCell'
 import { TopBar } from '../components/TopBar'
 import type { ApiRequestDetail } from '../lib/api'
@@ -60,12 +60,11 @@ function Detail({ req }: { req: ApiRequestDetail }) {
             </span>
           </h1>
         </div>
-        <div className="token-status">
+        <div className="token-strip">
           <TokenStat label="prompt" value={req.promptTokens} />
-          <span className="token-sep">+</span>
           <TokenStat label="completion" value={req.completionTokens} />
-          <span className="token-sep">=</span>
-          <TokenStat label="total" value={req.totalTokens} bold />
+          <span className="token-strip-div" aria-hidden="true" />
+          <TokenStat label="total" value={req.totalTokens} accent />
         </div>
       </div>
 
@@ -143,13 +142,11 @@ function HeadersSection({ title, headers }: { title: string; headers: Record<str
         <span className="panel-title">{title}</span>
       </button>
       {open ? (
-        <table className="dtable">
+        <table className="dtable headers-table">
           <tbody>
             {entries.map(([k, v]) => (
               <tr key={k}>
-                <td className="mono" style={{ color: 'var(--accent)', width: 200, fontWeight: 500 }}>
-                  {k}
-                </td>
+                <td className="mono header-key">{k}</td>
                 <td className="mono">{v}</td>
               </tr>
             ))}
@@ -217,7 +214,7 @@ function BodySection({ title, body }: { title: string; body: string }) {
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <pre className="body-pre">{display}</pre>
+          <pre className="body-pre">{mode === 'pretty' && hasPretty ? <JsonHighlight json={pretty} /> : display}</pre>
         </div>
       ) : null}
     </section>
@@ -232,10 +229,60 @@ function tryPrettyJson(text: string): string | null {
   }
 }
 
-function TokenStat({ label, value, bold }: { label: string; value: number | null; bold?: boolean }) {
+const JSON_TOKEN =
+  /("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b|(true|false|null)\b|([[\]{},:])|\n( *)/g
+
+function JsonHighlight({ json }: { json: string }) {
+  const elements = useMemo(() => {
+    const out: Array<React.ReactElement | string> = []
+    let i = 0
+    JSON_TOKEN.lastIndex = 0
+    for (let match = JSON_TOKEN.exec(json); match !== null; match = JSON_TOKEN.exec(json)) {
+      if (match.index > i) out.push(json.slice(i, match.index))
+      i = match.index + match[0].length
+
+      const [, str, colon, num, bool, punct, indent] = match
+      if (str) {
+        const cls = colon ? 'jh-key' : 'jh-str'
+        out.push(
+          <span key={i} className={cls}>
+            {str}
+          </span>,
+        )
+        if (colon) out.push(colon)
+      } else if (num) {
+        out.push(
+          <span key={i} className="jh-num">
+            {num}
+          </span>,
+        )
+      } else if (bool) {
+        out.push(
+          <span key={i} className="jh-bool">
+            {bool}
+          </span>,
+        )
+      } else if (punct) {
+        out.push(
+          <span key={i} className="jh-punct">
+            {punct}
+          </span>,
+        )
+      } else if (indent !== undefined) {
+        out.push(`\n${indent}`)
+      }
+    }
+    if (i < json.length) out.push(json.slice(i))
+    return out
+  }, [json])
+
+  return <>{elements}</>
+}
+
+function TokenStat({ label, value, accent }: { label: string; value: number | null; accent?: boolean }) {
   return (
-    <span className="token-stat">
-      <span className={`mono token-value${bold ? ' token-bold' : ''}`}>{value?.toLocaleString() ?? '—'}</span>
+    <span className={`token-stat${accent ? ' token-stat-accent' : ''}`}>
+      <span className="mono token-value">{value?.toLocaleString() ?? '—'}</span>
       <span className="token-label">{label}</span>
     </span>
   )
