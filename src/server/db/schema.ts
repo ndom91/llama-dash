@@ -13,6 +13,10 @@ export const requests = sqliteTable('requests', {
   totalTokens: integer('total_tokens'),
   streamed: integer('streamed', { mode: 'boolean' }).notNull().default(false),
   error: text('error'),
+  requestHeaders: text('request_headers'),
+  requestBody: text('request_body'),
+  responseHeaders: text('response_headers'),
+  responseBody: text('response_body'),
 })
 
 export type Request = typeof requests.$inferSelect

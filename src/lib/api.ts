@@ -23,6 +23,13 @@ export type ApiRequest = {
   error: string | null
 }
 
+export type ApiRequestDetail = ApiRequest & {
+  requestHeaders: string | null
+  requestBody: string | null
+  responseHeaders: string | null
+  responseBody: string | null
+}
+
 export type ApiHealth = {
   upstream:
     | { reachable: true; health: string; version: string; commit: string; build_date: string }
@@ -46,7 +53,7 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: number | null }>)
   },
-  getRequest: (id: number) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequest }>),
+  getRequest: (id: number) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequestDetail }>),
   loadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/load`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadModel: (id: string) =>

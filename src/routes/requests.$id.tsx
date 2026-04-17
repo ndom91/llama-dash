@@ -1,15 +1,15 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronRight, Clipboard, Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { StatusCell } from '../components/StatusCell'
 import { TopBar } from '../components/TopBar'
-import { api, type ApiRequest } from '../lib/api'
+import { api, type ApiRequestDetail } from '../lib/api'
 
 export const Route = createFileRoute('/requests/$id')({ component: RequestDetail })
 
 function RequestDetail() {
   const { id } = Route.useParams()
-  const [req, setReq] = useState<ApiRequest | null>(null)
+  const [req, setReq] = useState<ApiRequestDetail | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,9 +44,12 @@ function RequestDetail() {
   )
 }
 
-function Detail({ req }: { req: ApiRequest }) {
+function Detail({ req }: { req: ApiRequestDetail }) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const when = new Date(req.startedAt)
+
+  const reqHeaders: Record<string, string> | null = req.requestHeaders ? JSON.parse(req.requestHeaders) : null
+  const resHeaders: Record<string, string> | null = req.responseHeaders ? JSON.parse(req.responseHeaders) : null
 
   return (
     <>
@@ -74,18 +77,14 @@ function Detail({ req }: { req: ApiRequest }) {
             <dd>
               <StatusCell code={req.statusCode} streamed={req.streamed} />
             </dd>
-
             <dt>Time</dt>
             <dd className="mono">{when.toLocaleString([], { hour12: false })}</dd>
-
             <dt>Duration</dt>
             <dd className="mono">{formatDuration(req.durationMs)}</dd>
-
             <dt>Model</dt>
             <dd className="mono" translate="no">
               {req.model ?? <span className="dim">—</span>}
             </dd>
-
             <dt>Streamed</dt>
             <dd>{req.streamed ? 'Yes (SSE)' : 'No'}</dd>
           </dl>
@@ -98,10 +97,8 @@ function Detail({ req }: { req: ApiRequest }) {
           <dl className="dl-grid">
             <dt>Prompt</dt>
             <dd className="mono">{req.promptTokens?.toLocaleString() ?? <span className="dim">—</span>}</dd>
-
             <dt>Completion</dt>
             <dd className="mono">{req.completionTokens?.toLocaleString() ?? <span className="dim">—</span>}</dd>
-
             <dt>Total</dt>
             <dd className="mono" style={{ fontWeight: 600 }}>
               {req.totalTokens?.toLocaleString() ?? <span className="dim">—</span>}
@@ -124,13 +121,125 @@ function Detail({ req }: { req: ApiRequest }) {
               <span className="panel-title" style={{ color: 'var(--warn)' }}>
                 Non-success status
               </span>
-              <span className="panel-sub">HTTP {req.statusCode} — no error body stored</span>
+              <span className="panel-sub">HTTP {req.statusCode}</span>
             </div>
           </section>
         )}
       </div>
+
+      <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
+        {reqHeaders ? <HeadersSection title="Request Headers" headers={reqHeaders} /> : null}
+        {req.requestBody ? <BodySection title="Request Body" body={req.requestBody} /> : null}
+        {resHeaders ? <HeadersSection title="Response Headers" headers={resHeaders} /> : null}
+        {req.responseBody ? <BodySection title="Response Body" body={req.responseBody} /> : null}
+      </div>
     </>
   )
+}
+
+function HeadersSection({ title, headers }: { title: string; headers: Record<string, string> }) {
+  const [open, setOpen] = useState(true)
+  const entries = Object.entries(headers)
+  if (entries.length === 0) return null
+
+  return (
+    <section className="panel">
+      <button type="button" className="panel-head panel-toggle" onClick={() => setOpen(!open)}>
+        {open ? (
+          <ChevronDown className="icon-12" strokeWidth={2} aria-hidden="true" />
+        ) : (
+          <ChevronRight className="icon-12" strokeWidth={2} aria-hidden="true" />
+        )}
+        <span className="panel-title">{title}</span>
+      </button>
+      {open ? (
+        <table className="dtable">
+          <tbody>
+            {entries.map(([k, v]) => (
+              <tr key={k}>
+                <td className="mono" style={{ color: 'var(--accent)', width: 200, fontWeight: 500 }}>
+                  {k}
+                </td>
+                <td className="mono">{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : null}
+    </section>
+  )
+}
+
+function BodySection({ title, body }: { title: string; body: string }) {
+  const [open, setOpen] = useState(true)
+  const [mode, setMode] = useState<'pretty' | 'raw'>('pretty')
+  const [copied, setCopied] = useState(false)
+
+  const pretty = tryPrettyJson(body)
+  const hasPretty = pretty !== null
+  const display = mode === 'pretty' && hasPretty ? pretty : body
+
+  const onCopy = () => {
+    navigator.clipboard.writeText(body)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <section className="panel">
+      <button type="button" className="panel-head panel-toggle" onClick={() => setOpen(!open)}>
+        {open ? (
+          <ChevronDown className="icon-12" strokeWidth={2} aria-hidden="true" />
+        ) : (
+          <ChevronRight className="icon-12" strokeWidth={2} aria-hidden="true" />
+        )}
+        <span className="panel-title">{title}</span>
+      </button>
+      {open ? (
+        <div>
+          <div className="body-toolbar">
+            <div className="body-tabs">
+              {hasPretty ? (
+                <>
+                  <button
+                    type="button"
+                    className={`body-tab${mode === 'pretty' ? ' active' : ''}`}
+                    onClick={() => setMode('pretty')}
+                  >
+                    Pretty
+                  </button>
+                  <button
+                    type="button"
+                    className={`body-tab${mode === 'raw' ? ' active' : ''}`}
+                    onClick={() => setMode('raw')}
+                  >
+                    Raw
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy}>
+              {copied ? (
+                <Check className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              ) : (
+                <Clipboard className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              )}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+          <pre className="body-pre">{display}</pre>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function tryPrettyJson(text: string): string | null {
+  try {
+    return JSON.stringify(JSON.parse(text), null, 2)
+  } catch {
+    return null
+  }
 }
 
 function formatDuration(ms: number): string {

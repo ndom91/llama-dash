@@ -426,6 +426,11 @@ button:disabled {
   padding: 6px;
 }
 
+.icon-12 {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
 .icon-btn-12 {
   width: 12px;
   height: 12px;
@@ -635,6 +640,61 @@ button:disabled {
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.5;
+}
+
+.panel-toggle {
+  cursor: pointer;
+  border: none;
+  background: var(--bg-1);
+  color: inherit;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+}
+.panel-toggle:hover {
+  background: var(--bg-2);
+}
+
+.body-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.body-tabs {
+  display: flex;
+  gap: 2px;
+}
+.body-tab {
+  border: none;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.body-tab:hover {
+  color: var(--fg-muted);
+  background: var(--bg-3);
+}
+.body-tab.active {
+  color: var(--accent);
+  background: var(--bg-3);
+}
+.body-pre {
+  margin: 0;
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: auto;
+  max-height: 600px;
+  color: var(--fg);
 }
 
 /* ---- duration bar ---- */

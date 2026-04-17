@@ -12,6 +12,10 @@ export type RequestLogInput = {
   totalTokens: number | null
   streamed: boolean
   error: string | null
+  requestHeaders: string | null
+  requestBody: string | null
+  responseHeaders: string | null
+  responseBody: string | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -28,6 +32,10 @@ export function writeRequestLog(row: RequestLogInput) {
       totalTokens: row.totalTokens,
       streamed: row.streamed,
       error: row.error,
+      requestHeaders: row.requestHeaders,
+      requestBody: row.requestBody,
+      responseHeaders: row.responseHeaders,
+      responseBody: row.responseBody,
     })
     .run()
 }

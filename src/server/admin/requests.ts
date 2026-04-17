@@ -16,6 +16,13 @@ export type RequestRow = {
   error: string | null
 }
 
+export type RequestDetail = RequestRow & {
+  requestHeaders: string | null
+  requestBody: string | null
+  responseHeaders: string | null
+  responseBody: string | null
+}
+
 export function listRecentRequests(opts: { limit: number; cursor?: number }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
   const rows = db
@@ -41,7 +48,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: number }): Ar
   }))
 }
 
-export function getRequestById(id: number): RequestRow | null {
+export function getRequestById(id: number): RequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
   return {
@@ -57,5 +64,9 @@ export function getRequestById(id: number): RequestRow | null {
     totalTokens: r.totalTokens,
     streamed: r.streamed,
     error: r.error,
+    requestHeaders: r.requestHeaders,
+    requestBody: r.requestBody,
+    responseHeaders: r.responseHeaders,
+    responseBody: r.responseBody,
   }
 }

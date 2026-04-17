@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { Readable } from 'node:stream'
 import { config } from '../config.ts'
 import { writeRequestLog } from './log.ts'
 import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
@@ -33,6 +32,20 @@ const copyResponseHeaders = (upstream: Response, res: ServerResponse) => {
   })
 }
 
+const headersToRecord = (headers: Headers): Record<string, string> => {
+  const out: Record<string, string> = {}
+  headers.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value
+  })
+  return out
+}
+
+async function drainBody(req: IncomingMessage): Promise<Buffer> {
+  const chunks: Array<Buffer> = []
+  for await (const chunk of req) chunks.push(chunk as Buffer)
+  return Buffer.concat(chunks)
+}
+
 /**
  * Handle a /v1/* request: forward it to llama-swap, stream the response back
  * to the client, and record a log row when the exchange completes.
@@ -43,17 +56,17 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
   const endpoint = (req.url ?? '/').split('?')[0]
   const upstream = `${config.llamaSwapUrl}${req.url}`
 
+  const reqHeaders = filterHeaders(req.headers)
   const hasBody = method !== 'GET' && method !== 'HEAD'
-  const body = hasBody ? (Readable.toWeb(req) as ReadableStream) : undefined
+  const reqBodyBuf = hasBody ? await drainBody(req) : null
+  const reqBodyText = reqBodyBuf?.toString('utf-8') ?? null
 
   let upstreamResponse: Response
   try {
     upstreamResponse = await fetch(upstream, {
       method,
-      headers: filterHeaders(req.headers),
-      body,
-      // @ts-expect-error — Node fetch requires this when streaming a request body
-      duplex: hasBody ? 'half' : undefined,
+      headers: reqHeaders,
+      body: reqBodyBuf ? new Uint8Array(reqBodyBuf) : undefined,
       redirect: 'manual',
     })
   } catch (err) {
@@ -66,6 +79,10 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       usage: { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
       streamed: false,
       error: message,
+      reqHeaders: JSON.stringify(reqHeaders),
+      reqBody: reqBodyText,
+      resHeaders: null,
+      resBody: null,
     })
     if (!res.headersSent) {
       res.statusCode = 502
@@ -78,6 +95,7 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
   res.statusCode = upstreamResponse.status
   copyResponseHeaders(upstreamResponse, res)
 
+  const resHeaders = JSON.stringify(headersToRecord(upstreamResponse.headers))
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
   const isSse = contentType.includes('text/event-stream')
   const isJson = contentType.includes('application/json')
@@ -92,13 +110,17 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       usage: { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
       streamed: false,
       error: null,
+      reqHeaders: JSON.stringify(reqHeaders),
+      reqBody: reqBodyText,
+      resHeaders,
+      resBody: null,
     })
     return
   }
 
   const decoder = new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner() : null
-  const jsonChunks: Array<string> = []
+  const responseChunks: Array<string> = []
 
   const reader = upstreamResponse.body.getReader()
 
@@ -109,20 +131,22 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       if (value) {
         res.write(value)
         const text = decoder.decode(value, { stream: true })
+        responseChunks.push(text)
         if (sseScanner) sseScanner.feed(text)
-        else if (isJson) jsonChunks.push(text)
       }
     }
     const tail = decoder.decode()
     if (tail) {
+      responseChunks.push(tail)
       if (sseScanner) sseScanner.feed(tail)
-      else if (isJson) jsonChunks.push(tail)
     }
     res.end()
+
+    const resBody = responseChunks.join('')
     const usage: Usage = sseScanner
       ? sseScanner.done()
       : isJson
-        ? usageFromJsonBody(jsonChunks.join(''))
+        ? usageFromJsonBody(resBody)
         : { model: null, promptTokens: null, completionTokens: null, totalTokens: null }
 
     writeLog({
@@ -133,6 +157,10 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       usage,
       streamed: isSse,
       error: null,
+      reqHeaders: JSON.stringify(reqHeaders),
+      reqBody: reqBodyText,
+      resHeaders,
+      resBody: resBody || null,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
@@ -147,6 +175,10 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
         : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
       streamed: isSse,
       error: message,
+      reqHeaders: JSON.stringify(reqHeaders),
+      reqBody: reqBodyText,
+      resHeaders,
+      resBody: responseChunks.join('') || null,
     })
   }
 }
@@ -159,6 +191,10 @@ function writeLog(input: {
   usage: Usage
   streamed: boolean
   error: string | null
+  reqHeaders: string | null
+  reqBody: string | null
+  resHeaders: string | null
+  resBody: string | null
 }) {
   writeRequestLog({
     startedAt: input.startedAt,
@@ -172,5 +208,9 @@ function writeLog(input: {
     totalTokens: input.usage.totalTokens,
     streamed: input.streamed,
     error: input.error,
+    requestHeaders: input.reqHeaders,
+    requestBody: input.reqBody,
+    responseHeaders: input.resHeaders,
+    responseBody: input.resBody,
   })
 }
