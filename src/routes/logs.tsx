@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { createFileRoute } from '@tanstack/react-router'
-import { Eraser, WrapText } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Eraser, Search, WrapText } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
@@ -11,16 +11,39 @@ export const Route = createFileRoute('/logs')({ component: Logs })
 
 type SourceFilter = 'all' | 'upstream' | 'proxy'
 
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function Logs() {
   const { lines, connected, clear } = useLlamaSwapLogs()
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
   const [wrap, setWrap] = useState(false)
+  const [search, setSearch] = useState('')
+  const [useRegex, setUseRegex] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  const filtered = filter === 'all' ? lines : lines.filter((l) => l.source === filter)
   const maxWidthRef = useRef(0)
   const virtualContainerRef = useRef<HTMLDivElement>(null)
+
+  const sourceFiltered = filter === 'all' ? lines : lines.filter((l) => l.source === filter)
+
+  const searchRe = useMemo(() => {
+    if (!search) return null
+    try {
+      return useRegex ? new RegExp(search, 'gi') : new RegExp(escapeRegex(search), 'gi')
+    } catch {
+      return null
+    }
+  }, [search, useRegex])
+
+  const filtered = useMemo(() => {
+    if (!searchRe) return sourceFiltered
+    return sourceFiltered.filter((l) => {
+      searchRe.lastIndex = 0
+      return searchRe.test(l.text)
+    })
+  }, [sourceFiltered, searchRe])
 
   const virtualizer = useVirtualizer({
     count: filtered.length,
@@ -60,6 +83,11 @@ function Logs() {
     setAutoScroll(atBottom)
   }
 
+  const resetWidth = () => {
+    maxWidthRef.current = 0
+    if (virtualContainerRef.current) virtualContainerRef.current.style.width = ''
+  }
+
   return (
     <div className="main-col">
       <TopBar />
@@ -79,8 +107,7 @@ function Logs() {
                   className="btn btn-ghost btn-xs"
                   onClick={() => {
                     clear()
-                    maxWidthRef.current = 0
-                    if (virtualContainerRef.current) virtualContainerRef.current.style.width = ''
+                    resetWidth()
                   }}
                 >
                   <Eraser className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
@@ -105,6 +132,26 @@ function Logs() {
                 ))}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="log-search">
+                  <Search className="log-search-icon" strokeWidth={2} aria-hidden="true" />
+                  <input
+                    type="text"
+                    className="log-search-input"
+                    placeholder="filter…"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    spellCheck={false}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    className={`log-search-regex${useRegex ? ' active' : ''}`}
+                    onClick={() => setUseRegex(!useRegex)}
+                    title={useRegex ? 'Switch to substring' : 'Switch to regex'}
+                  >
+                    .*
+                  </button>
+                </div>
                 <button
                   type="button"
                   className={`btn btn-ghost btn-xs${wrap ? ' btn-active' : ''}`}
@@ -119,7 +166,7 @@ function Logs() {
             </div>
             <div ref={scrollRef} className="log-scroll" onScroll={onScroll}>
               {filtered.length === 0 ? (
-                <div className="log-empty dim">waiting for log data…</div>
+                <div className="log-empty dim">{search ? 'no matches' : 'waiting for log data…'}</div>
               ) : (
                 <div ref={virtualContainerRef} className="log-virtual" style={{ height: virtualizer.getTotalSize() }}>
                   {virtualizer.getVirtualItems().map((vi) => {
@@ -141,7 +188,7 @@ function Logs() {
                         <span className={`log-source log-source-${line.source}`}>
                           {line.source === 'upstream' ? 'up' : 'px'}
                         </span>
-                        {line.text}
+                        <HighlightedText text={line.text} pattern={searchRe} />
                       </div>
                     )
                   })}
@@ -152,5 +199,38 @@ function Logs() {
         </div>
       </div>
     </div>
+  )
+}
+
+function HighlightedText({ text, pattern }: { text: string; pattern: RegExp | null }) {
+  if (!pattern) return <>{text}</>
+
+  const parts: Array<{ text: string; match: boolean; offset: number }> = []
+  let lastIndex = 0
+  pattern.lastIndex = 0
+  for (let m = pattern.exec(text); m !== null; m = pattern.exec(text)) {
+    if (m.index > lastIndex) parts.push({ text: text.slice(lastIndex, m.index), match: false, offset: lastIndex })
+    parts.push({ text: m[0], match: true, offset: m.index })
+    lastIndex = pattern.lastIndex
+    if (m[0].length === 0) {
+      pattern.lastIndex++
+      if (pattern.lastIndex > text.length) break
+    }
+  }
+  if (lastIndex < text.length) parts.push({ text: text.slice(lastIndex), match: false, offset: lastIndex })
+  if (parts.length === 0) return <>{text}</>
+
+  return (
+    <>
+      {parts.map((p) =>
+        p.match ? (
+          <mark key={p.offset} className="log-match">
+            {p.text}
+          </mark>
+        ) : (
+          p.text
+        ),
+      )}
+    </>
   )
 }
