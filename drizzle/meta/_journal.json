@@ -15,6 +15,13 @@
       "when": 1776448152490,
       "tag": "0001_tan_nomad",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1776448922309,
+      "tag": "0002_tiresome_zombie",
+      "breakpoints": true
     }
   ]
 }

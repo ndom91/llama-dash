@@ -168,7 +168,7 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
               <tr
                 key={r.id}
                 className="clickable-row"
-                onClick={() => navigate({ to: '/requests/$id', params: { id: String(r.id) } })}
+                onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
               >
                 <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                 <td className="mono" translate="no">

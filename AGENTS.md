@@ -114,6 +114,27 @@ Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
   `minimumReleaseAge` policy (>24h); installs will fail on freshly
   published versions. Pick a version that satisfies it rather than bypassing.
 
+## Entity IDs
+
+All entity primary keys are **prefixed ULIDs** stored as `text` in SQLite.
+Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
+
+| Entity   | Prefix |
+| -------- | ------ |
+| Request  | `req`  |
+
+When adding a new table, pick a short (2–4 char) lowercase prefix, add it
+to the table above, and generate the ID at insert time via `ulidx`:
+
+```ts
+import { ulid } from 'ulidx'
+const id = `pfx_${ulid()}`
+```
+
+IDs are strings everywhere — schema, API types, route params, query keys.
+Never `Number()` them. Cursor-based pagination uses the ID directly (ULIDs
+sort lexicographically by creation time).
+
 ## Dev environment
 
 - Upstream llama-swap lives at `llama-swap.puff.lan` (the reference

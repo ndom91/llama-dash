@@ -96,7 +96,7 @@ function Requests() {
                     <tr
                       key={r.id}
                       className="clickable-row"
-                      onClick={() => navigate({ to: '/requests/$id', params: { id: String(r.id) } })}
+                      onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
                     >
                       <td className="mono dim">{formatWhen(r.startedAt)}</td>
                       <td className="mono" style={{ color: 'var(--fg-muted)' }}>

@@ -10,7 +10,7 @@ export const Route = createFileRoute('/requests/$id')({ component: RequestDetail
 
 function RequestDetail() {
   const { id } = Route.useParams()
-  const { data: req, error } = useRequest(Number(id))
+  const { data: req, error } = useRequest(id)
 
   return (
     <div className="main-col">
