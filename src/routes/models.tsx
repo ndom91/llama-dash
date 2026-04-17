@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import { api, type ApiModel } from '../lib/api'
@@ -26,7 +27,12 @@ function Models() {
     setUnloadingId(id)
     try {
       await api.unloadModel(id)
+      toast.success(`Unloaded ${id}`)
       await refresh()
+    } catch (e) {
+      toast.error('Unload failed', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setUnloadingId(null)
     }
@@ -36,7 +42,12 @@ function Models() {
     setUnloadingAll(true)
     try {
       await api.unloadAll()
+      toast.success('Unloaded all models')
       await refresh()
+    } catch (e) {
+      toast.error('Unload-all failed', {
+        description: e instanceof Error ? e.message : String(e),
+      })
     } finally {
       setUnloadingAll(false)
     }

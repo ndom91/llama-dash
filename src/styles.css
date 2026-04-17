@@ -705,3 +705,52 @@ a,
   font-family: var(--font-mono);
   margin-bottom: 16px;
 }
+
+/* ---- sonner toaster ---- */
+/*
+ * Sonner ships its own design; we hook into its CSS variables so toasts
+ * draw from the same tokens as the rest of the app. Classnames set via
+ * `toastOptions.classNames` in __root.tsx.
+ */
+[data-sonner-toaster] {
+  --normal-bg: var(--bg-2);
+  --normal-border: var(--border-strong);
+  --normal-text: var(--fg);
+  --success-bg: var(--bg-2);
+  --success-border: var(--ok);
+  --success-text: var(--fg);
+  --error-bg: var(--bg-2);
+  --error-border: var(--err);
+  --error-text: var(--fg);
+  --info-bg: var(--bg-2);
+  --info-border: var(--info);
+  --info-text: var(--fg);
+  --warning-bg: var(--bg-2);
+  --warning-border: var(--warn);
+  --warning-text: var(--fg);
+  font-family: var(--font-sans);
+}
+.llama-toast {
+  border-radius: 8px !important;
+  font-size: 12.5px;
+  letter-spacing: -0.005em;
+}
+.llama-toast-title {
+  font-weight: 500;
+}
+.llama-toast-desc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+  word-break: break-all;
+}
+.llama-toast-close {
+  background: var(--bg-3) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--fg-muted) !important;
+}
+.llama-toast-close:hover {
+  background: var(--bg-4) !important;
+  color: var(--fg) !important;
+}

@@ -1,6 +1,7 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { LiveDataProvider } from '../lib/live-data'
 
@@ -35,6 +36,19 @@ function RootDocument() {
             <Sidebar />
             <Outlet />
           </div>
+          <Toaster
+            position="bottom-center"
+            theme="system"
+            closeButton
+            toastOptions={{
+              classNames: {
+                toast: 'llama-toast',
+                title: 'llama-toast-title',
+                description: 'llama-toast-desc',
+                closeButton: 'llama-toast-close',
+              },
+            }}
+          />
           <TanStackDevtools
             config={{ position: 'bottom-right' }}
             plugins={[{ name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> }]}
