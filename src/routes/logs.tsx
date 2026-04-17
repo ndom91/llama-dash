@@ -1,7 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { createFileRoute } from '@tanstack/react-router'
 import { Eraser, WrapText } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
@@ -19,6 +19,8 @@ function Logs() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const filtered = filter === 'all' ? lines : lines.filter((l) => l.source === filter)
+  const maxWidthRef = useRef(0)
+  const virtualContainerRef = useRef<HTMLDivElement>(null)
 
   const virtualizer = useVirtualizer({
     count: filtered.length,
@@ -33,6 +35,23 @@ function Logs() {
       virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
     }
   }, [filtered.length, autoScroll])
+
+  const measureRow = useCallback(
+    (el: HTMLElement | null) => {
+      if (!el) return
+      virtualizer.measureElement(el)
+      if (!wrap) {
+        const w = el.scrollWidth
+        if (w > maxWidthRef.current) {
+          maxWidthRef.current = w
+          if (virtualContainerRef.current) {
+            virtualContainerRef.current.style.width = `${w}px`
+          }
+        }
+      }
+    },
+    [virtualizer, wrap],
+  )
 
   const onScroll = () => {
     const el = scrollRef.current
@@ -55,7 +74,15 @@ function Logs() {
                   <StatusDot tone={connected ? 'ok' : 'err'} live={connected} />
                   <span>{connected ? 'connected' : 'disconnected'}</span>
                 </span>
-                <button type="button" className="btn btn-ghost btn-xs" onClick={clear}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => {
+                    clear()
+                    maxWidthRef.current = 0
+                    if (virtualContainerRef.current) virtualContainerRef.current.style.width = ''
+                  }}
+                >
                   <Eraser className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                   clear
                 </button>
@@ -94,7 +121,7 @@ function Logs() {
               {filtered.length === 0 ? (
                 <div className="log-empty dim">waiting for log data…</div>
               ) : (
-                <div className="log-virtual" style={{ height: virtualizer.getTotalSize() }}>
+                <div ref={virtualContainerRef} className="log-virtual" style={{ height: virtualizer.getTotalSize() }}>
                   {virtualizer.getVirtualItems().map((vi) => {
                     const line = filtered[vi.index]
                     return (
@@ -102,12 +129,12 @@ function Logs() {
                         key={line.id}
                         className={`log-line${wrap ? ' log-line-wrap' : ''}`}
                         data-index={vi.index}
-                        ref={virtualizer.measureElement}
+                        ref={measureRow}
                         style={{
                           position: 'absolute',
                           top: 0,
                           left: 0,
-                          right: 0,
+                          minWidth: '100%',
                           transform: `translateY(${vi.start}px)`,
                         }}
                       >

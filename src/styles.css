@@ -921,7 +921,6 @@ button:disabled {
 .log-virtual {
   position: relative;
   min-width: 100%;
-  width: max-content;
 }
 .log-line {
   font-family: var(--font-mono);
