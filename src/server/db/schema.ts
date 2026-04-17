@@ -1,7 +1,7 @@
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const requests = sqliteTable('requests', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
+  id: text('id').primaryKey(),
   startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
   durationMs: integer('duration_ms').notNull(),
   method: text('method').notNull(),

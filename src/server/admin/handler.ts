@@ -76,7 +76,7 @@ const routes: Array<Route> = [
       const cursor = url.searchParams.get('cursor')
       const rows = listRecentRequests({
         limit,
-        cursor: cursor ? Number(cursor) : undefined,
+        cursor: cursor ?? undefined,
       })
       json(res, 200, {
         requests: rows,
@@ -86,9 +86,9 @@ const routes: Array<Route> = [
   },
   {
     method: 'GET',
-    pattern: /^\/api\/requests\/(\d+)$/,
+    pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)$/,
     handler: async (_req, res, match) => {
-      const id = Number(match[1])
+      const id = match[1]
       const row = getRequestById(id)
       if (!row) return error(res, 404, `Request ${id} not found`)
       json(res, 200, { request: row })

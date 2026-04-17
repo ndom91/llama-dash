@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { Readable } from 'node:stream'
 import { config } from '../config.ts'
 import { writeRequestLog } from './log.ts'
 import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
@@ -40,10 +41,18 @@ const headersToRecord = (headers: Headers): Record<string, string> => {
   return out
 }
 
-async function drainBody(req: IncomingMessage): Promise<Buffer> {
-  const chunks: Array<Buffer> = []
-  for await (const chunk of req) chunks.push(chunk as Buffer)
-  return Buffer.concat(chunks)
+async function drainStream(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader()
+  const decoder = new TextDecoder()
+  const chunks: Array<string> = []
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    if (value) chunks.push(decoder.decode(value, { stream: true }))
+  }
+  const tail = decoder.decode()
+  if (tail) chunks.push(tail)
+  return chunks.join('')
 }
 
 /**
@@ -58,19 +67,29 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
 
   const reqHeaders = filterHeaders(req.headers)
   const hasBody = method !== 'GET' && method !== 'HEAD'
-  const reqBodyBuf = hasBody ? await drainBody(req) : null
-  const reqBodyText = reqBodyBuf?.toString('utf-8') ?? null
+
+  let fetchBody: ReadableStream | undefined
+  let reqBodyPromise: Promise<string> | undefined
+  if (hasBody) {
+    const reqStream = Readable.toWeb(req) as ReadableStream<Uint8Array>
+    const [forFetch, forLog] = reqStream.tee()
+    fetchBody = forFetch
+    reqBodyPromise = drainStream(forLog)
+  }
 
   let upstreamResponse: Response
   try {
     upstreamResponse = await fetch(upstream, {
       method,
       headers: reqHeaders,
-      body: reqBodyBuf ? new Uint8Array(reqBodyBuf) : undefined,
+      body: fetchBody,
+      // @ts-expect-error — Node fetch requires duplex for streaming request bodies
+      duplex: hasBody ? 'half' : undefined,
       redirect: 'manual',
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
+    const reqBodyText = (await reqBodyPromise) ?? null
     writeLog({
       startedAt,
       status: 502,
@@ -102,6 +121,7 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
 
   if (!upstreamResponse.body) {
     res.end()
+    const reqBodyText = (await reqBodyPromise) ?? null
     writeLog({
       startedAt,
       status: upstreamResponse.status,
@@ -149,6 +169,7 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
         ? usageFromJsonBody(resBody)
         : { model: null, promptTokens: null, completionTokens: null, totalTokens: null }
 
+    const reqBodyText = (await reqBodyPromise) ?? null
     writeLog({
       startedAt,
       status: upstreamResponse.status,
@@ -165,6 +186,7 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     if (!res.writableEnded) res.end()
+    const reqBodyText = (await reqBodyPromise?.catch(() => null)) ?? null
     writeLog({
       startedAt,
       status: upstreamResponse.status,

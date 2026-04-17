@@ -2,7 +2,7 @@ import { and, desc, eq, lt } from 'drizzle-orm'
 import { db, schema } from '../db/index.ts'
 
 export type RequestRow = {
-  id: number
+  id: string
   startedAt: string
   durationMs: number
   method: string
@@ -23,7 +23,7 @@ export type RequestDetail = RequestRow & {
   responseBody: string | null
 }
 
-export function listRecentRequests(opts: { limit: number; cursor?: number }): Array<RequestRow> {
+export function listRecentRequests(opts: { limit: number; cursor?: string }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
   const rows = db
     .select()
@@ -48,7 +48,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: number }): Ar
   }))
 }
 
-export function getRequestById(id: number): RequestDetail | null {
+export function getRequestById(id: string): RequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
   return {

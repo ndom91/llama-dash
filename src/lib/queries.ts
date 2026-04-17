@@ -18,7 +18,7 @@ export const qk = {
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
   requestsRecent: ['requests', 'recent'] as const,
-  request: (id: number) => ['requests', id] as const,
+  request: (id: string) => ['requests', id] as const,
 }
 
 export function useHealth(): UseQueryResult<ApiHealth> {
@@ -46,7 +46,7 @@ export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>>
 
 const PAGE_SIZE = 50
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: number | null }
+type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
 export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }> {
   return useInfiniteQuery({

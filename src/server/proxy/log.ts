@@ -1,3 +1,4 @@
+import { ulid } from 'ulidx'
 import { db, schema } from '../db/index.ts'
 
 export type RequestLogInput = {
@@ -21,6 +22,7 @@ export type RequestLogInput = {
 export function writeRequestLog(row: RequestLogInput) {
   db.insert(schema.requests)
     .values({
+      id: `req_${ulid()}`,
       startedAt: new Date(row.startedAt),
       durationMs: row.durationMs,
       method: row.method,

@@ -9,7 +9,7 @@ export type ApiModel = {
 }
 
 export type ApiRequest = {
-  id: number
+  id: string
   startedAt: string
   durationMs: number
   method: string
@@ -46,14 +46,14 @@ const json = async <T>(res: Response): Promise<T> => {
 
 export const api = {
   listModels: () => fetch('/api/models').then(json<{ models: Array<ApiModel> }>),
-  listRequests: (params: { limit?: number; cursor?: number } = {}) => {
+  listRequests: (params: { limit?: number; cursor?: string } = {}) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
-    if (params.cursor != null) q.set('cursor', String(params.cursor))
+    if (params.cursor != null) q.set('cursor', params.cursor)
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: number | null }>)
+    return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: string | null }>)
   },
-  getRequest: (id: number) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequestDetail }>),
+  getRequest: (id: string) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequestDetail }>),
   loadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/load`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadModel: (id: string) =>
