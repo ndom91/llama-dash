@@ -247,7 +247,6 @@ button:disabled {
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 6px;
   color: var(--fg-muted);
   font-size: 13px;
   font-weight: 500;
@@ -613,7 +612,8 @@ button:disabled {
 
 .page {
   padding: 20px 24px 48px;
-  max-width: 1200px;
+  max-width: 1280px;
+  margin-inline: auto;
 }
 .page-title {
   font-size: 20px;
