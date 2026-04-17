@@ -7,7 +7,7 @@ export type LogLine = {
   ts: number
 }
 
-const MAX_LINES = 2000
+const MAX_LINES = 10_000
 let nextId = 0
 
 export function useLlamaSwapLogs() {

@@ -408,6 +408,11 @@ button:disabled {
   color: var(--fg);
   border-color: transparent;
 }
+.btn-ghost.btn-active {
+  background: var(--bg-4);
+  color: var(--accent);
+  border-color: var(--border);
+}
 .btn-danger-ghost {
   border-color: transparent;
   background: transparent;
@@ -921,10 +926,13 @@ button:disabled {
   font-family: var(--font-mono);
   font-size: 11.5px;
   line-height: 20px;
-  white-space: pre-wrap;
-  word-break: break-all;
+  white-space: pre;
   padding: 0 14px;
   color: var(--fg-muted);
+}
+.log-line-wrap {
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 .log-line:hover {
   background: var(--bg-3);

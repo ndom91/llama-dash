@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { createFileRoute } from '@tanstack/react-router'
-import { Eraser } from 'lucide-react'
+import { Eraser, WrapText } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
@@ -15,6 +15,7 @@ function Logs() {
   const { lines, connected, clear } = useLlamaSwapLogs()
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
+  const [wrap, setWrap] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const filtered = filter === 'all' ? lines : lines.filter((l) => l.source === filter)
@@ -76,7 +77,18 @@ function Logs() {
                   </button>
                 ))}
               </div>
-              <span className="log-count mono">{filtered.length} lines</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  className={`btn btn-ghost btn-xs${wrap ? ' btn-active' : ''}`}
+                  onClick={() => setWrap(!wrap)}
+                  title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
+                >
+                  <WrapText className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  wrap
+                </button>
+                <span className="log-count mono">{filtered.length} lines</span>
+              </div>
             </div>
             <div ref={scrollRef} className="log-scroll" onScroll={onScroll}>
               {filtered.length === 0 ? (
@@ -88,7 +100,7 @@ function Logs() {
                     return (
                       <div
                         key={line.id}
-                        className="log-line"
+                        className={`log-line${wrap ? ' log-line-wrap' : ''}`}
                         data-index={vi.index}
                         ref={virtualizer.measureElement}
                         style={{
