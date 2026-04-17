@@ -1,10 +1,10 @@
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { createFileRoute } from '@tanstack/react-router'
 import { Eraser } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
-import type { LogLine } from '../lib/use-llama-swap-logs'
 import { useLlamaSwapLogs } from '../lib/use-llama-swap-logs'
 
 export const Route = createFileRoute('/logs')({ component: Logs })
@@ -15,14 +15,21 @@ function Logs() {
   const { lines, connected, clear } = useLlamaSwapLogs()
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
-  const scrollRef = useRef<HTMLPreElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const filtered = filter === 'all' ? lines : lines.filter((l) => l.source === filter)
 
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 20,
+    overscan: 40,
+  })
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on new lines
   useEffect(() => {
-    if (autoScroll && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (autoScroll && filtered.length > 0) {
+      virtualizer.scrollToIndex(filtered.length - 1, { align: 'end' })
     }
   }, [filtered.length, autoScroll])
 
@@ -71,26 +78,40 @@ function Logs() {
               </div>
               <span className="log-count mono">{filtered.length} lines</span>
             </div>
-            <pre ref={scrollRef} className="log-pre" onScroll={onScroll}>
+            <div ref={scrollRef} className="log-scroll" onScroll={onScroll}>
               {filtered.length === 0 ? (
-                <span className="dim">waiting for log data…</span>
+                <div className="log-empty dim">waiting for log data…</div>
               ) : (
-                filtered.map((line) => <LogEntry key={line.id} line={line} />)
+                <div className="log-virtual" style={{ height: virtualizer.getTotalSize() }}>
+                  {virtualizer.getVirtualItems().map((vi) => {
+                    const line = filtered[vi.index]
+                    return (
+                      <div
+                        key={line.id}
+                        className="log-line"
+                        data-index={vi.index}
+                        ref={virtualizer.measureElement}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          transform: `translateY(${vi.start}px)`,
+                        }}
+                      >
+                        <span className={`log-source log-source-${line.source}`}>
+                          {line.source === 'upstream' ? 'up' : 'px'}
+                        </span>
+                        {line.text}
+                      </div>
+                    )
+                  })}
+                </div>
               )}
-            </pre>
+            </div>
           </section>
         </div>
       </div>
     </div>
-  )
-}
-
-function LogEntry({ line }: { line: LogLine }) {
-  return (
-    <span className="log-line">
-      <span className={`log-source log-source-${line.source}`}>{line.source === 'upstream' ? 'up' : 'px'}</span>
-      {line.text}
-      {'\n'}
-    </span>
   )
 }

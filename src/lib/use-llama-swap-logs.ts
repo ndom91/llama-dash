@@ -31,18 +31,18 @@ export function useLlamaSwapLogs() {
 
         const logData = typeof envelope.data === 'string' ? JSON.parse(envelope.data) : envelope.data
         const source: 'upstream' | 'proxy' = logData.source === 'proxy' ? 'proxy' : 'upstream'
-        const text: string = logData.data ?? ''
-        if (!text) return
+        const raw: string = logData.data ?? ''
+        if (!raw) return
 
-        const line: LogLine = {
-          id: nextId++,
-          source,
-          text,
-          ts: Date.now(),
-        }
+        const ts = Date.now()
+        const newLines = raw
+          .split('\n')
+          .filter((t: string) => t.length > 0)
+          .map((text: string) => ({ id: nextId++, source, text, ts }) as LogLine)
+        if (newLines.length === 0) return
 
         setLines((prev) => {
-          const next = [...prev, line]
+          const next = [...prev, ...newLines]
           return next.length > MAX_LINES ? next.slice(next.length - MAX_LINES) : next
         })
       } catch {
