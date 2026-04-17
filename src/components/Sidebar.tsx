@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router'
-import { Activity, Boxes, LayoutDashboard, ScrollText } from 'lucide-react'
+import { Activity, Boxes, LayoutDashboard, ScrollText, Terminal } from 'lucide-react'
 import { useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 
 type NavItem = {
-  to: '/' | '/models' | '/requests'
+  to: '/' | '/models' | '/requests' | '/logs'
   label: string
   Icon: typeof LayoutDashboard
 }
@@ -14,6 +14,7 @@ const NAV: ReadonlyArray<NavItem> = [
   { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/models', label: 'Models', Icon: Boxes },
   { to: '/requests', label: 'Requests', Icon: ScrollText },
+  { to: '/logs', label: 'Logs', Icon: Terminal },
 ]
 
 export function Sidebar() {

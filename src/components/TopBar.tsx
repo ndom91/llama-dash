@@ -8,6 +8,7 @@ function resolveTitle(pathname: string): string {
   if (pathname === '/') return 'Dashboard'
   if (pathname === '/models') return 'Models'
   if (pathname.startsWith('/requests')) return 'Requests'
+  if (pathname === '/logs') return 'Logs'
   return 'llama-dash'
 }
 

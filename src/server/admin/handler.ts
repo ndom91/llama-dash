@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { config } from '../config.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { getRequestById, listRecentRequests } from './requests.ts'
+import { getAdjacentIds, getRequestById, listRecentRequests } from './requests.ts'
 
 type Handler = (req: IncomingMessage, res: ServerResponse, match: RegExpMatchArray) => Promise<void> | void
 
@@ -91,7 +92,38 @@ const routes: Array<Route> = [
       const id = match[1]
       const row = getRequestById(id)
       if (!row) return error(res, 404, `Request ${id} not found`)
-      json(res, 200, { request: row })
+      const { prevId, nextId } = getAdjacentIds(id)
+      json(res, 200, { request: row, prevId, nextId })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/events$/,
+    handler: async (req, res) => {
+      const upstream = await fetch(`${config.llamaSwapUrl}/api/events`)
+      if (!upstream.ok || !upstream.body) {
+        return error(res, 502, 'Failed to connect to llama-swap event stream')
+      }
+      res.writeHead(200, {
+        'content-type': 'text/event-stream',
+        'cache-control': 'no-cache',
+        connection: 'keep-alive',
+      })
+      const reader = upstream.body.getReader()
+      const pump = async () => {
+        for (;;) {
+          const { done, value } = await reader.read()
+          if (done) break
+          if (!res.writable) break
+          res.write(value)
+        }
+        if (!res.writableEnded) res.end()
+      }
+      req.on('close', () => {
+        reader.cancel().catch(() => {})
+        if (!res.writableEnded) res.end()
+      })
+      await pump()
     },
   },
   {
