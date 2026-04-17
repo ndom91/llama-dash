@@ -6,9 +6,17 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+import { llamaDashServer } from './src/server/vite-plugin'
+
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
-  plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [
+    llamaDashServer(),
+    devtools(),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
 })
 
 export default config
