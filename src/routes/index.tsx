@@ -1,48 +1,34 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, RefreshCw } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import { api, type ApiModel, type ApiRequest } from '../lib/api'
-import { useLiveData } from '../lib/live-data'
+import type { ApiModel, ApiRequest } from '../lib/api'
+import { qk, useModels, useRecentRequests } from '../lib/queries'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
 
 function Dashboard() {
-  const { models, err: liveErr, refresh } = useLiveData()
-  const [requests, setRequests] = useState<Array<ApiRequest> | null>(null)
-  const [reqErr, setReqErr] = useState<string | null>(null)
+  const qc = useQueryClient()
+  const { data: models, error: modelsErr } = useModels()
+  const { data: requests, error: reqErr } = useRecentRequests()
   const [refreshing, setRefreshing] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    api
-      .listRequests({ limit: 10 })
-      .then((r) => !cancelled && setRequests(r.requests))
-      .catch((e: Error) => !cancelled && setReqErr(e.message))
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const doRefresh = async () => {
     setRefreshing(true)
-    try {
-      const [, r] = await Promise.all([refresh(), api.listRequests({ limit: 10 })])
-      setRequests(r.requests)
-      setReqErr(null)
-    } catch (e) {
-      setReqErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setRefreshing(false)
-    }
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: qk.models }),
+      qc.invalidateQueries({ queryKey: qk.requestsRecent }),
+    ])
+    setRefreshing(false)
   }
 
   const running = useMemo(() => models?.filter((m) => m.running) ?? [], [models])
-  const err = liveErr ?? reqErr
+  const err = modelsErr?.message ?? reqErr?.message ?? null
 
   return (
     <div className="main-col">
@@ -74,7 +60,7 @@ function Dashboard() {
 
           <div style={{ display: 'grid', gap: 20 }}>
             <RunningModelsPanel running={running} total={models?.length ?? null} />
-            <RecentRequestsPanel requests={requests} />
+            <RecentRequestsPanel requests={requests ?? null} />
           </div>
         </div>
       </div>

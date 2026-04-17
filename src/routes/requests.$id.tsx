@@ -1,23 +1,16 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { ArrowLeft, ChevronDown, ChevronRight, Clipboard, Check } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { StatusCell } from '../components/StatusCell'
 import { TopBar } from '../components/TopBar'
-import { api, type ApiRequestDetail } from '../lib/api'
+import type { ApiRequestDetail } from '../lib/api'
+import { useRequest } from '../lib/queries'
 
 export const Route = createFileRoute('/requests/$id')({ component: RequestDetail })
 
 function RequestDetail() {
   const { id } = Route.useParams()
-  const [req, setReq] = useState<ApiRequestDetail | null>(null)
-  const [err, setErr] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .getRequest(Number(id))
-      .then((r) => setReq(r.request))
-      .catch((e: Error) => setErr(e.message))
-  }, [id])
+  const { data: req, error } = useRequest(Number(id))
 
   return (
     <div className="main-col">
@@ -31,8 +24,8 @@ function RequestDetail() {
       />
       <div className="content">
         <div className="page">
-          {err ? (
-            <div className="err-banner">{err}</div>
+          {error ? (
+            <div className="err-banner">{error.message}</div>
           ) : req == null ? (
             <div className="empty-state">loading…</div>
           ) : (

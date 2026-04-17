@@ -1,75 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Play, Power, PowerOff, RefreshCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { toast } from 'sonner'
+import { useMemo } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import { api, type ApiModel } from '../lib/api'
-import { useLiveData } from '../lib/live-data'
+import type { ApiModel } from '../lib/api'
+import { useLoadModel, useModels, useUnloadAll, useUnloadModel } from '../lib/queries'
 
 export const Route = createFileRoute('/models')({ component: Models })
 
 function Models() {
-  const { models, err, refresh } = useLiveData()
-  const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [unloadingId, setUnloadingId] = useState<string | null>(null)
-  const [unloadingAll, setUnloadingAll] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const { data: models, error, isRefetching, refetch } = useModels()
+  const loadModel = useLoadModel()
+  const unloadModel = useUnloadModel()
+  const unloadAll = useUnloadAll()
 
   const hasRunning = useMemo(() => models?.some((m) => m.running) ?? false, [models])
-
-  const doRefresh = async () => {
-    setRefreshing(true)
-    await refresh()
-    setRefreshing(false)
-  }
-
-  const onLoad = async (id: string) => {
-    setLoadingId(id)
-    try {
-      await api.loadModel(id)
-      toast.success(`Loaded ${id}`)
-      await refresh()
-    } catch (e) {
-      toast.error('Load failed', {
-        description: e instanceof Error ? e.message : String(e),
-      })
-    } finally {
-      setLoadingId(null)
-    }
-  }
-
-  const onUnload = async (id: string) => {
-    setUnloadingId(id)
-    try {
-      await api.unloadModel(id)
-      toast.success(`Unloaded ${id}`)
-      await refresh()
-    } catch (e) {
-      toast.error('Unload failed', {
-        description: e instanceof Error ? e.message : String(e),
-      })
-    } finally {
-      setUnloadingId(null)
-    }
-  }
-
-  const onUnloadAll = async () => {
-    setUnloadingAll(true)
-    try {
-      await api.unloadAll()
-      toast.success('Unloaded all models')
-      await refresh()
-    } catch (e) {
-      toast.error('Unload-all failed', {
-        description: e instanceof Error ? e.message : String(e),
-      })
-    } finally {
-      setUnloadingAll(false)
-    }
-  }
 
   return (
     <div className="main-col">
@@ -79,12 +26,12 @@ function Models() {
             <button
               type="button"
               className="btn btn-ghost btn-icon"
-              onClick={doRefresh}
-              disabled={refreshing}
+              onClick={() => refetch()}
+              disabled={isRefetching}
               aria-label="Refresh models"
             >
               <RefreshCw
-                className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+                className={`icon-14${isRefetching ? ' animate-spin' : ''}`}
                 strokeWidth={1.75}
                 aria-hidden="true"
               />
@@ -105,17 +52,17 @@ function Models() {
               <button
                 type="button"
                 className="btn btn-danger-ghost btn-xs"
-                onClick={onUnloadAll}
-                disabled={!hasRunning || unloadingAll}
+                onClick={() => unloadAll.mutate()}
+                disabled={!hasRunning || unloadAll.isPending}
                 title="Unload every running model"
               >
                 <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                {unloadingAll ? 'unloading…' : 'unload all'}
+                {unloadAll.isPending ? 'unloading…' : 'unload all'}
               </button>
             }
           />
 
-          {err ? <div className="err-banner">{err}</div> : null}
+          {error ? <div className="err-banner">{error.message}</div> : null}
 
           <section className="panel">
             {models == null ? (
@@ -143,10 +90,10 @@ function Models() {
                     <ModelRow
                       key={m.id}
                       model={m}
-                      loading={loadingId === m.id}
-                      unloading={unloadingId === m.id}
-                      onLoad={() => onLoad(m.id)}
-                      onUnload={() => onUnload(m.id)}
+                      loading={loadModel.isPending && loadModel.variables === m.id}
+                      unloading={unloadModel.isPending && unloadModel.variables === m.id}
+                      onLoad={() => loadModel.mutate(m.id)}
+                      onUnload={() => unloadModel.mutate(m.id)}
                     />
                   ))}
                 </tbody>

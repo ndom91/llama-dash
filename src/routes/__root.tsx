@@ -1,10 +1,14 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
-import { LiveDataProvider } from '../lib/live-data'
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 2_000, retry: 1 } },
+})
 
 import appCss from '../styles.css?url'
 
@@ -32,7 +36,7 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        <LiveDataProvider>
+        <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <div className="app-shell">
               <Sidebar />
@@ -56,7 +60,7 @@ function RootDocument() {
             config={{ position: 'bottom-right' }}
             plugins={[{ name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> }]}
           />
-        </LiveDataProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>

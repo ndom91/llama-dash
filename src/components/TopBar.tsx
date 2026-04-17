@@ -1,6 +1,6 @@
 import { useMatches } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
-import { useLiveData } from '../lib/live-data'
+import { useHealth, useModels } from '../lib/queries'
 import { StatusDot } from './StatusDot'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -15,10 +15,10 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
   const title = resolveTitle(leaf)
-  const { health, models } = useLiveData()
+  const { data: health } = useHealth()
+  const { data: models } = useModels()
 
   const reachable = health?.upstream.reachable === true
-  // Discriminated-union narrow — no cast needed when we read from the checked branch.
   const version = health?.upstream.reachable === true ? health.upstream.version : null
   const running = models?.filter((m) => m.running).length ?? 0
 

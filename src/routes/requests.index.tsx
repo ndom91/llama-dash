@@ -1,58 +1,22 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import { api, type ApiRequest } from '../lib/api'
+import { useRequestsList } from '../lib/queries'
 
 export const Route = createFileRoute('/requests/')({ component: Requests })
 
-const PAGE_SIZE = 50
-
 function Requests() {
   const navigate = useNavigate()
-  const [rows, setRows] = useState<Array<ApiRequest>>([])
-  const [cursor, setCursor] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
+  const { data, error, isLoading, isRefetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useRequestsList()
 
-  const loadFirst = useCallback(async () => {
-    setLoading(true)
-    try {
-      const data = await api.listRequests({ limit: PAGE_SIZE })
-      setRows(data.requests)
-      setCursor(data.nextCursor)
-      setErr(null)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const rows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
-  useEffect(() => {
-    loadFirst()
-  }, [loadFirst])
-
-  const loadMore = useCallback(async () => {
-    if (cursor == null || loadingMore) return
-    setLoadingMore(true)
-    try {
-      const data = await api.listRequests({ limit: PAGE_SIZE, cursor })
-      setRows((prev) => [...prev, ...data.requests])
-      setCursor(data.nextCursor)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoadingMore(false)
-    }
-  }, [cursor, loadingMore])
-
-  // Walk the list once — avoids Math.max(...rows.map()) creating a throwaway array per render.
   const max = useMemo(() => {
     let m = 1
     for (const r of rows) if (r.durationMs > m) m = r.durationMs
@@ -73,12 +37,12 @@ function Requests() {
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
-                onClick={loadFirst}
-                disabled={loading}
+                onClick={() => refetch()}
+                disabled={isRefetching}
                 aria-label="Refresh request log"
               >
                 <RefreshCw
-                  className={`icon-14${loading ? ' animate-spin' : ''}`}
+                  className={`icon-14${isRefetching ? ' animate-spin' : ''}`}
                   strokeWidth={1.75}
                   aria-hidden="true"
                 />
@@ -94,10 +58,10 @@ function Requests() {
             every call through <code translate="no">/v1/*</code>, newest first — bodies not stored
           </p>
 
-          {err ? <div className="err-banner">{err}</div> : null}
+          {error ? <div className="err-banner">{error.message}</div> : null}
 
           <section className="panel">
-            {loading && rows.length === 0 ? (
+            {isLoading ? (
               <div className="empty-state">loading…</div>
             ) : rows.length === 0 ? (
               <div className="empty-state">
@@ -168,10 +132,15 @@ function Requests() {
             )}
           </section>
 
-          {cursor != null ? (
+          {hasNextPage ? (
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <button type="button" className="btn btn-xs" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? 'loading…' : 'load more'}
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? 'loading…' : 'load more'}
               </button>
             </div>
           ) : null}
