@@ -68,20 +68,26 @@ export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<Request
   })
 }
 
-export function useRequest(id: string): UseQueryResult<ApiRequestDetail> {
+type RequestDetailResult = {
+  request: ApiRequestDetail
+  prevId: string | null
+  nextId: string | null
+}
+
+export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
   const qc = useQueryClient()
   return useQuery({
     queryKey: qk.request(id),
-    queryFn: () => api.getRequest(id).then((r) => r.request),
+    queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
-    initialData: () => {
+    placeholderData: (prev) => {
       const lists = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
       const recent = qc.getQueryData<Array<ApiRequest>>(qk.requestsRecent)
       const all = [...(lists?.pages.flatMap((p) => p.requests) ?? []), ...(recent ?? [])]
       const match = all.find((r) => r.id === id)
-      return match ? (match as ApiRequestDetail) : undefined
+      if (match) return { request: match as ApiRequestDetail, prevId: null, nextId: null }
+      return prev
     },
-    initialDataUpdatedAt: () => qc.getQueryState(qk.requestsList)?.dataUpdatedAt,
   })
 }
 

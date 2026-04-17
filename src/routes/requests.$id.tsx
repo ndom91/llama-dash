@@ -1,7 +1,9 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Clipboard } from 'lucide-react'
+import { useHotkey } from '@tanstack/react-hotkeys'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Clipboard } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { StatusCell } from '../components/StatusCell'
+import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiRequestDetail } from '../lib/api'
 import { useRequest } from '../lib/queries'
@@ -10,7 +12,11 @@ export const Route = createFileRoute('/requests/$id')({ component: RequestDetail
 
 function RequestDetail() {
   const { id } = Route.useParams()
-  const { data: req, error } = useRequest(id)
+  const { data, error } = useRequest(id)
+
+  const req = data?.request
+  const prevId = data?.prevId ?? null
+  const nextId = data?.nextId ?? null
 
   return (
     <div className="main-col">
@@ -29,7 +35,7 @@ function RequestDetail() {
           ) : req == null ? (
             <div className="empty-state">loading…</div>
           ) : (
-            <Detail req={req} />
+            <Detail req={req} prevId={prevId} nextId={nextId} />
           )}
         </div>
       </div>
@@ -37,9 +43,21 @@ function RequestDetail() {
   )
 }
 
-function Detail({ req }: { req: ApiRequestDetail }) {
+function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string | null; nextId: string | null }) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const when = new Date(req.startedAt)
+  const navigate = useNavigate()
+
+  useHotkey('H', (e) => {
+    if (!prevId) return
+    e.preventDefault()
+    navigate({ to: '/requests/$id', params: { id: prevId } })
+  })
+  useHotkey('L', (e) => {
+    if (!nextId) return
+    e.preventDefault()
+    navigate({ to: '/requests/$id', params: { id: nextId } })
+  })
 
   const reqHeaders: Record<string, string> | null = req.requestHeaders ? JSON.parse(req.requestHeaders) : null
   const resHeaders: Record<string, string> | null = req.responseHeaders ? JSON.parse(req.responseHeaders) : null
@@ -48,9 +66,7 @@ function Detail({ req }: { req: ApiRequestDetail }) {
     <>
       <div className="detail-header">
         <div>
-          <p className="page-sub" style={{ marginBottom: 4 }}>
-            request #{req.id}
-          </p>
+          <p className="page-sub">{req.id}</p>
           <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span className="mono" style={{ color: 'var(--fg-muted)', fontWeight: 500, fontSize: 18 }}>
               {req.method}
@@ -60,11 +76,39 @@ function Detail({ req }: { req: ApiRequestDetail }) {
             </span>
           </h1>
         </div>
-        <div className="token-strip">
-          <TokenStat label="prompt" value={req.promptTokens} />
-          <TokenStat label="completion" value={req.completionTokens} />
-          <span className="token-strip-div" aria-hidden="true" />
-          <TokenStat label="total" value={req.totalTokens} accent />
+        <div className="detail-header-right">
+          <div className="detail-nav-arrows">
+            <Tooltip label="Newer request (H)" side="bottom">
+              <Link
+                to="/requests/$id"
+                params={{ id: prevId ?? '' }}
+                className={`nav-arrow${prevId ? '' : ' disabled'}`}
+                disabled={!prevId}
+                aria-disabled={!prevId}
+                onClick={(e) => !prevId && e.preventDefault()}
+              >
+                <ChevronLeft size={18} strokeWidth={2} aria-hidden="true" />
+              </Link>
+            </Tooltip>
+            <Tooltip label="Older request (L)" side="bottom">
+              <Link
+                to="/requests/$id"
+                params={{ id: nextId ?? '' }}
+                className={`nav-arrow${nextId ? '' : ' disabled'}`}
+                disabled={!nextId}
+                aria-disabled={!nextId}
+                onClick={(e) => !nextId && e.preventDefault()}
+              >
+                <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />
+              </Link>
+            </Tooltip>
+          </div>
+          <div className="token-strip">
+            <TokenStat label="prompt" value={req.promptTokens} />
+            <TokenStat label="completion" value={req.completionTokens} />
+            <span className="token-strip-div" aria-hidden="true" />
+            <TokenStat label="total" value={req.totalTokens} accent />
+          </div>
         </div>
       </div>
 
