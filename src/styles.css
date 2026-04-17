@@ -559,6 +559,9 @@ button:disabled {
 .dtable tbody tr:hover {
   background: var(--bg-2);
 }
+.dtable tbody tr.clickable-row {
+  cursor: pointer;
+}
 .dtable td.num {
   text-align: right;
   font-family: var(--font-mono);
@@ -583,6 +586,55 @@ button:disabled {
   background: var(--bg-2);
   padding: 1px 6px;
   border-radius: 4px;
+}
+
+/* ---- request detail ---- */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  margin: 0;
+  font-size: 12px;
+}
+.dl-grid dt {
+  padding: 8px 14px;
+  color: var(--fg-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+.dl-grid dd {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+.dl-grid dt:last-of-type,
+.dl-grid dd:last-of-type {
+  border-bottom: 0;
+}
+
+.detail-error {
+  margin: 0;
+  padding: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--err);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
 }
 
 /* ---- duration bar ---- */
@@ -624,6 +676,20 @@ button:disabled {
   padding: 20px 24px 48px;
   max-width: 1280px;
   margin-inline: auto;
+}
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.page-header .page-sub {
+  margin-bottom: 0;
+}
+.page-header-action {
+  flex-shrink: 0;
+  padding-top: 4px;
 }
 .page-title {
   font-size: 20px;

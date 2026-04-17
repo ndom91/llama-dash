@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { PageHeader } from '../components/PageHeader'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
@@ -58,41 +59,45 @@ function Models() {
     <div className="main-col">
       <TopBar
         actions={
-          <>
-            <Tooltip label="Refresh">
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon"
-                onClick={doRefresh}
-                disabled={refreshing}
-                aria-label="Refresh models"
-              >
-                <RefreshCw
-                  className={`icon-14${refreshing ? ' animate-spin' : ''}`}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                />
-              </button>
-            </Tooltip>
+          <Tooltip label="Refresh">
             <button
               type="button"
-              className="btn btn-danger-ghost btn-xs"
-              onClick={onUnloadAll}
-              disabled={!hasRunning || unloadingAll}
-              title="Unload every running model"
+              className="btn btn-ghost btn-icon"
+              onClick={doRefresh}
+              disabled={refreshing}
+              aria-label="Refresh models"
             >
-              <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              {unloadingAll ? 'unloading…' : 'unload all'}
+              <RefreshCw
+                className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
             </button>
-          </>
+          </Tooltip>
         }
       />
       <div className="content">
         <div className="page">
-          <h1 className="page-title">Models</h1>
-          <p className="page-sub">
-            configured in <code translate="no">config.yaml</code>, joined with <code translate="no">/running</code>
-          </p>
+          <PageHeader
+            title="Models"
+            subtitle={
+              <>
+                configured in <code translate="no">config.yaml</code>, joined with <code translate="no">/running</code>
+              </>
+            }
+            action={
+              <button
+                type="button"
+                className="btn btn-danger-ghost btn-xs"
+                onClick={onUnloadAll}
+                disabled={!hasRunning || unloadingAll}
+                title="Unload every running model"
+              >
+                <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                {unloadingAll ? 'unloading…' : 'unload all'}
+              </button>
+            }
+          />
 
           {err ? <div className="err-banner">{err}</div> : null}
 
@@ -148,7 +153,7 @@ function ModelRow({ model, unloading, onUnload }: { model: ApiModel; unloading: 
         </span>
       </td>
       <td>
-        <span className={`state-label state-label-${tone}`}>{model.state}</span>
+        {model.kind === 'local' ? <span className={`state-label state-label-${tone}`}>{model.state}</span> : null}
       </td>
       <td className="num">
         {model.kind === 'local' ? (
