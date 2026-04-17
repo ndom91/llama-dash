@@ -4,7 +4,7 @@ import { useLiveData } from '../lib/live-data'
 import { StatusDot } from './StatusDot'
 import { ThemeToggle } from './ThemeToggle'
 
-const titles: Record<string, string> = {
+const TITLES: Record<string, string> = {
   '/': 'Dashboard',
   '/models': 'Models',
   '/requests': 'Requests',
@@ -13,22 +13,29 @@ const titles: Record<string, string> = {
 export function TopBar({ actions }: { actions?: ReactNode }) {
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
-  const title = titles[leaf] ?? 'llama-dash'
+  const title = TITLES[leaf] ?? 'llama-dash'
   const { health, models } = useLiveData()
 
   const reachable = health?.upstream.reachable === true
-  const version = reachable ? (health.upstream as { version: string }).version : null
+  // Discriminated-union narrow — no cast needed when we read from the checked branch.
+  const version = health?.upstream.reachable === true ? health.upstream.version : null
   const running = models?.filter((m) => m.running).length ?? 0
 
   return (
     <header className="topbar">
       <span className="topbar-title">{title}</span>
-      <span className="topbar-sep" />
+      <span className="topbar-sep" aria-hidden="true" />
 
       <span className="topbar-chip" title={reachable ? 'llama-swap reachable' : 'llama-swap unreachable'}>
         <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
         <span>upstream</span>
-        {version ? <span className="topbar-chip-num">v{version}</span> : <span className="topbar-chip-num">—</span>}
+        {version ? (
+          <span className="topbar-chip-num" translate="no">
+            v{version}
+          </span>
+        ) : (
+          <span className="topbar-chip-num">—</span>
+        )}
       </span>
 
       <span className="topbar-chip" title="Currently loaded models">

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ChevronRight, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
@@ -40,7 +40,7 @@ function Dashboard() {
     }
   }
 
-  const running = models?.filter((m) => m.running) ?? []
+  const running = useMemo(() => models?.filter((m) => m.running) ?? [], [models])
   const err = liveErr ?? reqErr
 
   return (
@@ -52,16 +52,21 @@ function Dashboard() {
             className="btn btn-ghost btn-icon"
             onClick={doRefresh}
             disabled={refreshing}
+            aria-label="Refresh dashboard"
             title="Refresh"
           >
-            <RefreshCw className={`icon-14${refreshing ? ' animate-spin' : ''}`} strokeWidth={1.75} />
+            <RefreshCw
+              className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+              strokeWidth={1.75}
+              aria-hidden="true"
+            />
           </button>
         }
       />
       <div className="content">
         <div className="page">
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-sub">what's loaded, what just ran</p>
+          <p className="page-sub">what’s loaded, what just ran</p>
 
           {err ? <div className="err-banner">{err}</div> : null}
 
@@ -83,14 +88,14 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
         <span className="panel-sub">{total == null ? '—' : `${running.length} / ${total} loaded`}</span>
         <Link to="/models" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
           manage
-          <ChevronRight className="icon-btn-12" strokeWidth={2} />
+          <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {total == null ? (
         <div className="empty-state">loading…</div>
       ) : running.length === 0 ? (
         <div className="empty-state">
-          idle — no models currently loaded. Hit <code>/v1/chat/completions</code> to swap one in.
+          idle — no models currently loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
       ) : (
         <table className="dtable">
@@ -111,7 +116,9 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
                 <td>
                   <StatusDot tone={stateTone(m.state, m.running)} live />
                 </td>
-                <td className="mono">{m.id}</td>
+                <td className="mono" translate="no">
+                  {m.id}
+                </td>
                 <td>{m.name}</td>
                 <td>
                   <span className={`state-label state-label-${stateTone(m.state, m.running)}`}>{m.state}</span>
@@ -127,7 +134,12 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
 }
 
 function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null }) {
-  const max = Math.max(1, ...(requests ?? []).map((r) => r.durationMs))
+  const max = useMemo(() => {
+    if (!requests || requests.length === 0) return 1
+    let m = 1
+    for (const r of requests) if (r.durationMs > m) m = r.durationMs
+    return m
+  }, [requests])
   return (
     <section className="panel">
       <div className="panel-head">
@@ -135,14 +147,14 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
         <span className="panel-sub">newest first</span>
         <Link to="/requests" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
           view all
-          <ChevronRight className="icon-btn-12" strokeWidth={2} />
+          <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {requests == null ? (
         <div className="empty-state">loading…</div>
       ) : requests.length === 0 ? (
         <div className="empty-state">
-          no requests yet. proxy one through <code>/v1/*</code> to see it here.
+          no requests yet. proxy one through <code translate="no">/v1/*</code> to see it here.
         </div>
       ) : (
         <table className="dtable">
@@ -166,10 +178,13 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
             {requests.map((r) => (
               <tr key={r.id}>
                 <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
-                <td className="mono">{r.endpoint}</td>
+                <td className="mono" translate="no">
+                  {r.endpoint}
+                </td>
                 <td
                   className="dim"
                   style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  translate="no"
                 >
                   {r.model ?? '—'}
                 </td>

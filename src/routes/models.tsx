@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Power, PowerOff, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import { api, type ApiModel } from '../lib/api'
@@ -14,7 +14,7 @@ function Models() {
   const [unloadingAll, setUnloadingAll] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
-  const hasRunning = models?.some((m) => m.running) ?? false
+  const hasRunning = useMemo(() => models?.some((m) => m.running) ?? false, [models])
 
   const doRefresh = async () => {
     setRefreshing(true)
@@ -52,9 +52,14 @@ function Models() {
               className="btn btn-ghost btn-icon"
               onClick={doRefresh}
               disabled={refreshing}
+              aria-label="Refresh models"
               title="Refresh"
             >
-              <RefreshCw className={`icon-14${refreshing ? ' animate-spin' : ''}`} strokeWidth={1.75} />
+              <RefreshCw
+                className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
             </button>
             <button
               type="button"
@@ -63,7 +68,7 @@ function Models() {
               disabled={!hasRunning || unloadingAll}
               title="Unload every running model"
             >
-              <PowerOff className="icon-btn-12" strokeWidth={2} />
+              <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
               {unloadingAll ? 'unloading…' : 'unload all'}
             </button>
           </>
@@ -73,7 +78,7 @@ function Models() {
         <div className="page">
           <h1 className="page-title">Models</h1>
           <p className="page-sub">
-            configured in <code>config.yaml</code>, joined with <code>/running</code>
+            configured in <code translate="no">config.yaml</code>, joined with <code translate="no">/running</code>
           </p>
 
           {err ? <div className="err-banner">{err}</div> : null}
@@ -120,7 +125,9 @@ function ModelRow({ model, unloading, onUnload }: { model: ApiModel; unloading: 
       <td>
         <StatusDot tone={tone} live={model.running} />
       </td>
-      <td className="mono">{model.id}</td>
+      <td className="mono" translate="no">
+        {model.id}
+      </td>
       <td>{model.name}</td>
       <td>
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
@@ -137,9 +144,9 @@ function ModelRow({ model, unloading, onUnload }: { model: ApiModel; unloading: 
             className="btn btn-xs"
             onClick={onUnload}
             disabled={!model.running || unloading}
-            title={model.running ? 'Unload this model' : 'Not loaded'}
+            title={model.running ? `Unload ${model.id}` : 'Not loaded'}
           >
-            <Power className="icon-btn-12" strokeWidth={2} />
+            <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
             {unloading ? 'unloading…' : 'unload'}
           </button>
         ) : (

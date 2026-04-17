@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
@@ -36,7 +36,7 @@ function Requests() {
     loadFirst()
   }, [loadFirst])
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (cursor == null || loadingMore) return
     setLoadingMore(true)
     try {
@@ -48,16 +48,21 @@ function Requests() {
     } finally {
       setLoadingMore(false)
     }
-  }
+  }, [cursor, loadingMore])
 
-  const max = Math.max(1, ...rows.map((r) => r.durationMs))
+  // Walk the list once — avoids Math.max(...rows.map()) creating a throwaway array per render.
+  const max = useMemo(() => {
+    let m = 1
+    for (const r of rows) if (r.durationMs > m) m = r.durationMs
+    return m
+  }, [rows])
 
   return (
     <div className="main-col">
       <TopBar
         actions={
           <>
-            <span className="topbar-chip" title="Rows currently in view">
+            <span className="topbar-chip" title="Rows currently in view" aria-live="polite">
               <StatusDot tone="ok" live />
               <span>log</span>
               <span className="topbar-chip-num">{rows.length}</span>
@@ -67,9 +72,10 @@ function Requests() {
               className="btn btn-ghost btn-icon"
               onClick={loadFirst}
               disabled={loading}
+              aria-label="Refresh request log"
               title="Refresh"
             >
-              <RefreshCw className={`icon-14${loading ? ' animate-spin' : ''}`} strokeWidth={1.75} />
+              <RefreshCw className={`icon-14${loading ? ' animate-spin' : ''}`} strokeWidth={1.75} aria-hidden="true" />
             </button>
           </>
         }
@@ -78,7 +84,7 @@ function Requests() {
         <div className="page">
           <h1 className="page-title">Requests</h1>
           <p className="page-sub">
-            every call through <code>/v1/*</code>, newest first — bodies not stored
+            every call through <code translate="no">/v1/*</code>, newest first — bodies not stored
           </p>
 
           {err ? <div className="err-banner">{err}</div> : null}
@@ -88,7 +94,7 @@ function Requests() {
               <div className="empty-state">loading…</div>
             ) : rows.length === 0 ? (
               <div className="empty-state">
-                no requests yet. call <code>/v1/*</code> to populate this view.
+                no requests yet. call <code translate="no">/v1/*</code> to populate this view.
               </div>
             ) : (
               <table className="dtable">
@@ -121,7 +127,9 @@ function Requests() {
                       <td className="mono" style={{ color: 'var(--fg-muted)' }}>
                         {r.method}
                       </td>
-                      <td className="mono">{r.endpoint}</td>
+                      <td className="mono" translate="no">
+                        {r.endpoint}
+                      </td>
                       <td
                         className="dim"
                         style={{
@@ -130,6 +138,7 @@ function Requests() {
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
+                        translate="no"
                       >
                         {r.model ?? '—'}
                       </td>

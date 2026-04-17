@@ -121,6 +121,13 @@ body,
   height: 100%;
 }
 
+html {
+  color-scheme: dark;
+}
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   color: var(--fg);
@@ -144,6 +151,7 @@ code,
 .mono {
   font-family: var(--font-mono);
   font-feature-settings: 'zero';
+  font-variant-numeric: tabular-nums;
   font-size: 0.9em;
 }
 
@@ -554,6 +562,7 @@ button:disabled {
 .dtable td.num {
   text-align: right;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .dtable td.mono,
 .dtable th.mono {
@@ -603,6 +612,7 @@ button:disabled {
 }
 .dur-val {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--fg);
   white-space: nowrap;
@@ -660,11 +670,28 @@ button:disabled {
   background: transparent;
 }
 
-/* Focus ring default for all interactive elements */
+/* Focus ring default — let each element keep its own border-radius */
 :focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
-  border-radius: 4px;
+}
+
+/* Honor reduced-motion preference — instrument panels don't need to breathe */
+@media (prefers-reduced-motion: reduce) {
+  .dot.is-live,
+  .animate-spin {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Interactive elements: kill 300ms tap delay */
+button,
+a,
+.nav-link {
+  touch-action: manipulation;
 }
 
 /* Error banner */

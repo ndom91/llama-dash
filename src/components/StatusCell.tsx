@@ -10,9 +10,13 @@ export function StatusCell({ code, streamed }: { code: number; streamed: boolean
         {code}
       </span>
       {streamed ? (
-        <span className="mono" style={{ color: 'var(--fg-dim)', fontSize: 10 }}>
+        <abbr
+          className="mono"
+          style={{ color: 'var(--fg-dim)', fontSize: 10, textDecoration: 'none' }}
+          title="Server-sent events"
+        >
           SSE
-        </span>
+        </abbr>
       ) : null}
     </span>
   )
