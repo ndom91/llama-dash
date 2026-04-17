@@ -1102,6 +1102,11 @@ button:disabled {
   outline: none;
   padding: 0;
 }
+.log-search-input:focus,
+.log-search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
 .log-search-input::placeholder {
   color: var(--fg-faint);
 }

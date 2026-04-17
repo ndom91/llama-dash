@@ -135,6 +135,7 @@ function Logs() {
                 <div className="log-search">
                   <Search className="log-search-icon" strokeWidth={2} aria-hidden="true" />
                   <input
+                    id="log-filter"
                     type="text"
                     className="log-search-input"
                     placeholder="filter…"
