@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Activity, Boxes, LayoutDashboard, ScrollText } from 'lucide-react'
-import { useMemo } from 'react'
-import { useModels } from '../lib/queries'
+import { useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 
 type NavItem = {
@@ -18,9 +17,8 @@ const NAV: ReadonlyArray<NavItem> = [
 ]
 
 export function Sidebar() {
-  const { data: models } = useModels()
+  const { data: running = [] } = useRunningModels()
 
-  const running = useMemo(() => models?.filter((m) => m.running) ?? [], [models])
   const resident = running[0] ?? null
   const runningCount = running.length
 
