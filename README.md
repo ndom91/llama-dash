@@ -14,11 +14,12 @@ See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions 
 
 - Node 20+
 - pnpm
-- A reachable llama-swap (the default target is the dev deployment at `https://llama-swap.puff.lan`)
+- A reachable [llama-swap](https://github.com/mostlygeek/llama-swap) instance
 
 ## Setup
 
 ```bash
+cp .env.example .env   # edit LLAMASWAP_URL to point at your instance
 pnpm install
 pnpm db:migrate        # creates data/dash.db
 pnpm dev               # http://localhost:5173
@@ -26,9 +27,11 @@ pnpm dev               # http://localhost:5173
 
 ## Environment
 
+Copy `.env.example` to `.env` and fill in the values.
+
 | Var | Default | Notes |
 |---|---|---|
-| `LLAMASWAP_URL` | `http://llama-swap.puff.lan` | Upstream llama-swap base URL. No trailing slash. |
+| `LLAMASWAP_URL` | `http://localhost:8080` | Upstream llama-swap base URL. No trailing slash. |
 | `LLAMASWAP_INSECURE` | `false` | Skip TLS verification. Flip on when pointing at an HTTPS upstream with a self-signed cert. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. |
 

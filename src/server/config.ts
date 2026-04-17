@@ -6,7 +6,7 @@ const parseBool = (v: string | undefined, fallback: boolean): boolean => {
 }
 
 export const config = {
-  llamaSwapUrl: stripTrailingSlash(process.env.LLAMASWAP_URL ?? 'http://llama-swap.puff.lan'),
+  llamaSwapUrl: stripTrailingSlash(process.env.LLAMASWAP_URL ?? 'http://localhost:8080'),
   /**
    * Skip TLS certificate verification on upstream llama-swap calls. Off by
    * default — set to true when pointing at an HTTPS upstream with a self-signed
