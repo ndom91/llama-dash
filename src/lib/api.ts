@@ -44,15 +44,10 @@ export const api = {
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', String(params.cursor))
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return fetch(`/api/requests${suffix}`).then(
-      json<{ requests: Array<ApiRequest>; nextCursor: number | null }>,
-    )
+    return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: number | null }>)
   },
   unloadModel: (id: string) =>
-    fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(
-      json<{ ok: true }>,
-    ),
-  unloadAll: () =>
-    fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),
+    fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(json<{ ok: true }>),
+  unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),
   health: () => fetch('/api/health').then(json<ApiHealth>),
 }

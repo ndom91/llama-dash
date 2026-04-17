@@ -47,6 +47,14 @@ pnpm dev           # dev server (:5173)
 pnpm db:generate   # emit a new drizzle migration from the schema
 pnpm db:migrate    # apply pending migrations
 pnpm db:studio     # drizzle-kit studio
-pnpm check         # prettier + eslint --fix
-pnpm tsc --noEmit  # type-check
+
+pnpm lint          # biome lint .
+pnpm lint:fix      # biome lint --write .
+pnpm format        # biome format .
+pnpm format:fix    # biome format --write .
+pnpm check         # biome check --write . (lint + format + import sort)
+pnpm typecheck     # tsgo --noEmit
 ```
+
+Run `lint:fix`, `format:fix`, and `typecheck` before calling any change
+done — see `AGENTS.md`.

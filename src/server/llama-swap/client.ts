@@ -41,11 +41,9 @@ export const llamaSwap = {
   listModels: () => call<ModelsListResponse>('/v1/models'),
   listRunning: () => call<RunningResponse>('/running'),
   /** Unload a specific model by id. */
-  unloadModel: (id: string) =>
-    call<string>(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
+  unloadModel: (id: string) => call<string>(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
   /** Unload every running model. */
   unloadAll: () => call<{ msg: string }>('/api/models/unload', { method: 'POST' }),
   health: () => call<string>('/health'),
-  version: () =>
-    call<{ version: string; commit: string; build_date: string }>('/api/version'),
+  version: () => call<{ version: string; commit: string; build_date: string }>('/api/version'),
 }

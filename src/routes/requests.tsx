@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
-import { api, type ApiRequest } from '../lib/api'
+import { type ApiRequest, api } from '../lib/api'
 import { StatusPill } from './index'
 
 export const Route = createFileRoute('/requests')({ component: Requests })
@@ -51,12 +51,10 @@ function Requests() {
       <div className="mb-6 flex items-end justify-between gap-3">
         <div>
           <p className="island-kicker mb-2">Requests</p>
-          <h1 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
-            Request log
-          </h1>
+          <h1 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">Request log</h1>
           <p className="m-0 mt-1 text-sm text-[var(--sea-ink-soft)]">
-            Every call proxied through <code className="rounded bg-black/5 px-1">/v1/*</code>,
-            newest first. Bodies are not stored.
+            Every call proxied through <code className="rounded bg-black/5 px-1">/v1/*</code>, newest first. Bodies are
+            not stored.
           </p>
         </div>
         <button
@@ -70,9 +68,7 @@ function Requests() {
       </div>
 
       {err ? (
-        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-          {err}
-        </div>
+        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">{err}</div>
       ) : null}
 
       <div className="island-shell overflow-x-auto rounded-2xl">
@@ -80,8 +76,7 @@ function Requests() {
           <p className="p-5 text-sm text-[var(--sea-ink-soft)]">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="p-5 text-sm text-[var(--sea-ink-soft)]">
-            No requests yet. Call <code className="rounded bg-black/5 px-1">/v1/*</code>{' '}
-            to populate this view.
+            No requests yet. Call <code className="rounded bg-black/5 px-1">/v1/*</code> to populate this view.
           </p>
         ) : (
           <table className="w-full text-left text-sm">
@@ -101,24 +96,16 @@ function Requests() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-[var(--line)]">
-                  <Td className="whitespace-nowrap">
-                    {new Date(r.startedAt).toLocaleString()}
-                  </Td>
+                  <Td className="whitespace-nowrap">{new Date(r.startedAt).toLocaleString()}</Td>
                   <Td className="font-mono text-xs">{r.method}</Td>
                   <Td className="font-mono text-xs">{r.endpoint}</Td>
                   <Td className="max-w-[220px] truncate">{r.model ?? '—'}</Td>
                   <Td>
                     <StatusPill code={r.statusCode} streamed={r.streamed} />
                   </Td>
-                  <Td className="text-right font-mono text-xs">
-                    {r.promptTokens ?? '—'}
-                  </Td>
-                  <Td className="text-right font-mono text-xs">
-                    {r.completionTokens ?? '—'}
-                  </Td>
-                  <Td className="text-right font-mono text-xs">
-                    {r.totalTokens ?? '—'}
-                  </Td>
+                  <Td className="text-right font-mono text-xs">{r.promptTokens ?? '—'}</Td>
+                  <Td className="text-right font-mono text-xs">{r.completionTokens ?? '—'}</Td>
+                  <Td className="text-right font-mono text-xs">{r.totalTokens ?? '—'}</Td>
                   <Td className="text-right font-mono text-xs">{r.durationMs} ms</Td>
                 </tr>
               ))}

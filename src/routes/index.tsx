@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { api, type ApiHealth, type ApiModel, type ApiRequest } from '../lib/api'
+import { type ApiHealth, type ApiModel, type ApiRequest, api } from '../lib/api'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
 
@@ -12,11 +12,7 @@ function Dashboard() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([
-      api.health(),
-      api.listModels(),
-      api.listRequests({ limit: 10 }),
-    ])
+    Promise.all([api.health(), api.listModels(), api.listRequests({ limit: 10 })])
       .then(([h, m, r]) => {
         if (cancelled) return
         setHealth(h)
@@ -39,8 +35,7 @@ function Dashboard() {
           llama-dash
         </h1>
         <p className="mb-0 max-w-2xl text-base text-[var(--sea-ink-soft)]">
-          Sidecar for llama-swap: pass-through OpenAI/Anthropic proxy with
-          request logging and model management.
+          Sidecar for llama-swap: pass-through OpenAI/Anthropic proxy with request logging and model management.
         </p>
       </section>
 
@@ -53,13 +48,7 @@ function Dashboard() {
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
         <StatCard
           label="llama-swap"
-          value={
-            health == null
-              ? '…'
-              : health.upstream.reachable
-                ? `v${health.upstream.version}`
-                : 'unreachable'
-          }
+          value={health == null ? '…' : health.upstream.reachable ? `v${health.upstream.version}` : 'unreachable'}
           sub={
             health?.upstream.reachable
               ? `commit ${health.upstream.commit.slice(0, 7)}`
@@ -71,13 +60,7 @@ function Dashboard() {
         <StatCard
           label="Running models"
           value={models == null ? '…' : String(running.length)}
-          sub={
-            running.length > 0
-              ? running.map((m) => m.id).join(', ')
-              : models == null
-                ? ' '
-                : 'none loaded'
-          }
+          sub={running.length > 0 ? running.map((m) => m.id).join(', ') : models == null ? ' ' : 'none loaded'}
         />
         <StatCard
           label="Configured models"
@@ -88,9 +71,7 @@ function Dashboard() {
 
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="m-0 text-base font-semibold text-[var(--sea-ink)]">
-            Recent requests
-          </h2>
+          <h2 className="m-0 text-base font-semibold text-[var(--sea-ink)]">Recent requests</h2>
           <Link to="/requests" className="nav-link">
             View all →
           </Link>
@@ -103,15 +84,7 @@ function Dashboard() {
   )
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string
-  value: string
-  sub: string
-}) {
+function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <article className="island-shell rise-in rounded-2xl p-5">
       <p className="island-kicker mb-2">{label}</p>
@@ -128,8 +101,7 @@ function RequestsTable({ requests }: { requests: Array<ApiRequest> | null }) {
   if (requests.length === 0) {
     return (
       <p className="p-5 text-sm text-[var(--sea-ink-soft)]">
-        No requests yet — hit{' '}
-        <code className="rounded bg-black/5 px-1">/v1/*</code> and they'll show up here.
+        No requests yet — hit <code className="rounded bg-black/5 px-1">/v1/*</code> and they'll show up here.
       </p>
     )
   }
@@ -155,9 +127,7 @@ function RequestsTable({ requests }: { requests: Array<ApiRequest> | null }) {
               <StatusPill code={r.statusCode} streamed={r.streamed} />
             </Td>
             <Td className="text-right font-mono text-xs">
-              {r.totalTokens != null
-                ? `${r.promptTokens ?? 0} + ${r.completionTokens ?? 0} = ${r.totalTokens}`
-                : '—'}
+              {r.totalTokens != null ? `${r.promptTokens ?? 0} + ${r.completionTokens ?? 0} = ${r.totalTokens}` : '—'}
             </Td>
             <Td className="text-right font-mono text-xs">{r.durationMs} ms</Td>
           </tr>
@@ -180,9 +150,7 @@ export function StatusPill({ code, streamed }: { code: number; streamed: boolean
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-        ok
-          ? 'bg-emerald-500/15 text-emerald-700'
-          : 'bg-red-500/15 text-red-700'
+        ok ? 'bg-emerald-500/15 text-emerald-700' : 'bg-red-500/15 text-red-700'
       }`}
     >
       {code}

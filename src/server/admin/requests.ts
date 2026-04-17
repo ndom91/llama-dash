@@ -16,10 +16,7 @@ export type RequestRow = {
   error: string | null
 }
 
-export function listRecentRequests(opts: {
-  limit: number
-  cursor?: number
-}): Array<RequestRow> {
+export function listRecentRequests(opts: { limit: number; cursor?: number }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
   const rows = db
     .select()

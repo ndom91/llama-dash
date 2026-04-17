@@ -2,11 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { llamaSwap } from '../llama-swap/client.ts'
 import { listRecentRequests } from './requests.ts'
 
-type Handler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-  match: RegExpMatchArray,
-) => Promise<void> | void
+type Handler = (req: IncomingMessage, res: ServerResponse, match: RegExpMatchArray) => Promise<void> | void
 
 type Route = {
   method: string
@@ -20,18 +16,14 @@ const json = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body))
 }
 
-const error = (res: ServerResponse, status: number, message: string) =>
-  json(res, status, { error: { message } })
+const error = (res: ServerResponse, status: number, message: string) => json(res, status, { error: { message } })
 
 const routes: Array<Route> = [
   {
     method: 'GET',
     pattern: /^\/api\/models$/,
     handler: async (_req, res) => {
-      const [models, running] = await Promise.all([
-        llamaSwap.listModels(),
-        llamaSwap.listRunning(),
-      ])
+      const [models, running] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
       const runningById = new Map(running.running.map((r) => [r.model, r]))
       const rows = models.data.map((m) => {
         const run = runningById.get(m.id)
@@ -88,10 +80,7 @@ const routes: Array<Route> = [
     pattern: /^\/api\/health$/,
     handler: async (_req, res) => {
       try {
-        const [health, version] = await Promise.all([
-          llamaSwap.health(),
-          llamaSwap.version(),
-        ])
+        const [health, version] = await Promise.all([llamaSwap.health(), llamaSwap.version()])
         json(res, 200, {
           upstream: { reachable: true, health: health.trim(), ...version },
         })
@@ -109,10 +98,7 @@ const routes: Array<Route> = [
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
 
-export async function handleAdminRequest(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
+export async function handleAdminRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const method = (req.method ?? 'GET').toUpperCase()
   const pathname = (req.url ?? '/').split('?')[0]
 

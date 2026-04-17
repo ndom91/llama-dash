@@ -14,15 +14,13 @@ const emptyUsage = (): Usage => ({
 
 type RawJson = Record<string, unknown>
 
-const pickModel = (body: RawJson): string | null =>
-  typeof body.model === 'string' ? body.model : null
+const pickModel = (body: RawJson): string | null => (typeof body.model === 'string' ? body.model : null)
 
 const pickUsage = (body: RawJson): Partial<Usage> => {
   const u = body.usage
   if (!u || typeof u !== 'object') return {}
   const rec = u as Record<string, unknown>
-  const num = (v: unknown): number | null =>
-    typeof v === 'number' && Number.isFinite(v) ? v : null
+  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
   return {
     // OpenAI-compatible naming; Anthropic uses input_tokens/output_tokens
     promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
@@ -54,8 +52,9 @@ export class SseUsageScanner {
   feed(chunk: string) {
     this.buf += chunk
     // SSE events are separated by blank lines (\n\n)
-    let idx: number
-    while ((idx = this.buf.indexOf('\n\n')) !== -1) {
+    for (;;) {
+      const idx = this.buf.indexOf('\n\n')
+      if (idx === -1) break
       const event = this.buf.slice(0, idx)
       this.buf = this.buf.slice(idx + 2)
       this.processEvent(event)
@@ -87,11 +86,7 @@ export class SseUsageScanner {
         // ignore malformed chunks
       }
     }
-    if (
-      this.usage.totalTokens == null &&
-      this.usage.promptTokens != null &&
-      this.usage.completionTokens != null
-    ) {
+    if (this.usage.totalTokens == null && this.usage.promptTokens != null && this.usage.completionTokens != null) {
       this.usage.totalTokens = this.usage.promptTokens + this.usage.completionTokens
     }
   }

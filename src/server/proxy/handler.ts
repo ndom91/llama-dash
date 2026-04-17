@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Readable } from 'node:stream'
 import { config } from '../config.ts'
 import { writeRequestLog } from './log.ts'
-import { SseUsageScanner, usageFromJsonBody, type Usage } from './usage.ts'
+import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
   'host',
@@ -37,10 +37,7 @@ const copyResponseHeaders = (upstream: Response, res: ServerResponse) => {
  * Handle a /v1/* request: forward it to llama-swap, stream the response back
  * to the client, and record a log row when the exchange completes.
  */
-export async function handleProxyRequest(
-  req: IncomingMessage,
-  res: ServerResponse,
-): Promise<void> {
+export async function handleProxyRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const startedAt = Date.now()
   const method = (req.method ?? 'GET').toUpperCase()
   const endpoint = (req.url ?? '/').split('?')[0]

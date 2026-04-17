@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
-import { api, type ApiModel } from '../lib/api'
+import { type ApiModel, api } from '../lib/api'
 
 export const Route = createFileRoute('/models')({ component: Models })
 
@@ -57,13 +57,10 @@ function Models() {
       <div className="mb-6 flex items-end justify-between gap-3">
         <div>
           <p className="island-kicker mb-2">Models</p>
-          <h1 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
-            Configured models
-          </h1>
+          <h1 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">Configured models</h1>
           <p className="m-0 mt-1 text-sm text-[var(--sea-ink-soft)]">
-            From <code className="rounded bg-black/5 px-1">/v1/models</code>,
-            joined with <code className="rounded bg-black/5 px-1">/running</code>{' '}
-            to show which are currently loaded.
+            From <code className="rounded bg-black/5 px-1">/v1/models</code>, joined with{' '}
+            <code className="rounded bg-black/5 px-1">/running</code> to show which are currently loaded.
           </p>
         </div>
         <button
@@ -77,18 +74,14 @@ function Models() {
       </div>
 
       {err ? (
-        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">
-          {err}
-        </div>
+        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">{err}</div>
       ) : null}
 
       <div className="island-shell overflow-x-auto rounded-2xl">
         {models == null ? (
           <p className="p-5 text-sm text-[var(--sea-ink-soft)]">Loading…</p>
         ) : models.length === 0 ? (
-          <p className="p-5 text-sm text-[var(--sea-ink-soft)]">
-            No models configured in llama-swap.
-          </p>
+          <p className="p-5 text-sm text-[var(--sea-ink-soft)]">No models configured in llama-swap.</p>
         ) : (
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-[var(--sea-ink-soft)]">
@@ -167,8 +160,6 @@ function StatePill({ state, running }: { state: string; running: boolean }) {
     )
   }
   return (
-    <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-[var(--sea-ink-soft)]">
-      {state}
-    </span>
+    <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs font-medium text-[var(--sea-ink-soft)]">{state}</span>
   )
 }
