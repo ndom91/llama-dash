@@ -1,7 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { type ApiRequest, api } from '../lib/api'
-import { StatusPill } from './index'
+import { DurationBar } from '../components/DurationBar'
+import { StatusCell } from '../components/StatusCell'
+import { StatusDot } from '../components/StatusDot'
+import { TopBar } from '../components/TopBar'
+import { api, type ApiRequest } from '../lib/api'
 
 export const Route = createFileRoute('/requests')({ component: Requests })
 
@@ -46,94 +50,127 @@ function Requests() {
     }
   }
 
+  const max = Math.max(1, ...rows.map((r) => r.durationMs))
+
   return (
-    <main className="page-wrap px-4 pb-8 pt-10">
-      <div className="mb-6 flex items-end justify-between gap-3">
-        <div>
-          <p className="island-kicker mb-2">Requests</p>
-          <h1 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">Request log</h1>
-          <p className="m-0 mt-1 text-sm text-[var(--sea-ink-soft)]">
-            Every call proxied through <code className="rounded bg-black/5 px-1">/v1/*</code>, newest first. Bodies are
-            not stored.
+    <div className="main-col">
+      <TopBar
+        actions={
+          <>
+            <span className="topbar-chip" title="Rows currently in view">
+              <StatusDot tone="ok" live />
+              <span>log</span>
+              <span className="topbar-chip-num">{rows.length}</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              onClick={loadFirst}
+              disabled={loading}
+              title="Refresh"
+            >
+              <RefreshCw className={`icon-14${loading ? ' animate-spin' : ''}`} strokeWidth={1.75} />
+            </button>
+          </>
+        }
+      />
+      <div className="content">
+        <div className="page">
+          <h1 className="page-title">Requests</h1>
+          <p className="page-sub">
+            every call through <code>/v1/*</code>, newest first — bodies not stored
           </p>
+
+          {err ? <div className="err-banner">{err}</div> : null}
+
+          <section className="panel">
+            {loading && rows.length === 0 ? (
+              <div className="empty-state">loading…</div>
+            ) : rows.length === 0 ? (
+              <div className="empty-state">
+                no requests yet. call <code>/v1/*</code> to populate this view.
+              </div>
+            ) : (
+              <table className="dtable">
+                <thead>
+                  <tr>
+                    <th className="mono" style={{ width: 150 }}>
+                      when
+                    </th>
+                    <th className="mono" style={{ width: 64 }}>
+                      method
+                    </th>
+                    <th className="mono">endpoint</th>
+                    <th style={{ minWidth: 160 }}>model</th>
+                    <th style={{ width: 110 }}>status</th>
+                    <th className="num" style={{ width: 72 }}>
+                      in
+                    </th>
+                    <th className="num" style={{ width: 72 }}>
+                      out
+                    </th>
+                    <th className="num" style={{ width: 180 }}>
+                      duration
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="mono dim">{formatWhen(r.startedAt)}</td>
+                      <td className="mono" style={{ color: 'var(--fg-muted)' }}>
+                        {r.method}
+                      </td>
+                      <td className="mono">{r.endpoint}</td>
+                      <td
+                        className="dim"
+                        style={{
+                          maxWidth: 260,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {r.model ?? '—'}
+                      </td>
+                      <td>
+                        <StatusCell code={r.statusCode} streamed={r.streamed} />
+                      </td>
+                      <td className="num dim">{r.promptTokens ?? '—'}</td>
+                      <td className="num">{r.completionTokens ?? '—'}</td>
+                      <td>
+                        <DurationBar ms={r.durationMs} max={max} isErr={r.statusCode >= 400} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {cursor != null ? (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <button type="button" className="btn btn-xs" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? 'loading…' : 'load more'}
+              </button>
+            </div>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={loadFirst}
-          disabled={loading}
-          className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/60 px-4 py-2 text-sm font-semibold text-[var(--sea-ink)] transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
       </div>
-
-      {err ? (
-        <div className="mb-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-700">{err}</div>
-      ) : null}
-
-      <div className="island-shell overflow-x-auto rounded-2xl">
-        {loading && rows.length === 0 ? (
-          <p className="p-5 text-sm text-[var(--sea-ink-soft)]">Loading…</p>
-        ) : rows.length === 0 ? (
-          <p className="p-5 text-sm text-[var(--sea-ink-soft)]">
-            No requests yet. Call <code className="rounded bg-black/5 px-1">/v1/*</code> to populate this view.
-          </p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-xs text-[var(--sea-ink-soft)]">
-              <tr>
-                <Th>When</Th>
-                <Th>Method</Th>
-                <Th>Endpoint</Th>
-                <Th>Model</Th>
-                <Th>Status</Th>
-                <Th className="text-right">Prompt</Th>
-                <Th className="text-right">Completion</Th>
-                <Th className="text-right">Total</Th>
-                <Th className="text-right">Duration</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-[var(--line)]">
-                  <Td className="whitespace-nowrap">{new Date(r.startedAt).toLocaleString()}</Td>
-                  <Td className="font-mono text-xs">{r.method}</Td>
-                  <Td className="font-mono text-xs">{r.endpoint}</Td>
-                  <Td className="max-w-[220px] truncate">{r.model ?? '—'}</Td>
-                  <Td>
-                    <StatusPill code={r.statusCode} streamed={r.streamed} />
-                  </Td>
-                  <Td className="text-right font-mono text-xs">{r.promptTokens ?? '—'}</Td>
-                  <Td className="text-right font-mono text-xs">{r.completionTokens ?? '—'}</Td>
-                  <Td className="text-right font-mono text-xs">{r.totalTokens ?? '—'}</Td>
-                  <Td className="text-right font-mono text-xs">{r.durationMs} ms</Td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {cursor != null ? (
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/60 px-4 py-2 text-sm font-semibold text-[var(--sea-ink)] transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loadingMore ? 'Loading…' : 'Load more'}
-          </button>
-        </div>
-      ) : null}
-    </main>
+    </div>
   )
 }
 
-function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <th className={`px-4 py-3 font-medium ${className}`}>{children}</th>
-}
-
-function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-4 py-3 ${className}`}>{children}</td>
+function formatWhen(iso: string): string {
+  const d = new Date(iso)
+  const now = new Date()
+  const sameDay = d.toDateString() === now.toDateString()
+  if (sameDay) return d.toLocaleTimeString([], { hour12: false })
+  return d.toLocaleString([], {
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
 }
