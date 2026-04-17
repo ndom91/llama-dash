@@ -116,13 +116,14 @@ Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
 
 ## Dev environment
 
-- Upstream llama-swap lives at `https://llama-swap.puff.lan` (the reference
-  deployment described in `plan.md`). It uses a self-signed cert from an
-  internal CA. Plain HTTP on that host goes to Caddy's default vhost, **not**
-  llama-swap — llama-swap is HTTPS-only there.
-- `LLAMASWAP_INSECURE=true` is the default, which sets
-  `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot. Dev-only. Flip off once we front a
-  publicly-trusted endpoint.
+- Upstream llama-swap lives at `llama-swap.puff.lan` (the reference
+  deployment described in `plan.md`). Caddy fronts it and serves both HTTP
+  (:80) and HTTPS (:443) — the dashboard defaults to plain HTTP so there's
+  no TLS to negotiate in dev.
+- HTTPS uses a self-signed cert from an internal CA. If you ever point
+  `LLAMASWAP_URL` at the `https://` variant, set `LLAMASWAP_INSECURE=true`
+  so Node accepts the cert (it sets `NODE_TLS_REJECT_UNAUTHORIZED=0` at
+  boot). Off by default.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.
 

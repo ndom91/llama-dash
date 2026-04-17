@@ -28,8 +28,8 @@ pnpm dev               # http://localhost:5173
 
 | Var | Default | Notes |
 |---|---|---|
-| `LLAMASWAP_URL` | `https://llama-swap.puff.lan` | Upstream llama-swap base URL. No trailing slash. |
-| `LLAMASWAP_INSECURE` | `true` | Skip TLS verification. On by default because the reference deployment uses an internal-CA self-signed cert. |
+| `LLAMASWAP_URL` | `http://llama-swap.puff.lan` | Upstream llama-swap base URL. No trailing slash. |
+| `LLAMASWAP_INSECURE` | `false` | Skip TLS verification. Flip on when pointing at an HTTPS upstream with a self-signed cert. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. |
 
 ## How it's wired

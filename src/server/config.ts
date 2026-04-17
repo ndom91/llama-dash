@@ -6,13 +6,12 @@ const parseBool = (v: string | undefined, fallback: boolean): boolean => {
 }
 
 export const config = {
-  llamaSwapUrl: stripTrailingSlash(process.env.LLAMASWAP_URL ?? 'https://llama-swap.puff.lan'),
+  llamaSwapUrl: stripTrailingSlash(process.env.LLAMASWAP_URL ?? 'http://llama-swap.puff.lan'),
   /**
-   * Skip TLS certificate verification on upstream llama-swap calls. Defaults
-   * to true because the reference deployment uses an internal-CA self-signed
-   * cert that Node doesn't trust by default. Flip to false once the dashboard
-   * fronts a publicly-trusted endpoint.
+   * Skip TLS certificate verification on upstream llama-swap calls. Off by
+   * default — set to true when pointing at an HTTPS upstream with a self-signed
+   * cert (e.g. the reference deployment's internal-CA cert on :443).
    */
-  llamaSwapInsecure: parseBool(process.env.LLAMASWAP_INSECURE, true),
+  llamaSwapInsecure: parseBool(process.env.LLAMASWAP_INSECURE, false),
   databasePath: process.env.DATABASE_PATH ?? 'data/dash.db',
 }
