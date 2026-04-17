@@ -107,7 +107,7 @@ function Logs() {
                           position: 'absolute',
                           top: 0,
                           left: 0,
-                          right: 0,
+                          minWidth: '100%',
                           transform: `translateY(${vi.start}px)`,
                         }}
                       >

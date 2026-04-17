@@ -920,7 +920,8 @@ button:disabled {
 }
 .log-virtual {
   position: relative;
-  width: 100%;
+  min-width: 100%;
+  width: max-content;
 }
 .log-line {
   font-family: var(--font-mono);
