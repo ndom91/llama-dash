@@ -65,6 +65,7 @@ export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<Request
     queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
+    refetchInterval: POLL_MS,
   })
 }
 
@@ -80,6 +81,7 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     queryKey: qk.request(id),
     queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
+    refetchInterval: POLL_MS,
     placeholderData: (prev) => {
       const lists = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
       const recent = qc.getQueryData<Array<ApiRequest>>(qk.requestsRecent)
