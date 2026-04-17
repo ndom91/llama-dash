@@ -12,7 +12,10 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier --check .",
-    "check": "prettier --write . && eslint --fix"
+    "check": "prettier --write . && eslint --fix",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
@@ -22,6 +25,8 @@
     "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
     "@tanstack/router-plugin": "^1.132.0",
+    "better-sqlite3": "^12.9.0",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^0.545.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -33,10 +38,12 @@
     "@tanstack/eslint-config": "latest",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "drizzle-kit": "^0.31.10",
     "jsdom": "^28.1.0",
     "prettier": "^3.8.1",
     "typescript": "^5.7.2",
@@ -45,6 +52,7 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "esbuild",
       "lightningcss"
     ]
