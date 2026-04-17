@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Power, PowerOff, RefreshCw } from 'lucide-react'
+import { Play, Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { PageHeader } from '../components/PageHeader'
@@ -13,6 +13,7 @@ export const Route = createFileRoute('/models')({ component: Models })
 
 function Models() {
   const { models, err, refresh } = useLiveData()
+  const [loadingId, setLoadingId] = useState<string | null>(null)
   const [unloadingId, setUnloadingId] = useState<string | null>(null)
   const [unloadingAll, setUnloadingAll] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -23,6 +24,21 @@ function Models() {
     setRefreshing(true)
     await refresh()
     setRefreshing(false)
+  }
+
+  const onLoad = async (id: string) => {
+    setLoadingId(id)
+    try {
+      await api.loadModel(id)
+      toast.success(`Loaded ${id}`)
+      await refresh()
+    } catch (e) {
+      toast.error('Load failed', {
+        description: e instanceof Error ? e.message : String(e),
+      })
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   const onUnload = async (id: string) => {
@@ -124,7 +140,14 @@ function Models() {
                 </thead>
                 <tbody>
                   {models.map((m) => (
-                    <ModelRow key={m.id} model={m} unloading={unloadingId === m.id} onUnload={() => onUnload(m.id)} />
+                    <ModelRow
+                      key={m.id}
+                      model={m}
+                      loading={loadingId === m.id}
+                      unloading={unloadingId === m.id}
+                      onLoad={() => onLoad(m.id)}
+                      onUnload={() => onUnload(m.id)}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -136,7 +159,19 @@ function Models() {
   )
 }
 
-function ModelRow({ model, unloading, onUnload }: { model: ApiModel; unloading: boolean; onUnload: () => void }) {
+function ModelRow({
+  model,
+  loading,
+  unloading,
+  onLoad,
+  onUnload,
+}: {
+  model: ApiModel
+  loading: boolean
+  unloading: boolean
+  onLoad: () => void
+  onUnload: () => void
+}) {
   const tone = stateTone(model.state, model.running)
   return (
     <tr>
@@ -157,16 +192,23 @@ function ModelRow({ model, unloading, onUnload }: { model: ApiModel; unloading: 
       </td>
       <td className="num">
         {model.kind === 'local' ? (
-          <button
-            type="button"
-            className="btn btn-xs"
-            onClick={onUnload}
-            disabled={!model.running || unloading}
-            title={model.running ? `Unload ${model.id}` : 'Not loaded'}
-          >
-            <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-            {unloading ? 'unloading…' : 'unload'}
-          </button>
+          model.running ? (
+            <button
+              type="button"
+              className="btn btn-xs"
+              onClick={onUnload}
+              disabled={unloading}
+              title={`Unload ${model.id}`}
+            >
+              <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              {unloading ? 'unloading…' : 'unload'}
+            </button>
+          ) : (
+            <button type="button" className="btn btn-xs" onClick={onLoad} disabled={loading} title={`Load ${model.id}`}>
+              <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              {loading ? 'loading…' : 'load'}
+            </button>
+          )
         ) : (
           <span className="mono dim" style={{ fontSize: 11 }}>
             —

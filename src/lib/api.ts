@@ -47,6 +47,8 @@ export const api = {
     return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: number | null }>)
   },
   getRequest: (id: number) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequest }>),
+  loadModel: (id: string) =>
+    fetch(`/api/models/${encodeURIComponent(id)}/load`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),

@@ -42,6 +42,8 @@ export const llamaSwap = {
   listRunning: () => call<RunningResponse>('/running'),
   /** Unload a specific model by id. */
   unloadModel: (id: string) => call<string>(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
+  /** Trigger model loading by hitting llama-swap's upstream proxy path. */
+  loadModel: (id: string) => call<string>(`/upstream/${encodeURIComponent(id)}/`),
   /** Unload every running model. */
   unloadAll: () => call<{ msg: string }>('/api/models/unload', { method: 'POST' }),
   health: () => call<string>('/health'),

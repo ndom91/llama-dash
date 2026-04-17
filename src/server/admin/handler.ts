@@ -43,6 +43,15 @@ const routes: Array<Route> = [
   },
   {
     method: 'POST',
+    pattern: /^\/api\/models\/([^/]+)\/load$/,
+    handler: async (_req, res, match) => {
+      const id = decodeURIComponent(match[1])
+      await llamaSwap.loadModel(id)
+      json(res, 200, { ok: true })
+    },
+  },
+  {
+    method: 'POST',
     pattern: /^\/api\/models\/([^/]+)\/unload$/,
     handler: async (_req, res, match) => {
       const id = decodeURIComponent(match[1])
