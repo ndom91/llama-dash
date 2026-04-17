@@ -53,18 +53,27 @@ function Detail({ req }: { req: ApiRequestDetail }) {
 
   return (
     <>
-      <div style={{ marginBottom: 20 }}>
-        <p className="page-sub" style={{ marginBottom: 4 }}>
-          request #{req.id}
-        </p>
-        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="mono" style={{ color: 'var(--fg-muted)', fontWeight: 500, fontSize: 18 }}>
-            {req.method}
-          </span>
-          <span className="mono" translate="no">
-            {req.endpoint}
-          </span>
-        </h1>
+      <div className="detail-header">
+        <div>
+          <p className="page-sub" style={{ marginBottom: 4 }}>
+            request #{req.id}
+          </p>
+          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="mono" style={{ color: 'var(--fg-muted)', fontWeight: 500, fontSize: 18 }}>
+              {req.method}
+            </span>
+            <span className="mono" translate="no">
+              {req.endpoint}
+            </span>
+          </h1>
+        </div>
+        <div className="token-status">
+          <TokenStat label="prompt" value={req.promptTokens} />
+          <span className="token-sep">+</span>
+          <TokenStat label="completion" value={req.completionTokens} />
+          <span className="token-sep">=</span>
+          <TokenStat label="total" value={req.totalTokens} bold />
+        </div>
       </div>
 
       <div className="detail-grid">
@@ -87,22 +96,6 @@ function Detail({ req }: { req: ApiRequestDetail }) {
             </dd>
             <dt>Streamed</dt>
             <dd>{req.streamed ? 'Yes (SSE)' : 'No'}</dd>
-          </dl>
-        </section>
-
-        <section className="panel">
-          <div className="panel-head">
-            <span className="panel-title">Tokens</span>
-          </div>
-          <dl className="dl-grid">
-            <dt>Prompt</dt>
-            <dd className="mono">{req.promptTokens?.toLocaleString() ?? <span className="dim">—</span>}</dd>
-            <dt>Completion</dt>
-            <dd className="mono">{req.completionTokens?.toLocaleString() ?? <span className="dim">—</span>}</dd>
-            <dt>Total</dt>
-            <dd className="mono" style={{ fontWeight: 600 }}>
-              {req.totalTokens?.toLocaleString() ?? <span className="dim">—</span>}
-            </dd>
           </dl>
         </section>
 
@@ -244,6 +237,15 @@ function tryPrettyJson(text: string): string | null {
   } catch {
     return null
   }
+}
+
+function TokenStat({ label, value, bold }: { label: string; value: number | null; bold?: boolean }) {
+  return (
+    <span className="token-stat">
+      <span className={`mono token-value${bold ? ' token-bold' : ''}`}>{value?.toLocaleString() ?? '—'}</span>
+      <span className="token-label">{label}</span>
+    </span>
+  )
 }
 
 function formatDuration(ms: number): string {
