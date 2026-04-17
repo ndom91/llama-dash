@@ -54,11 +54,11 @@ export function ThemeToggle() {
   }
 
   const Icon = mode === 'auto' ? Monitor : mode === 'dark' ? Moon : Sun
-  const label = `Theme: ${mode} — click to cycle`
+  const ariaLabel = `Toggle theme (current: ${mode})`
 
   return (
-    <Tooltip label={label}>
-      <button type="button" onClick={cycle} aria-label={label} className="btn btn-ghost btn-icon">
+    <Tooltip label="Toggle Theme">
+      <button type="button" onClick={cycle} aria-label={ariaLabel} className="btn btn-ghost btn-icon">
         <Icon className="icon-14" strokeWidth={1.75} aria-hidden="true" />
       </button>
     </Tooltip>

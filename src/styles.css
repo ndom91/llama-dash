@@ -707,15 +707,20 @@ a,
 }
 
 /* ---- radix tooltip ---- */
-
+/*
+ * Tooltips are always dark, both themes. Darker than --bg-0 so they read as
+ * a crisp popover floating above the app chrome (and inverts naturally on
+ * the light canvas). Borders-only depth — no shadow.
+ */
 .llama-tooltip {
-  background: var(--bg-4);
-  border: 1px solid var(--border-strong);
-  color: var(--fg);
-  padding: 5px 8px;
-  border-radius: 6px;
+  background: #05070a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e6e9ec;
+  padding: 4px 8px;
+  border-radius: 5px;
   font-size: 11px;
   font-family: var(--font-sans);
+  font-weight: 500;
   letter-spacing: -0.005em;
   line-height: 1.35;
   z-index: 50;
@@ -724,7 +729,7 @@ a,
   animation: tooltip-in 120ms ease-out;
 }
 .llama-tooltip-arrow {
-  fill: var(--bg-4);
+  fill: #05070a;
 }
 @keyframes tooltip-in {
   from {
