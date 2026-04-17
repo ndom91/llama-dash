@@ -697,6 +697,18 @@ button:disabled {
   color: var(--fg);
 }
 
+.req-res-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+@media (max-width: 768px) {
+  .req-res-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---- duration bar ---- */
 
 .dur {

@@ -127,11 +127,15 @@ function Detail({ req }: { req: ApiRequestDetail }) {
         )}
       </div>
 
-      <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
-        {reqHeaders ? <HeadersSection title="Request Headers" headers={reqHeaders} /> : null}
-        {req.requestBody ? <BodySection title="Request Body" body={req.requestBody} /> : null}
-        {resHeaders ? <HeadersSection title="Response Headers" headers={resHeaders} /> : null}
-        {req.responseBody ? <BodySection title="Response Body" body={req.responseBody} /> : null}
+      <div className="req-res-columns">
+        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+          {reqHeaders ? <HeadersSection title="Request Headers" headers={reqHeaders} /> : null}
+          {req.requestBody ? <BodySection title="Request Body" body={req.requestBody} /> : null}
+        </div>
+        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+          {resHeaders ? <HeadersSection title="Response Headers" headers={resHeaders} /> : null}
+          {req.responseBody ? <BodySection title="Response Body" body={req.responseBody} /> : null}
+        </div>
       </div>
     </>
   )
