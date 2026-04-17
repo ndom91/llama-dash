@@ -46,6 +46,7 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return fetch(`/api/requests${suffix}`).then(json<{ requests: Array<ApiRequest>; nextCursor: number | null }>)
   },
+  getRequest: (id: number) => fetch(`/api/requests/${id}`).then(json<{ request: ApiRequest }>),
   unloadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),

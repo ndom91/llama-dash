@@ -4,16 +4,17 @@ import { useLiveData } from '../lib/live-data'
 import { StatusDot } from './StatusDot'
 import { ThemeToggle } from './ThemeToggle'
 
-const TITLES: Record<string, string> = {
-  '/': 'Dashboard',
-  '/models': 'Models',
-  '/requests': 'Requests',
+function resolveTitle(pathname: string): string {
+  if (pathname === '/') return 'Dashboard'
+  if (pathname === '/models') return 'Models'
+  if (pathname.startsWith('/requests')) return 'Requests'
+  return 'llama-dash'
 }
 
 export function TopBar({ actions }: { actions?: ReactNode }) {
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
-  const title = TITLES[leaf] ?? 'llama-dash'
+  const title = resolveTitle(leaf)
   const { health, models } = useLiveData()
 
   const reachable = health?.upstream.reachable === true

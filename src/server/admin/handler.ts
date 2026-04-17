@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { listRecentRequests } from './requests.ts'
+import { getRequestById, listRecentRequests } from './requests.ts'
 
 type Handler = (req: IncomingMessage, res: ServerResponse, match: RegExpMatchArray) => Promise<void> | void
 
@@ -73,6 +73,16 @@ const routes: Array<Route> = [
         requests: rows,
         nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
       })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/(\d+)$/,
+    handler: async (_req, res, match) => {
+      const id = Number(match[1])
+      const row = getRequestById(id)
+      if (!row) return error(res, 404, `Request ${id} not found`)
+      json(res, 200, { request: row })
     },
   },
   {

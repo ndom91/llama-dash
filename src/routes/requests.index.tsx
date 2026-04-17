@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
@@ -8,11 +8,12 @@ import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { api, type ApiRequest } from '../lib/api'
 
-export const Route = createFileRoute('/requests')({ component: Requests })
+export const Route = createFileRoute('/requests/')({ component: Requests })
 
 const PAGE_SIZE = 50
 
 function Requests() {
+  const navigate = useNavigate()
   const [rows, setRows] = useState<Array<ApiRequest>>([])
   const [cursor, setCursor] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -128,7 +129,11 @@ function Requests() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id}>
+                    <tr
+                      key={r.id}
+                      className="clickable-row"
+                      onClick={() => navigate({ to: '/requests/$id', params: { id: String(r.id) } })}
+                    >
                       <td className="mono dim">{formatWhen(r.startedAt)}</td>
                       <td className="mono" style={{ color: 'var(--fg-muted)' }}>
                         {r.method}

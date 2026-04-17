@@ -1,4 +1,4 @@
-import { and, desc, lt } from 'drizzle-orm'
+import { and, desc, eq, lt } from 'drizzle-orm'
 import { db, schema } from '../db/index.ts'
 
 export type RequestRow = {
@@ -39,4 +39,23 @@ export function listRecentRequests(opts: { limit: number; cursor?: number }): Ar
     streamed: r.streamed,
     error: r.error,
   }))
+}
+
+export function getRequestById(id: number): RequestRow | null {
+  const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
+  if (!r) return null
+  return {
+    id: r.id,
+    startedAt: r.startedAt.toISOString(),
+    durationMs: r.durationMs,
+    method: r.method,
+    endpoint: r.endpoint,
+    model: r.model,
+    statusCode: r.statusCode,
+    promptTokens: r.promptTokens,
+    completionTokens: r.completionTokens,
+    totalTokens: r.totalTokens,
+    streamed: r.streamed,
+    error: r.error,
+  }
 }

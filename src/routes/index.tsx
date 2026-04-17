@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
@@ -136,6 +136,7 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
 }
 
 function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null }) {
+  const navigate = useNavigate()
   const max = useMemo(() => {
     if (!requests || requests.length === 0) return 1
     let m = 1
@@ -178,7 +179,11 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
           </thead>
           <tbody>
             {requests.map((r) => (
-              <tr key={r.id}>
+              <tr
+                key={r.id}
+                className="clickable-row"
+                onClick={() => navigate({ to: '/requests/$id', params: { id: String(r.id) } })}
+              >
                 <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                 <td className="mono" translate="no">
                   {r.endpoint}
