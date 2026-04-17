@@ -17,6 +17,12 @@ If any of them emit errors that aren't auto-fixable, fix them before
 reporting done. Do not suppress rules to make errors go away unless
 there's a specific, commented reason.
 
+**Do not start `pnpm dev` as a "final smoke test" before handing work back.**
+The user runs the dev server themselves. Starting it leaves a background
+process bound to :5173 and conflicts with their session. If a change
+genuinely needs a running server to verify, start it in the middle of
+your work, verify, and kill it — don't leave one running at the end.
+
 ## Tooling
 
 - **Lint + format**: [Biome](https://biomejs.dev) (replaces ESLint + Prettier).
