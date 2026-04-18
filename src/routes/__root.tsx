@@ -23,7 +23,10 @@ export const Route = createRootRoute({
       { name: 'theme-color', content: '#070809' },
       { title: 'llama-dash' },
     ],
-    links: [{ rel: 'stylesheet', href: appCss }],
+    links: [
+      { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+      { rel: 'stylesheet', href: appCss },
+    ],
   }),
   shellComponent: RootDocument,
 })
