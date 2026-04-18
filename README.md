@@ -12,6 +12,20 @@ Sits in front of llama-swap and gives you:
 
 See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions behind this first pass.
 
+<table>
+<tr>
+<td>
+<img src="./.github/assets/SCR-20260418-mqgi.png" />
+</td>
+<td>
+<img src="./.github/assets/SCR-20260418-mqlt.png" />
+</td>
+<td>
+<img src="./.github/assets/SCR-20260418-mqpa.png" />
+</td>
+</tr>
+</table>
+
 ## Quick start (Docker Compose)
 
 ```bash
