@@ -1,7 +1,7 @@
-import type { IncomingMessage, ServerResponse } from 'node:http'
-import { Readable } from 'node:stream'
 import { config } from '../config.ts'
+import { authenticateRequest } from './auth.ts'
 import { writeRequestLog } from './log.ts'
+import { recordTokenUsage } from './rate-limiter.ts'
 import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
@@ -16,24 +16,7 @@ const HOP_BY_HOP = new Set([
   'upgrade',
 ])
 
-const filterHeaders = (src: IncomingMessage['headers']): Record<string, string> => {
-  const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(src)) {
-    if (v == null) continue
-    if (HOP_BY_HOP.has(k.toLowerCase())) continue
-    out[k] = Array.isArray(v) ? v.join(', ') : v
-  }
-  return out
-}
-
-const copyResponseHeaders = (upstream: Response, res: ServerResponse) => {
-  upstream.headers.forEach((value, key) => {
-    if (HOP_BY_HOP.has(key.toLowerCase())) return
-    res.setHeader(key, value)
-  })
-}
-
-const headersToRecord = (headers: Headers): Record<string, string> => {
+function filterRequestHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {}
   headers.forEach((value, key) => {
     if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value
@@ -41,41 +24,57 @@ const headersToRecord = (headers: Headers): Record<string, string> => {
   return out
 }
 
-async function drainStream(stream: ReadableStream<Uint8Array>): Promise<string> {
-  const reader = stream.getReader()
-  const decoder = new TextDecoder()
-  const chunks: Array<string> = []
-  for (;;) {
-    const { value, done } = await reader.read()
-    if (done) break
-    if (value) chunks.push(decoder.decode(value, { stream: true }))
-  }
-  const tail = decoder.decode()
-  if (tail) chunks.push(tail)
-  return chunks.join('')
+function filterResponseHeaders(upstream: Headers): Headers {
+  const out = new Headers()
+  upstream.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) out.set(key, value)
+  })
+  return out
 }
 
-/**
- * Handle a /v1/* request: forward it to llama-swap, stream the response back
- * to the client, and record a log row when the exchange completes.
- */
-export async function handleProxyRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const startedAt = Date.now()
-  const method = (req.method ?? 'GET').toUpperCase()
-  const endpoint = (req.url ?? '/').split('?')[0]
-  const upstream = `${config.llamaSwapUrl}${req.url}`
+function headersToRecord(headers: Headers): Record<string, string> {
+  const out: Record<string, string> = {}
+  headers.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value
+  })
+  return out
+}
 
-  const reqHeaders = filterHeaders(req.headers)
+export async function handleProxyRequest(request: Request): Promise<Response> {
+  const startedAt = Date.now()
+  const method = request.method.toUpperCase()
+  const url = new URL(request.url)
+  const endpoint = url.pathname
+  const upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
+
+  const reqHeaders = filterRequestHeaders(request.headers)
   const hasBody = method !== 'GET' && method !== 'HEAD'
 
-  let fetchBody: ReadableStream | undefined
-  let reqBodyPromise: Promise<string> | undefined
+  let reqBodyText: string | null = null
   if (hasBody) {
-    const reqStream = Readable.toWeb(req) as ReadableStream<Uint8Array>
-    const [forFetch, forLog] = reqStream.tee()
-    fetchBody = forFetch
-    reqBodyPromise = drainStream(forLog)
+    reqBodyText = await request.text()
   }
+
+  const authResult = authenticateRequest(request, reqBodyText)
+  if (!authResult.ok) {
+    const headers = new Headers({ 'content-type': 'application/json' })
+    if (authResult.retryAfterMs) {
+      headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
+    }
+    return new Response(JSON.stringify(authResult.body), { status: authResult.status, headers })
+  }
+
+  const keyId = authResult.keyId
+  const keyRow = authResult.keyRow
+
+  const fetchBody = reqBodyText
+    ? new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode(reqBodyText!))
+          controller.close()
+        },
+      })
+    : undefined
 
   let upstreamResponse: Response
   try {
@@ -89,7 +88,6 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    const reqBodyText = (await reqBodyPromise) ?? null
     writeLog({
       startedAt,
       status: 502,
@@ -102,26 +100,18 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       reqBody: reqBodyText,
       resHeaders: null,
       resBody: null,
+      keyId,
     })
-    if (!res.headersSent) {
-      res.statusCode = 502
-      res.setHeader('content-type', 'application/json')
-    }
-    res.end(JSON.stringify({ error: { message: `Upstream unreachable: ${message}` } }))
-    return
+    return Response.json({ error: { message: `Upstream unreachable: ${message}` } }, { status: 502 })
   }
 
-  res.statusCode = upstreamResponse.status
-  copyResponseHeaders(upstreamResponse, res)
-
-  const resHeaders = JSON.stringify(headersToRecord(upstreamResponse.headers))
+  const resHeadersObj = filterResponseHeaders(upstreamResponse.headers)
+  const resHeadersJson = JSON.stringify(headersToRecord(upstreamResponse.headers))
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
   const isSse = contentType.includes('text/event-stream')
   const isJson = contentType.includes('application/json')
 
   if (!upstreamResponse.body) {
-    res.end()
-    const reqBodyText = (await reqBodyPromise) ?? null
     writeLog({
       startedAt,
       status: upstreamResponse.status,
@@ -132,77 +122,106 @@ export async function handleProxyRequest(req: IncomingMessage, res: ServerRespon
       error: null,
       reqHeaders: JSON.stringify(reqHeaders),
       reqBody: reqBodyText,
-      resHeaders,
+      resHeaders: resHeadersJson,
       resBody: null,
+      keyId,
     })
-    return
+    return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
 
+  const reader = upstreamResponse.body.getReader()
   const decoder = new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner() : null
   const responseChunks: Array<string> = []
 
-  const reader = upstreamResponse.body.getReader()
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { value, done } = await reader.read()
+        if (done) {
+          controller.close()
+          const tail = decoder.decode()
+          if (tail) {
+            responseChunks.push(tail)
+            if (sseScanner) sseScanner.feed(tail)
+          }
+          const resBody = responseChunks.join('')
+          const usage: Usage = sseScanner
+            ? sseScanner.done()
+            : isJson
+              ? usageFromJsonBody(resBody)
+              : { model: null, promptTokens: null, completionTokens: null, totalTokens: null }
 
-  try {
-    for (;;) {
-      const { value, done } = await reader.read()
-      if (done) break
-      if (value) {
-        res.write(value)
+          writeLog({
+            startedAt,
+            status: upstreamResponse.status,
+            method,
+            endpoint,
+            usage,
+            streamed: isSse,
+            error: null,
+            reqHeaders: JSON.stringify(reqHeaders),
+            reqBody: reqBodyText,
+            resHeaders: resHeadersJson,
+            resBody: resBody || null,
+            keyId,
+          })
+
+          if (keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
+            recordTokenUsage(keyRow.id, keyRow.rateLimitTpm, usage.totalTokens)
+          }
+          return
+        }
+        controller.enqueue(value)
         const text = decoder.decode(value, { stream: true })
         responseChunks.push(text)
         if (sseScanner) sseScanner.feed(text)
+      } catch (err) {
+        controller.error(err)
+        const message = err instanceof Error ? err.message : String(err)
+        writeLog({
+          startedAt,
+          status: upstreamResponse.status,
+          method,
+          endpoint,
+          usage: sseScanner
+            ? sseScanner.done()
+            : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+          streamed: isSse,
+          error: message,
+          reqHeaders: JSON.stringify(reqHeaders),
+          reqBody: reqBodyText,
+          resHeaders: resHeadersJson,
+          resBody: responseChunks.join('') || null,
+          keyId,
+        })
       }
-    }
-    const tail = decoder.decode()
-    if (tail) {
-      responseChunks.push(tail)
-      if (sseScanner) sseScanner.feed(tail)
-    }
-    res.end()
+    },
+    cancel() {
+      reader.cancel().catch(() => {})
+      writeLog({
+        startedAt,
+        status: upstreamResponse.status,
+        method,
+        endpoint,
+        usage: sseScanner
+          ? sseScanner.done()
+          : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+        streamed: isSse,
+        error: 'Client disconnected',
+        reqHeaders: JSON.stringify(reqHeaders),
+        reqBody: reqBodyText,
+        resHeaders: resHeadersJson,
+        resBody: responseChunks.join('') || null,
+        keyId,
+      })
+    },
+  })
 
-    const resBody = responseChunks.join('')
-    const usage: Usage = sseScanner
-      ? sseScanner.done()
-      : isJson
-        ? usageFromJsonBody(resBody)
-        : { model: null, promptTokens: null, completionTokens: null, totalTokens: null }
-
-    const reqBodyText = (await reqBodyPromise) ?? null
-    writeLog({
-      startedAt,
-      status: upstreamResponse.status,
-      method,
-      endpoint,
-      usage,
-      streamed: isSse,
-      error: null,
-      reqHeaders: JSON.stringify(reqHeaders),
-      reqBody: reqBodyText,
-      resHeaders,
-      resBody: resBody || null,
-    })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    if (!res.writableEnded) res.end()
-    const reqBodyText = (await reqBodyPromise?.catch(() => null)) ?? null
-    writeLog({
-      startedAt,
-      status: upstreamResponse.status,
-      method,
-      endpoint,
-      usage: sseScanner
-        ? sseScanner.done()
-        : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
-      streamed: isSse,
-      error: message,
-      reqHeaders: JSON.stringify(reqHeaders),
-      reqBody: reqBodyText,
-      resHeaders,
-      resBody: responseChunks.join('') || null,
-    })
-  }
+  return new Response(body, {
+    status: upstreamResponse.status,
+    headers: resHeadersObj,
+  })
 }
 
 function writeLog(input: {
@@ -217,6 +236,7 @@ function writeLog(input: {
   reqBody: string | null
   resHeaders: string | null
   resBody: string | null
+  keyId: string | null
 }) {
   writeRequestLog({
     startedAt: input.startedAt,
@@ -234,5 +254,6 @@ function writeLog(input: {
     requestBody: input.reqBody,
     responseHeaders: input.resHeaders,
     responseBody: input.resBody,
+    keyId: input.keyId,
   })
 }

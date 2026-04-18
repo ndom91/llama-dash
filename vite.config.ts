@@ -7,8 +7,6 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-import { llamaDashServer } from './src/server/vite-plugin'
-
 const gitCommit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim()
 
 const config = defineConfig({
@@ -16,7 +14,7 @@ const config = defineConfig({
     __GIT_COMMIT__: JSON.stringify(gitCommit),
   },
   resolve: { tsconfigPaths: true },
-  plugins: [llamaDashServer(), devtools(), tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
 })
 
 export default config
