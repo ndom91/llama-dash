@@ -1,3 +1,4 @@
+import { HotkeysProvider } from '@tanstack/react-hotkeys'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
@@ -41,12 +42,14 @@ function RootDocument() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <div className="app-shell">
-              <Sidebar />
-              <Outlet />
-            </div>
-          </TooltipProvider>
+          <HotkeysProvider>
+            <TooltipProvider>
+              <div className="app-shell">
+                <Sidebar />
+                <Outlet />
+              </div>
+            </TooltipProvider>
+          </HotkeysProvider>
           <Toaster
             position="bottom-center"
             theme="system"
