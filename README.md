@@ -1,14 +1,13 @@
 # llama-dash
 
-A management dashboard and logging proxy for [llama-swap](https://github.com/mostlygeek/llama-swap).
-
-Sits in front of llama-swap and gives you:
+A sidecar dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Requires a running llama-swap instance — llama-dash does not run inference itself. It sits in front of llama-swap as the single public-facing endpoint, adding a management UI and proxy-layer features that llama-swap doesn't provide on its own:
 
 - **Dashboard** — live stats (req/s, tok/s, p50, error rate) with sparklines, model swap timeline, running models with peer support, upstream health + GPU monitoring.
 - **Model management** — load/unload models from the UI, see running state and peer connections.
-- **Request log** — searchable, filterable, sortable log of every `/v1/*` call with histogram, per-request detail view (headers, bodies, token trace).
+- **Request logging** — every `/v1/*` call logged to SQLite (method, endpoint, model, status, duration, token counts), with a searchable/filterable UI, histogram, and per-request detail view.
+- **Transparent proxy** — forwards all `/v1/*` traffic to llama-swap with streaming SSE preserved. Token counts are scraped from responses as they pass through, without buffering.
 - **GPU monitoring** — auto-detects NVIDIA, AMD, or Apple Silicon GPUs. Shows VRAM/GTT usage, utilization, temperature, power. Sidebar shows live VRAM bar.
-- A SQLite log of every `/v1/*` call (method, endpoint, model, status, duration, token counts) — streamed or not.
+- **Config editor** — edit llama-swap's `config.yaml` from the UI with validation; llama-swap picks up changes via file watch.
 
 <table>
   <tr>
@@ -18,7 +17,7 @@ Sits in front of llama-swap and gives you:
   </tr>
   <tr>
     <td>
-      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nfjs.png" />
+      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nktx.png" />
     </td>
     <td>
       <img alt="Light - Playground" src="./.github/assets/SCR-20260418-nfrw.png" />
@@ -28,6 +27,16 @@ Sits in front of llama-swap and gives you:
     </td>
   </tr>
 </table>
+
+```
+client ──► llama-dash :5173 ──► llama-swap (internal) ──► llama-server processes
+           │
+           ├─ UI (/)
+           ├─ Admin API (/api/*)
+           └─ Proxy (/v1/*)
+```
+
+Clients point at llama-dash instead of llama-swap directly. In Docker Compose, llama-swap is on an internal network and not exposed to the host.
 
 ## Quick start (Docker Compose)
 
@@ -98,6 +107,10 @@ pnpm typecheck     # tsgo --noEmit
 
 Run `lint:fix`, `format:fix`, and `typecheck` before calling any change
 done — see `AGENTS.md`.
+
+## Acknowledgements
+
+This project was developed with significant assistance from LLMs, primarily [Claude Code](https://claude.ai/claude-code) (Anthropic). Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.
 
 ## License
 
