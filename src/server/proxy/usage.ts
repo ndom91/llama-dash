@@ -16,17 +16,27 @@ type RawJson = Record<string, unknown>
 
 const pickModel = (body: RawJson): string | null => (typeof body.model === 'string' ? body.model : null)
 
+const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
 const pickUsage = (body: RawJson): Partial<Usage> => {
   const u = body.usage
-  if (!u || typeof u !== 'object') return {}
-  const rec = u as Record<string, unknown>
-  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
-  return {
-    // OpenAI-compatible naming; Anthropic uses input_tokens/output_tokens
-    promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
-    completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
-    totalTokens: num(rec.total_tokens),
+  if (u && typeof u === 'object') {
+    const rec = u as Record<string, unknown>
+    return {
+      promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
+      completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
+      totalTokens: num(rec.total_tokens),
+    }
   }
+  const t = body.timings
+  if (t && typeof t === 'object') {
+    const rec = t as Record<string, unknown>
+    return {
+      promptTokens: num(rec.prompt_n),
+      completionTokens: num(rec.predicted_n),
+    }
+  }
+  return {}
 }
 
 export function usageFromJsonBody(text: string): Usage {
