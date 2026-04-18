@@ -3,7 +3,7 @@ import { AlertTriangle, AlignLeft, Check, Loader2, RefreshCw, Save } from 'lucid
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { TopBar } from '../components/TopBar'
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
+import { parseDocument } from 'yaml'
 import { api, type ApiConfigSaveResult } from '../lib/api'
 
 export const Route = createFileRoute('/config')({ component: ConfigPage })
@@ -69,11 +69,16 @@ function ConfigPage() {
 
   const doFormat = useCallback(() => {
     try {
-      const parsed = parseYaml(content)
-      const formatted = stringifyYaml(parsed, { indent: 2, lineWidth: 0 })
+      const doc = parseDocument(content)
+      if (doc.errors.length > 0) {
+        setValidation({ valid: false, errors: doc.errors.map((e) => e.message) })
+        return
+      }
+      const formatted = doc.toString({ indent: 2, lineWidth: 0 })
       setContent(formatted)
-    } catch {
-      // invalid YAML — don't format
+      setValidation(null)
+    } catch (err) {
+      console.warn('Format failed:', err)
     }
   }, [content])
 

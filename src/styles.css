@@ -1061,7 +1061,7 @@ button:disabled {
 }
 .page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
 }
@@ -1070,7 +1070,6 @@ button:disabled {
 }
 .page-header-action {
   flex-shrink: 0;
-  padding-top: 4px;
 }
 .page-intro {
   display: flex;
@@ -1940,6 +1939,7 @@ a,
   display: flex;
   flex-direction: column;
   height: 100%;
+  gap: var(--space-sm);
 }
 
 .pg-settings {
@@ -1951,46 +1951,71 @@ a,
 .pg-settings-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
   flex-wrap: wrap;
 }
 
+.pg-settings-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  height: 30px;
+}
+
+.pg-new-chat-btn {
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.pg-new-chat-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--border-strong);
+}
+.pg-new-chat-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .pg-settings-label {
-  font-size: 11px;
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--fg-dim);
+  letter-spacing: 0.06em;
+  color: var(--fg-faint);
   white-space: nowrap;
 }
 
 .pg-select {
   font-family: var(--font-mono);
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--bg-1);
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--fg);
-  min-width: 180px;
+  min-width: 140px;
+  outline: none;
+  cursor: pointer;
 }
-.pg-select:focus {
-  outline: 1px solid var(--accent);
-  border-color: var(--accent);
-}
-
-.pg-temp-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.pg-select option {
+  background: var(--bg-2);
+  color: var(--fg);
 }
 
 .pg-slider {
-  width: 120px;
+  width: 80px;
+  height: 4px;
   accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .pg-temp-val {
+  font-family: var(--font-mono);
   font-size: 11px;
   color: var(--fg-dim);
   min-width: 32px;
@@ -2000,11 +2025,24 @@ a,
   margin-left: auto;
 }
 
+.pg-system-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease;
+  overflow: hidden;
+}
+.pg-system-wrap.pg-system-open {
+  grid-template-rows: 1fr;
+}
+.pg-system-wrap > textarea {
+  min-height: 0;
+}
+
 .pg-system-textarea {
   font-family: var(--font-mono);
   font-size: 12px;
   padding: 8px 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--bg-1);
   color: var(--fg);
