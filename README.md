@@ -4,8 +4,10 @@ A management dashboard and logging proxy for [llama-swap](https://github.com/mos
 
 Sits in front of llama-swap and gives you:
 
-- A single UI to see what's configured, what's running, and every request that has flowed through the proxy.
-- Per-model **Unload** buttons backed by llama-swap's `/api/models/unload/:id` endpoint.
+- **Dashboard** — live stats (req/s, tok/s, p50, error rate) with sparklines, model swap timeline, running models with peer support, upstream health + GPU monitoring.
+- **Model management** — load/unload models from the UI, see running state and peer connections.
+- **Request log** — searchable, filterable, sortable log of every `/v1/*` call with histogram, per-request detail view (headers, bodies, token trace).
+- **GPU monitoring** — auto-detects NVIDIA, AMD, or Apple Silicon GPUs. Shows VRAM/GTT usage, utilization, temperature, power. Sidebar shows live VRAM bar.
 - A SQLite log of every `/v1/*` call (method, endpoint, model, status, duration, token counts) — streamed or not.
 
 See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions behind this first pass.
@@ -38,10 +40,13 @@ Copy `.env.example` to `.env` and fill in the values.
 ## How it's wired
 
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, token counts scraped from the response as it flies by, one row per request written to SQLite on completion.
-- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI.
+- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI (models, requests, stats, histogram, health, GPU, model-timeline).
+- `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory. AMD APUs use GTT (not VRAM) for actual usable memory.
+- `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
-- `src/server/vite-plugin.ts` — mounts the two handlers above as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
-- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/requests`.
+- `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
+- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/requests`, `/logs`.
+- `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 
 ## Useful scripts
 
