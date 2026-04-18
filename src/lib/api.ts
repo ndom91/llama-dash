@@ -32,7 +32,15 @@ export type ApiRequestDetail = ApiRequest & {
 
 export type ApiHealth = {
   upstream:
-    | { reachable: true; health: string; version: string; commit: string; build_date: string }
+    | {
+        reachable: true
+        host: string
+        health: string
+        latencyMs: number
+        version: string
+        commit: string
+        build_date: string
+      }
     | { reachable: false; error: string }
 }
 

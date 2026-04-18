@@ -258,7 +258,6 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--fg-faint);
-  margin-left: -2px;
   padding: 12px 10px 6px 0;
 }
 

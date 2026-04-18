@@ -9,7 +9,7 @@ import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import type { ApiModel, ApiRequest } from '../lib/api'
+import type { ApiHealth, ApiModel, ApiRequest } from '../lib/api'
 import { qk, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
@@ -198,16 +198,8 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
   )
 }
 
-function UpstreamHealthPanel({
-  health,
-}: {
-  health:
-    | { upstream: { reachable: true; health: string; version: string } | { reachable: false; error: string } }
-    | undefined
-}) {
+function UpstreamHealthPanel({ health }: { health: ApiHealth | undefined }) {
   const up = health?.upstream
-  const version = up?.reachable ? up.version : null
-  const healthStatus = up?.reachable ? up.health : null
 
   return (
     <section className="panel">
@@ -216,13 +208,18 @@ function UpstreamHealthPanel({
         <span className="panel-sub">llama-swap health</span>
       </div>
       <dl className="dl-grid">
+        <dt>host</dt>
+        <dd className="mono">{up?.reachable ? up.host : '—'}</dd>
         <dt>version</dt>
-        <dd className="mono">{version ? `v${version}` : '—'}</dd>
+        <dd className="mono">{up?.reachable ? `v${up.version}` : '—'}</dd>
         <dt>/health</dt>
         <dd className="mono">
-          {healthStatus ? (
+          {up?.reachable ? (
             <>
-              <StatusDot tone="ok" /> <span style={{ marginLeft: 6 }}>{healthStatus}</span>
+              <StatusDot tone="ok" />{' '}
+              <span style={{ marginLeft: 6 }}>
+                {up.health} · {up.latencyMs}ms
+              </span>
             </>
           ) : (
             <>

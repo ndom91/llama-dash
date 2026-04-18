@@ -158,9 +158,12 @@ const routes: Array<Route> = [
     pattern: /^\/api\/health$/,
     handler: async (_req, res) => {
       try {
+        const host = new URL(config.llamaSwapUrl).host
+        const t0 = performance.now()
         const [health, version] = await Promise.all([llamaSwap.health(), llamaSwap.version()])
+        const latencyMs = Math.round(performance.now() - t0)
         json(res, 200, {
-          upstream: { reachable: true, health: health.trim(), ...version },
+          upstream: { reachable: true, host, health: health.trim(), latencyMs, ...version },
         })
       } catch (err) {
         json(res, 200, {
