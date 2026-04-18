@@ -7,9 +7,14 @@ export type { GpuInfo, GpuSnapshot }
 const POLL_INTERVAL_MS = 10_000
 const EXEC_TIMEOUT_MS = 5_000
 
+type Driver = 'nvidia' | 'amd-top' | 'amd' | 'apple'
+type SchemaDriver = 'nvidia' | 'amd' | 'apple'
+
 let cached: GpuSnapshot = { available: false, driver: null, gpus: [], polledAt: 0 }
-let detectedDriver: 'nvidia' | 'amd' | 'apple' | null = null
+let detectedDriver: Driver | null = null
 let started = false
+
+const schemaDriver = (d: Driver): SchemaDriver => (d === 'amd-top' ? 'amd' : d)
 
 function run(bin: string, args: Array<string>): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -105,6 +110,85 @@ function parseRocmSmi(output: string): Array<GpuInfo> {
   return gpus
 }
 
+type AmdTopDevice = {
+  Info?: {
+    DeviceName?: string
+    ASIC_Name?: string
+    'ASIC Name'?: string
+    'Total Compute Unit'?: number
+    'GPU Type'?: string
+  }
+  Sensors?: {
+    'Edge Temperature'?: { value: number | null }
+    'Average Power'?: { value: number | null }
+    'Input Power'?: { value: number | null }
+  }
+  VRAM?: {
+    'Total VRAM'?: { unit: string; value: number }
+    'Total VRAM Usage'?: { unit: string; value: number }
+    'Total GTT'?: { unit: string; value: number }
+    'Total GTT Usage'?: { unit: string; value: number }
+  }
+  'Total fdinfo'?: Record<string, { unit: string; value: number }>
+}
+
+type AmdTopOutput = {
+  devices?: Array<AmdTopDevice>
+}
+
+function parseAmdTop(jsonStr: string): Array<GpuInfo> {
+  const data = JSON.parse(jsonStr) as AmdTopOutput
+  const devices = data.devices ?? []
+  const gpus: Array<GpuInfo> = []
+
+  for (const dev of devices) {
+    const info = dev.Info ?? {}
+    const name = info.DeviceName ?? info.ASIC_Name ?? info['ASIC Name'] ?? 'AMD GPU'
+    const isAPU = info['GPU Type'] === 'APU'
+
+    const vram = dev.VRAM
+    let memUsed: number | null = null
+    let memTotal: number | null = null
+    if (vram) {
+      if (isAPU && vram['Total GTT'] && vram['Total GTT Usage']) {
+        memTotal = vram['Total GTT'].value
+        memUsed = vram['Total GTT Usage'].value
+      } else if (vram['Total VRAM'] && vram['Total VRAM Usage']) {
+        memTotal = vram['Total VRAM'].value
+        memUsed = vram['Total VRAM Usage'].value
+      }
+    }
+
+    const fdinfo = dev['Total fdinfo']
+    let util: number | null = null
+    if (fdinfo) {
+      const gfx = fdinfo.GFX?.value ?? 0
+      const compute = fdinfo.Compute?.value ?? 0
+      util = Math.round(Math.min(gfx + compute, 100))
+    }
+
+    const sensors = dev.Sensors
+    const temp = sensors?.['Edge Temperature']?.value ?? null
+    const power = sensors?.['Average Power']?.value ?? sensors?.['Input Power']?.value ?? null
+    const powerW = power != null ? Math.round(power) : null
+
+    gpus.push({
+      index: gpus.length,
+      name,
+      memoryUsedMiB: memUsed,
+      memoryTotalMiB: memTotal,
+      memoryPercent:
+        memUsed != null && memTotal != null && memTotal > 0 ? Math.round((memUsed / memTotal) * 100) : null,
+      utilizationPercent: util,
+      temperatureC: temp != null ? Math.round(temp) : null,
+      powerW,
+      powerMaxW: null,
+      cores: info['Total Compute Unit'] ?? null,
+    })
+  }
+  return gpus
+}
+
 type AppleGpuEntry = {
   sppci_model?: string
   sppci_cores?: string
@@ -154,17 +238,28 @@ async function pollAmd(): Promise<Array<GpuInfo>> {
   return parseRocmSmi(output)
 }
 
+async function pollAmdTop(): Promise<Array<GpuInfo>> {
+  const output = await run('amdgpu_top', ['-J', '-n', '1'])
+  return parseAmdTop(output)
+}
+
 async function pollApple(): Promise<Array<GpuInfo>> {
   const jsonStr = await run('system_profiler', ['SPDisplaysDataType', '-json'])
   return parseApple(jsonStr)
 }
 
-async function detectDriver(): Promise<'nvidia' | 'amd' | 'apple' | null> {
+async function detectDriver(): Promise<Driver | null> {
   try {
     await run('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'])
     return 'nvidia'
   } catch {
     // not nvidia
+  }
+  try {
+    await run('amdgpu_top', ['-J', '-n', '1'])
+    return 'amd-top'
+  } catch {
+    // amdgpu_top not available
   }
   try {
     await run('rocm-smi', ['--showproductname', '--csv'])
@@ -191,6 +286,9 @@ async function poll() {
       case 'nvidia':
         gpus = await pollNvidia()
         break
+      case 'amd-top':
+        gpus = await pollAmdTop()
+        break
       case 'amd':
         gpus = await pollAmd()
         break
@@ -198,9 +296,9 @@ async function poll() {
         gpus = await pollApple()
         break
     }
-    cached = { available: true, driver: detectedDriver, gpus, polledAt: Date.now() }
+    cached = { available: true, driver: schemaDriver(detectedDriver), gpus, polledAt: Date.now() }
   } catch {
-    cached = { available: false, driver: detectedDriver, gpus: [], polledAt: Date.now() }
+    cached = { available: false, driver: schemaDriver(detectedDriver), gpus: [], polledAt: Date.now() }
   }
 }
 
