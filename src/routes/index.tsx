@@ -222,13 +222,6 @@ function UpstreamHealthPanel({
 
 function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null }) {
   const navigate = useNavigate()
-  const max = useMemo(() => {
-    if (!requests || requests.length === 0) return 1
-    let m = 1
-    for (const r of requests) if (r.durationMs > m) m = r.durationMs
-    return m
-  }, [requests])
-
   const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
 
   return (
@@ -294,7 +287,7 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
                 <td className="num dim">{r.promptTokens ?? '—'}</td>
                 <td className="num">{r.completionTokens ?? '—'}</td>
                 <td>
-                  <DurationBar ms={r.durationMs} max={max} isErr={r.statusCode >= 400} />
+                  <DurationBar ms={r.durationMs} isErr={r.statusCode >= 400} />
                 </td>
               </tr>
             ))}

@@ -71,12 +71,6 @@ function Requests() {
     return sorted
   }, [filtered, sortKey, sortDir])
 
-  const max = useMemo(() => {
-    let m = 1
-    for (const r of rows) if (r.durationMs > m) m = r.durationMs
-    return m
-  }, [rows])
-
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
 
   const toggleSort = (key: SortKey) => {
@@ -311,7 +305,7 @@ function Requests() {
                       <td className="num dim">{r.promptTokens ?? '—'}</td>
                       <td className="num">{r.completionTokens ?? '—'}</td>
                       <td>
-                        <DurationBar ms={r.durationMs} max={max} isErr={r.statusCode >= 400} />
+                        <DurationBar ms={r.durationMs} isErr={r.statusCode >= 400} />
                       </td>
                     </tr>
                   ))}

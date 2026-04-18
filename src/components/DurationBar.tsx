@@ -1,5 +1,7 @@
-export function DurationBar({ ms, max, isErr = false }: { ms: number; max: number; isErr?: boolean }) {
-  const pct = max > 0 ? Math.min(100, Math.max(2, (ms / max) * 100)) : 0
+const BASELINE_MS = 5000
+
+export function DurationBar({ ms, isErr = false }: { ms: number; isErr?: boolean }) {
+  const pct = Math.min(100, (ms / BASELINE_MS) * 100)
   return (
     <span className="dur">
       <span className="dur-bar">
