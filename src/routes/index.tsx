@@ -129,7 +129,7 @@ function StatCard({
         <span className="stat-card-value">{value}</span>
         <span className="stat-card-unit">{unit}</span>
       </div>
-      {sparkline ? <Sparkline data={sparkline} width={160} height={32} color={color} /> : null}
+      {sparkline ? <Sparkline data={sparkline} height={32} color={color} /> : null}
     </div>
   )
 }
