@@ -1,6 +1,8 @@
 {
-  "short_name": "TanStack App",
-  "name": "Create TanStack App Sample",
+  "short_name": "llama-dash",
+  "manifest_version": 3,
+  "version": "0.1.0",
+  "name": "llama-dash",
   "icons": [
     {
       "src": "favicon.ico",
