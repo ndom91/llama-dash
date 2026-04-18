@@ -1,4 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import * as v from 'valibot'
+import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schemas/config'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
@@ -185,21 +187,23 @@ const routes: Array<Route> = [
         return error(res, 404, 'LLAMASWAP_CONFIG_FILE is not set')
       }
       const raw = await readBody(req)
-      let body: { content: string; modifiedAt: number }
+      let parsed: unknown
       try {
-        body = JSON.parse(raw) as { content: string; modifiedAt: number }
+        parsed = JSON.parse(raw)
       } catch {
         return error(res, 400, 'Invalid JSON body')
       }
-      if (typeof body.content !== 'string' || typeof body.modifiedAt !== 'number') {
+      const result = v.safeParse(ConfigSaveBodySchema, parsed)
+      if (!result.success) {
         return error(res, 400, 'Body must have "content" (string) and "modifiedAt" (number)')
       }
+      const body = result.output
       const validation = await validateAgainstSchema(body.content)
       if (!validation.valid) {
         return json(res, 422, { saved: false, errors: validation.errors })
       }
-      const result = writeConfig(body.content, body.modifiedAt)
-      if (result.conflict) {
+      const writeResult = writeConfig(body.content, body.modifiedAt)
+      if (writeResult.conflict) {
         return json(res, 409, { saved: false, conflict: true, message: 'File was modified externally' })
       }
       json(res, 200, { saved: true })
@@ -210,14 +214,18 @@ const routes: Array<Route> = [
     pattern: /^\/api\/config\/validate$/,
     handler: async (req, res) => {
       const raw = await readBody(req)
-      let body: { content: string }
+      let parsed: unknown
       try {
-        body = JSON.parse(raw) as { content: string }
+        parsed = JSON.parse(raw)
       } catch {
         return error(res, 400, 'Invalid JSON body')
       }
-      const result = await validateAgainstSchema(body.content)
-      json(res, 200, result)
+      const result = v.safeParse(ConfigValidateBodySchema, parsed)
+      if (!result.success) {
+        return error(res, 400, 'Body must have "content" (string)')
+      }
+      const validation = await validateAgainstSchema(result.output.content)
+      json(res, 200, validation)
     },
   },
   {

@@ -1,51 +1,43 @@
+import * as v from 'valibot'
 import { config } from '../config.ts'
+import {
+  ModelsListResponseSchema,
+  RunningResponseSchema,
+  VersionResponseSchema,
+  type OpenAiModel,
+  type RunningModel,
+} from './schemas.ts'
 
-export type OpenAiModel = {
-  id: string
-  object: 'model'
-  created: number
-  owned_by: string
-  name?: string
-  meta?: {
-    llamaswap?: {
-      peerID?: string
-    }
-  }
-}
+export type { OpenAiModel, RunningModel }
 
-export type RunningModel = {
-  model: string
-  name: string
-  description: string
-  state: string
-  proxy: string
-  ttl: number
-  cmd: string
-}
-
-type ModelsListResponse = { data: Array<OpenAiModel>; object: 'list' }
-type RunningResponse = { running: Array<RunningModel> }
-
-const call = async <T>(path: string, init?: RequestInit): Promise<T> => {
+const callText = async (path: string, init?: RequestInit): Promise<string> => {
   const res = await fetch(`${config.llamaSwapUrl}${path}`, init)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`llama-swap ${path} -> ${res.status}: ${body.slice(0, 200)}`)
   }
-  const ct = res.headers.get('content-type') ?? ''
-  if (ct.includes('application/json')) return (await res.json()) as T
-  return (await res.text()) as unknown as T
+  return res.text()
+}
+
+const callJson = async <T>(
+  path: string,
+  schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>,
+  init?: RequestInit,
+): Promise<T> => {
+  const res = await fetch(`${config.llamaSwapUrl}${path}`, init)
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`llama-swap ${path} -> ${res.status}: ${body.slice(0, 200)}`)
+  }
+  return v.parse(schema, await res.json())
 }
 
 export const llamaSwap = {
-  listModels: () => call<ModelsListResponse>('/v1/models'),
-  listRunning: () => call<RunningResponse>('/running'),
-  /** Unload a specific model by id. */
-  unloadModel: (id: string) => call<string>(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
-  /** Trigger model loading by hitting llama-swap's upstream proxy path. */
-  loadModel: (id: string) => call<string>(`/upstream/${encodeURIComponent(id)}/`),
-  /** Unload every running model. */
-  unloadAll: () => call<{ msg: string }>('/api/models/unload', { method: 'POST' }),
-  health: () => call<string>('/health'),
-  version: () => call<{ version: string; commit: string; build_date: string }>('/api/version'),
+  listModels: () => callJson('/v1/models', ModelsListResponseSchema),
+  listRunning: () => callJson('/running', RunningResponseSchema),
+  unloadModel: (id: string) => callText(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
+  loadModel: (id: string) => callText(`/upstream/${encodeURIComponent(id)}/`),
+  unloadAll: () => callJson('/api/models/unload', v.object({ msg: v.string() }), { method: 'POST' }),
+  health: () => callText('/health'),
+  version: () => callJson('/api/version', VersionResponseSchema),
 }

@@ -1,27 +1,9 @@
 import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
+import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema } from '../db/index.ts'
 
-export type RequestRow = {
-  id: string
-  startedAt: string
-  durationMs: number
-  method: string
-  endpoint: string
-  model: string | null
-  statusCode: number
-  promptTokens: number | null
-  completionTokens: number | null
-  totalTokens: number | null
-  streamed: boolean
-  error: string | null
-}
-
-export type RequestDetail = RequestRow & {
-  requestHeaders: string | null
-  requestBody: string | null
-  responseHeaders: string | null
-  responseBody: string | null
-}
+export type RequestRow = ApiRequest
+export type RequestDetail = ApiRequestDetail
 
 export function listRecentRequests(opts: { limit: number; cursor?: string }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
@@ -71,18 +53,7 @@ export function getRequestById(id: string): RequestDetail | null {
   }
 }
 
-export type RequestStats = {
-  reqPerSec: number
-  tokPerSec: number
-  p50Latency: number
-  errorRate: number
-  sparklines: {
-    reqs: Array<number>
-    toks: Array<number>
-    latency: Array<number>
-    errors: Array<number>
-  }
-}
+export type RequestStats = ApiRequestStats
 
 export function getRequestStats(): RequestStats {
   const now = Date.now()
@@ -146,11 +117,7 @@ export function getRequestStats(): RequestStats {
   }
 }
 
-export type HistogramBucket = {
-  timestamp: number
-  total: number
-  errors: number
-}
+export type HistogramBucket = ApiHistogramBucket
 
 export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<HistogramBucket> {
   const now = Date.now()

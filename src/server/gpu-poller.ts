@@ -1,25 +1,8 @@
 import { execFile } from 'node:child_process'
 import { platform } from 'node:os'
+import type { GpuInfo, GpuSnapshot } from '../lib/schemas/gpu'
 
-export type GpuInfo = {
-  index: number
-  name: string
-  memoryUsedMiB: number | null
-  memoryTotalMiB: number | null
-  memoryPercent: number | null
-  utilizationPercent: number | null
-  temperatureC: number | null
-  powerW: number | null
-  powerMaxW: number | null
-  cores: number | null
-}
-
-export type GpuSnapshot = {
-  available: boolean
-  driver: 'nvidia' | 'amd' | 'apple' | null
-  gpus: Array<GpuInfo>
-  polledAt: number
-}
+export type { GpuInfo, GpuSnapshot }
 
 const POLL_INTERVAL_MS = 10_000
 const EXEC_TIMEOUT_MS = 5_000
