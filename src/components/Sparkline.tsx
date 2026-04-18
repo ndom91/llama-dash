@@ -17,7 +17,7 @@ export function Sparkline({
   const step = vw / (data.length - 1)
   const points = data.map((v, i) => `${i * step},${height - (v / max) * height * 0.75 - 2}`)
   const line = points.join(' ')
-  const area = `0,0 ${line} ${vw},0`
+  const area = `0,${height} ${line} ${vw},${height}`
 
   return (
     <svg
@@ -29,8 +29,8 @@ export function Sparkline({
     >
       <defs>
         <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0} />
-          <stop offset="100%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
       <polygon points={area} fill={`url(#${id}-fill)`} />
