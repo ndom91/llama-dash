@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Play, Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../components/PageHeader'
@@ -116,9 +116,10 @@ function ModelRow({
   onLoad: () => void
   onUnload: () => void
 }) {
+  const navigate = useNavigate()
   const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
   return (
-    <tr>
+    <tr className="clickable-row" onClick={() => navigate({ to: '/models/$id', params: { id: model.id } })}>
       <td>
         <StatusDot tone={tone} live={model.running} />
       </td>
@@ -142,7 +143,10 @@ function ModelRow({
             <button
               type="button"
               className="btn btn-xs"
-              onClick={onUnload}
+              onClick={(e) => {
+                e.stopPropagation()
+                onUnload()
+              }}
               disabled={unloading}
               title={`Unload ${model.id}`}
             >
@@ -150,7 +154,16 @@ function ModelRow({
               {unloading ? 'unloading…' : 'unload'}
             </button>
           ) : (
-            <button type="button" className="btn btn-xs" onClick={onLoad} disabled={loading} title={`Load ${model.id}`}>
+            <button
+              type="button"
+              className="btn btn-xs"
+              onClick={(e) => {
+                e.stopPropagation()
+                onLoad()
+              }}
+              disabled={loading}
+              title={`Load ${model.id}`}
+            >
               <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
               {loading ? 'loading…' : 'load'}
             </button>
