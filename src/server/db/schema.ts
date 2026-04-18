@@ -17,6 +17,7 @@ export const requests = sqliteTable('requests', {
   requestBody: text('request_body'),
   responseHeaders: text('response_headers'),
   responseBody: text('response_body'),
+  keyId: text('key_id'),
 })
 
 export type Request = typeof requests.$inferSelect
@@ -31,3 +32,19 @@ export const modelEvents = sqliteTable('model_events', {
 
 export type ModelEvent = typeof modelEvents.$inferSelect
 export type NewModelEvent = typeof modelEvents.$inferInsert
+
+export const apiKeys = sqliteTable('api_keys', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  keyHash: text('key_hash').notNull(),
+  keyPrefix: text('key_prefix').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  disabledAt: integer('disabled_at', { mode: 'timestamp_ms' }),
+  allowedModels: text('allowed_models').notNull().default('[]'),
+  rateLimitRpm: integer('rate_limit_rpm'),
+  rateLimitTpm: integer('rate_limit_tpm'),
+  monthlyTokenQuota: integer('monthly_token_quota'),
+})
+
+export type ApiKey = typeof apiKeys.$inferSelect
+export type NewApiKey = typeof apiKeys.$inferInsert

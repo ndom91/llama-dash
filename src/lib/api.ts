@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
+import { ApiKeyCreatedSchema, ApiKeyListResponseSchema } from './schemas/api-key'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
@@ -31,6 +32,7 @@ export type {
   ApiConfigValidation,
   ApiConfigSaveResult,
 } from './schemas/config'
+export type { ApiKeyItem, ApiKeyCreated } from './schemas/api-key'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -88,4 +90,19 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return fetch(`/api/requests/histogram${suffix}`).then(validated(HistogramResponseSchema))
   },
+  listKeys: () => fetch('/api/keys').then(validated(ApiKeyListResponseSchema)),
+  createKey: (body: {
+    name: string
+    allowedModels?: Array<string>
+    rateLimitRpm?: number | null
+    rateLimitTpm?: number | null
+    monthlyTokenQuota?: number | null
+  }) =>
+    fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(validated(ApiKeyCreatedSchema)),
+  revokeKey: (id: string) => fetch(`/api/keys/${id}/revoke`, { method: 'POST' }).then(validated(OkSchema)),
+  deleteKey: (id: string) => fetch(`/api/keys/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
 }

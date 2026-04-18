@@ -1,12 +1,12 @@
 <!-- llama-dash mark · 48 × 24 viewBox · proportions match the HTML version -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" role="img" aria-label="llama-dash">
-  <rect width="56" height="56" rx="8" fill="#f5f6f3"/>
+  <rect width="56" height="56" rx="8" fill="#0E1114"/>
   <text x="4" y="36"
         font-family="'IBM Plex Mono', ui-monospace, monospace"
         font-weight="700" font-size="24"
         letter-spacing="-0.96"
-        fill="#1a1d1a">ld</text>
+        fill="#f5f6f3">ld</text>
   <!-- bar: width = 12 (0.5 × type size), height = 2.75 (0.115 × type size) -->
   <!-- y position = 20 - 2.75 = 17.25 (sits on the 'd' baseline at y=20) -->
-  <rect x="34" y="33.25" width="12" height="2.75" fill="#9DC98A"/>
+  <rect x="34" y="33.25" width="12" height="2.75" fill="#B497D6"/>
 </svg>

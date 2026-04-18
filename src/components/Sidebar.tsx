@@ -8,7 +8,7 @@ import { Tooltip } from './Tooltip'
 import { Logo } from './Logo'
 
 type NavItem = {
-  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config'
+  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config' | '/keys'
   label: string
   shortcut: string
   Icon: typeof LayoutDashboard
@@ -40,8 +40,10 @@ const SECTIONS: ReadonlyArray<NavSection> = [
   },
   {
     title: 'configure',
-    items: [{ to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings }],
-    future: [{ label: 'API Keys', shortcut: 'K07', Icon: KeyRound }],
+    items: [
+      { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
+      { to: '/keys', label: 'API Keys', shortcut: 'K07', Icon: KeyRound },
+    ],
   },
 ]
 

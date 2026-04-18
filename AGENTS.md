@@ -83,9 +83,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Two tables: `requests` (per-call
+2. SQLite (`data/dash.db`) + Drizzle. Three tables: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
-   event-sourced timeline).
+   event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses).
@@ -99,6 +99,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/health` — upstream reachability, version, latency
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
+   - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
 5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
@@ -106,21 +107,20 @@ paths (proxy will grow middleware; admin will grow CRUD).
    known state, inserts `load`/`unload` events into SQLite.
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
    recent requests), Models (list + load/unload), Requests (filtered/sorted
-   log + histogram + detail), Logs.
+   log + histogram + detail), Logs, Playground, Config editor, API Keys.
+8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
+   shown once on creation. When keys exist in DB, proxy requires
+   `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
+   limiting (in-memory, resets on restart). Per-key model allow-lists.
 
 ## What's explicitly NOT done yet
 
 Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
 
-- Auth (admin password or API keys). Proxy is unauthenticated.
-- Rate limiting / quotas.
 - Content filters (regex block/redact, prompt injection).
-- Config editor (`config.yaml` round-tripping). Env var
-  `LLAMASWAP_CONFIG_FILE` is wired; editor UI is next.
-- Live log tail (SSE of llama-swap's `/logs/stream/*`).
-- Cost estimates, playground, export, replay.
+- Cost estimates, export, replay.
 - Production build (Nitro entry point). Dockerfile currently runs
-  `pnpm dev`; Nitro migration is future work.
+  `pnpm dev`
 
 ## Tooling
 
@@ -163,6 +163,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ----------- | ------ |
 | Request     | `req`  |
 | ModelEvent  | `mev`  |
+| ApiKey      | `key`  |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

@@ -17,6 +17,7 @@ export type RequestLogInput = {
   requestBody: string | null
   responseHeaders: string | null
   responseBody: string | null
+  keyId: string | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -38,6 +39,7 @@ export function writeRequestLog(row: RequestLogInput) {
       requestBody: row.requestBody,
       responseHeaders: row.responseHeaders,
       responseBody: row.responseBody,
+      keyId: row.keyId,
     })
     .run()
 }

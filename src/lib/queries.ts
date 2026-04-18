@@ -13,12 +13,15 @@ import {
   type ApiGpuSnapshot,
   type ApiHealth,
   type ApiHistogramBucket,
+  type ApiKeyCreated,
+  type ApiKeyItem,
   type ApiModel,
   type ApiModelEvent,
   type ApiRequest,
   type ApiRequestDetail,
   type ApiRequestStats,
 } from './api'
+import type { CreateApiKeyBody } from './schemas/api-key'
 
 const POLL_MS = 5_000
 
@@ -33,6 +36,7 @@ export const qk = {
   gpu: ['gpu'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
+  keys: ['keys'] as const,
 }
 
 // ---- queries ----
@@ -210,6 +214,56 @@ export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
     onError: (e, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(qk.models, ctx.prev)
       toast.error('Unload-all failed', { description: e.message })
+    },
+  })
+}
+
+// ---- API keys ----
+
+export function useApiKeys(): UseQueryResult<Array<ApiKeyItem>> {
+  return useQuery({
+    queryKey: qk.keys,
+    queryFn: () => api.listKeys().then((r) => r.keys),
+  })
+}
+
+export function useCreateApiKey(): UseMutationResult<ApiKeyCreated, Error, CreateApiKeyBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateApiKeyBody) => api.createKey(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.keys })
+    },
+    onError: (e) => {
+      toast.error('Failed to create key', { description: e.message })
+    },
+  })
+}
+
+export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.revokeKey(id),
+    onSuccess: () => {
+      toast.success('API key revoked')
+      qc.invalidateQueries({ queryKey: qk.keys })
+    },
+    onError: (e) => {
+      toast.error('Revoke failed', { description: e.message })
+    },
+  })
+}
+
+export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.deleteKey(id),
+    onSuccess: () => {
+      toast.success('API key deleted')
+      qc.invalidateQueries({ queryKey: qk.keys })
+    },
+    onError: (e) => {
+      toast.error('Delete failed', { description: e.message })
     },
   })
 }

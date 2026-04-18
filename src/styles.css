@@ -2385,3 +2385,120 @@ a,
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ---- API keys ---- */
+
+.key-created-banner {
+  border: 1px solid var(--ok);
+  background: var(--ok-bg);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+.key-created-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.key-created-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-1);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.key-created-value code {
+  flex: 1;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.key-create-form {
+  padding: 16px;
+}
+.key-create-form-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.key-create-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.key-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+.key-field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg-dim);
+}
+.key-field-hint {
+  font-size: 11px;
+  color: var(--fg-faint);
+}
+.key-field-input {
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-0);
+  color: var(--fg);
+}
+.key-field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.key-field-row {
+  display: flex;
+  gap: 12px;
+}
+.key-model-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.key-model-chip {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-1);
+  color: var(--fg-dim);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.key-model-chip.is-active {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.key-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.row-revoked {
+  opacity: 0.5;
+}
+.row-revoked td {
+  text-decoration: line-through;
+  text-decoration-color: var(--fg-faint);
+}
