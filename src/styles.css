@@ -2551,3 +2551,35 @@ a,
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+
+/* Skeleton loading placeholders */
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.22; }
+}
+.skel {
+  display: inline-block;
+  background: var(--fg);
+  border-radius: var(--radius-sm, 4px);
+  animation: skel-pulse 1.5s ease-in-out infinite;
+}
+.skel-text {
+  height: 12px;
+  vertical-align: middle;
+}
+.skel-block {
+  width: 100%;
+  border-radius: 0;
+}
+.skel-body-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0;
+  height: 607px;
+  overflow: hidden;
+}
+.skel-body-line {
+  display: flex;
+  gap: 8px;
+}
