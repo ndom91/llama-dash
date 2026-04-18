@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp, RefreshCw, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
@@ -119,7 +120,9 @@ function Requests() {
         <div className="page">
           <h1 className="page-title">Requests</h1>
           <p className="page-sub">
-            every call through <code translate="no">/v1/*</code>, newest first
+            Point clients at{' '}
+            <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> — every request
+            is logged here, newest first.
           </p>
 
           {error ? <div className="err-banner">{error.message}</div> : null}

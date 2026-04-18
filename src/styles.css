@@ -888,6 +888,49 @@ button:disabled {
   margin: 0 0 20px;
 }
 
+/* ---- copyable code ---- */
+
+.copyable-code {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: inherit;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.copyable-code:hover {
+  background: var(--bg-4);
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+.copyable-code:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+.copyable-code code {
+  font: inherit;
+}
+.copyable-icon {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.copyable-code:hover .copyable-icon {
+  opacity: 0.8;
+}
+.copyable-icon.copied {
+  opacity: 1;
+  color: var(--ok);
+}
+
 /* ---- list toolbar ---- */
 
 .list-toolbar {
