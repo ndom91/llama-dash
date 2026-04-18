@@ -10,8 +10,7 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
 }
 
 type TooltipProps = {
-  /** Short label — keep it to a handful of words. */
-  label: string
+  label: ReactNode
   /** Trigger element. Must be a single child that accepts a ref (e.g. <button>). */
   children: ReactNode
   side?: 'top' | 'right' | 'bottom' | 'left'

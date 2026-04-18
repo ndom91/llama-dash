@@ -1472,6 +1472,20 @@ a,
 .llama-tooltip-arrow {
   fill: #05070a;
 }
+.tooltip-kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 1px 4px;
+  margin-left: 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #c8ccd0;
+  vertical-align: baseline;
+}
 @keyframes tooltip-in {
   from {
     opacity: 0;

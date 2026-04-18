@@ -67,7 +67,14 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
         <span style={{ color: 'var(--fg-muted)' }}>{req.id}</span>
         <div style={{ marginLeft: 'auto' }}>
           <div className="detail-nav-arrows">
-            <Tooltip label="Newer (H)" side="bottom">
+            <Tooltip
+              label={
+                <>
+                  Newer <kbd className="tooltip-kbd">H</kbd>
+                </>
+              }
+              side="bottom"
+            >
               <Link
                 to="/requests/$id"
                 params={{ id: prevId ?? '' }}
@@ -79,7 +86,14 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
                 <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
               </Link>
             </Tooltip>
-            <Tooltip label="Older (L)" side="bottom">
+            <Tooltip
+              label={
+                <>
+                  Older <kbd className="tooltip-kbd">L</kbd>
+                </>
+              }
+              side="bottom"
+            >
               <Link
                 to="/requests/$id"
                 params={{ id: nextId ?? '' }}
