@@ -60,6 +60,7 @@ src/
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
     queries.ts            — TanStack Query hooks (5s polling, infinite scroll)
+    schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
     config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
     vite-plugin.ts        — mounts proxy + admin handlers on the Vite dev server
@@ -69,6 +70,7 @@ src/
     proxy/                — /v1/* pass-through: handler.ts, usage.ts, log.ts
     admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
+    llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
 plan.md                   — long-form vision and infra context
@@ -134,6 +136,13 @@ Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
 - **ORM**: Drizzle (`drizzle-orm` + `drizzle-kit`) over better-sqlite3.
   Migrations live in `drizzle/`. Generate with `pnpm db:generate`, apply
   with `pnpm db:migrate`.
+- **Runtime validation**: [Valibot](https://valibot.dev) for runtime type
+  validation at trust boundaries. Schemas live in `src/lib/schemas/` (shared
+  API types) and `src/server/llama-swap/schemas.ts` (upstream response
+  shapes). Types are derived from schemas via `v.InferOutput` — never
+  hand-write a type that duplicates a schema. Use `v.parse()` where failure
+  should throw (fetch wrappers) and `v.safeParse()` where you need to
+  return a structured error (request body validation).
 - **React framework**: TanStack Start (file-based router + Nitro under the
   hood). Server functions via `createServerFn` are available but we haven't
   leaned on them yet; UI data fetching goes client-side against `/api/*`.
@@ -176,6 +185,25 @@ sort lexicographically by creation time).
   `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot). Off by default.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.
+
+## Runtime validation conventions
+
+- **Validate at trust boundaries.** Every response from an external source
+  (llama-swap API, GPU CLI tools, client HTTP request bodies) must be
+  validated with a valibot schema. Internal data flow (e.g. DB → API
+  response) can rely on TypeScript types derived from the same schemas.
+- **Schemas are the single source of truth for API types.** Don't define a
+  type by hand if a schema already describes that shape — use
+  `v.InferOutput<typeof SomeSchema>`. If you need a new API type, write
+  the schema first, derive the type from it.
+- **Where schemas live:** shared API contract shapes go in
+  `src/lib/schemas/`. Server-only upstream shapes (llama-swap responses)
+  go in `src/server/llama-swap/schemas.ts`. If a new external integration
+  is added, give it its own schema file near the client code.
+- **Adding a new endpoint:** define request/response schemas in
+  `src/lib/schemas/`, use `v.parse()` in the client-side `api.ts` fetch
+  wrapper, and `v.safeParse()` for server-side request body validation in
+  the admin handler.
 
 ## Design constraints worth keeping in mind
 
