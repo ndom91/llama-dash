@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner'
 import {
   api,
+  type ApiGpuSnapshot,
   type ApiHealth,
   type ApiHistogramBucket,
   type ApiModel,
@@ -29,6 +30,7 @@ export const qk = {
   requestsRecent: ['requests', 'recent'] as const,
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
+  gpu: ['gpu'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
 }
@@ -79,6 +81,14 @@ export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>>
   return useQuery({
     queryKey: qk.requestHistogram,
     queryFn: () => api.requestHistogram().then((r) => r.buckets),
+    refetchInterval: POLL_MS,
+  })
+}
+
+export function useGpu(): UseQueryResult<ApiGpuSnapshot> {
+  return useQuery({
+    queryKey: qk.gpu,
+    queryFn: () => api.gpu(),
     refetchInterval: POLL_MS,
   })
 }

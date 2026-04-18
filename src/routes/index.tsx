@@ -10,8 +10,8 @@ import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import type { ApiHealth, ApiModel, ApiRequest } from '../lib/api'
-import { qk, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
+import type { ApiGpuSnapshot, ApiHealth, ApiModel, ApiRequest } from '../lib/api'
+import { qk, useGpu, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
 
@@ -22,6 +22,7 @@ function Dashboard() {
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
+  const { data: gpu } = useGpu()
   const [refreshing, setRefreshing] = useState(false)
 
   const doRefresh = async () => {
@@ -31,6 +32,7 @@ function Dashboard() {
       qc.invalidateQueries({ queryKey: qk.requestsRecent }),
       qc.invalidateQueries({ queryKey: qk.requestStats }),
       qc.invalidateQueries({ queryKey: qk.modelTimeline }),
+      qc.invalidateQueries({ queryKey: qk.gpu }),
     ])
     setRefreshing(false)
   }
@@ -104,7 +106,7 @@ function Dashboard() {
 
           <div className="dash-grid">
             <RunningModelsPanel active={active} total={models?.length ?? null} />
-            <UpstreamHealthPanel health={health} />
+            <UpstreamHealthPanel health={health} gpu={gpu} />
           </div>
 
           <RecentRequestsPanel requests={requests ?? null} />
@@ -198,7 +200,7 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
   )
 }
 
-function UpstreamHealthPanel({ health }: { health: ApiHealth | undefined }) {
+function UpstreamHealthPanel({ health, gpu }: { health: ApiHealth | undefined; gpu: ApiGpuSnapshot | undefined }) {
   const up = health?.upstream
 
   return (
@@ -227,8 +229,40 @@ function UpstreamHealthPanel({ health }: { health: ApiHealth | undefined }) {
             </>
           )}
         </dd>
+        {gpu?.available ? gpu.gpus.map((g) => <GpuRow key={g.index} gpu={g} showIndex={gpu.gpus.length > 1} />) : null}
       </dl>
     </section>
+  )
+}
+
+function GpuRow({ gpu, showIndex }: { gpu: ApiGpuSnapshot['gpus'][number]; showIndex: boolean }) {
+  const label = showIndex ? `gpu ${gpu.index}` : 'gpu'
+  const vramLabel = `${gpu.memoryUsedMiB.toLocaleString()} / ${gpu.memoryTotalMiB.toLocaleString()} MiB`
+  return (
+    <>
+      <dt>{label}</dt>
+      <dd className="mono">
+        <span translate="no">{gpu.name}</span>
+      </dd>
+      <dt>vram</dt>
+      <dd className="mono">
+        <span className="gpu-vram-bar-wrap">
+          <span className="gpu-vram-bar" style={{ width: `${gpu.memoryPercent}%` }} />
+        </span>
+        <span style={{ marginLeft: 8 }}>
+          {vramLabel} ({gpu.memoryPercent}%)
+        </span>
+      </dd>
+      <dt>util / temp</dt>
+      <dd className="mono">
+        {gpu.utilizationPercent}%{' '}
+        <span className="dim">
+          · {gpu.temperatureC}°C
+          {gpu.powerW != null ? ` · ${Math.round(gpu.powerW)}W` : ''}
+          {gpu.powerMaxW != null ? ` / ${Math.round(gpu.powerMaxW)}W` : ''}
+        </span>
+      </dd>
+    </>
   )
 }
 

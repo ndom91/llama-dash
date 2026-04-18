@@ -21,6 +21,9 @@ export function llamaDashServer(): Plugin {
       const { startModelWatcher } = await import('./model-watcher.ts')
       startModelWatcher()
 
+      const { startGpuPoller } = await import('./gpu-poller.ts')
+      startGpuPoller()
+
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
 

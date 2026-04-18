@@ -63,6 +63,25 @@ export type ApiHistogramBucket = {
   errors: number
 }
 
+export type ApiGpuInfo = {
+  index: number
+  name: string
+  memoryUsedMiB: number
+  memoryTotalMiB: number
+  memoryPercent: number
+  utilizationPercent: number
+  temperatureC: number
+  powerW: number | null
+  powerMaxW: number | null
+}
+
+export type ApiGpuSnapshot = {
+  available: boolean
+  driver: 'nvidia' | 'amd' | null
+  gpus: Array<ApiGpuInfo>
+  polledAt: number
+}
+
 export type ApiModelEvent = {
   id: string
   modelId: string
@@ -102,6 +121,7 @@ export const api = {
     const q = windowMs != null ? `?window=${windowMs}` : ''
     return fetch(`/api/model-timeline${q}`).then(json<{ events: Array<ApiModelEvent> }>)
   },
+  gpu: () => fetch('/api/gpu').then(json<ApiGpuSnapshot>),
   requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))

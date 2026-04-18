@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config } from '../config.ts'
+import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
 import { getModelTimeline } from './model-events.ts'
 import { getAdjacentIds, getRequestById, getRequestHistogram, getRequestStats, listRecentRequests } from './requests.ts'
@@ -112,6 +113,13 @@ const routes: Array<Route> = [
       if (!row) return error(res, 404, `Request ${id} not found`)
       const { prevId, nextId } = getAdjacentIds(id)
       json(res, 200, { request: row, prevId, nextId })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/gpu$/,
+    handler: async (_req, res) => {
+      json(res, 200, getGpuSnapshot())
     },
   },
   {
