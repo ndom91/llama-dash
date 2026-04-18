@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config } from '../config.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
+import { getModelTimeline } from './model-events.ts'
 import { getAdjacentIds, getRequestById, getRequestHistogram, getRequestStats, listRecentRequests } from './requests.ts'
 
 type Handler = (req: IncomingMessage, res: ServerResponse, match: RegExpMatchArray) => Promise<void> | void
@@ -111,6 +112,15 @@ const routes: Array<Route> = [
       if (!row) return error(res, 404, `Request ${id} not found`)
       const { prevId, nextId } = getAdjacentIds(id)
       json(res, 200, { request: row, prevId, nextId })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/model-timeline$/,
+    handler: async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost')
+      const windowMs = clamp(parseInt(url.searchParams.get('window') ?? '1800000', 10), 60_000, 86_400_000)
+      json(res, 200, { events: getModelTimeline(windowMs) })
     },
   },
   {

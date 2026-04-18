@@ -21,3 +21,13 @@ export const requests = sqliteTable('requests', {
 
 export type Request = typeof requests.$inferSelect
 export type NewRequest = typeof requests.$inferInsert
+
+export const modelEvents = sqliteTable('model_events', {
+  id: text('id').primaryKey(),
+  modelId: text('model_id').notNull(),
+  event: text('event', { enum: ['load', 'unload'] }).notNull(),
+  timestamp: integer('timestamp', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type ModelEvent = typeof modelEvents.$inferSelect
+export type NewModelEvent = typeof modelEvents.$inferInsert

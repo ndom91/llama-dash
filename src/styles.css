@@ -1464,6 +1464,58 @@ a,
   color: var(--fg-dim);
 }
 
+/* ---- model swap timeline ---- */
+
+.timeline-track {
+  position: relative;
+  height: 28px;
+  background: var(--bg-3);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  margin: 8px 0 4px;
+}
+.timeline-span {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  opacity: 0.85;
+}
+.timeline-swap {
+  opacity: 0.6;
+}
+.timeline-axis {
+  position: relative;
+  height: 18px;
+  margin-bottom: 8px;
+}
+.timeline-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
+.timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+.timeline-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.timeline-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* ---- dashboard grid ---- */
 
 .dash-grid {

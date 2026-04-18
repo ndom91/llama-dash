@@ -18,6 +18,9 @@ export function llamaDashServer(): Plugin {
       const { runMigrations } = await import('./db/migrate.ts')
       runMigrations()
 
+      const { startModelWatcher } = await import('./model-watcher.ts')
+      startModelWatcher()
+
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
 

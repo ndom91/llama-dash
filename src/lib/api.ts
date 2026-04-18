@@ -55,6 +55,13 @@ export type ApiHistogramBucket = {
   errors: number
 }
 
+export type ApiModelEvent = {
+  id: string
+  modelId: string
+  event: 'load' | 'unload'
+  timestamp: string
+}
+
 const json = async <T>(res: Response): Promise<T> => {
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -83,6 +90,10 @@ export const api = {
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),
   health: () => fetch('/api/health').then(json<ApiHealth>),
   requestStats: () => fetch('/api/requests/stats').then(json<ApiRequestStats>),
+  modelTimeline: (windowMs?: number) => {
+    const q = windowMs != null ? `?window=${windowMs}` : ''
+    return fetch(`/api/model-timeline${q}`).then(json<{ events: Array<ApiModelEvent> }>)
+  },
   requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))

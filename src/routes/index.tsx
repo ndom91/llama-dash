@@ -3,13 +3,14 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, Download, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
+import { ModelTimeline } from '../components/ModelTimeline'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiModel, ApiRequest } from '../lib/api'
-import { qk, useHealth, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
+import { qk, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
 
@@ -19,6 +20,7 @@ function Dashboard() {
   const { data: requests } = useRecentRequests(12)
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
+  const { data: timelineEvents } = useModelTimeline()
   const [refreshing, setRefreshing] = useState(false)
 
   const doRefresh = async () => {
@@ -27,6 +29,7 @@ function Dashboard() {
       qc.invalidateQueries({ queryKey: qk.models }),
       qc.invalidateQueries({ queryKey: qk.requestsRecent }),
       qc.invalidateQueries({ queryKey: qk.requestStats }),
+      qc.invalidateQueries({ queryKey: qk.modelTimeline }),
     ])
     setRefreshing(false)
   }
@@ -96,6 +99,8 @@ function Dashboard() {
               color="var(--err)"
             />
           </div>
+
+          {timelineEvents ? <ModelTimeline events={timelineEvents} /> : null}
 
           <div className="dash-grid">
             <RunningModelsPanel running={running} total={models?.length ?? null} />

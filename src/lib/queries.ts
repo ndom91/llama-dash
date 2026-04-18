@@ -13,6 +13,7 @@ import {
   type ApiHealth,
   type ApiHistogramBucket,
   type ApiModel,
+  type ApiModelEvent,
   type ApiRequest,
   type ApiRequestDetail,
   type ApiRequestStats,
@@ -28,6 +29,7 @@ export const qk = {
   requestsRecent: ['requests', 'recent'] as const,
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
+  modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
 }
 
@@ -70,6 +72,14 @@ export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>>
   return useQuery({
     queryKey: qk.requestHistogram,
     queryFn: () => api.requestHistogram().then((r) => r.buckets),
+    refetchInterval: POLL_MS,
+  })
+}
+
+export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
+  return useQuery({
+    queryKey: qk.modelTimeline,
+    queryFn: () => api.modelTimeline().then((r) => r.events),
     refetchInterval: POLL_MS,
   })
 }
