@@ -1,4 +1,4 @@
-let filterId = 0
+let nextId = 0
 
 export function Sparkline({
   data,
@@ -11,11 +11,13 @@ export function Sparkline({
 }) {
   if (data.length < 2) return null
 
-  const id = `spark-glow-${++filterId}`
+  const id = `spark-${++nextId}`
   const vw = 200
   const max = Math.max(...data, 1)
   const step = vw / (data.length - 1)
-  const points = data.map((v, i) => `${i * step},${height - (v / max) * height * 0.8 - 2}`).join(' ')
+  const points = data.map((v, i) => `${i * step},${height - (v / max) * height * 0.75 - 2}`)
+  const line = points.join(' ')
+  const area = `0,${height} ${line} ${vw},${height}`
 
   return (
     <svg
@@ -26,22 +28,14 @@ export function Sparkline({
       aria-hidden="true"
     >
       <defs>
-        <filter id={id}>
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
-        </filter>
+        <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
       </defs>
+      <polygon points={area} fill={`url(#${id}-fill)`} />
       <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeOpacity={0.35}
-        filter={`url(#${id})`}
-      />
-      <polyline
-        points={points}
+        points={line}
         fill="none"
         stroke={color}
         strokeWidth={1.5}
