@@ -1535,8 +1535,8 @@ a,
   grid-template-columns: 1fr 1fr;
   gap: var(--space-lg);
 }
-.running-panel .dtable {
-  min-height: 180px;
+.running-panel {
+  min-height: 220px;
 }
 
 /* ---- sparkline ---- */

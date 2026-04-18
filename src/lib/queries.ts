@@ -19,7 +19,7 @@ import {
   type ApiRequestStats,
 } from './api'
 
-const POLL_MS = 15_000
+const POLL_MS = 5_000
 
 export const qk = {
   health: ['health'] as const,
