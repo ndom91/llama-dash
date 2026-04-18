@@ -164,7 +164,13 @@ body {
   font-feature-settings: 'ss01', 'cv11';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  accent-color: var(--accent);
   overflow: hidden; /* app owns scroll regions */
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--fg);
 }
 
 a {
@@ -1435,13 +1441,13 @@ button:disabled {
 }
 .content::-webkit-scrollbar-thumb,
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-3));
   border: 2px solid var(--bg-0);
   border-radius: var(--radius-pill);
 }
 .content::-webkit-scrollbar-thumb:hover,
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: var(--bg-4);
+  background: color-mix(in srgb, var(--accent) 50%, var(--bg-3));
 }
 .content::-webkit-scrollbar-track,
 .sidebar-nav::-webkit-scrollbar-track {

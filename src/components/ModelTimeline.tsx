@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import type { ApiModelEvent } from '../lib/api'
 
@@ -163,7 +164,10 @@ export function ModelTimeline({ events }: { events: Array<ApiModelEvent> }) {
             <span key={id} className="timeline-legend-item">
               <span className="timeline-legend-swatch" style={{ background: colorMap.get(id) }} />
               <span className="mono" translate="no">
-                {id} <span className="dim">· {formatDuration(ms)}</span>
+                <Link to="/models/$id" params={{ id }} className="link-subtle">
+                  {id}
+                </Link>{' '}
+                <span className="dim">· {formatDuration(ms)}</span>
               </span>
             </span>
           ))}
