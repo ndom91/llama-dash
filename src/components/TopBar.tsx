@@ -1,6 +1,6 @@
 import { useMatches } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useState } from 'react'
-import { useHealth, useRequestStats, useRunningCount } from '../lib/queries'
+import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
 import { ThemeToggle } from './ThemeToggle'
 
@@ -17,7 +17,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
   const title = resolveTitle(leaf)
   const { data: health } = useHealth()
-  const { data: running } = useRunningCount()
+  const { data: counts } = useModelCounts()
   const { data: stats } = useRequestStats()
 
   const reachable = health?.upstream.reachable === true
@@ -48,7 +48,16 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
 
       <span className="topbar-chip" title="Currently loaded models">
         <span>running</span>
-        <span className="topbar-chip-num">{running ?? '—'}</span>
+        <span className="topbar-chip-num">{counts?.running ?? '—'}</span>
+        {counts && counts.peers > 0 ? (
+          <>
+            <span className="topbar-chip-sep" aria-hidden="true">
+              ·
+            </span>
+            <span>peer</span>
+            <span className="topbar-chip-num">{counts.peers}</span>
+          </>
+        ) : null}
       </span>
 
       <span className="topbar-chip" title="Requests per second (1 min)">

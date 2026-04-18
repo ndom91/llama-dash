@@ -140,12 +140,17 @@ function StatCard({
 }
 
 function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total: number | null }) {
-  const runningCount = active.filter((m) => m.running).length
+  const runningCount = active.filter((m) => m.running && m.kind !== 'peer').length
+  const peerCount = active.filter((m) => m.kind === 'peer').length
+  const subtitle =
+    total == null
+      ? '—'
+      : `${runningCount} of ${total} loaded${peerCount > 0 ? ` · ${peerCount} peer${peerCount > 1 ? 's' : ''}` : ''}`
   return (
     <section className="panel running-panel">
       <div className="panel-head">
         <span className="panel-title">Running</span>
-        <span className="panel-sub">{total == null ? '—' : `${runningCount} of ${total} loaded`}</span>
+        <span className="panel-sub">{subtitle}</span>
         <Link to="/models" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
           manage
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />

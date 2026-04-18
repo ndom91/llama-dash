@@ -60,6 +60,13 @@ export function useRunningCount() {
   return useModels((models) => models.filter((m) => m.running).length)
 }
 
+export function useModelCounts() {
+  return useModels((models) => ({
+    running: models.filter((m) => m.running && m.kind !== 'peer').length,
+    peers: models.filter((m) => m.kind === 'peer').length,
+  }))
+}
+
 export function useRequestStats(): UseQueryResult<ApiRequestStats> {
   return useQuery({
     queryKey: qk.requestStats,

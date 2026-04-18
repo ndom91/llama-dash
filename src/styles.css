@@ -368,6 +368,10 @@ button:disabled {
   color: var(--fg);
   font-weight: 500;
 }
+.topbar-chip-sep {
+  color: var(--fg-faint);
+  margin: 0 -2px;
+}
 .topbar-actions {
   margin-left: auto;
   display: flex;
