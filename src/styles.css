@@ -1942,7 +1942,6 @@ a,
   gap: 5px;
   padding: 4px 10px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--ok);
   background: var(--ok-bg);
   font-family: var(--font-mono);
   font-size: 11px;
