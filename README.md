@@ -1,6 +1,9 @@
-# llama-dash
+<h1>
+  <img src="./public/favicon.svg" alt="" width="42" align="left" />
+  &nbsp;llama-dash
+</h1>
 
-A sidecar dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Requires a running llama-swap instance — llama-dash does not run inference itself. It sits in front of llama-swap as the single public-facing endpoint, adding a management UI and proxy-layer features that llama-swap doesn't provide on its own:
+Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). It requires a running llama-swap instance — llama-dash does not run inference itself. Clients point at llama-dash instead of llama-swap directly. We provide a Docker Compose which includes llama-swap and llama-dash and will get you up and running with both quickly.
 
 - **Dashboard** — live stats (req/s, tok/s, p50, error rate) with sparklines, model swap timeline, running models with peer support, upstream health + GPU monitoring.
 - **Model management** — load/unload models from the UI, see running state and peer connections.
@@ -10,11 +13,6 @@ A sidecar dashboard and proxy for [llama-swap](https://github.com/mostlygeek/lla
 - **Config editor** — edit llama-swap's `config.yaml` from the UI with validation; llama-swap picks up changes via file watch.
 
 <table>
-  <tr>
-    <td colspan="3">
-      Screenshots
-    </td>
-  </tr>
   <tr>
     <td>
       <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nktx.png" />
@@ -26,17 +24,19 @@ A sidecar dashboard and proxy for [llama-swap](https://github.com/mostlygeek/lla
       <img alt="Dark - Request Details" src="./.github/assets/SCR-20260418-nfny.png" />
     </td>
   </tr>
+  <tr>
+    <td>
+      Dashboard
+    </td>
+    <td>
+      Playground
+    </td>
+    <td>
+      Request Details
+    </td>
+  </tr>
 </table>
 
-```
-client ──► llama-dash :5173 ──► llama-swap (internal) ──► llama-server processes
-           │
-           ├─ UI (/)
-           ├─ Admin API (/api/*)
-           └─ Proxy (/v1/*)
-```
-
-Clients point at llama-dash instead of llama-swap directly. In Docker Compose, llama-swap is on an internal network and not exposed to the host.
 
 ## Quick start (Docker Compose)
 
@@ -110,7 +110,7 @@ done — see `AGENTS.md`.
 
 ## Acknowledgements
 
-This project was developed with significant assistance from LLMs, primarily [Claude Code](https://claude.ai/claude-code) (Anthropic). Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.
+This project was developed with significant assistance from LLMs. Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.
 
 ## License
 
