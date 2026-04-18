@@ -65,7 +65,14 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-brand">
         <Logo />
-        <span className="sidebar-brand-version">{__GIT_COMMIT__}</span>
+        <a
+          href="https://github.com/ndom91/llama-dash"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="sidebar-brand-version"
+        >
+          {__GIT_COMMIT__}
+        </a>
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
