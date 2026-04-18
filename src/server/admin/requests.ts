@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema } from '../db/index.ts'
+import { listApiKeys } from './api-keys.ts'
 
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
@@ -33,6 +34,13 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
 export function getRequestById(id: string): RequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
+
+  let keyName: string | null = null
+  if (r.keyId) {
+    const keys = listApiKeys()
+    keyName = keys.find((k) => k.id === r.keyId)?.name ?? null
+  }
+
   return {
     id: r.id,
     startedAt: r.startedAt.toISOString(),
@@ -46,6 +54,7 @@ export function getRequestById(id: string): RequestDetail | null {
     totalTokens: r.totalTokens,
     streamed: r.streamed,
     error: r.error,
+    keyName,
     requestHeaders: r.requestHeaders,
     requestBody: r.requestBody,
     responseHeaders: r.responseHeaders,

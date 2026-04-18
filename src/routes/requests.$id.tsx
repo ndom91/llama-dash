@@ -125,6 +125,12 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
               </>
             ) : null}
             {when.toISOString()}
+            {req.keyName ? (
+              <>
+                <span> · </span>
+                <span>{req.keyName}</span>
+              </>
+            ) : null}
           </div>
         </div>
         <div className="detail-stats-strip">

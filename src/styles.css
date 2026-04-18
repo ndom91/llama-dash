@@ -1862,6 +1862,9 @@ a,
   font-size: 11px;
   color: var(--fg-dim);
   margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-stats-strip {

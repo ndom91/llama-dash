@@ -19,6 +19,7 @@ export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>
 
 export const ApiRequestDetailSchema = v.object({
   ...ApiRequestSchema.entries,
+  keyName: v.nullable(v.string()),
   requestHeaders: v.nullable(v.string()),
   requestBody: v.nullable(v.string()),
   responseHeaders: v.nullable(v.string()),
