@@ -6,6 +6,13 @@ import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
 import { createApiKey, deleteApiKey, listApiKeys, revokeApiKey } from './api-keys.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
+import {
+  extractModelConfig,
+  getModelEvents,
+  getModelKeyBreakdown,
+  getModelRequestStats,
+  getModelRequests,
+} from './model-detail.ts'
 import { getModelTimeline } from './model-events.ts'
 import { getAdjacentIds, getRequestById, getRequestHistogram, getRequestStats, listRecentRequests } from './requests.ts'
 
@@ -42,6 +49,38 @@ const routes: Array<Route> = [
         }
       })
       return json(200, { models: rows })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/models\/([^/]+)$/,
+    handler: async (_request, match) => {
+      const id = decodeURIComponent(match[1])
+      const [modelsRes, runningRes] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
+      const modelData = modelsRes.data.find((m) => m.id === id)
+      if (!modelData) return error(404, `Model ${id} not found`)
+
+      const runInfo = runningRes.running.find((r) => r.model === id)
+      const peerId = modelData.meta?.llamaswap?.peerID
+      const model = {
+        id: modelData.id,
+        name: modelData.name ?? modelData.id,
+        kind: peerId ? ('peer' as const) : ('local' as const),
+        peerId: peerId ?? null,
+        state: runInfo?.state ?? 'stopped',
+        running: Boolean(runInfo),
+        ttl: runInfo?.ttl ?? null,
+      }
+
+      const [events, stats, requests, keyBreakdown] = await Promise.all([
+        getModelEvents(id),
+        getModelRequestStats(id),
+        getModelRequests(id, 20),
+        getModelKeyBreakdown(id),
+      ])
+      const configSnippet = extractModelConfig(id)
+
+      return json(200, { model, events, stats, requests, configSnippet, keyBreakdown })
     },
   },
   {

@@ -5,6 +5,7 @@ import { StatusDot } from './StatusDot'
 
 function resolveTitle(pathname: string): string {
   if (pathname === '/') return 'Dashboard'
+  if (pathname.startsWith('/models/')) return 'Model Detail'
   if (pathname === '/models') return 'Models'
   if (pathname.startsWith('/requests')) return 'Requests'
   if (pathname === '/logs') return 'Logs'

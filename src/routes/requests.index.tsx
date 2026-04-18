@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
 import { StatusCell } from '../components/StatusCell'
@@ -10,7 +10,14 @@ import { TopBar } from '../components/TopBar'
 import type { ApiHistogramBucket, ApiRequest } from '../lib/api'
 import { useRequestHistogram, useRequestsList } from '../lib/queries'
 
-export const Route = createFileRoute('/requests/')({ component: Requests })
+type RequestsSearch = { model?: string }
+
+export const Route = createFileRoute('/requests/')({
+  component: Requests,
+  validateSearch: (search: Record<string, unknown>): RequestsSearch => ({
+    model: typeof search.model === 'string' ? search.model : undefined,
+  }),
+})
 
 type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
 type SortDir = 'asc' | 'desc'
@@ -18,13 +25,14 @@ type StatusFilter = 'all' | 'ok' | 'err'
 
 function Requests() {
   const navigate = useNavigate()
+  const { model: modelParam } = Route.useSearch()
   const { data, error, isLoading, isRefetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useRequestsList()
   const { data: histogram } = useRequestHistogram()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [modelFilter, setModelFilter] = useState<string>('all')
+  const [modelFilter, setModelFilter] = useState<string>(modelParam ?? 'all')
   const [sortKey, setSortKey] = useState<SortKey>('startedAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
@@ -35,6 +43,13 @@ function Requests() {
     for (const r of allRows) if (r.model) set.add(r.model)
     return Array.from(set).sort()
   }, [allRows])
+
+  useEffect(() => {
+    if (modelFilter === 'all' || !modelParam || models.length === 0) return
+    if (models.includes(modelFilter)) return
+    const match = models.find((m) => m === modelParam || m.endsWith(`/${modelParam}`))
+    if (match) setModelFilter(match)
+  }, [models, modelFilter, modelParam])
 
   const filtered = useMemo(() => {
     let out = allRows

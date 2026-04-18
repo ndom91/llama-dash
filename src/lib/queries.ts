@@ -16,6 +16,7 @@ import {
   type ApiKeyCreated,
   type ApiKeyItem,
   type ApiModel,
+  type ApiModelDetail,
   type ApiModelEvent,
   type ApiRequest,
   type ApiRequestDetail,
@@ -36,6 +37,7 @@ export const qk = {
   gpu: ['gpu'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
+  modelDetail: (id: string) => ['models', id] as const,
   keys: ['keys'] as const,
 }
 
@@ -101,6 +103,14 @@ export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
   return useQuery({
     queryKey: qk.modelTimeline,
     queryFn: () => api.modelTimeline().then((r) => r.events),
+    refetchInterval: POLL_MS,
+  })
+}
+
+export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
+  return useQuery({
+    queryKey: qk.modelDetail(id),
+    queryFn: () => api.getModelDetail(id),
     refetchInterval: POLL_MS,
   })
 }

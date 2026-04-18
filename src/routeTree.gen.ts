@@ -10,22 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaygroundRouteImport } from './routes/playground'
-import { Route as ModelsRouteImport } from './routes/models'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as KeysRouteImport } from './routes/keys'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
+import { Route as ModelsIndexRouteImport } from './routes/models.index'
 import { Route as RequestsIdRouteImport } from './routes/requests.$id'
+import { Route as ModelsIdRouteImport } from './routes/models.$id'
 
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ModelsRoute = ModelsRouteImport.update({
-  id: '/models',
-  path: '/models',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LogsRoute = LogsRouteImport.update({
@@ -53,9 +49,19 @@ const RequestsIndexRoute = RequestsIndexRouteImport.update({
   path: '/requests/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModelsIndexRoute = ModelsIndexRouteImport.update({
+  id: '/models/',
+  path: '/models/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsIdRoute = RequestsIdRouteImport.update({
   id: '/requests/$id',
   path: '/requests/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModelsIdRoute = ModelsIdRouteImport.update({
+  id: '/models/$id',
+  path: '/models/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -64,9 +70,10 @@ export interface FileRoutesByFullPath {
   '/config': typeof ConfigRoute
   '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
-  '/models': typeof ModelsRoute
   '/playground': typeof PlaygroundRoute
+  '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -74,9 +81,10 @@ export interface FileRoutesByTo {
   '/config': typeof ConfigRoute
   '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
-  '/models': typeof ModelsRoute
   '/playground': typeof PlaygroundRoute
+  '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/models': typeof ModelsIndexRoute
   '/requests': typeof RequestsIndexRoute
 }
 export interface FileRoutesById {
@@ -85,9 +93,10 @@ export interface FileRoutesById {
   '/config': typeof ConfigRoute
   '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
-  '/models': typeof ModelsRoute
   '/playground': typeof PlaygroundRoute
+  '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRouteTypes {
@@ -97,9 +106,10 @@ export interface FileRouteTypes {
     | '/config'
     | '/keys'
     | '/logs'
-    | '/models'
     | '/playground'
+    | '/models/$id'
     | '/requests/$id'
+    | '/models/'
     | '/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -107,9 +117,10 @@ export interface FileRouteTypes {
     | '/config'
     | '/keys'
     | '/logs'
-    | '/models'
     | '/playground'
+    | '/models/$id'
     | '/requests/$id'
+    | '/models'
     | '/requests'
   id:
     | '__root__'
@@ -117,9 +128,10 @@ export interface FileRouteTypes {
     | '/config'
     | '/keys'
     | '/logs'
-    | '/models'
     | '/playground'
+    | '/models/$id'
     | '/requests/$id'
+    | '/models/'
     | '/requests/'
   fileRoutesById: FileRoutesById
 }
@@ -128,9 +140,10 @@ export interface RootRouteChildren {
   ConfigRoute: typeof ConfigRoute
   KeysRoute: typeof KeysRoute
   LogsRoute: typeof LogsRoute
-  ModelsRoute: typeof ModelsRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  ModelsIdRoute: typeof ModelsIdRoute
   RequestsIdRoute: typeof RequestsIdRoute
+  ModelsIndexRoute: typeof ModelsIndexRoute
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
 
@@ -141,13 +154,6 @@ declare module '@tanstack/react-router' {
       path: '/playground'
       fullPath: '/playground'
       preLoaderRoute: typeof PlaygroundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/models': {
-      id: '/models'
-      path: '/models'
-      fullPath: '/models'
-      preLoaderRoute: typeof ModelsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/logs': {
@@ -185,11 +191,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RequestsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/models/': {
+      id: '/models/'
+      path: '/models'
+      fullPath: '/models/'
+      preLoaderRoute: typeof ModelsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests/$id': {
       id: '/requests/$id'
       path: '/requests/$id'
       fullPath: '/requests/$id'
       preLoaderRoute: typeof RequestsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/models/$id': {
+      id: '/models/$id'
+      path: '/models/$id'
+      fullPath: '/models/$id'
+      preLoaderRoute: typeof ModelsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -200,9 +220,10 @@ const rootRouteChildren: RootRouteChildren = {
   ConfigRoute: ConfigRoute,
   KeysRoute: KeysRoute,
   LogsRoute: LogsRoute,
-  ModelsRoute: ModelsRoute,
   PlaygroundRoute: PlaygroundRoute,
+  ModelsIdRoute: ModelsIdRoute,
   RequestsIdRoute: RequestsIdRoute,
+  ModelsIndexRoute: ModelsIndexRoute,
   RequestsIndexRoute: RequestsIndexRoute,
 }
 export const routeTree = rootRouteImport

@@ -4,7 +4,7 @@ import { ApiKeyCreatedSchema, ApiKeyListResponseSchema } from './schemas/api-key
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
-import { ModelsResponseSchema, ModelTimelineResponseSchema } from './schemas/model'
+import { ModelDetailResponseSchema, ModelsResponseSchema, ModelTimelineResponseSchema } from './schemas/model'
 import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
@@ -14,7 +14,10 @@ import {
 
 export type {
   ApiModel,
+  ApiModelDetail,
   ApiModelEvent,
+  ApiModelKeyBreakdown,
+  ApiModelStats,
 } from './schemas/model'
 export type {
   ApiRequest,
@@ -50,6 +53,8 @@ const OkSchema = v.object({ ok: v.literal(true) })
 
 export const api = {
   listModels: () => fetch('/api/models').then(validated(ModelsResponseSchema)),
+  getModelDetail: (id: string) =>
+    fetch(`/api/models/${encodeURIComponent(id)}`).then(validated(ModelDetailResponseSchema)),
   listRequests: (params: { limit?: number; cursor?: string } = {}) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))

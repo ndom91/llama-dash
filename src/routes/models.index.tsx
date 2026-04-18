@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { Play, Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../components/PageHeader'
@@ -8,7 +8,7 @@ import { TopBar } from '../components/TopBar'
 import type { ApiModel } from '../lib/api'
 import { useLoadModel, useModels, useUnloadAll, useUnloadModel } from '../lib/queries'
 
-export const Route = createFileRoute('/models')({ component: Models })
+export const Route = createFileRoute('/models/')({ component: Models })
 
 function Models() {
   const { data: models, error, isRefetching, refetch } = useModels()
@@ -123,7 +123,9 @@ function ModelRow({
         <StatusDot tone={tone} live={model.running} />
       </td>
       <td className="mono" translate="no">
-        {model.id}
+        <Link to="/models/$id" params={{ id: model.id }} className="link-subtle">
+          {model.id}
+        </Link>
       </td>
       <td>{model.name}</td>
       <td>
