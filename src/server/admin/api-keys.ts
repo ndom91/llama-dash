@@ -42,6 +42,11 @@ export function createApiKey(input: {
   return { key: toApiShape({ ...row, createdAt: now, disabledAt: null }), rawKey }
 }
 
+export function renameApiKey(id: string, name: string): boolean {
+  const result = db.update(schema.apiKeys).set({ name }).where(eq(schema.apiKeys.id, id)).run()
+  return result.changes > 0
+}
+
 export function revokeApiKey(id: string): boolean {
   const result = db.update(schema.apiKeys).set({ disabledAt: new Date() }).where(eq(schema.apiKeys.id, id)).run()
 

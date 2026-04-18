@@ -4,7 +4,7 @@ import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schema
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { createApiKey, deleteApiKey, listApiKeys, revokeApiKey } from './api-keys.ts'
+import { createApiKey, deleteApiKey, listApiKeys, renameApiKey, revokeApiKey } from './api-keys.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import {
   extractModelConfig,
@@ -290,6 +290,26 @@ const routes: Array<Route> = [
       }
       const created = createApiKey(result.output)
       return json(201, created)
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/keys\/([a-zA-Z0-9_]+)$/,
+    handler: async (request, match) => {
+      const id = match[1]
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const body = parsed as Record<string, unknown>
+      if (typeof body.name !== 'string' || !body.name.trim()) {
+        return error(400, 'Body must have "name" (non-empty string)')
+      }
+      const ok = renameApiKey(id, body.name.trim())
+      if (!ok) return error(404, `Key ${id} not found`)
+      return json(200, { ok: true })
     },
   },
   {

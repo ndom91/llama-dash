@@ -1,13 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Check, Copy, KeyRound, Plus, ShieldAlert, Trash2, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { Check, Copy, KeyRound, Pencil, Plus, ShieldAlert, Trash2, X } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
 import { CopyableCode } from '../components/CopyableCode'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiKeyCreated, ApiKeyItem } from '../lib/api'
-import { useApiKeys, useCreateApiKey, useDeleteApiKey, useModels, useRevokeApiKey } from '../lib/queries'
+import {
+  useApiKeys,
+  useCreateApiKey,
+  useDeleteApiKey,
+  useModels,
+  useRenameApiKey,
+  useRevokeApiKey,
+} from '../lib/queries'
 
 export const Route = createFileRoute('/keys')({ component: Keys })
 
@@ -227,14 +234,54 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
 function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
   const revokeKey = useRevokeApiKey()
   const deleteKey = useDeleteApiKey()
+  const renameKey = useRenameApiKey()
   const isRevoked = apiKey.disabledAt != null
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(apiKey.name)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const startEdit = () => {
+    if (isRevoked) return
+    setDraft(apiKey.name)
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 0)
+  }
+
+  const commitRename = () => {
+    const trimmed = draft.trim()
+    if (!trimmed || trimmed === apiKey.name) {
+      setEditing(false)
+      return
+    }
+    renameKey.mutate({ id: apiKey.id, name: trimmed }, { onSuccess: () => setEditing(false) })
+  }
 
   return (
     <tr className={isRevoked ? 'row-revoked' : ''}>
       <td>
         <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
       </td>
-      <td>{apiKey.name}</td>
+      <td>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="key-rename-input"
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commitRename()
+              if (e.key === 'Escape') setEditing(false)
+            }}
+          />
+        ) : (
+          <button type="button" className="key-name-cell" onClick={startEdit} disabled={isRevoked}>
+            {apiKey.name}
+            {!isRevoked ? <Pencil size={11} strokeWidth={2} className="key-name-edit-icon" /> : null}
+          </button>
+        )}
+      </td>
       <td className="mono">
         <CopyableCode text={`${apiKey.keyPrefix}…`} />
       </td>

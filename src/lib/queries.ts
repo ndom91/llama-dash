@@ -250,6 +250,19 @@ export function useCreateApiKey(): UseMutationResult<ApiKeyCreated, Error, Creat
   })
 }
 
+export function useRenameApiKey(): UseMutationResult<{ ok: true }, Error, { id: string; name: string }> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.renameKey(id, name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.keys })
+    },
+    onError: (e) => {
+      toast.error('Rename failed', { description: e.message })
+    },
+  })
+}
+
 export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({
