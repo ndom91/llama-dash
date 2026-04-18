@@ -39,7 +39,7 @@ export function Sidebar() {
         <span className="sidebar-brand-name" translate="no">
           llama-dash
         </span>
-        <span className="sidebar-brand-version">0.1.0</span>
+        <span className="sidebar-brand-version">{__GIT_COMMIT__}</span>
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
