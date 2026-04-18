@@ -141,6 +141,10 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
         </div>
       </div>
 
+      {req.streamed && req.completionTokens ? (
+        <TokenTrace durationMs={req.durationMs} completionTokens={req.completionTokens} tokPerSec={tokPerSec} />
+      ) : null}
+
       {req.error ? (
         <section className="panel" style={{ marginBottom: 16 }}>
           <div className="panel-head">
@@ -320,4 +324,40 @@ function maskSensitive(key: string, value: string): string {
     return `${prefix}••••••••${suffix}`
   }
   return value
+}
+
+function TokenTrace({
+  durationMs,
+  completionTokens,
+  tokPerSec,
+}: {
+  durationMs: number
+  completionTokens: number
+  tokPerSec: number | null
+}) {
+  return (
+    <section className="panel" style={{ marginBottom: 16 }}>
+      <div className="panel-head">
+        <span className="panel-title">Stream</span>
+        <span className="panel-sub">· token trace</span>
+        <span className="panel-sub" style={{ marginLeft: 'auto' }}>
+          {completionTokens} tokens · {tokPerSec ?? '—'} tok/s
+        </span>
+      </div>
+      <div className="token-trace">
+        <div className="token-trace-track">
+          <div className="token-trace-fill" />
+        </div>
+        <div className="token-trace-labels">
+          <span className="token-trace-label" style={{ color: 'var(--warn)' }}>
+            start
+          </span>
+          <span className="token-trace-label">
+            {completionTokens} tokens · {tokPerSec ?? '—'} tok/s
+          </span>
+          <span className="token-trace-label">eos {formatDuration(durationMs)}</span>
+        </div>
+      </div>
+    </section>
+  )
 }

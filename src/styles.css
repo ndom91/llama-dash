@@ -1621,3 +1621,33 @@ a,
   font-weight: 500;
   color: var(--ok);
 }
+
+/* ---- token trace ---- */
+
+.token-trace {
+  padding: 16px 14px;
+}
+.token-trace-track {
+  height: 24px;
+  border-radius: 4px;
+  background: var(--bg-3);
+  overflow: hidden;
+  position: relative;
+}
+.token-trace-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--warn) 0%, var(--accent) 15%, var(--accent) 100%);
+  opacity: 0.5;
+  border-radius: 4px;
+  width: 100%;
+}
+.token-trace-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.token-trace-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-dim);
+}
