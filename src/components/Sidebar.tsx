@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Boxes, KeyRound, LayoutDashboard, MessageSquare, ScrollText, Settings, Terminal } from 'lucide-react'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
+import { Logo } from './Logo'
 
 type NavItem = {
   to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config'
@@ -57,10 +58,7 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="sidebar-brand-dot" aria-hidden="true" />
-        <span className="sidebar-brand-name" translate="no">
-          llama-dash
-        </span>
+        <Logo />
         <span className="sidebar-brand-version">{__GIT_COMMIT__}</span>
       </div>
 
