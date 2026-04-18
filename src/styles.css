@@ -842,14 +842,16 @@ button:disabled {
   min-width: 120px;
 }
 .dur-bar {
+  display: block;
   flex: 1;
   max-width: 60px;
   height: 4px;
   border-radius: 9999px;
-  background: var(--bg-4);
+  background: var(--fg-faint);
   overflow: hidden;
 }
 .dur-bar-fill {
+  display: block;
   height: 100%;
   background: var(--accent);
   border-radius: 9999px;
