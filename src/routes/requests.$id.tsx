@@ -95,49 +95,49 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
         </div>
       </div>
 
-      <div className="detail-endpoint">
-        <div className="detail-endpoint-row">
-          <span className="detail-endpoint-method">endpoint</span>
+      <div className="detail-hero">
+        <div className="detail-endpoint">
+          <div className="detail-endpoint-kicker">endpoint</div>
+          <div className="detail-endpoint-row">
+            <span className="detail-endpoint-method">{req.method}</span>
+            <span className="detail-endpoint-path">{req.endpoint}</span>
+          </div>
+          <div className="detail-endpoint-meta">
+            ↳{' '}
+            {req.model ? (
+              <>
+                <span translate="no">{req.model}</span>
+                <span> · </span>
+              </>
+            ) : null}
+            {when.toISOString()}
+          </div>
         </div>
-        <div className="detail-endpoint-row" style={{ marginTop: 4 }}>
-          <span className="detail-endpoint-method">{req.method}</span>
-          <span className="detail-endpoint-path">{req.endpoint}</span>
-        </div>
-        <div className="detail-endpoint-meta">
-          {req.model ? (
-            <>
-              <span translate="no">{req.model}</span>
-              <span> · </span>
-            </>
-          ) : null}
-          {when.toISOString()}
-        </div>
-      </div>
-
-      <div className="detail-stats-strip">
-        <div className="detail-stat">
-          <span className="detail-stat-label">status</span>
-          <span className={`detail-stat-value ${ok ? 'is-ok' : 'is-err'}`}>{req.statusCode}</span>
-        </div>
-        <div className="detail-stat">
-          <span className="detail-stat-label">tok-in</span>
-          <span className="detail-stat-value">{req.promptTokens?.toLocaleString() ?? '—'}</span>
-        </div>
-        <div className="detail-stat">
-          <span className="detail-stat-label">tok-out</span>
-          <span className="detail-stat-value">{req.completionTokens?.toLocaleString() ?? '—'}</span>
-        </div>
-        <div className="detail-stat">
-          <span className="detail-stat-label">total</span>
-          <span className="detail-stat-value">{req.totalTokens?.toLocaleString() ?? '—'}</span>
-        </div>
-        <div className="detail-stat">
-          <span className="detail-stat-label">duration</span>
-          <span className="detail-stat-value">{formatDuration(req.durationMs)}</span>
-        </div>
-        <div className="detail-stat">
-          <span className="detail-stat-label">tok/s</span>
-          <span className="detail-stat-value">{tokPerSec?.toLocaleString() ?? '—'}</span>
+        <div className="detail-stats-strip">
+          <div className="detail-stat">
+            <span className="detail-stat-label">status</span>
+            <span className={`detail-stat-value ${ok ? 'is-ok' : 'is-err'}`}>{req.statusCode}</span>
+          </div>
+          <div className="detail-stat">
+            <span className="detail-stat-label">tok-in</span>
+            <span className="detail-stat-value">{req.promptTokens?.toLocaleString() ?? '—'}</span>
+          </div>
+          <div className="detail-stat">
+            <span className="detail-stat-label">tok-out</span>
+            <span className="detail-stat-value">{req.completionTokens?.toLocaleString() ?? '—'}</span>
+          </div>
+          <div className="detail-stat">
+            <span className="detail-stat-label">total</span>
+            <span className="detail-stat-value">{req.totalTokens?.toLocaleString() ?? '—'}</span>
+          </div>
+          <div className="detail-stat">
+            <span className="detail-stat-label">duration</span>
+            <span className="detail-stat-value">{formatDuration(req.durationMs)}</span>
+          </div>
+          <div className="detail-stat">
+            <span className="detail-stat-label">tok/s</span>
+            <span className="detail-stat-value">{tokPerSec?.toLocaleString() ?? '—'}</span>
+          </div>
         </div>
       </div>
 
