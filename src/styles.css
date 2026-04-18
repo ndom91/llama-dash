@@ -1945,7 +1945,14 @@ a,
 .pg-settings {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.pg-page > .page-header {
+  margin-bottom: 0;
+}
+.pg-page > .pg-settings {
+  margin-bottom: -4px;
 }
 
 .pg-settings-row {
@@ -2026,16 +2033,14 @@ a,
 }
 
 .pg-system-wrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.2s ease;
+  max-height: 0;
   overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.2s ease, opacity 0.15s ease;
 }
 .pg-system-wrap.pg-system-open {
-  grid-template-rows: 1fr;
-}
-.pg-system-wrap > textarea {
-  min-height: 0;
+  max-height: 200px;
+  opacity: 1;
 }
 
 .pg-system-textarea {

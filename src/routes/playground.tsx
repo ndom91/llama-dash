@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Eraser, MessageSquare, Send, Square } from 'lucide-react'
+import { MessageSquare, Send } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { PlaygroundMessage } from '../components/PlaygroundMessage'
@@ -66,30 +66,7 @@ function Playground() {
       <TopBar />
       <div className="content">
         <div className="page pg-page">
-          <PageHeader
-            kicker="§05 · playground"
-            title="Playground"
-            subtitle="chat with loaded models"
-            action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {chat.isStreaming ? (
-                  <button type="button" className="btn btn-ghost btn-xs" onClick={chat.stopStreaming}>
-                    <Square className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                    stop
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={chat.clearChat}
-                  disabled={chat.messages.length === 0 && !chat.isStreaming}
-                >
-                  <Eraser className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                  new chat
-                </button>
-              </div>
-            }
-          />
+          <PageHeader kicker="§05 · playground" title="Playground" subtitle="chat with loaded models" />
 
           <PlaygroundSettings
             model={chat.model}
@@ -98,6 +75,10 @@ function Playground() {
             setSystemPrompt={chat.setSystemPrompt}
             temperature={chat.temperature}
             setTemperature={chat.setTemperature}
+            isStreaming={chat.isStreaming}
+            hasMessages={chat.messages.length > 0}
+            onStop={chat.stopStreaming}
+            onClear={chat.clearChat}
           />
 
           <section className="panel pg-chat-panel">
