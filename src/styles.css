@@ -1080,6 +1080,8 @@ button:disabled {
   font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--fg);
+  min-width: 52px;
+  text-align: right;
   white-space: nowrap;
 }
 
