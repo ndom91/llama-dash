@@ -10,18 +10,36 @@ type NavItem = {
   Icon: typeof LayoutDashboard
 }
 
-const NAV: ReadonlyArray<NavItem> = [
-  { to: '/', label: 'Dashboard', shortcut: 'D01', Icon: LayoutDashboard },
-  { to: '/models', label: 'Models', shortcut: 'M02', Icon: Boxes },
-  { to: '/requests', label: 'Requests', shortcut: 'R03', Icon: ScrollText },
-  { to: '/logs', label: 'Logs', shortcut: 'L04', Icon: Terminal },
-  { to: '/playground', label: 'Playground', shortcut: 'P05', Icon: MessageSquare },
-  { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
-]
-
 type FutureItem = { label: string; shortcut: string; Icon: typeof LayoutDashboard }
 
-const FUTURE: ReadonlyArray<FutureItem> = [{ label: 'API Keys', shortcut: 'K07', Icon: KeyRound }]
+type NavSection = {
+  title: string
+  items: ReadonlyArray<NavItem>
+  future?: ReadonlyArray<FutureItem>
+}
+
+const SECTIONS: ReadonlyArray<NavSection> = [
+  {
+    title: 'observe',
+    items: [
+      { to: '/', label: 'Dashboard', shortcut: 'D01', Icon: LayoutDashboard },
+      { to: '/requests', label: 'Requests', shortcut: 'R02', Icon: ScrollText },
+      { to: '/logs', label: 'Logs', shortcut: 'L03', Icon: Terminal },
+    ],
+  },
+  {
+    title: 'interact',
+    items: [
+      { to: '/models', label: 'Models', shortcut: 'M04', Icon: Boxes },
+      { to: '/playground', label: 'Playground', shortcut: 'P05', Icon: MessageSquare },
+    ],
+  },
+  {
+    title: 'configure',
+    items: [{ to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings }],
+    future: [{ label: 'API Keys', shortcut: 'K07', Icon: KeyRound }],
+  },
+]
 
 export function Sidebar() {
   const { data: running = [] } = useRunningModels()
@@ -47,30 +65,34 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        <div className="sidebar-section">navigate</div>
-        {NAV.map(({ to, label, shortcut, Icon }) => {
-          const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
-          return (
-            <Link
-              key={to}
-              to={to}
-              className="nav-link"
-              activeOptions={{ exact: to === '/' }}
-              activeProps={{ className: 'nav-link is-active' }}
-            >
-              <span className="nav-link-shortcut">{shortcut}</span>
-              <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
-              <span>{label}</span>
-              {badge != null ? <span className="nav-link-badge">{badge}</span> : null}
-            </Link>
-          )
-        })}
-        {FUTURE.map(({ label, shortcut, Icon }) => (
-          <span key={label} className="nav-link nav-link-future">
-            <span className="nav-link-shortcut">{shortcut}</span>
-            <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
-            <span>{label}</span>
-          </span>
+        {SECTIONS.map((section) => (
+          <div key={section.title} className="sidebar-nav-section">
+            <div className="sidebar-section">{section.title}</div>
+            {section.items.map(({ to, label, shortcut, Icon }) => {
+              const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className="nav-link"
+                  activeOptions={{ exact: to === '/' }}
+                  activeProps={{ className: 'nav-link is-active' }}
+                >
+                  <span className="nav-link-shortcut">{shortcut}</span>
+                  <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
+                  <span>{label}</span>
+                  {badge != null ? <span className="nav-link-badge">{badge}</span> : null}
+                </Link>
+              )
+            })}
+            {section.future?.map(({ label, shortcut, Icon }) => (
+              <span key={label} className="nav-link nav-link-future">
+                <span className="nav-link-shortcut">{shortcut}</span>
+                <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
+                <span>{label}</span>
+              </span>
+            ))}
+          </div>
         ))}
       </nav>
 
