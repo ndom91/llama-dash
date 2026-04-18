@@ -44,17 +44,30 @@ only logging is wired up; the rest are future work listed in `plan.md`.
 src/
   routes/                 — TanStack Router file-routes (UI + __root.tsx)
     index.tsx               · / dashboard home
-    models.tsx              · /models list + Unload actions
-    requests.tsx            · /requests log view
-  components/             — UI components (Header, Footer, ThemeToggle)
+    models.tsx              · /models list + load/unload actions
+    requests.index.tsx      · /requests log with filtering, sorting, histogram
+    requests.$id.tsx        · /requests/:id detail view
+    logs.tsx                · /logs raw log viewer
+  components/             — UI components
+    Sidebar.tsx             · nav + VRAM-resident readout in footer
+    ModelTimeline.tsx        · 30-min model swap timeline (spans + legend)
+    Sparkline.tsx           · SVG sparkline with above-line glow
+    DurationBar.tsx         · inline latency bar for request tables
+    StatusDot.tsx           · animated status indicator (ok/warn/err/idle)
+    StatusCell.tsx          · status code + stream badge
+    PageHeader.tsx          · reusable kicker + title + subtitle + actions
+    TopBar.tsx, Tooltip.tsx, ThemeToggle.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
+    queries.ts            — TanStack Query hooks (5s polling, infinite scroll)
   server/                 — everything that runs in Node, never shipped to client
     config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
     vite-plugin.ts        — mounts proxy + admin handlers on the Vite dev server
+    gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
+    model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
     proxy/                — /v1/* pass-through: handler.ts, usage.ts, log.ts
-    admin/                — /api/* admin surface: handler.ts, requests.ts
+    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
@@ -65,16 +78,33 @@ Keep the proxy layer isolated in `src/server/proxy/*` and the admin surface
 in `src/server/admin/*`. Don't merge them — they have different evolution
 paths (proxy will grow middleware; admin will grow CRUD).
 
-## What's shipped (first-pass scope)
+## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. One table: `requests` (metadata only).
+2. SQLite (`data/dash.db`) + Drizzle. Two tables: `requests` (per-call
+   metadata + optional bodies/headers), `model_events` (load/unload
+   event-sourced timeline).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses).
-4. Admin API: `/api/models`, `/api/models/:id/unload`, `/api/models/unload`
-   (unload-all), `/api/requests` (cursor-paginated), `/api/health`.
-5. UI: Dashboard / Models / Requests views.
+4. Admin API:
+   - `/api/models` — list models (merged with running state + peer info)
+   - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
+   - `/api/requests` — cursor-paginated list
+   - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
+   - `/api/requests/histogram` — bucketed req/s histogram
+   - `/api/requests/:id` — detail with adjacent navigation
+   - `/api/health` — upstream reachability, version, latency
+   - `/api/model-timeline` — load/unload events for timeline viz
+   - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
+5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
+   Apple Silicon (`system_profiler`). Polls every 10s (static-only for
+   Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
+6. Model watcher: polls llama-swap `/running` every 15s, diffs against
+   known state, inserts `load`/`unload` events into SQLite.
+7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
+   recent requests), Models (list + load/unload), Requests (filtered/sorted
+   log + histogram + detail), Logs.
 
 ## What's explicitly NOT done yet
 
@@ -119,9 +149,10 @@ Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
 All entity primary keys are **prefixed ULIDs** stored as `text` in SQLite.
 Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 
-| Entity   | Prefix |
-| -------- | ------ |
-| Request  | `req`  |
+| Entity      | Prefix |
+| ----------- | ------ |
+| Request     | `req`  |
+| ModelEvent  | `mev`  |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:
