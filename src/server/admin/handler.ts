@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
+import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import { getModelTimeline } from './model-events.ts'
 import { getAdjacentIds, getRequestById, getRequestHistogram, getRequestStats, listRecentRequests } from './requests.ts'
 
@@ -163,6 +164,64 @@ const routes: Array<Route> = [
   },
   {
     method: 'GET',
+    pattern: /^\/api\/config$/,
+    handler: async (_req, res) => {
+      if (!config.llamaSwapConfigFile) {
+        return error(res, 404, 'LLAMASWAP_CONFIG_FILE is not set')
+      }
+      try {
+        const result = readConfig()
+        json(res, 200, result)
+      } catch (err) {
+        error(res, 500, err instanceof Error ? err.message : String(err))
+      }
+    },
+  },
+  {
+    method: 'PUT',
+    pattern: /^\/api\/config$/,
+    handler: async (req, res) => {
+      if (!config.llamaSwapConfigFile) {
+        return error(res, 404, 'LLAMASWAP_CONFIG_FILE is not set')
+      }
+      const raw = await readBody(req)
+      let body: { content: string; modifiedAt: number }
+      try {
+        body = JSON.parse(raw) as { content: string; modifiedAt: number }
+      } catch {
+        return error(res, 400, 'Invalid JSON body')
+      }
+      if (typeof body.content !== 'string' || typeof body.modifiedAt !== 'number') {
+        return error(res, 400, 'Body must have "content" (string) and "modifiedAt" (number)')
+      }
+      const validation = await validateAgainstSchema(body.content)
+      if (!validation.valid) {
+        return json(res, 422, { saved: false, errors: validation.errors })
+      }
+      const result = writeConfig(body.content, body.modifiedAt)
+      if (result.conflict) {
+        return json(res, 409, { saved: false, conflict: true, message: 'File was modified externally' })
+      }
+      json(res, 200, { saved: true })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/config\/validate$/,
+    handler: async (req, res) => {
+      const raw = await readBody(req)
+      let body: { content: string }
+      try {
+        body = JSON.parse(raw) as { content: string }
+      } catch {
+        return error(res, 400, 'Invalid JSON body')
+      }
+      const result = await validateAgainstSchema(body.content)
+      json(res, 200, result)
+    },
+  },
+  {
+    method: 'GET',
     pattern: /^\/api\/health$/,
     handler: async (_req, res) => {
       try {
@@ -186,6 +245,23 @@ const routes: Array<Route> = [
 ]
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n))
+
+function readBody(req: IncomingMessage, maxBytes = 1024 * 1024): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Array<Buffer> = []
+    let size = 0
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length
+      if (size > maxBytes) {
+        req.destroy()
+        reject(new Error('Body too large'))
+      }
+      chunks.push(chunk)
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')))
+    req.on('error', reject)
+  })
+}
 
 export async function handleAdminRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const method = (req.method ?? 'GET').toUpperCase()

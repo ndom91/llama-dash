@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router'
-import { Boxes, KeyRound, LayoutDashboard, ScrollText, Settings, Terminal } from 'lucide-react'
+import { Boxes, KeyRound, LayoutDashboard, MessageSquare, ScrollText, Settings, Terminal } from 'lucide-react'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 
 type NavItem = {
-  to: '/' | '/models' | '/requests' | '/logs'
+  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config'
   label: string
   shortcut: string
   Icon: typeof LayoutDashboard
@@ -15,14 +15,13 @@ const NAV: ReadonlyArray<NavItem> = [
   { to: '/models', label: 'Models', shortcut: 'M02', Icon: Boxes },
   { to: '/requests', label: 'Requests', shortcut: 'R03', Icon: ScrollText },
   { to: '/logs', label: 'Logs', shortcut: 'L04', Icon: Terminal },
+  { to: '/playground', label: 'Playground', shortcut: 'P05', Icon: MessageSquare },
+  { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
 ]
 
 type FutureItem = { label: string; shortcut: string; Icon: typeof LayoutDashboard }
 
-const FUTURE: ReadonlyArray<FutureItem> = [
-  { label: 'API Keys', shortcut: 'K05', Icon: KeyRound },
-  { label: 'Config', shortcut: 'C06', Icon: Settings },
-]
+const FUTURE: ReadonlyArray<FutureItem> = [{ label: 'API Keys', shortcut: 'K07', Icon: KeyRound }]
 
 export function Sidebar() {
   const { data: running = [] } = useRunningModels()

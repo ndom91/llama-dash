@@ -83,6 +83,17 @@ export type ApiGpuSnapshot = {
   polledAt: number
 }
 
+export type ApiConfigRead = {
+  content: string
+  modifiedAt: number
+}
+
+export type ApiConfigValidation = { valid: true } | { valid: false; errors: Array<string> }
+
+export type ApiConfigSaveResult =
+  | { saved: true }
+  | { saved: false; errors?: Array<string>; conflict?: boolean; message?: string }
+
 export type ApiModelEvent = {
   id: string
   modelId: string
@@ -116,6 +127,19 @@ export const api = {
   unloadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),
+  getConfig: () => fetch('/api/config').then(json<ApiConfigRead>),
+  saveConfig: (content: string, modifiedAt: number) =>
+    fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ content, modifiedAt }),
+    }).then(async (res) => (await res.json()) as ApiConfigSaveResult),
+  validateConfig: (content: string) =>
+    fetch('/api/config/validate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ content }),
+    }).then(json<ApiConfigValidation>),
   health: () => fetch('/api/health').then(json<ApiHealth>),
   requestStats: () => fetch('/api/requests/stats').then(json<ApiRequestStats>),
   modelTimeline: (windowMs?: number) => {

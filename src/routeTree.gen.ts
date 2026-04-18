@@ -9,12 +9,19 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as ModelsRouteImport } from './routes/models'
 import { Route as LogsRouteImport } from './routes/logs'
+import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
 import { Route as RequestsIdRouteImport } from './routes/requests.$id'
 
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ModelsRoute = ModelsRouteImport.update({
   id: '/models',
   path: '/models',
@@ -23,6 +30,11 @@ const ModelsRoute = ModelsRouteImport.update({
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigRoute = ConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -43,44 +55,81 @@ const RequestsIdRoute = RequestsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
   '/logs': typeof LogsRoute
   '/models': typeof ModelsRoute
+  '/playground': typeof PlaygroundRoute
   '/requests/$id': typeof RequestsIdRoute
   '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
   '/logs': typeof LogsRoute
   '/models': typeof ModelsRoute
+  '/playground': typeof PlaygroundRoute
   '/requests/$id': typeof RequestsIdRoute
   '/requests': typeof RequestsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/config': typeof ConfigRoute
   '/logs': typeof LogsRoute
   '/models': typeof ModelsRoute
+  '/playground': typeof PlaygroundRoute
   '/requests/$id': typeof RequestsIdRoute
   '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/logs' | '/models' | '/requests/$id' | '/requests/'
+  fullPaths:
+    | '/'
+    | '/config'
+    | '/logs'
+    | '/models'
+    | '/playground'
+    | '/requests/$id'
+    | '/requests/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/logs' | '/models' | '/requests/$id' | '/requests'
-  id: '__root__' | '/' | '/logs' | '/models' | '/requests/$id' | '/requests/'
+  to:
+    | '/'
+    | '/config'
+    | '/logs'
+    | '/models'
+    | '/playground'
+    | '/requests/$id'
+    | '/requests'
+  id:
+    | '__root__'
+    | '/'
+    | '/config'
+    | '/logs'
+    | '/models'
+    | '/playground'
+    | '/requests/$id'
+    | '/requests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfigRoute: typeof ConfigRoute
   LogsRoute: typeof LogsRoute
   ModelsRoute: typeof ModelsRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   RequestsIdRoute: typeof RequestsIdRoute
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/models': {
       id: '/models'
       path: '/models'
@@ -93,6 +142,13 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config': {
+      id: '/config'
+      path: '/config'
+      fullPath: '/config'
+      preLoaderRoute: typeof ConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -121,8 +177,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfigRoute: ConfigRoute,
   LogsRoute: LogsRoute,
   ModelsRoute: ModelsRoute,
+  PlaygroundRoute: PlaygroundRoute,
   RequestsIdRoute: RequestsIdRoute,
   RequestsIndexRoute: RequestsIndexRoute,
 }
