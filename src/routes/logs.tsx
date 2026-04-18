@@ -59,6 +59,11 @@ function Logs() {
     }
   }, [filtered.length, autoScroll])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: remeasure all rows when wrap toggles
+  useEffect(() => {
+    virtualizer.measure()
+  }, [wrap])
+
   const measureRow = useCallback(
     (el: HTMLElement | null) => {
       if (!el) return
