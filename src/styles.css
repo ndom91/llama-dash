@@ -618,8 +618,8 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border-strong);
   border-radius: 6px;
   color: var(--fg-muted);
@@ -817,6 +817,18 @@ button:disabled {
 @media (max-width: 768px) {
   .req-res-columns {
     grid-template-columns: 1fr;
+  }
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .detail-stats-strip {
+    flex-wrap: wrap;
+  }
+  .detail-stat {
+    min-width: 80px;
   }
 }
 
