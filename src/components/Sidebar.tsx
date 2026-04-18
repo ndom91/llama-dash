@@ -43,9 +43,9 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
-        <div className="sidebar-section">navigate</div>
+        <div className="sidebar-section">├── navigate</div>
         {NAV.map(({ to, label, shortcut, Icon }) => {
-          const badge = to === '/models' && runningCount > 0 ? `-${runningCount}` : null
+          const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
           return (
             <Link
               key={to}

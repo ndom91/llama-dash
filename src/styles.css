@@ -258,14 +258,15 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--fg-faint);
-  padding: 12px 10px 6px;
+  margin-left: -2px;
+  padding: 12px 10px 6px 0;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 6px 10px;
   color: var(--fg-muted);
   font-size: 13px;
   font-weight: 500;
@@ -891,6 +892,9 @@ button:disabled {
   padding: 20px 24px 48px;
   max-width: 1280px;
   margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 }
 .page-header {
   display: flex;
@@ -1421,7 +1425,6 @@ a,
 .stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1466,13 +1469,16 @@ a,
 
 /* ---- model swap timeline ---- */
 
+.timeline-body {
+  padding: 4px 14px 12px;
+}
 .timeline-track {
   position: relative;
   height: 28px;
   background: var(--bg-3);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  margin: 8px 0 4px;
+  margin: 4px 0 2px;
 }
 .timeline-span {
   position: absolute;
@@ -1486,8 +1492,8 @@ a,
 }
 .timeline-axis {
   position: relative;
-  height: 18px;
-  margin-bottom: 8px;
+  height: 20px;
+  margin-bottom: 6px;
 }
 .timeline-tick {
   position: absolute;
@@ -1496,10 +1502,16 @@ a,
   font-size: 10px;
   color: var(--fg-dim);
 }
+.timeline-tick:first-child {
+  transform: none;
+}
+.timeline-tick:last-child {
+  transform: translateX(-100%);
+}
 .timeline-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
   font-size: 11px;
   color: var(--fg-muted);
 }
@@ -1521,7 +1533,10 @@ a,
 .dash-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: var(--space-lg);
+}
+.running-panel .dtable {
+  min-height: 180px;
 }
 
 /* ---- sparkline ---- */

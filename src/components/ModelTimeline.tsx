@@ -133,46 +133,48 @@ export function ModelTimeline({ events }: { events: Array<ApiModelEvent> }) {
           now →
         </span>
       </div>
-      <div className="timeline-track">
-        {spans.map((s) => {
-          const left = ((s.start - windowStart) / WINDOW_MS) * 100
-          const width = ((s.end - s.start) / WINDOW_MS) * 100
-          return (
-            <div
-              key={`${s.modelId}-${s.start}`}
-              className={`timeline-span${s.isSwap ? ' timeline-swap' : ''}`}
-              style={{
-                left: `${left}%`,
-                width: `${Math.max(width, 0.3)}%`,
-                background: s.isSwap ? SWAP_COLOR : colorMap.get(s.modelId),
-              }}
-            />
-          )
-        })}
-      </div>
-      <div className="timeline-axis">
-        {ticks.map((t) => (
-          <span key={t.label} className="timeline-tick" style={{ left: `${t.pct}%` }}>
-            {t.label}
-          </span>
-        ))}
-      </div>
-      <div className="timeline-legend">
-        {[...legend.models.entries()].map(([id, ms]) => (
-          <span key={id} className="timeline-legend-item">
-            <span className="timeline-legend-swatch" style={{ background: colorMap.get(id) }} />
-            <span className="mono" translate="no">
-              {id}
-            </span>{' '}
-            <span className="dim">{formatDuration(ms)}</span>
-          </span>
-        ))}
-        {legend.swapTime > 0 ? (
-          <span className="timeline-legend-item">
-            <span className="timeline-legend-swatch" style={{ background: SWAP_COLOR }} />
-            swap window <span className="dim">{formatDuration(legend.swapTime)}</span>
-          </span>
-        ) : null}
+      <div className="timeline-body">
+        <div className="timeline-track">
+          {spans.map((s) => {
+            const left = ((s.start - windowStart) / WINDOW_MS) * 100
+            const width = ((s.end - s.start) / WINDOW_MS) * 100
+            return (
+              <div
+                key={`${s.modelId}-${s.start}`}
+                className={`timeline-span${s.isSwap ? ' timeline-swap' : ''}`}
+                style={{
+                  left: `${left}%`,
+                  width: `${Math.max(width, 0.3)}%`,
+                  background: s.isSwap ? SWAP_COLOR : colorMap.get(s.modelId),
+                }}
+              />
+            )
+          })}
+        </div>
+        <div className="timeline-axis">
+          {ticks.map((t) => (
+            <span key={t.label} className="timeline-tick" style={{ left: `${t.pct}%` }}>
+              {t.label}
+            </span>
+          ))}
+        </div>
+        <div className="timeline-legend">
+          {[...legend.models.entries()].map(([id, ms]) => (
+            <span key={id} className="timeline-legend-item">
+              <span className="timeline-legend-swatch" style={{ background: colorMap.get(id) }} />
+              <span className="mono" translate="no">
+                {id}
+              </span>{' '}
+              <span className="dim">{formatDuration(ms)}</span>
+            </span>
+          ))}
+          {legend.swapTime > 0 ? (
+            <span className="timeline-legend-item">
+              <span className="timeline-legend-swatch" style={{ background: SWAP_COLOR }} />
+              swap window <span className="dim">{formatDuration(legend.swapTime)}</span>
+            </span>
+          ) : null}
+        </div>
       </div>
     </section>
   )

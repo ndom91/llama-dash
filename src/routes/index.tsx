@@ -34,7 +34,7 @@ function Dashboard() {
     setRefreshing(false)
   }
 
-  const running = useMemo(() => models?.filter((m) => m.running) ?? [], [models])
+  const active = useMemo(() => models?.filter((m) => m.running || m.kind === 'peer') ?? [], [models])
 
   return (
     <div className="main-col">
@@ -103,7 +103,7 @@ function Dashboard() {
           {timelineEvents ? <ModelTimeline events={timelineEvents} /> : null}
 
           <div className="dash-grid">
-            <RunningModelsPanel running={running} total={models?.length ?? null} />
+            <RunningModelsPanel active={active} total={models?.length ?? null} />
             <UpstreamHealthPanel health={health} />
           </div>
 
@@ -139,12 +139,13 @@ function StatCard({
   )
 }
 
-function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; total: number | null }) {
+function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total: number | null }) {
+  const runningCount = active.filter((m) => m.running).length
   return (
-    <section className="panel">
+    <section className="panel running-panel">
       <div className="panel-head">
         <span className="panel-title">Running</span>
-        <span className="panel-sub">{total == null ? '—' : `${running.length} of ${total} loaded`}</span>
+        <span className="panel-sub">{total == null ? '—' : `${runningCount} of ${total} loaded`}</span>
         <Link to="/models" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
           manage
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
@@ -152,7 +153,7 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
       </div>
       {total == null ? (
         <div className="empty-state">loading…</div>
-      ) : running.length === 0 ? (
+      ) : active.length === 0 ? (
         <div className="empty-state">
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
@@ -167,20 +168,24 @@ function RunningModelsPanel({ running, total }: { running: Array<ApiModel>; tota
             </tr>
           </thead>
           <tbody>
-            {running.map((m) => (
-              <tr key={m.id}>
-                <td>
-                  <StatusDot tone={stateTone(m.state, m.running)} live />
-                </td>
-                <td className="mono" translate="no">
-                  {m.id}
-                </td>
-                <td>{m.name}</td>
-                <td>
-                  <span className={`state-label state-label-${stateTone(m.state, m.running)}`}>{m.state}</span>
-                </td>
-              </tr>
-            ))}
+            {active.map((m) => {
+              const tone = m.kind === 'peer' ? ('warn' as const) : stateTone(m.state, m.running)
+              const label = m.kind === 'peer' ? 'peer' : m.state
+              return (
+                <tr key={m.id}>
+                  <td>
+                    <StatusDot tone={tone} live />
+                  </td>
+                  <td className="mono" translate="no">
+                    {m.id}
+                  </td>
+                  <td>{m.name}</td>
+                  <td>
+                    <span className={`state-label state-label-${tone}`}>{label}</span>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       )}
@@ -230,7 +235,7 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
   const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
 
   return (
-    <section className="panel" style={{ marginTop: 16 }}>
+    <section className="panel">
       <div className="panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">

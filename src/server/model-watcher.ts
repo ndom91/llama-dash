@@ -1,9 +1,8 @@
 import { ulid } from 'ulidx'
-import { config } from './config.ts'
 import { db, schema } from './db/index.ts'
 import { llamaSwap } from './llama-swap/client.ts'
 
-const POLL_INTERVAL_MS = 60_000
+const POLL_INTERVAL_MS = 15_000
 
 let knownRunning = new Set<string>()
 let started = false
@@ -40,41 +39,11 @@ async function diffRunning() {
   }
 }
 
-function connectSSE() {
-  const url = `${config.llamaSwapUrl}/api/events`
-  fetch(url)
-    .then(async (res) => {
-      if (!res.ok || !res.body) {
-        scheduleReconnect()
-        return
-      }
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        const text = decoder.decode(value, { stream: true })
-        if (text.includes('"logData"')) {
-          await diffRunning()
-        }
-      }
-      scheduleReconnect()
-    })
-    .catch(() => {
-      scheduleReconnect()
-    })
-}
-
-function scheduleReconnect() {
-  setTimeout(connectSSE, 5_000)
-}
-
 export function startModelWatcher() {
   if (started) return
   started = true
 
   diffRunning()
-  connectSSE()
   pollTimer = setInterval(diffRunning, POLL_INTERVAL_MS)
 }
 
