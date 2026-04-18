@@ -2,7 +2,6 @@ import { useMatches } from '@tanstack/react-router'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
-import { ThemeToggle } from './ThemeToggle'
 
 function resolveTitle(pathname: string): string {
   if (pathname === '/') return 'Dashboard'
@@ -69,7 +68,6 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       <div className="topbar-actions">
         {actions}
         <span className="topbar-datetime mono">{formatDatetime(now)}</span>
-        <ThemeToggle />
       </div>
     </header>
   )

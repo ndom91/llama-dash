@@ -1,7 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { Boxes, KeyRound, LayoutDashboard, MessageSquare, ScrollText, Settings, Terminal } from 'lucide-react'
+import { useColorTheme } from '../lib/use-color-theme'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
+import { ThemeToggle } from './ThemeToggle'
+import { Tooltip } from './Tooltip'
 import { Logo } from './Logo'
 
 type NavItem = {
@@ -46,6 +49,7 @@ export function Sidebar() {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
+  const colorTheme = useColorTheme()
 
   const resident = running[0] ?? null
   const runningCount = running.length
@@ -95,6 +99,22 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-foot">
+        <div className="theme-row">
+          <div className="theme-picker">
+            {colorTheme.themes.map((t) => (
+              <Tooltip key={t.id} label={t.name} side="top">
+                <button
+                  type="button"
+                  className={`theme-swatch${t.id === colorTheme.themeId ? ' is-active' : ''}`}
+                  style={{ background: t.accent['500'] }}
+                  onClick={() => colorTheme.select(t.id)}
+                  aria-label={t.name}
+                />
+              </Tooltip>
+            ))}
+          </div>
+          <ThemeToggle />
+        </div>
         <div className="resident">
           <div className="resident-head">
             <span>vram ·</span>

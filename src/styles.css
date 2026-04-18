@@ -15,10 +15,10 @@
 }
 
 :root {
-  /* brand */
-  --ld-phosphor-300: #c7dfb8;
-  --ld-phosphor-500: #9dc98a;
-  --ld-phosphor-700: #6b9a5a;
+  /* brand — default: ultraviolet (overridden by JS theme picker) */
+  --ld-phosphor-300: #d4c0e6;
+  --ld-phosphor-500: #b497d6;
+  --ld-phosphor-700: #7b5ca0;
 
   /* surfaces */
   --ld-surface-0: #070809;
@@ -31,10 +31,11 @@
   --ld-text-2: #8a9490;
   --ld-text-3: #5d6461;
 
-  /* status */
+  /* status — default: ultraviolet */
   --ld-ok: #9dc98a;
   --ld-warn: #d9b88a;
   --ld-error: #c88a8a;
+  --info: #8aaedb;
 
   /* semantic aliases */
   --bg-0: var(--ld-surface-0);
@@ -61,10 +62,9 @@
   --warn-bg: rgba(217, 184, 138, 0.12);
   --err: var(--ld-error);
   --err-bg: rgba(200, 138, 138, 0.12);
-  --info: #8ab8c8;
-  --info-bg: rgba(138, 184, 200, 0.12);
+  --info-bg: rgba(138, 174, 219, 0.12);
 
-  --shadow-focus: 0 0 0 2px rgba(157, 201, 138, 0.35);
+  --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
 
   --radius-sm: 3px;
   --radius: 6px;
@@ -306,6 +306,35 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.theme-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  padding: 6px 8px 6px 12px;
+}
+.theme-picker {
+  display: flex;
+  justify-content: space-between;
+  flex: 1;
+}
+.theme-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.theme-swatch:hover {
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--fg-dim);
+}
+.theme-swatch.is-active {
+  box-shadow: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--fg);
 }
 
 /* VRAM-resident readout — the signature */

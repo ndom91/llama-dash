@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "version": 1,
+  "description": "llama-dash brand themes. Each theme defines an accent palette (500/700/300), status colors, and the surface + text scale. Surfaces and text are shared across all themes — only the accent and a few harmonizing status colors change per theme.",
+  "shared": {
+    "surface": {
+      "0": "#070809",
+      "1": "#0E1114",
+      "2": "#161A1D",
+      "border": "#1F2327"
+    },
+    "text": {
+      "1": "#D6DBD9",
+      "2": "#8A9490",
+      "3": "#5D6461"
+    },
+    "light": {
+      "bg": "#FBF9F4",
+      "surface1": "#FFFFFF",
+      "border": "#E4E1D8",
+      "text1": "#1A1A1A",
+      "text2": "#4A453F",
+      "text3": "#8A857F"
+    },
+    "font": {
+      "sans": "\"IBM Plex Sans\", system-ui, sans-serif",
+      "mono": "\"IBM Plex Mono\", ui-monospace, monospace"
+    },
+    "radius": {
+      "sm": "3px",
+      "md": "6px"
+    }
+  },
+  "themes": [
+    {
+      "id": "phosphor",
+      "name": "Phosphor",
+      "tagline": "Classic CRT green",
+      "description": "The default. Reads as operator terminal — nginx, htop, green-on-black roots. Calm, technical, the safest pick.",
+      "accent": {
+        "300": "#C7DFB8",
+        "500": "#9DC98A",
+        "700": "#6B9A5A",
+        "oklch": "78% 0.10 135"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "amber",
+      "name": "Amber",
+      "tagline": "Vintage scope / avionics",
+      "description": "Amber CRT terminals, cockpit displays. Warmer than green, still phosphorescent.",
+      "accent": {
+        "300": "#ECD9A8",
+        "500": "#D9B86A",
+        "700": "#9C7F3A",
+        "oklch": "80% 0.11 85"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B86A",
+        "error": "#C88A8A",
+        "info": "#8ABBD9"
+      }
+    },
+    {
+      "id": "blueprint",
+      "name": "Blueprint",
+      "tagline": "Engineering drawing cyan",
+      "description": "Cool, technical, slightly clinical. Like schematic blueprints and datasheets.",
+      "accent": {
+        "300": "#B5DEE6",
+        "500": "#7BC4D4",
+        "700": "#3F8A9A",
+        "oklch": "78% 0.08 215"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#7BC4D4"
+      }
+    },
+    {
+      "id": "coral",
+      "name": "Coral",
+      "tagline": "Warm, characterful, alive",
+      "description": "Terracotta / burnt-orange. Warmer and more human than a tech green. Distinct in a field of blue/green dev tools.",
+      "accent": {
+        "300": "#F0B9A0",
+        "500": "#E08F6E",
+        "700": "#B0593A",
+        "oklch": "72% 0.11 45"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#E0C878",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "ultraviolet",
+      "name": "Ultraviolet",
+      "tagline": "Dusty lavender phosphor",
+      "description": "Uncommon for dev tools. Reads as research / experimental — ML/AI-native without being sci-fi purple.",
+      "accent": {
+        "300": "#D4C0E6",
+        "500": "#B497D6",
+        "700": "#7B5CA0",
+        "oklch": "72% 0.09 300"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "steel",
+      "name": "Steel",
+      "tagline": "Avionics / Bloomberg-adjacent",
+      "description": "Financial-terminal blue. The professional, trustworthy default for data-heavy tools.",
+      "accent": {
+        "300": "#B8CEEB",
+        "500": "#8AAEDB",
+        "700": "#4D76A8",
+        "oklch": "72% 0.08 260"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "chartreuse",
+      "name": "Chartreuse",
+      "tagline": "High-viz yellow-green",
+      "description": "Between green and amber. Aggressive, high-contrast, distinctive. More new-product energy than CRT-green nostalgia.",
+      "accent": {
+        "300": "#E6E9A8",
+        "500": "#D4D97A",
+        "700": "#94994A",
+        "oklch": "85% 0.13 115"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "monochrome",
+      "name": "Monochrome",
+      "tagline": "No brand color at all",
+      "description": "The bold move: no accent. All signal comes from semantic status colors only. Most serious, most restrained.",
+      "accent": {
+        "300": "#EDEFEE",
+        "500": "#D6DBD9",
+        "700": "#3A3F3D",
+        "oklch": "87% 0.005 170"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    }
+  ]
+}
