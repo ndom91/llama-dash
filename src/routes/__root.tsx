@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
@@ -58,7 +59,10 @@ function RootDocument() {
           />
           <TanStackDevtools
             config={{ position: 'bottom-right' }}
-            plugins={[{ name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> }]}
+            plugins={[
+              { name: 'Tanstack Router', render: <TanStackRouterDevtoolsPanel /> },
+              { name: 'Tanstack Query', render: <ReactQueryDevtoolsPanel /> },
+            ]}
           />
         </QueryClientProvider>
         <Scripts />
