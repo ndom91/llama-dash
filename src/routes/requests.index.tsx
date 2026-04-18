@@ -238,18 +238,20 @@ function Requests() {
                       dir={sortDir}
                       onToggle={toggleSort}
                       className="mono"
-                      style={{ width: 80 }}
+                      style={{ width: 100, whiteSpace: 'nowrap' }}
                     >
                       t
                     </SortTh>
-                    <th className="mono">endpoint</th>
-                    <th style={{ minWidth: 160 }}>model</th>
+                    <th className="mono" style={{ width: '22%' }}>
+                      endpoint
+                    </th>
+                    <th style={{ width: '28%' }}>model</th>
                     <SortTh
                       field="statusCode"
                       current={sortKey}
                       dir={sortDir}
                       onToggle={toggleSort}
-                      style={{ width: 80 }}
+                      style={{ width: 70 }}
                     >
                       status
                     </SortTh>
@@ -259,11 +261,11 @@ function Requests() {
                       dir={sortDir}
                       onToggle={toggleSort}
                       className="num"
-                      style={{ width: 72 }}
+                      style={{ width: 80 }}
                     >
                       tok-in
                     </SortTh>
-                    <th className="num" style={{ width: 72 }}>
+                    <th className="num" style={{ width: 80 }}>
                       tok-out
                     </th>
                     <SortTh
@@ -272,7 +274,7 @@ function Requests() {
                       dir={sortDir}
                       onToggle={toggleSort}
                       className="num"
-                      style={{ width: 180 }}
+                      style={{ width: 140 }}
                     >
                       duration
                     </SortTh>
@@ -285,7 +287,9 @@ function Requests() {
                       className="clickable-row"
                       onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
                     >
-                      <td className="mono dim">{formatWhen(r.startedAt)}</td>
+                      <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                        {formatWhen(r.startedAt)}
+                      </td>
                       <td className="mono" translate="no">
                         {r.endpoint}
                       </td>
