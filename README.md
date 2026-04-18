@@ -14,6 +14,17 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 
 <table>
   <tr>
+    <td align="center">
+      Dashboard
+    </td>
+    <td align="center">
+      Playground
+    </td>
+    <td align="center">
+      Request Details
+    </td>
+  </tr>
+  <tr>
     <td>
       <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nktx.png" />
     </td>
@@ -22,17 +33,6 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
     </td>
     <td>
       <img alt="Dark - Request Details" src="./.github/assets/SCR-20260418-nfny.png" />
-    </td>
-  </tr>
-  <tr>
-    <td>
-      Dashboard
-    </td>
-    <td>
-      Playground
-    </td>
-    <td>
-      Request Details
     </td>
   </tr>
 </table>
