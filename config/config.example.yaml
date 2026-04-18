@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mostlygeek/llama-swap/refs/heads/main/config-schema.json
+#
+# Copy this to config.yaml and edit to match your setup.
+# llama-swap watches this file and reloads automatically (-watch-config).
+#
+# Models are stored in /models inside the container.
+# Use ${PORT} — llama-swap replaces it with an assigned port.
+
+models:
+  llama3:
+    cmd: llama-server --port ${PORT} --model /models/llama-3.gguf
+    ttl: 300
+
+  qwen:
+    cmd: llama-server --port ${PORT} --model /models/qwen.gguf
+    ttl: 300

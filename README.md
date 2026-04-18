@@ -12,13 +12,27 @@ Sits in front of llama-swap and gives you:
 
 See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions behind this first pass.
 
-## Requirements
+## Quick start (Docker Compose)
 
-- Node 20+
+```bash
+cp config/config.example.yaml config/config.yaml  # edit models
+docker compose up -d
+# open http://localhost:5173
+```
+
+The compose file runs llama-swap (with `-watch-config` for hot reload) and llama-dash together. GPU models are stored in `./models/`, config in `./config/config.yaml`.
+
+By default the compose file is set up for AMD GPUs (`/dev/kfd`, `/dev/dri`). For NVIDIA, swap the image tag to `:cuda` and uncomment the `deploy.resources` block — see comments in `docker-compose.yaml`.
+
+## Manual setup
+
+### Requirements
+
+- Node 22+
 - pnpm
 - A reachable [llama-swap](https://github.com/mostlygeek/llama-swap) instance
 
-## Setup
+### Install
 
 ```bash
 cp .env.example .env   # edit LLAMASWAP_URL to point at your instance
@@ -34,7 +48,8 @@ Copy `.env.example` to `.env` and fill in the values.
 | Var | Default | Notes |
 |---|---|---|
 | `LLAMASWAP_URL` | `http://localhost:8080` | Upstream llama-swap base URL. No trailing slash. |
-| `LLAMASWAP_INSECURE` | `false` | Skip TLS verification. Flip on when pointing at an HTTPS upstream with a self-signed cert. |
+| `LLAMASWAP_INSECURE` | `false` | Skip TLS verification for upstream with self-signed certs. |
+| `LLAMASWAP_CONFIG_FILE` | (empty) | Absolute path to llama-swap's `config.yaml`. Required for config editor. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. |
 
 ## How it's wired

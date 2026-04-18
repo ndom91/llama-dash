@@ -12,4 +12,6 @@ dist-ssr
 __unconfig*
 todos.json
 data/
+config/config.yaml
+models/
 todo.md
