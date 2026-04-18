@@ -7,12 +7,18 @@ const LS_SYSTEM = 'playground-system-prompt'
 const LS_TEMP = 'playground-temperature'
 
 function loadJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback
   try {
     const raw = localStorage.getItem(key)
     return raw ? (JSON.parse(raw) as T) : fallback
   } catch {
     return fallback
   }
+}
+
+function loadString(key: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  return localStorage.getItem(key) ?? fallback
 }
 
 let nextId = 0
@@ -22,8 +28,8 @@ function msgId() {
 
 export function usePlaygroundChat() {
   const [messages, setMessages] = useState<Array<ChatMessage>>(() => loadJson(LS_MESSAGES, []))
-  const [model, setModelState] = useState(() => localStorage.getItem(LS_MODEL) ?? '')
-  const [systemPrompt, setSystemPromptState] = useState(() => localStorage.getItem(LS_SYSTEM) ?? '')
+  const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
+  const [systemPrompt, setSystemPromptState] = useState(() => loadString(LS_SYSTEM, ''))
   const [temperature, setTemperatureState] = useState(() => loadJson(LS_TEMP, 0.7))
   const [isStreaming, setIsStreaming] = useState(false)
   const [isReasoning, setIsReasoning] = useState(false)
