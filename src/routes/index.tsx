@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, Download, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
 import { ModelTimeline } from '../components/ModelTimeline'
 import { PageHeader } from '../components/PageHeader'
@@ -296,7 +297,8 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
         <div className="empty-state">loading…</div>
       ) : requests.length === 0 ? (
         <div className="empty-state">
-          no requests yet. proxy one through <code translate="no">/v1/*</code> to see it here.
+          no requests yet. point clients at{' '}
+          <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> to see them here.
         </div>
       ) : (
         <table className="dtable">

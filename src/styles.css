@@ -606,7 +606,7 @@ button:disabled {
   color: var(--fg-dim);
   font-size: 13px;
 }
-.empty-state code {
+.empty-state code:not(.copyable-code code) {
   border: 1px solid var(--border);
   background: var(--bg-2);
   padding: 1px 6px;

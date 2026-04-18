@@ -35,6 +35,7 @@ export function Sidebar() {
 
   const gpuCard = gpu?.available ? gpu.gpus[0] : null
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
+  const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
 
   return (
     <aside className="sidebar">
@@ -80,7 +81,7 @@ export function Sidebar() {
             <span>vram ·</span>
             <span className="resident-head-val">
               {hasVram
-                ? `${gpuCard.memoryUsedMiB?.toLocaleString()} / ${gpuCard.memoryTotalMiB?.toLocaleString()} MiB`
+                ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
                 : resident
                   ? `${runningCount} of ${totalCount}`
                   : 'idle'}
