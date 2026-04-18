@@ -4,9 +4,11 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { useCallback, useState } from 'react'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
+import { MobileMenuContext } from '../lib/use-mobile-menu'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 2_000, retry: 1 } },
@@ -44,10 +46,7 @@ function RootDocument() {
         <QueryClientProvider client={queryClient}>
           <HotkeysProvider>
             <TooltipProvider>
-              <div className="app-shell">
-                <Sidebar />
-                <Outlet />
-              </div>
+              <AppShell />
             </TooltipProvider>
           </HotkeysProvider>
           <Toaster
@@ -74,5 +73,23 @@ function RootDocument() {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function AppShell() {
+  const [open, setOpen] = useState(false)
+  const toggle = useCallback(() => setOpen((v) => !v), [])
+  const close = useCallback(() => setOpen(false), [])
+
+  return (
+    <MobileMenuContext value={{ open, toggle, close }}>
+      <div className="app-shell">
+        {open ? (
+          <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={close} tabIndex={-1} />
+        ) : null}
+        <Sidebar />
+        <Outlet />
+      </div>
+    </MobileMenuContext>
   )
 }

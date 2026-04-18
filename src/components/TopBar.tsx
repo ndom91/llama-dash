@@ -1,5 +1,7 @@
 import { useMatches } from '@tanstack/react-router'
+import { Menu } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
+import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
 
@@ -15,6 +17,7 @@ function resolveTitle(pathname: string): string {
 }
 
 export function TopBar({ actions }: { actions?: ReactNode }) {
+  const { toggle } = useMobileMenu()
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
   const title = resolveTitle(leaf)
@@ -33,6 +36,9 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
 
   return (
     <header className="topbar">
+      <button type="button" className="mobile-menu-btn" onClick={toggle} aria-label="Toggle menu">
+        <Menu size={20} strokeWidth={1.75} />
+      </button>
       <span className="topbar-title">{title}</span>
       <span className="topbar-sep" aria-hidden="true" />
 

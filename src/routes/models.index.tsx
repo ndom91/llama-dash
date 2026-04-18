@@ -75,9 +75,13 @@ function Models() {
                       id
                     </th>
                     <th>name</th>
-                    <th style={{ width: 72 }}>kind</th>
-                    <th style={{ width: 130 }}>state</th>
-                    <th style={{ width: 110 }} className="num">
+                    <th style={{ width: 72 }} className="hide-mobile">
+                      kind
+                    </th>
+                    <th style={{ width: 130 }} className="hide-mobile">
+                      state
+                    </th>
+                    <th style={{ width: 110 }} className="num hide-mobile">
                       action
                     </th>
                   </tr>
@@ -129,15 +133,15 @@ function ModelRow({
         </Link>
       </td>
       <td>{model.name}</td>
-      <td>
+      <td className="hide-mobile">
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
           {model.kind}
         </span>
       </td>
-      <td>
+      <td className="hide-mobile">
         <span className={`state-label state-label-${tone}`}>{model.kind === 'peer' ? 'peer' : model.state}</span>
       </td>
-      <td className="num">
+      <td className="num hide-mobile">
         {model.kind === 'local' ? (
           model.running ? (
             <button

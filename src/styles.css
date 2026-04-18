@@ -1024,21 +1024,51 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+/* Mobile hamburger — hidden on desktop */
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--fg);
+  padding: 4px;
+  cursor: pointer;
+  margin-right: 4px;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .req-res-columns {
+  .app-shell {
     grid-template-columns: 1fr;
   }
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
   }
-  .stat-card:nth-child(2) {
-    border-right: none;
+  .sidebar.is-open {
+    transform: translateX(0);
   }
-  .stat-card:nth-child(1),
-  .stat-card:nth-child(2) {
-    border-bottom: 1px solid var(--border);
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: rgba(0, 0, 0, 0.5);
   }
-  .dash-grid {
+  .mobile-menu-btn {
+    display: inline-flex;
+  }
+  .req-res-columns {
     grid-template-columns: 1fr;
   }
   .detail-hero {
@@ -1051,6 +1081,29 @@ button:disabled {
   }
   .detail-stat {
     min-width: 80px;
+  }
+  .topbar-chip,
+  .topbar-sep,
+  .topbar-datetime {
+    display: none;
+  }
+  .hide-mobile {
+    display: none;
+  }
+  .page {
+    padding: 14px 12px 24px;
+  }
+  .pg-page > .page-header {
+    display: none;
+  }
+  .pg-page {
+    gap: 4px;
+  }
+  .pg-settings-row {
+    gap: 4px;
+  }
+  .pg-input-bar {
+    padding: 8px 10px;
   }
 }
 
@@ -1692,6 +1745,19 @@ a,
   color: var(--fg-dim);
 }
 
+@media (max-width: 768px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stat-card:nth-child(2) {
+    border-right: none;
+  }
+  .stat-card:nth-child(1),
+  .stat-card:nth-child(2) {
+    border-bottom: 1px solid var(--border);
+  }
+}
+
 /* ---- model swap timeline ---- */
 
 .timeline-body {
@@ -1759,6 +1825,11 @@ a,
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-lg);
+}
+@media (max-width: 768px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
 }
 .running-panel {
   min-height: 220px;

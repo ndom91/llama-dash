@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Boxes, KeyRound, LayoutDashboard, MessageSquare, ScrollText, Settings, Terminal } from 'lucide-react'
 import { useColorTheme } from '../lib/use-color-theme'
+import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 import { ThemeToggle } from './ThemeToggle'
@@ -48,6 +49,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
 ]
 
 export function Sidebar() {
+  const { open, close } = useMobileMenu()
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
@@ -62,7 +64,7 @@ export function Sidebar() {
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' is-open' : ''}`}>
       <div className="sidebar-brand">
         <Logo />
         <a
@@ -88,6 +90,7 @@ export function Sidebar() {
                   className="nav-link"
                   activeOptions={{ exact: to === '/' }}
                   activeProps={{ className: 'nav-link is-active' }}
+                  onClick={close}
                 >
                   <span className="nav-link-shortcut">{shortcut}</span>
                   <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
