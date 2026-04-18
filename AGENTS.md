@@ -6,10 +6,8 @@ Notes for agents (and humans operating as agents) working on this repo.
 
 llama-dash is a sidecar in front of [llama-swap](https://github.com/mostlygeek/llama-swap):
 a dashboard UI plus a logging, auth-ready proxy for llama-swap's `/v1/*`
-OpenAI/Anthropic-compatible endpoint. The long version — goals, non-goals,
-roadmap, infra context, lessons learned from the reference deployment — lives
-in [`plan.md`](./plan.md). Read it before making design decisions that touch
-anything beyond the current task.
+OpenAI/Anthropic-compatible endpoint. Feature ideas and prioritization
+live in [`next-plan.md`](./next-plan.md).
 
 Short version of goals:
 
@@ -36,7 +34,7 @@ client ──► llama-dash :8080 ──► llama-swap (internal) ──► llam
 
 One public port. llama-swap is not exposed on the host. The proxy layer is
 where auth, ACL, rate-limiting, filters, and logging all hang off — today
-only logging is wired up; the rest are future work listed in `plan.md`.
+auth, ACL, rate-limiting, and logging are wired up; filters are future work.
 
 ## Repo layout
 
@@ -73,7 +71,7 @@ src/
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
-plan.md                   — long-form vision and infra context
+next-plan.md              — feature ideas and prioritization
 ```
 
 Keep the proxy layer isolated in `src/server/proxy/*` and the admin surface
@@ -112,15 +110,6 @@ paths (proxy will grow middleware; admin will grow CRUD).
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
-
-## What's explicitly NOT done yet
-
-Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
-
-- Content filters (regex block/redact, prompt injection).
-- Cost estimates, export, replay.
-- Production build (Nitro entry point). Dockerfile currently runs
-  `pnpm dev`
 
 ## Tooling
 
@@ -225,6 +214,30 @@ sort lexicographically by creation time).
   to detect config changes and reload automatically. There is no
   `/api/reload` endpoint — just write the file and llama-swap picks it up.
 
+## llama-swap API surface we consume
+
+- `POST /v1/*` — forward OpenAI / Anthropic calls unchanged (after our middleware)
+- `GET /running` — which models are currently loaded
+- `POST /models/unload` — unload a model
+- `GET /upstream/:model_id/*` — proxy directly to a specific llama-server (useful for `/metrics`)
+- `GET /logs/stream`, `/logs/stream/proxy`, `/logs/stream/upstream`, `/logs/stream/{model_id}` — SSE log streams
+- `GET /health`
+- `GET /v1/models` — OpenAI-format list including peers
+- Hot reload: editing `config.yaml` when llama-swap runs with `-watch-config` (fsnotify-based; no SIGHUP)
+
+**CLI flags**: `-config <path>`, `-listen <addr>` (default `:8080`), `-watch-config`, `-tls-cert-file`, `-tls-key-file`, `-version`.
+
+**Signals**: `SIGINT` / `SIGTERM` with graceful shutdown of child processes. No `SIGHUP`.
+
+## Config contract
+
+`config.yaml` is the interface between llama-dash and llama-swap. Rules:
+
+- Atomic writes (write to `.tmp`, fsync, rename).
+- Preserve user comments and key order (YAML round-tripper).
+- Validate against llama-swap's `config-schema.json` before writing.
+- Back up the previous version on every write.
+
 ## Before you call work "done"
 
 Always run — in this order — and make sure each command exits clean before
@@ -248,8 +261,8 @@ your work, verify, and kill it — don't leave one running at the end.
 
 ## Scope discipline
 
-- MVP-first. The roadmap in `plan.md` is long — only implement what the
-  current task asks for. No preemptive abstractions.
+- MVP-first. Only implement what the current task asks for. No preemptive
+  abstractions.
 - For exploratory questions ("how should we do X?"), propose and wait.
   Don't land code until the approach is agreed.
 - If a task touches both the proxy and the admin surface, think about
