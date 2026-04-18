@@ -120,7 +120,7 @@ function ModelRow({
   onLoad: () => void
   onUnload: () => void
 }) {
-  const tone = stateTone(model.state, model.running)
+  const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
   return (
     <tr>
       <td>
@@ -136,7 +136,7 @@ function ModelRow({
         </span>
       </td>
       <td>
-        {model.kind === 'local' ? <span className={`state-label state-label-${tone}`}>{model.state}</span> : null}
+        <span className={`state-label state-label-${tone}`}>{model.kind === 'peer' ? 'peer' : model.state}</span>
       </td>
       <td className="num">
         {model.kind === 'local' ? (
