@@ -743,7 +743,7 @@ button:disabled {
   display: inline-block;
   width: 48px;
   height: 10px;
-  background: var(--bg-2);
+  background: var(--border-strong);
   border-radius: var(--radius-sm);
   overflow: hidden;
   vertical-align: middle;

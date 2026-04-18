@@ -77,6 +77,7 @@ function parseRocmSmi(output: string): Array<GpuInfo> {
   }
 
   const iName = colIdx('Card Series')
+  const iGfx = colIdx('GFX Version')
   const iGttTotal = colIdx('GTT Total Memory')
   const iGttUsed = colIdx('GTT Total Used Memory')
   const iVramTotal = colIdx('VRAM Total Memory')
@@ -89,7 +90,9 @@ function parseRocmSmi(output: string): Array<GpuInfo> {
 
   for (let i = 1; i < lines.length; i++) {
     const parts = lines[i].split(',').map((s) => s.trim())
-    const name = iName >= 0 ? parts[iName] : 'AMD GPU'
+    const baseName = iName >= 0 ? parts[iName] : 'AMD GPU'
+    const gfxVer = iGfx >= 0 ? parts[iGfx] : null
+    const name = gfxVer ? `${baseName} (${gfxVer})` : baseName
 
     const iUsed = hasGtt ? iGttUsed : iVramUsed
     const iTotal = hasGtt ? iGttTotal : iVramTotal
