@@ -15,9 +15,19 @@ export function Sparkline({
   const vw = 200
   const max = Math.max(...data, 1)
   const step = vw / (data.length - 1)
-  const points = data.map((v, i) => `${i * step},${height - (v / max) * height * 0.75 - 2}`)
-  const line = points.join(' ')
-  const area = `0,${height} ${line} ${vw},${height}`
+  const glowH = 24
+  const coords = data.map((v, i) => ({
+    x: i * step,
+    y: height - (v / max) * height * 0.75 - 2,
+  }))
+  const line = coords.map((p) => `${p.x},${p.y}`).join(' ')
+  const glowArea = [
+    ...coords.map((p) => `${p.x},${p.y}`),
+    ...coords
+      .slice()
+      .reverse()
+      .map((p) => `${p.x},${Math.max(0, p.y - glowH)}`),
+  ].join(' ')
 
   return (
     <svg
@@ -28,12 +38,14 @@ export function Sparkline({
       aria-hidden="true"
     >
       <defs>
-        <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        <linearGradient id={`${id}-glow`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0} />
+          <stop offset="40%" stopColor={color} stopOpacity={0} />
+          <stop offset="75%" stopColor={color} stopOpacity={0.06} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.18} />
         </linearGradient>
       </defs>
-      <polygon points={area} fill={`url(#${id}-fill)`} />
+      <polygon points={glowArea} fill={`url(#${id}-glow)`} />
       <polyline
         points={line}
         fill="none"
