@@ -1,0 +1,25 @@
+# https://caddyserver.com/docs/caddyfile
+
+(llama-dash-proxy) {
+    reverse_proxy 127.0.0.1:3000 {
+        flush_interval -1
+        transport http {
+            read_timeout 10m
+            write_timeout 10m
+        }
+    }
+    header -Server
+    log {
+        output stdout
+        format console
+    }
+}
+
+http://llama-dash.puff.lan {
+    import llama-dash-proxy
+}
+
+https://llama-dash.puff.lan {
+    tls /etc/caddy/certs/<cert>.pem /etc/caddy/certs/<key>.pem
+    import llama-dash-proxy
+}
