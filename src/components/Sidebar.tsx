@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Boxes, KeyRound, LayoutDashboard, ScrollText, Settings, Terminal } from 'lucide-react'
-import { useModels, useRunningModels } from '../lib/queries'
+import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 
 type NavItem = {
@@ -27,10 +27,14 @@ const FUTURE: ReadonlyArray<FutureItem> = [
 export function Sidebar() {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
+  const { data: gpu } = useGpu()
 
   const resident = running[0] ?? null
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
+
+  const gpuCard = gpu?.available ? gpu.gpus[0] : null
+  const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
 
   return (
     <aside className="sidebar">
@@ -74,12 +78,24 @@ export function Sidebar() {
         <div className="resident">
           <div className="resident-head">
             <span>vram ·</span>
-            <span className="resident-head-val">{resident ? `${runningCount} of ${totalCount}` : 'idle'}</span>
+            <span className="resident-head-val">
+              {hasVram
+                ? `${gpuCard.memoryUsedMiB?.toLocaleString()} / ${gpuCard.memoryTotalMiB?.toLocaleString()} MiB`
+                : resident
+                  ? `${runningCount} of ${totalCount}`
+                  : 'idle'}
+            </span>
           </div>
           <div className="resident-bar-track">
             <div
               className="resident-bar-fill"
-              style={{ width: totalCount > 0 ? `${(runningCount / totalCount) * 100}%` : '0%' }}
+              style={{
+                width: hasVram
+                  ? `${gpuCard.memoryPercent ?? 0}%`
+                  : totalCount > 0
+                    ? `${(runningCount / totalCount) * 100}%`
+                    : '0%',
+              }}
             />
           </div>
           {resident ? (
@@ -94,6 +110,7 @@ export function Sidebar() {
                 {resident.state}
                 {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
                 {runningCount > 1 ? ` · ${runningCount} of ${totalCount}` : ` · 1 of ${totalCount}`}
+                {hasVram ? ` · ${gpuCard.memoryPercent}%` : ''}
               </div>
             </>
           ) : (
@@ -102,7 +119,10 @@ export function Sidebar() {
                 <StatusDot tone="idle" />
                 <span style={{ marginLeft: 6 }}>idle</span>
               </div>
-              <div className="resident-meta">no models loaded</div>
+              <div className="resident-meta">
+                {gpuCard ? gpuCard.name : 'no models loaded'}
+                {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
+              </div>
             </>
           )}
         </div>
