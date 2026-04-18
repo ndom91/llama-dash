@@ -237,31 +237,41 @@ function UpstreamHealthPanel({ health, gpu }: { health: ApiHealth | undefined; g
 
 function GpuRow({ gpu, showIndex }: { gpu: ApiGpuSnapshot['gpus'][number]; showIndex: boolean }) {
   const label = showIndex ? `gpu ${gpu.index}` : 'gpu'
-  const vramLabel = `${gpu.memoryUsedMiB.toLocaleString()} / ${gpu.memoryTotalMiB.toLocaleString()} MiB`
+  const hasVram = gpu.memoryTotalMiB != null
+  const hasUtil = gpu.utilizationPercent != null || gpu.temperatureC != null
   return (
     <>
       <dt>{label}</dt>
       <dd className="mono">
         <span translate="no">{gpu.name}</span>
+        {gpu.cores != null ? <span className="dim"> · {gpu.cores} cores</span> : null}
       </dd>
-      <dt>vram</dt>
-      <dd className="mono">
-        <span className="gpu-vram-bar-wrap">
-          <span className="gpu-vram-bar" style={{ width: `${gpu.memoryPercent}%` }} />
-        </span>
-        <span style={{ marginLeft: 8 }}>
-          {vramLabel} ({gpu.memoryPercent}%)
-        </span>
-      </dd>
-      <dt>util / temp</dt>
-      <dd className="mono">
-        {gpu.utilizationPercent}%{' '}
-        <span className="dim">
-          · {gpu.temperatureC}°C
-          {gpu.powerW != null ? ` · ${Math.round(gpu.powerW)}W` : ''}
-          {gpu.powerMaxW != null ? ` / ${Math.round(gpu.powerMaxW)}W` : ''}
-        </span>
-      </dd>
+      {hasVram ? (
+        <>
+          <dt>vram</dt>
+          <dd className="mono">
+            <span className="gpu-vram-bar-wrap">
+              <span className="gpu-vram-bar" style={{ width: `${gpu.memoryPercent ?? 0}%` }} />
+            </span>
+            <span style={{ marginLeft: 8 }}>
+              {gpu.memoryUsedMiB?.toLocaleString()} / {gpu.memoryTotalMiB?.toLocaleString()} MiB ({gpu.memoryPercent}%)
+            </span>
+          </dd>
+        </>
+      ) : null}
+      {hasUtil ? (
+        <>
+          <dt>util / temp</dt>
+          <dd className="mono">
+            {gpu.utilizationPercent != null ? `${gpu.utilizationPercent}%` : '—'}
+            <span className="dim">
+              {gpu.temperatureC != null ? ` · ${gpu.temperatureC}°C` : ''}
+              {gpu.powerW != null ? ` · ${Math.round(gpu.powerW)}W` : ''}
+              {gpu.powerMaxW != null ? ` / ${Math.round(gpu.powerMaxW)}W` : ''}
+            </span>
+          </dd>
+        </>
+      ) : null}
     </>
   )
 }

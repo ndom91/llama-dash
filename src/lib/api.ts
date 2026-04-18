@@ -66,18 +66,19 @@ export type ApiHistogramBucket = {
 export type ApiGpuInfo = {
   index: number
   name: string
-  memoryUsedMiB: number
-  memoryTotalMiB: number
-  memoryPercent: number
-  utilizationPercent: number
-  temperatureC: number
+  memoryUsedMiB: number | null
+  memoryTotalMiB: number | null
+  memoryPercent: number | null
+  utilizationPercent: number | null
+  temperatureC: number | null
   powerW: number | null
   powerMaxW: number | null
+  cores: number | null
 }
 
 export type ApiGpuSnapshot = {
   available: boolean
-  driver: 'nvidia' | 'amd' | null
+  driver: 'nvidia' | 'amd' | 'apple' | null
   gpus: Array<ApiGpuInfo>
   polledAt: number
 }

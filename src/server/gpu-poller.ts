@@ -1,20 +1,22 @@
 import { execFile } from 'node:child_process'
+import { platform } from 'node:os'
 
 export type GpuInfo = {
   index: number
   name: string
-  memoryUsedMiB: number
-  memoryTotalMiB: number
-  memoryPercent: number
-  utilizationPercent: number
-  temperatureC: number
+  memoryUsedMiB: number | null
+  memoryTotalMiB: number | null
+  memoryPercent: number | null
+  utilizationPercent: number | null
+  temperatureC: number | null
   powerW: number | null
   powerMaxW: number | null
+  cores: number | null
 }
 
 export type GpuSnapshot = {
   available: boolean
-  driver: 'nvidia' | 'amd' | null
+  driver: 'nvidia' | 'amd' | 'apple' | null
   gpus: Array<GpuInfo>
   polledAt: number
 }
@@ -23,7 +25,7 @@ const POLL_INTERVAL_MS = 10_000
 const EXEC_TIMEOUT_MS = 5_000
 
 let cached: GpuSnapshot = { available: false, driver: null, gpus: [], polledAt: 0 }
-let detectedDriver: 'nvidia' | 'amd' | null = null
+let detectedDriver: 'nvidia' | 'amd' | 'apple' | null = null
 let started = false
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
@@ -54,6 +56,7 @@ function parseNvidia(csv: string): Array<GpuInfo> {
       temperatureC: Number(temp),
       powerW: Number.isFinite(Number(power)) ? Number(power) : null,
       powerMaxW: Number.isFinite(Number(powerMax)) ? Number(powerMax) : null,
+      cores: null,
     })
   }
   return gpus
@@ -77,6 +80,35 @@ function parseRocmSmi(output: string): Array<GpuInfo> {
       temperatureC: Number(temp) || 0,
       powerW: null,
       powerMaxW: null,
+      cores: null,
+    })
+  }
+  return gpus
+}
+
+type AppleGpuEntry = {
+  sppci_model?: string
+  sppci_cores?: string
+}
+
+function parseApple(jsonStr: string): Array<GpuInfo> {
+  const data = JSON.parse(jsonStr) as { SPDisplaysDataType?: Array<AppleGpuEntry> }
+  const entries = data.SPDisplaysDataType ?? []
+  const gpus: Array<GpuInfo> = []
+  for (const entry of entries) {
+    const name = entry.sppci_model ?? 'Apple GPU'
+    const cores = entry.sppci_cores ? Number(entry.sppci_cores) : null
+    gpus.push({
+      index: gpus.length,
+      name,
+      memoryUsedMiB: null,
+      memoryTotalMiB: null,
+      memoryPercent: null,
+      utilizationPercent: null,
+      temperatureC: null,
+      powerW: null,
+      powerMaxW: null,
+      cores,
     })
   }
   return gpus
@@ -103,7 +135,12 @@ async function pollAmd(): Promise<Array<GpuInfo>> {
   return parseRocmSmi(output)
 }
 
-async function detectDriver(): Promise<'nvidia' | 'amd' | null> {
+async function pollApple(): Promise<Array<GpuInfo>> {
+  const jsonStr = await run('system_profiler', ['SPDisplaysDataType', '-json'])
+  return parseApple(jsonStr)
+}
+
+async function detectDriver(): Promise<'nvidia' | 'amd' | 'apple' | null> {
   try {
     await run('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'])
     return 'nvidia'
@@ -116,13 +153,32 @@ async function detectDriver(): Promise<'nvidia' | 'amd' | null> {
   } catch {
     // not amd
   }
+  if (platform() === 'darwin') {
+    try {
+      await run('system_profiler', ['SPDisplaysDataType', '-json'])
+      return 'apple'
+    } catch {
+      // no system_profiler
+    }
+  }
   return null
 }
 
 async function poll() {
   if (!detectedDriver) return
   try {
-    const gpus = detectedDriver === 'nvidia' ? await pollNvidia() : await pollAmd()
+    let gpus: Array<GpuInfo>
+    switch (detectedDriver) {
+      case 'nvidia':
+        gpus = await pollNvidia()
+        break
+      case 'amd':
+        gpus = await pollAmd()
+        break
+      case 'apple':
+        gpus = await pollApple()
+        break
+    }
     cached = { available: true, driver: detectedDriver, gpus, polledAt: Date.now() }
   } catch {
     cached = { available: false, driver: detectedDriver, gpus: [], polledAt: Date.now() }
@@ -140,7 +196,9 @@ export async function startGpuPoller() {
   }
 
   await poll()
-  pollTimer = setInterval(poll, POLL_INTERVAL_MS)
+  if (detectedDriver !== 'apple') {
+    pollTimer = setInterval(poll, POLL_INTERVAL_MS)
+  }
 }
 
 export function stopGpuPoller() {
