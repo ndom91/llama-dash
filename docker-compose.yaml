@@ -35,9 +35,10 @@ services:
       LLAMASWAP_URL: http://llama-swap:8080
       LLAMASWAP_CONFIG_FILE: /config/config.yaml
       DATABASE_PATH: /data/dash.db
+      # LLAMASWAP_INSECURE: "false"
     volumes:
       - ./config:/config
-      - dash-data:/data
+      - llama-dash-data:/data
     networks:
       - internal
     depends_on:
@@ -45,7 +46,7 @@ services:
         condition: service_healthy
 
 volumes:
-  dash-data:
+  llama-dash-data:
 
 networks:
   internal:

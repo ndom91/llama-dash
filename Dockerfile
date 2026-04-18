@@ -11,7 +11,5 @@ FROM base
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN pnpm db:migrate
-
 EXPOSE 5173
-CMD ["pnpm", "dev", "--host", "0.0.0.0"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
