@@ -66,7 +66,7 @@ function Playground() {
       <TopBar />
       <div className="content">
         <div className="page pg-page">
-          <PageHeader kicker="§05 · playground" title="Playground" subtitle="chat with loaded models" />
+          <PageHeader kicker="§05 · playground" title="Playground" subtitle="test prompts against loaded models" />
 
           <PlaygroundSettings
             model={chat.model}

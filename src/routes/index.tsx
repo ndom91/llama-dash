@@ -48,7 +48,7 @@ function Dashboard() {
           <PageHeader
             kicker="§01 · overview"
             title="Operator dashboard"
-            subtitle="what's loaded, what just ran"
+            subtitle="system overview and recent activity"
             action={
               <>
                 <Tooltip label="Refresh">

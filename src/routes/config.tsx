@@ -101,7 +101,7 @@ function ConfigPage() {
           <PageHeader
             kicker="§06 · settings"
             title="Configuration"
-            subtitle="llama-swap config.yaml"
+            subtitle="edit the llama-swap configuration"
             action={
               loadState.status === 'ready' ? (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

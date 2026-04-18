@@ -101,7 +101,7 @@ function Logs() {
           <PageHeader
             kicker="§04 · logs"
             title="Logs"
-            subtitle="live log stream from llama-swap"
+            subtitle="live output from llama-swap"
             action={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span className="topbar-chip" title={connected ? 'Connected' : 'Disconnected'}>

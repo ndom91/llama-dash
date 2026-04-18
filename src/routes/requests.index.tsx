@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
 import { StatusCell } from '../components/StatusCell'
@@ -118,17 +117,7 @@ function Requests() {
       />
       <div className="content">
         <div className="page">
-          <PageHeader
-            kicker="§03 · requests"
-            title="Request log"
-            subtitle={
-              <>
-                point clients at{' '}
-                <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> · newest
-                first
-              </>
-            }
-          />
+          <PageHeader kicker="§03 · requests" title="Request log" subtitle="proxied API calls, newest first" />
 
           {error ? <div className="err-banner">{error.message}</div> : null}
 

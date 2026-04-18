@@ -44,11 +44,7 @@ function Models() {
           <PageHeader
             kicker="§02 · models"
             title="Models"
-            subtitle={
-              <>
-                configured in <code translate="no">config.yaml</code>, joined with <code translate="no">/running</code>
-              </>
-            }
+            subtitle="available models and their current state"
             action={
               <button
                 type="button"
