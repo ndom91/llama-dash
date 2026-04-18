@@ -10,7 +10,6 @@ const EXEC_TIMEOUT_MS = 5_000
 let cached: GpuSnapshot = { available: false, driver: null, gpus: [], polledAt: 0 }
 let detectedDriver: 'nvidia' | 'amd' | 'apple' | null = null
 let started = false
-let pollTimer: ReturnType<typeof setInterval> | null = null
 
 function run(bin: string, args: Array<string>): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -217,16 +216,8 @@ export async function startGpuPoller() {
 
   await poll()
   if (detectedDriver !== 'apple') {
-    pollTimer = setInterval(poll, POLL_INTERVAL_MS)
+    setInterval(poll, POLL_INTERVAL_MS)
   }
-}
-
-export function stopGpuPoller() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-  started = false
 }
 
 export function getGpuSnapshot(): GpuSnapshot {

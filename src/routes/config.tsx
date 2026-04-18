@@ -62,7 +62,7 @@ function ConfigPage() {
     setSaving(false)
 
     if (result.saved) {
-      setLoadState({ status: 'ready', original: content, modifiedAt: Date.now() })
+      setLoadState({ status: 'ready', original: content, modifiedAt: result.modifiedAt })
       setValidation(null)
     }
   }, [content, loadState, saving])

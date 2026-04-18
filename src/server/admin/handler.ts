@@ -206,7 +206,7 @@ const routes: Array<Route> = [
       if (writeResult.conflict) {
         return json(res, 409, { saved: false, conflict: true, message: 'File was modified externally' })
       }
-      json(res, 200, { saved: true })
+      json(res, 200, { saved: true, modifiedAt: writeResult.modifiedAt })
     },
   },
   {

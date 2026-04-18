@@ -15,7 +15,7 @@ export const ApiConfigValidationSchema = v.union([
 export type ApiConfigValidation = v.InferOutput<typeof ApiConfigValidationSchema>
 
 export const ApiConfigSaveResultSchema = v.union([
-  v.object({ saved: v.literal(true) }),
+  v.object({ saved: v.literal(true), modifiedAt: v.number() }),
   v.object({
     saved: v.literal(false),
     errors: v.optional(v.array(v.string())),

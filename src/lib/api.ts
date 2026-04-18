@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
-import { ApiConfigSaveResultSchema } from './schemas/config'
+import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
 import { ModelsResponseSchema, ModelTimelineResponseSchema } from './schemas/model'
@@ -45,11 +45,6 @@ const validated =
   }
 
 const OkSchema = v.object({ ok: v.literal(true) })
-const ConfigReadSchema = v.object({ content: v.string(), modifiedAt: v.number() })
-const ConfigValidationSchema = v.union([
-  v.object({ valid: v.literal(true) }),
-  v.object({ valid: v.literal(false), errors: v.array(v.string()) }),
-])
 
 export const api = {
   listModels: () => fetch('/api/models').then(validated(ModelsResponseSchema)),
@@ -66,7 +61,7 @@ export const api = {
   unloadModel: (id: string) =>
     fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(validated(OkSchema)),
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(validated(OkSchema)),
-  getConfig: () => fetch('/api/config').then(validated(ConfigReadSchema)),
+  getConfig: () => fetch('/api/config').then(validated(ApiConfigReadSchema)),
   saveConfig: (content: string, modifiedAt: number) =>
     fetch('/api/config', {
       method: 'PUT',
@@ -78,7 +73,7 @@ export const api = {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ content }),
-    }).then(validated(ConfigValidationSchema)),
+    }).then(validated(ApiConfigValidationSchema)),
   health: () => fetch('/api/health').then(validated(ApiHealthSchema)),
   requestStats: () => fetch('/api/requests/stats').then(validated(ApiRequestStatsSchema)),
   modelTimeline: (windowMs?: number) => {
