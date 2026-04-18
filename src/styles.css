@@ -711,7 +711,7 @@ button:disabled {
 
 .dl-grid {
   display: grid;
-  grid-template-columns: 100px 1fr;
+  grid-template-columns: auto 1fr;
   margin: 0;
   font-size: 12px;
 }
@@ -726,6 +726,7 @@ button:disabled {
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  white-space: nowrap;
 }
 .dl-grid dd {
   margin: 0;

@@ -63,21 +63,55 @@ function parseNvidia(csv: string): Array<GpuInfo> {
 }
 
 function parseRocmSmi(output: string): Array<GpuInfo> {
+  const lines = output.trim().split('\n')
+  if (lines.length < 2) return []
+  const headers = lines[0].split(',').map((h) => h.trim())
   const gpus: Array<GpuInfo> = []
-  for (const raw of output.trim().split('\n')) {
-    const parts = raw.split(',').map((s) => s.trim())
-    if (parts.length < 5) continue
-    const [index, name, memUsed, memTotal, util, temp] = parts
-    const memoryUsedMiB = Number(memUsed)
-    const memoryTotalMiB = Number(memTotal)
+
+  const colIdx = (...needles: Array<string>): number => {
+    for (const needle of needles) {
+      const idx = headers.findIndex((h) => h.toLowerCase().includes(needle.toLowerCase()))
+      if (idx >= 0) return idx
+    }
+    return -1
+  }
+
+  const iName = colIdx('Card Series')
+  const iGttTotal = colIdx('GTT Total Memory')
+  const iGttUsed = colIdx('GTT Total Used Memory')
+  const iVramTotal = colIdx('VRAM Total Memory')
+  const iVramUsed = colIdx('VRAM Total Used Memory')
+  const iGpuUse = colIdx('GPU use (%)')
+  const iTemp = colIdx('Temperature (Sensor edge)', 'Temperature (Sensor junction)')
+  const isBytes = headers.some((h) => h.includes('(B)') && (h.includes('VRAM') || h.includes('Memory')))
+
+  const hasGtt = iGttTotal >= 0 && iGttUsed >= 0
+
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(',').map((s) => s.trim())
+    const name = iName >= 0 ? parts[iName] : 'AMD GPU'
+
+    const iUsed = hasGtt ? iGttUsed : iVramUsed
+    const iTotal = hasGtt ? iGttTotal : iVramTotal
+    let memUsed = iUsed >= 0 ? Number(parts[iUsed]) : null
+    let memTotal = iTotal >= 0 ? Number(parts[iTotal]) : null
+    if (isBytes) {
+      if (memUsed != null) memUsed = Math.round(memUsed / (1024 * 1024))
+      if (memTotal != null) memTotal = Math.round(memTotal / (1024 * 1024))
+    }
+
+    const util = iGpuUse >= 0 ? Number(parts[iGpuUse]) : null
+    const temp = iTemp >= 0 ? Number(parts[iTemp]) : null
+
     gpus.push({
-      index: Number(index),
+      index: gpus.length,
       name,
-      memoryUsedMiB,
-      memoryTotalMiB,
-      memoryPercent: memoryTotalMiB > 0 ? Math.round((memoryUsedMiB / memoryTotalMiB) * 100) : 0,
-      utilizationPercent: Number(util) || 0,
-      temperatureC: Number(temp) || 0,
+      memoryUsedMiB: memUsed != null && Number.isFinite(memUsed) ? memUsed : null,
+      memoryTotalMiB: memTotal != null && Number.isFinite(memTotal) ? memTotal : null,
+      memoryPercent:
+        memUsed != null && memTotal != null && memTotal > 0 ? Math.round((memUsed / memTotal) * 100) : null,
+      utilizationPercent: util != null && Number.isFinite(util) ? Math.round(util) : null,
+      temperatureC: temp != null && Number.isFinite(temp) ? Math.round(temp) : null,
       powerW: null,
       powerMaxW: null,
       cores: null,
@@ -124,10 +158,10 @@ async function pollNvidia(): Promise<Array<GpuInfo>> {
 
 async function pollAmd(): Promise<Array<GpuInfo>> {
   const output = await run('rocm-smi', [
-    '--showid',
     '--showproductname',
     '--showmeminfo',
     'vram',
+    'gtt',
     '--showuse',
     '--showtemp',
     '--csv',
@@ -148,7 +182,7 @@ async function detectDriver(): Promise<'nvidia' | 'amd' | 'apple' | null> {
     // not nvidia
   }
   try {
-    await run('rocm-smi', ['--showid', '--csv'])
+    await run('rocm-smi', ['--showproductname', '--csv'])
     return 'amd'
   } catch {
     // not amd
