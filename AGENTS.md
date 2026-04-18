@@ -113,11 +113,12 @@ Don't accidentally rebuild these — they have intentional shapes in `plan.md`:
 - Auth (admin password or API keys). Proxy is unauthenticated.
 - Rate limiting / quotas.
 - Content filters (regex block/redact, prompt injection).
-- Config editor (`config.yaml` round-tripping).
+- Config editor (`config.yaml` round-tripping). Env var
+  `LLAMASWAP_CONFIG_FILE` is wired; editor UI is next.
 - Live log tail (SSE of llama-swap's `/logs/stream/*`).
 - Cost estimates, playground, export, replay.
-- Docker Compose packaging. The proxy is wired via a Vite dev-server
-  middleware; there's no production entry point yet.
+- Production build (Nitro entry point). Dockerfile currently runs
+  `pnpm dev`; Nitro migration is future work.
 
 ## Tooling
 
@@ -191,6 +192,9 @@ sort lexicographically by creation time).
 - **Config round-tripping will matter later.** When the config editor
   lands, user comments and key order in `config.yaml` must survive a write.
   Don't pick a YAML library that doesn't round-trip.
+- **Config reload is file-based.** llama-swap uses `-watch-config` (fsnotify)
+  to detect config changes and reload automatically. There is no
+  `/api/reload` endpoint — just write the file and llama-swap picks it up.
 
 ## Before you call work "done"
 
