@@ -332,10 +332,9 @@ function byteSize(str: string): string {
 
 function maskSensitive(key: string, value: string): string {
   const k = key.toLowerCase()
-  if (k === 'authorization' && value.length > 14) {
-    const prefix = value.slice(0, 10)
-    const suffix = value.slice(-4)
-    return `${prefix}••••••••${suffix}`
+  if (k === 'authorization' && value.startsWith('Bearer ') && value.length > 14) {
+    const token = value.slice(7)
+    return `Bearer ${token.slice(0, 8)}…`
   }
   return value
 }
