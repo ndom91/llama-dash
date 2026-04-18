@@ -42,7 +42,8 @@ auth, ACL, rate-limiting, and logging are wired up; filters are future work.
 src/
   routes/                 — TanStack Router file-routes (UI + __root.tsx)
     index.tsx               · / dashboard home
-    models.tsx              · /models list + load/unload actions
+    models.index.tsx        · /models list + load/unload actions
+    models.$id.tsx          · /models/:id detail (stats, history, config snippet)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
     logs.tsx                · /logs raw log viewer
@@ -66,7 +67,7 @@ src/
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
     proxy/                — /v1/* pass-through: handler.ts, usage.ts, log.ts
-    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts
+    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
@@ -89,6 +90,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    the JSON `usage` field for non-streamed responses).
 4. Admin API:
    - `/api/models` — list models (merged with running state + peer info)
+   - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/requests` — cursor-paginated list
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
@@ -104,8 +106,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
 6. Model watcher: polls llama-swap `/running` every 15s, diffs against
    known state, inserts `load`/`unload` events into SQLite.
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
-   recent requests), Models (list + load/unload), Requests (filtered/sorted
-   log + histogram + detail), Logs, Playground, Config editor, API Keys.
+   recent requests), Models (list + load/unload + per-model detail),
+   Requests (filtered/sorted log + histogram + detail), Logs, Playground,
+   Config editor, API Keys.
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
@@ -258,6 +261,15 @@ The user runs the dev server themselves. Starting it leaves a background
 process bound to :5173 and conflicts with their session. If a change
 genuinely needs a running server to verify, start it in the middle of
 your work, verify, and kill it — don't leave one running at the end.
+
+## Keep docs in sync
+
+After shipping a new feature or making major changes, update these three
+files before calling the work done:
+
+1. **`AGENTS.md`** — repo layout, "What's shipped" section, admin API list.
+2. **`README.md`** — feature list, routes list, any user-facing changes.
+3. **`next-plan.md`** — mark shipped items, re-prioritize if needed.
 
 ## Scope discipline
 

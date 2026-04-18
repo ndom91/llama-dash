@@ -6,7 +6,7 @@
 Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). It requires a running llama-swap instance — llama-dash does not run inference itself. Clients point at llama-dash instead of llama-swap directly. We provide a Docker Compose which includes llama-swap and llama-dash and will get you up and running with both quickly.
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
-- **Model management** — load/unload models, view running state and peers.
+- **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
 - **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists, hashed at rest.
@@ -88,7 +88,7 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
 - `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
-- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`.
+- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`.
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 
 ## Useful scripts
