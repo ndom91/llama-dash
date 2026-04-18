@@ -20,13 +20,13 @@ See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions 
   </tr>
   <tr>
     <td>
-      <img alt="Dark - Request Details" src="./.github/assets/SCR-20260418-mqgi.png" />
+      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nfjs.png" />
     </td>
     <td>
-      <img alt="Light - Playground" src="./.github/assets/SCR-20260418-mqpa.png" />
+      <img alt="Light - Playground" src="./.github/assets/SCR-20260418-nfrw.png" />
     </td>
     <td>
-      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-mqlt.png" />
+      <img alt="Dark - Request Details" src="./.github/assets/SCR-20260418-nfny.png" />
     </td>
   </tr>
 </table>
