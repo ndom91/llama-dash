@@ -8,7 +8,15 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { api, type ApiHealth, type ApiModel, type ApiRequest, type ApiRequestDetail } from './api'
+import {
+  api,
+  type ApiHealth,
+  type ApiHistogramBucket,
+  type ApiModel,
+  type ApiRequest,
+  type ApiRequestDetail,
+  type ApiRequestStats,
+} from './api'
 
 const POLL_MS = 5_000
 
@@ -18,6 +26,8 @@ export const qk = {
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
   requestsRecent: ['requests', 'recent'] as const,
+  requestStats: ['requests', 'stats'] as const,
+  requestHistogram: ['requests', 'histogram'] as const,
   request: (id: string) => ['requests', id] as const,
 }
 
@@ -46,6 +56,22 @@ export function useRunningModels() {
 
 export function useRunningCount() {
   return useModels((models) => models.filter((m) => m.running).length)
+}
+
+export function useRequestStats(): UseQueryResult<ApiRequestStats> {
+  return useQuery({
+    queryKey: qk.requestStats,
+    queryFn: () => api.requestStats(),
+    refetchInterval: POLL_MS,
+  })
+}
+
+export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>> {
+  return useQuery({
+    queryKey: qk.requestHistogram,
+    queryFn: () => api.requestHistogram().then((r) => r.buckets),
+    refetchInterval: POLL_MS,
+  })
 }
 
 export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>> {

@@ -36,6 +36,25 @@ export type ApiHealth = {
     | { reachable: false; error: string }
 }
 
+export type ApiRequestStats = {
+  reqPerSec: number
+  tokPerSec: number
+  p50Latency: number
+  errorRate: number
+  sparklines: {
+    reqs: Array<number>
+    toks: Array<number>
+    latency: Array<number>
+    errors: Array<number>
+  }
+}
+
+export type ApiHistogramBucket = {
+  timestamp: number
+  total: number
+  errors: number
+}
+
 const json = async <T>(res: Response): Promise<T> => {
   if (!res.ok) {
     const body = await res.text().catch(() => '')
@@ -63,4 +82,12 @@ export const api = {
     fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(json<{ ok: true }>),
   unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(json<{ ok: true }>),
   health: () => fetch('/api/health').then(json<ApiHealth>),
+  requestStats: () => fetch('/api/requests/stats').then(json<ApiRequestStats>),
+  requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
+    const q = new URLSearchParams()
+    if (params.window != null) q.set('window', String(params.window))
+    if (params.bucket != null) q.set('bucket', String(params.bucket))
+    const suffix = q.toString() ? `?${q.toString()}` : ''
+    return fetch(`/api/requests/histogram${suffix}`).then(json<{ buckets: Array<ApiHistogramBucket> }>)
+  },
 }

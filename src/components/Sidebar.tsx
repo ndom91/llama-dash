@@ -1,27 +1,36 @@
 import { Link } from '@tanstack/react-router'
-import { Activity, Boxes, LayoutDashboard, ScrollText, Terminal } from 'lucide-react'
-import { useRunningModels } from '../lib/queries'
+import { Boxes, KeyRound, LayoutDashboard, ScrollText, Settings, Terminal } from 'lucide-react'
+import { useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 
 type NavItem = {
   to: '/' | '/models' | '/requests' | '/logs'
   label: string
+  shortcut: string
   Icon: typeof LayoutDashboard
 }
 
-/** Nav config — hoisted so we don't rebuild every render. */
 const NAV: ReadonlyArray<NavItem> = [
-  { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
-  { to: '/models', label: 'Models', Icon: Boxes },
-  { to: '/requests', label: 'Requests', Icon: ScrollText },
-  { to: '/logs', label: 'Logs', Icon: Terminal },
+  { to: '/', label: 'Dashboard', shortcut: 'D01', Icon: LayoutDashboard },
+  { to: '/models', label: 'Models', shortcut: 'M02', Icon: Boxes },
+  { to: '/requests', label: 'Requests', shortcut: 'R03', Icon: ScrollText },
+  { to: '/logs', label: 'Logs', shortcut: 'L04', Icon: Terminal },
+]
+
+type FutureItem = { label: string; shortcut: string; Icon: typeof LayoutDashboard }
+
+const FUTURE: ReadonlyArray<FutureItem> = [
+  { label: 'API Keys', shortcut: 'K05', Icon: KeyRound },
+  { label: 'Config', shortcut: 'C06', Icon: Settings },
 ]
 
 export function Sidebar() {
   const { data: running = [] } = useRunningModels()
+  const { data: allModels } = useModels()
 
   const resident = running[0] ?? null
   const runningCount = running.length
+  const totalCount = allModels?.length ?? 0
 
   return (
     <aside className="sidebar">
@@ -30,12 +39,13 @@ export function Sidebar() {
         <span className="sidebar-brand-name" translate="no">
           llama-dash
         </span>
+        <span className="sidebar-brand-version">0.1.0</span>
       </div>
 
       <nav className="sidebar-nav" aria-label="Primary">
         <div className="sidebar-section">navigate</div>
-        {NAV.map(({ to, label, Icon }) => {
-          const badge = to === '/models' && runningCount > 0 ? runningCount : null
+        {NAV.map(({ to, label, shortcut, Icon }) => {
+          const badge = to === '/models' && runningCount > 0 ? `-${runningCount}` : null
           return (
             <Link
               key={to}
@@ -44,19 +54,33 @@ export function Sidebar() {
               activeOptions={{ exact: to === '/' }}
               activeProps={{ className: 'nav-link is-active' }}
             >
+              <span className="nav-link-shortcut">{shortcut}</span>
               <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
               <span>{label}</span>
               {badge != null ? <span className="nav-link-badge">{badge}</span> : null}
             </Link>
           )
         })}
+        {FUTURE.map(({ label, shortcut, Icon }) => (
+          <span key={label} className="nav-link nav-link-future">
+            <span className="nav-link-shortcut">{shortcut}</span>
+            <Icon className="nav-link-icon" strokeWidth={1.75} aria-hidden="true" />
+            <span>{label}</span>
+          </span>
+        ))}
       </nav>
 
       <div className="sidebar-foot">
         <div className="resident">
           <div className="resident-head">
-            <Activity className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-            <span>vram resident</span>
+            <span>vram ·</span>
+            <span className="resident-head-val">{resident ? `${runningCount} of ${totalCount}` : 'idle'}</span>
+          </div>
+          <div className="resident-bar-track">
+            <div
+              className="resident-bar-fill"
+              style={{ width: totalCount > 0 ? `${(runningCount / totalCount) * 100}%` : '0%' }}
+            />
           </div>
           {resident ? (
             <>
@@ -67,8 +91,9 @@ export function Sidebar() {
                 </span>
               </div>
               <div className="resident-meta">
-                state {resident.state}
-                {runningCount > 1 ? ` · +${runningCount - 1} more` : ''}
+                {resident.state}
+                {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
+                {runningCount > 1 ? ` · ${runningCount} of ${totalCount}` : ` · 1 of ${totalCount}`}
               </div>
             </>
           ) : (

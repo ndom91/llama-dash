@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowDown, ArrowUp, RefreshCw, Search, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
@@ -7,8 +7,8 @@ import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import type { ApiRequest } from '../lib/api'
-import { useRequestsList } from '../lib/queries'
+import type { ApiHistogramBucket, ApiRequest } from '../lib/api'
+import { useRequestHistogram, useRequestsList } from '../lib/queries'
 
 export const Route = createFileRoute('/requests/')({ component: Requests })
 
@@ -20,6 +20,7 @@ function Requests() {
   const navigate = useNavigate()
   const { data, error, isLoading, isRefetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useRequestsList()
+  const { data: histogram } = useRequestHistogram()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -76,6 +77,8 @@ function Requests() {
     return m
   }, [rows])
 
+  const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else {
@@ -91,20 +94,18 @@ function Requests() {
       <TopBar
         actions={
           <>
-            <span className="topbar-chip" title="Rows currently in view" aria-live="polite">
-              <StatusDot tone="ok" live />
-              <span>log</span>
-              <span className="topbar-chip-num">
-                {filtered.length !== allRows.length ? `${filtered.length} / ${allRows.length}` : allRows.length}
-              </span>
-            </span>
+            <Tooltip label="Export">
+              <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export">
+                <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </Tooltip>
             <Tooltip label="Refresh">
               <button
                 type="button"
                 className="btn btn-ghost btn-icon"
                 onClick={() => refetch()}
                 disabled={isRefetching}
-                aria-label="Refresh request log"
+                aria-label="Refresh"
               >
                 <RefreshCw
                   className={`icon-14${isRefetching ? ' animate-spin' : ''}`}
@@ -113,16 +114,22 @@ function Requests() {
                 />
               </button>
             </Tooltip>
+            <span className="live-badge">
+              <StatusDot tone="ok" live />
+              live
+            </span>
           </>
         }
       />
       <div className="content">
         <div className="page">
-          <h1 className="page-title">Requests</h1>
+          <div className="kicker" style={{ marginBottom: 4 }}>
+            §03 · log
+          </div>
+          <h1 className="page-title">Request log</h1>
           <p className="page-sub">
-            Point clients at{' '}
-            <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> — every request
-            is logged here, newest first.
+            point clients at{' '}
+            <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> · newest first
           </p>
 
           {error ? <div className="err-banner">{error.message}</div> : null}
@@ -171,13 +178,44 @@ function Requests() {
                     setModelFilter('all')
                   }}
                 >
-                  Clear filters
+                  Clear
                 </button>
               ) : null}
             </div>
           </div>
 
+          {histogram && histogram.length > 0 ? (
+            <section className="panel" style={{ marginBottom: 16 }}>
+              <div className="histogram-header">
+                <div>
+                  <span className="panel-title">req/s</span>
+                  <span className="panel-sub" style={{ marginLeft: 8 }}>
+                    last 60m · bucket 1m
+                  </span>
+                </div>
+              </div>
+              <Histogram buckets={histogram} />
+              <div className="histogram-labels">
+                <span>-60m</span>
+                <span>-40m</span>
+                <span>-20m</span>
+                <span>now</span>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel">
+            <div className="panel-head">
+              <span className="panel-title">Log</span>
+              <span className="panel-sub">
+                {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+              </span>
+              <span
+                style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-faint)' }}
+              >
+                ↑↓ navigate · ⏎ open · / search
+              </span>
+            </div>
             {isLoading ? (
               <div className="empty-state">loading…</div>
             ) : rows.length === 0 ? (
@@ -186,7 +224,7 @@ function Requests() {
                   'no requests match filters'
                 ) : (
                   <>
-                    no requests yet. call <code translate="no">/v1/*</code> to populate this view.
+                    no requests yet. call <code translate="no">/v1/*</code> to populate.
                   </>
                 )}
               </div>
@@ -200,13 +238,10 @@ function Requests() {
                       dir={sortDir}
                       onToggle={toggleSort}
                       className="mono"
-                      style={{ width: 150 }}
+                      style={{ width: 80 }}
                     >
-                      when
+                      t
                     </SortTh>
-                    <th className="mono" style={{ width: 64 }}>
-                      method
-                    </th>
                     <th className="mono">endpoint</th>
                     <th style={{ minWidth: 160 }}>model</th>
                     <SortTh
@@ -214,7 +249,7 @@ function Requests() {
                       current={sortKey}
                       dir={sortDir}
                       onToggle={toggleSort}
-                      style={{ width: 110 }}
+                      style={{ width: 80 }}
                     >
                       status
                     </SortTh>
@@ -226,10 +261,10 @@ function Requests() {
                       className="num"
                       style={{ width: 72 }}
                     >
-                      in
+                      tok-in
                     </SortTh>
                     <th className="num" style={{ width: 72 }}>
-                      out
+                      tok-out
                     </th>
                     <SortTh
                       field="durationMs"
@@ -251,9 +286,6 @@ function Requests() {
                       onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
                     >
                       <td className="mono dim">{formatWhen(r.startedAt)}</td>
-                      <td className="mono" style={{ color: 'var(--fg-muted)' }}>
-                        {r.method}
-                      </td>
                       <td className="mono" translate="no">
                         {r.endpoint}
                       </td>
@@ -298,6 +330,25 @@ function Requests() {
           ) : null}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
+  const maxTotal = useMemo(() => Math.max(...buckets.map((b) => b.total), 1), [buckets])
+
+  return (
+    <div className="histogram">
+      {buckets.map((b) => {
+        const okH = ((b.total - b.errors) / maxTotal) * 100
+        const errH = (b.errors / maxTotal) * 100
+        return (
+          <div key={b.timestamp} className="histogram-bar">
+            {b.errors > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
+            {b.total - b.errors > 0 ? <div className="histogram-bar-ok" style={{ height: `${okH}%` }} /> : null}
+          </div>
+        )
+      })}
     </div>
   )
 }

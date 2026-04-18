@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { config } from '../config.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { getAdjacentIds, getRequestById, listRecentRequests } from './requests.ts'
+import { getAdjacentIds, getRequestById, getRequestHistogram, getRequestStats, listRecentRequests } from './requests.ts'
 
 type Handler = (req: IncomingMessage, res: ServerResponse, match: RegExpMatchArray) => Promise<void> | void
 
@@ -83,6 +83,23 @@ const routes: Array<Route> = [
         requests: rows,
         nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
       })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/stats$/,
+    handler: async (_req, res) => {
+      json(res, 200, getRequestStats())
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/histogram$/,
+    handler: async (req, res) => {
+      const url = new URL(req.url ?? '/', 'http://localhost')
+      const windowMs = clamp(parseInt(url.searchParams.get('window') ?? '3600000', 10), 60_000, 86_400_000)
+      const bucketMs = clamp(parseInt(url.searchParams.get('bucket') ?? '60000', 10), 10_000, 600_000)
+      json(res, 200, { buckets: getRequestHistogram(windowMs, bucketMs) })
     },
   },
   {

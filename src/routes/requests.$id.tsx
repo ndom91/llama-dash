@@ -1,8 +1,7 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Clipboard } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Clipboard } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { StatusCell } from '../components/StatusCell'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiRequestDetail } from '../lib/api'
@@ -20,14 +19,7 @@ function RequestDetail() {
 
   return (
     <div className="main-col">
-      <TopBar
-        actions={
-          <Link to="/requests" className="btn btn-ghost btn-xs">
-            <ArrowLeft className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-            back to requests
-          </Link>
-        }
-      />
+      <TopBar />
       <div className="content">
         <div className="page">
           {error ? (
@@ -62,23 +54,20 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
   const reqHeaders: Record<string, string> | null = req.requestHeaders ? JSON.parse(req.requestHeaders) : null
   const resHeaders: Record<string, string> | null = req.responseHeaders ? JSON.parse(req.responseHeaders) : null
 
+  const tokPerSec =
+    req.completionTokens != null && req.durationMs > 0
+      ? Math.round((req.completionTokens / req.durationMs) * 1000)
+      : null
+
   return (
     <>
-      <div className="detail-header">
-        <div>
-          <p className="page-sub">{req.id}</p>
-          <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="mono" style={{ color: 'var(--fg-muted)', fontWeight: 500, fontSize: 18 }}>
-              {req.method}
-            </span>
-            <span className="mono" translate="no">
-              {req.endpoint}
-            </span>
-          </h1>
-        </div>
-        <div className="detail-header-right">
+      <div className="detail-breadcrumb">
+        <Link to="/requests">Requests</Link>
+        <span>/</span>
+        <span style={{ color: 'var(--fg-muted)' }}>{req.id}</span>
+        <div style={{ marginLeft: 'auto' }}>
           <div className="detail-nav-arrows">
-            <Tooltip label="Newer request (H)" side="bottom">
+            <Tooltip label="Newer (H)" side="bottom">
               <Link
                 to="/requests/$id"
                 params={{ id: prevId ?? '' }}
@@ -87,10 +76,10 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
                 aria-disabled={!prevId}
                 onClick={(e) => !prevId && e.preventDefault()}
               >
-                <ChevronLeft size={18} strokeWidth={2} aria-hidden="true" />
+                <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
               </Link>
             </Tooltip>
-            <Tooltip label="Older request (L)" side="bottom">
+            <Tooltip label="Older (L)" side="bottom">
               <Link
                 to="/requests/$id"
                 params={{ id: nextId ?? '' }}
@@ -99,116 +88,130 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
                 aria-disabled={!nextId}
                 onClick={(e) => !nextId && e.preventDefault()}
               >
-                <ChevronRight size={18} strokeWidth={2} aria-hidden="true" />
+                <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
               </Link>
             </Tooltip>
           </div>
-          <div className="token-strip">
-            <TokenStat label="prompt" value={req.promptTokens} />
-            <TokenStat label="completion" value={req.completionTokens} />
-            <span className="token-strip-div" aria-hidden="true" />
-            <TokenStat label="total" value={req.totalTokens} accent />
-          </div>
         </div>
       </div>
 
-      <div className="detail-grid">
-        <section className="panel">
-          <div className="panel-head">
-            <span className="panel-title">Overview</span>
-          </div>
-          <dl className="dl-grid">
-            <dt>Status</dt>
-            <dd>
-              <StatusCell code={req.statusCode} streamed={req.streamed} />
-            </dd>
-            <dt>Time</dt>
-            <dd className="mono">{when.toLocaleString([], { hour12: false })}</dd>
-            <dt>Duration</dt>
-            <dd className="mono">{formatDuration(req.durationMs)}</dd>
-            <dt>Model</dt>
-            <dd className="mono" translate="no">
-              {req.model ?? <span className="dim">—</span>}
-            </dd>
-            <dt>Streamed</dt>
-            <dd>{req.streamed ? 'Yes (SSE)' : 'No'}</dd>
-          </dl>
-        </section>
-
-        {req.error ? (
-          <section className="panel" style={{ gridColumn: '1 / -1' }}>
-            <div className="panel-head">
-              <span className="panel-title" style={{ color: 'var(--err)' }}>
-                Error
-              </span>
-            </div>
-            <pre className="detail-error">{req.error}</pre>
-          </section>
-        ) : ok ? null : (
-          <section className="panel" style={{ gridColumn: '1 / -1' }}>
-            <div className="panel-head">
-              <span className="panel-title" style={{ color: 'var(--warn)' }}>
-                Non-success status
-              </span>
-              <span className="panel-sub">HTTP {req.statusCode}</span>
-            </div>
-          </section>
-        )}
+      <div className="detail-endpoint">
+        <div className="detail-endpoint-row">
+          <span className="detail-endpoint-method">endpoint</span>
+        </div>
+        <div className="detail-endpoint-row" style={{ marginTop: 4 }}>
+          <span className="detail-endpoint-method">{req.method}</span>
+          <span className="detail-endpoint-path">{req.endpoint}</span>
+        </div>
+        <div className="detail-endpoint-meta">
+          {req.model ? (
+            <>
+              <span translate="no">{req.model}</span>
+              <span> · </span>
+            </>
+          ) : null}
+          {when.toISOString()}
+        </div>
       </div>
+
+      <div className="detail-stats-strip">
+        <div className="detail-stat">
+          <span className="detail-stat-label">status</span>
+          <span className={`detail-stat-value ${ok ? 'is-ok' : 'is-err'}`}>{req.statusCode}</span>
+        </div>
+        <div className="detail-stat">
+          <span className="detail-stat-label">tok-in</span>
+          <span className="detail-stat-value">{req.promptTokens?.toLocaleString() ?? '—'}</span>
+        </div>
+        <div className="detail-stat">
+          <span className="detail-stat-label">tok-out</span>
+          <span className="detail-stat-value">{req.completionTokens?.toLocaleString() ?? '—'}</span>
+        </div>
+        <div className="detail-stat">
+          <span className="detail-stat-label">total</span>
+          <span className="detail-stat-value">{req.totalTokens?.toLocaleString() ?? '—'}</span>
+        </div>
+        <div className="detail-stat">
+          <span className="detail-stat-label">duration</span>
+          <span className="detail-stat-value">{formatDuration(req.durationMs)}</span>
+        </div>
+        <div className="detail-stat">
+          <span className="detail-stat-label">tok/s</span>
+          <span className="detail-stat-value">{tokPerSec?.toLocaleString() ?? '—'}</span>
+        </div>
+      </div>
+
+      {req.error ? (
+        <section className="panel" style={{ marginBottom: 16 }}>
+          <div className="panel-head">
+            <span className="panel-title" style={{ color: 'var(--err)' }}>
+              Error
+            </span>
+          </div>
+          <pre className="detail-error">{req.error}</pre>
+        </section>
+      ) : null}
 
       <div className="req-res-columns">
         <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
-          {reqHeaders ? <HeadersSection title="Request Headers" headers={reqHeaders} /> : null}
-          {req.requestBody ? <BodySection title="Request Body" body={req.requestBody} /> : null}
+          {req.requestBody ? (
+            <BodySection title="Request" subtitle="body" size={byteSize(req.requestBody)} body={req.requestBody} />
+          ) : null}
+          {reqHeaders ? <HeadersSection title="Headers" subtitle="in" headers={reqHeaders} /> : null}
         </div>
         <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
-          {resHeaders ? <HeadersSection title="Response Headers" headers={resHeaders} /> : null}
-          {req.responseBody ? <BodySection title="Response Body" body={req.responseBody} /> : null}
+          {req.responseBody ? (
+            <BodySection
+              title="Response"
+              subtitle={req.streamed ? 'stream' : 'body'}
+              size={byteSize(req.responseBody)}
+              body={req.responseBody}
+            />
+          ) : null}
+          {resHeaders ? <HeadersSection title="Headers" subtitle="out" headers={resHeaders} /> : null}
         </div>
       </div>
     </>
   )
 }
 
-function HeadersSection({ title, headers }: { title: string; headers: Record<string, string> }) {
-  const [open, setOpen] = useState(true)
+function HeadersSection({
+  title,
+  subtitle,
+  headers,
+}: {
+  title: string
+  subtitle: string
+  headers: Record<string, string>
+}) {
   const entries = Object.entries(headers)
   if (entries.length === 0) return null
 
   return (
     <section className="panel">
-      <button type="button" className="panel-head panel-toggle" onClick={() => setOpen(!open)}>
-        {open ? (
-          <ChevronDown className="icon-12" strokeWidth={2} aria-hidden="true" />
-        ) : (
-          <ChevronRight className="icon-12" strokeWidth={2} aria-hidden="true" />
-        )}
+      <div className="panel-head">
         <span className="panel-title">{title}</span>
-      </button>
-      {open ? (
-        <table className="dtable headers-table">
-          <tbody>
-            {entries.map(([k, v]) => (
-              <tr key={k}>
-                <td className="mono header-key">{k}</td>
-                <td className="mono">{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
+        <span className="panel-sub">· {subtitle}</span>
+      </div>
+      <table className="dtable headers-table">
+        <tbody>
+          {entries.map(([k, v]) => (
+            <tr key={k}>
+              <td className="mono header-key">{k}</td>
+              <td className="mono">{maskSensitive(k, v)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   )
 }
 
-function BodySection({ title, body }: { title: string; body: string }) {
-  const [open, setOpen] = useState(true)
-  const [mode, setMode] = useState<'pretty' | 'raw'>('pretty')
+function BodySection({ title, subtitle, size, body }: { title: string; subtitle: string; size: string; body: string }) {
   const [copied, setCopied] = useState(false)
 
   const pretty = tryPrettyJson(body)
-  const hasPretty = pretty !== null
-  const display = mode === 'pretty' && hasPretty ? pretty : body
+  const display = pretty ?? body
 
   const onCopy = () => {
     navigator.clipboard.writeText(body)
@@ -217,50 +220,21 @@ function BodySection({ title, body }: { title: string; body: string }) {
   }
 
   return (
-    <section className="panel">
-      <button type="button" className="panel-head panel-toggle" onClick={() => setOpen(!open)}>
-        {open ? (
-          <ChevronDown className="icon-12" strokeWidth={2} aria-hidden="true" />
-        ) : (
-          <ChevronRight className="icon-12" strokeWidth={2} aria-hidden="true" />
-        )}
+    <section className="panel detail-body-panel">
+      <div className="panel-head">
         <span className="panel-title">{title}</span>
-      </button>
-      {open ? (
-        <div>
-          <div className="body-toolbar">
-            <div className="body-tabs">
-              {hasPretty ? (
-                <>
-                  <button
-                    type="button"
-                    className={`body-tab${mode === 'pretty' ? ' active' : ''}`}
-                    onClick={() => setMode('pretty')}
-                  >
-                    Pretty
-                  </button>
-                  <button
-                    type="button"
-                    className={`body-tab${mode === 'raw' ? ' active' : ''}`}
-                    onClick={() => setMode('raw')}
-                  >
-                    Raw
-                  </button>
-                </>
-              ) : null}
-            </div>
-            <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy}>
-              {copied ? (
-                <Check className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              ) : (
-                <Clipboard className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              )}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-          </div>
-          <pre className="body-pre">{mode === 'pretty' && hasPretty ? <JsonHighlight json={pretty} /> : display}</pre>
-        </div>
-      ) : null}
+        <span className="panel-sub">· {subtitle}</span>
+        <span className="body-size">{size}</span>
+        <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }} onClick={onCopy}>
+          {copied ? (
+            <Check className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <Clipboard className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          )}
+          {copied ? 'copied' : 'copy'}
+        </button>
+      </div>
+      <pre className="body-pre">{pretty ? <JsonHighlight json={display} /> : display}</pre>
     </section>
   )
 }
@@ -323,20 +297,27 @@ function JsonHighlight({ json }: { json: string }) {
   return <>{elements}</>
 }
 
-function TokenStat({ label, value, accent }: { label: string; value: number | null; accent?: boolean }) {
-  return (
-    <span className={`token-stat${accent ? ' token-stat-accent' : ''}`}>
-      <span className="mono token-value">{value?.toLocaleString() ?? '—'}</span>
-      <span className="token-label">{label}</span>
-    </span>
-  )
-}
-
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms} ms`
+  if (ms < 1000) return `${ms}ms`
   const s = ms / 1000
-  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)} s`
+  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)}s`
   const m = Math.floor(s / 60)
   const rem = Math.floor(s % 60)
   return `${m}m ${rem}s`
+}
+
+function byteSize(str: string): string {
+  const bytes = new Blob([str]).size
+  if (bytes < 1024) return `${bytes}B`
+  return `${(bytes / 1024).toFixed(1)}KB`
+}
+
+function maskSensitive(key: string, value: string): string {
+  const k = key.toLowerCase()
+  if (k === 'authorization' && value.length > 14) {
+    const prefix = value.slice(0, 10)
+    const suffix = value.slice(-4)
+    return `${prefix}••••••••${suffix}`
+  }
+  return value
 }

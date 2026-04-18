@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
 import { db, schema } from '../db/index.ts'
 
 export type RequestRow = {
@@ -69,6 +69,126 @@ export function getRequestById(id: string): RequestDetail | null {
     responseHeaders: r.responseHeaders,
     responseBody: r.responseBody,
   }
+}
+
+export type RequestStats = {
+  reqPerSec: number
+  tokPerSec: number
+  p50Latency: number
+  errorRate: number
+  sparklines: {
+    reqs: Array<number>
+    toks: Array<number>
+    latency: Array<number>
+    errors: Array<number>
+  }
+}
+
+export function getRequestStats(): RequestStats {
+  const now = Date.now()
+  const thirtyMinAgo = new Date(now - 30 * 60_000)
+  const oneMinAgo = now - 60_000
+
+  const recent = db
+    .select({
+      startedAt: schema.requests.startedAt,
+      durationMs: schema.requests.durationMs,
+      statusCode: schema.requests.statusCode,
+      totalTokens: schema.requests.totalTokens,
+    })
+    .from(schema.requests)
+    .where(gte(schema.requests.startedAt, thirtyMinAgo))
+    .orderBy(asc(schema.requests.startedAt))
+    .all()
+
+  const lastMinute = recent.filter((r) => r.startedAt.getTime() >= oneMinAgo)
+  const reqPerSec = lastMinute.length / 60
+  const tokPerSec = lastMinute.reduce((s, r) => s + (r.totalTokens ?? 0), 0) / 60
+
+  const sorted = recent.map((r) => r.durationMs).sort((a, b) => a - b)
+  const p50Latency = sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)] : 0
+
+  const errCount = recent.filter((r) => r.statusCode >= 400).length
+  const errorRate = recent.length > 0 ? (errCount / recent.length) * 100 : 0
+
+  const startBucket = Math.floor(thirtyMinAgo.getTime() / 60_000)
+  const endBucket = Math.floor(now / 60_000)
+  const count = endBucket - startBucket + 1
+
+  const reqs = new Array<number>(count).fill(0)
+  const toks = new Array<number>(count).fill(0)
+  const latBuckets: Array<Array<number>> = Array.from({ length: count }, () => [])
+  const errs = new Array<number>(count).fill(0)
+  const totals = new Array<number>(count).fill(0)
+
+  for (const r of recent) {
+    const idx = Math.floor(r.startedAt.getTime() / 60_000) - startBucket
+    if (idx >= 0 && idx < count) {
+      reqs[idx]++
+      toks[idx] += r.totalTokens ?? 0
+      latBuckets[idx].push(r.durationMs)
+      totals[idx]++
+      if (r.statusCode >= 400) errs[idx]++
+    }
+  }
+
+  return {
+    reqPerSec,
+    tokPerSec,
+    p50Latency,
+    errorRate,
+    sparklines: {
+      reqs,
+      toks,
+      latency: latBuckets.map((arr) => (arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0)),
+      errors: errs.map((e, i) => (totals[i] > 0 ? (e / totals[i]) * 100 : 0)),
+    },
+  }
+}
+
+export type HistogramBucket = {
+  timestamp: number
+  total: number
+  errors: number
+}
+
+export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<HistogramBucket> {
+  const now = Date.now()
+  const since = new Date(now - windowMs)
+
+  const rows = db
+    .select({
+      startedAt: schema.requests.startedAt,
+      statusCode: schema.requests.statusCode,
+    })
+    .from(schema.requests)
+    .where(gte(schema.requests.startedAt, since))
+    .orderBy(asc(schema.requests.startedAt))
+    .all()
+
+  const startBucket = Math.floor(since.getTime() / bucketMs)
+  const endBucket = Math.floor(now / bucketMs)
+  const count = endBucket - startBucket + 1
+  const totals = new Array<number>(count).fill(0)
+  const errors = new Array<number>(count).fill(0)
+
+  for (const r of rows) {
+    const idx = Math.floor(r.startedAt.getTime() / bucketMs) - startBucket
+    if (idx >= 0 && idx < count) {
+      totals[idx]++
+      if (r.statusCode >= 400) errors[idx]++
+    }
+  }
+
+  const result: Array<HistogramBucket> = []
+  for (let i = 0; i < count; i++) {
+    result.push({
+      timestamp: (startBucket + i) * bucketMs,
+      total: totals[i],
+      errors: errors[i],
+    })
+  }
+  return result
 }
 
 export function getAdjacentIds(id: string): { prevId: string | null; nextId: string | null } {
