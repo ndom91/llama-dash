@@ -10,8 +10,6 @@ Sits in front of llama-swap and gives you:
 - **GPU monitoring** — auto-detects NVIDIA, AMD, or Apple Silicon GPUs. Shows VRAM/GTT usage, utilization, temperature, power. Sidebar shows live VRAM bar.
 - A SQLite log of every `/v1/*` call (method, endpoint, model, status, duration, token counts) — streamed or not.
 
-See [`plan.md`](./plan.md) for the longer-term roadmap and the design decisions behind this first pass.
-
 <table>
   <tr>
     <td colspan="3">
@@ -100,3 +98,7 @@ pnpm typecheck     # tsgo --noEmit
 
 Run `lint:fix`, `format:fix`, and `typecheck` before calling any change
 done — see `AGENTS.md`.
+
+## License
+
+MIT

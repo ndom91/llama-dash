@@ -2,6 +2,7 @@
   "name": "llama-dash",
   "private": true,
   "type": "module",
+  "license": "MIT",
   "imports": {
     "#/*": "./src/*"
   },
