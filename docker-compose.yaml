@@ -30,7 +30,7 @@ services:
   llama-dash:
     build: .
     ports:
-      - "5173:5173"
+      - "3000:3000"
     environment:
       LLAMASWAP_URL: http://llama-swap:8080
       LLAMASWAP_CONFIG_FILE: /config/config.yaml
