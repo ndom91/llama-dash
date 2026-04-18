@@ -338,12 +338,12 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
   return (
     <div className="histogram">
       {buckets.map((b) => {
-        const okH = ((b.total - b.errors) / maxTotal) * 100
-        const errH = (b.errors / maxTotal) * 100
+        const okH = Math.max(((b.total - b.errors) / maxTotal) * 100, 2)
+        const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * 100, 2) : 0
         return (
           <div key={b.timestamp} className="histogram-bar">
-            {b.errors > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
-            {b.total - b.errors > 0 ? <div className="histogram-bar-ok" style={{ height: `${okH}%` }} /> : null}
+            {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
+            <div className="histogram-bar-ok" style={{ height: `${okH}%` }} />
           </div>
         )
       })}

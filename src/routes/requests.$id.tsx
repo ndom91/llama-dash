@@ -146,7 +146,7 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
       ) : null}
 
       {req.error ? (
-        <section className="panel" style={{ marginBottom: 16 }}>
+        <section className="panel">
           <div className="panel-head">
             <span className="panel-title" style={{ color: 'var(--err)' }}>
               Error
@@ -336,7 +336,7 @@ function TokenTrace({
   tokPerSec: number | null
 }) {
   return (
-    <section className="panel" style={{ marginBottom: 16 }}>
+    <section className="panel">
       <div className="panel-head">
         <span className="panel-title">Stream</span>
         <span className="panel-sub">· token trace</span>

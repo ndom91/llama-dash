@@ -62,7 +62,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
 
       <span className="topbar-chip" title="Requests per second (1 min)">
         <span>req/s</span>
-        <span className="topbar-chip-num">{stats ? stats.reqPerSec.toFixed(1) : '—'}</span>
+        <span className="topbar-chip-num">{stats ? formatRate(stats.reqPerSec) : '—'}</span>
       </span>
 
       <div className="topbar-actions">
@@ -72,6 +72,12 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       </div>
     </header>
   )
+}
+
+function formatRate(v: number): string {
+  if (v === 0) return '0.0'
+  if (v < 0.1) return v.toFixed(2)
+  return v.toFixed(1)
 }
 
 function formatDatetime(d: Date): string {

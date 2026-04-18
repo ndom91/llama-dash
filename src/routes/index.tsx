@@ -75,7 +75,7 @@ function Dashboard() {
           <div className="stats-row">
             <StatCard
               label="req/s · 1m"
-              value={stats ? stats.reqPerSec.toFixed(1) : '—'}
+              value={stats ? formatRate(stats.reqPerSec) : '—'}
               unit="per-sec"
               sparkline={stats?.sparklines.reqs}
             />
@@ -313,4 +313,10 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
 function formatLatency(ms: number): string {
   if (ms < 1000) return `${ms}`
   return (ms / 1000).toFixed(2)
+}
+
+function formatRate(v: number): string {
+  if (v === 0) return '0.0'
+  if (v < 0.1) return v.toFixed(2)
+  return v.toFixed(1)
 }

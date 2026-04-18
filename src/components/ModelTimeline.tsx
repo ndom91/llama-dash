@@ -163,15 +163,16 @@ export function ModelTimeline({ events }: { events: Array<ApiModelEvent> }) {
             <span key={id} className="timeline-legend-item">
               <span className="timeline-legend-swatch" style={{ background: colorMap.get(id) }} />
               <span className="mono" translate="no">
-                {id}
-              </span>{' '}
-              <span className="dim">{formatDuration(ms)}</span>
+                {id} <span className="dim">· {formatDuration(ms)}</span>
+              </span>
             </span>
           ))}
           {legend.swapTime > 0 ? (
             <span className="timeline-legend-item">
               <span className="timeline-legend-swatch" style={{ background: SWAP_COLOR }} />
-              swap window <span className="dim">{formatDuration(legend.swapTime)}</span>
+              <span className="mono">
+                swap window <span className="dim">· {formatDuration(legend.swapTime)}</span>
+              </span>
             </span>
           ) : null}
         </div>
