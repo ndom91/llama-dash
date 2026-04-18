@@ -903,7 +903,6 @@ button:disabled {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
 }
 .page-header .page-sub {
   margin-bottom: 0;
@@ -912,18 +911,23 @@ button:disabled {
   flex-shrink: 0;
   padding-top: 4px;
 }
+.page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .page-title {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--fg);
-  margin: 0 0 2px;
+  margin: 0;
 }
 .page-sub {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--fg-dim);
-  margin: 0 0 20px;
+  margin: 0;
 }
 
 /* ---- copyable code ---- */
@@ -1281,7 +1285,6 @@ a,
   border-radius: var(--radius);
   font-size: 12px;
   font-family: var(--font-mono);
-  margin-bottom: 16px;
 }
 
 /* ---- radix tooltip ---- */
@@ -1570,14 +1573,14 @@ a,
   background: var(--accent);
   opacity: 0.6;
   border-radius: 1px 1px 0 0;
-  min-height: 0;
+  min-height: 2px;
   transition: opacity 120ms ease;
 }
 .histogram-bar-err {
   background: var(--err);
   opacity: 0.8;
   border-radius: 1px 1px 0 0;
-  min-height: 0;
+  min-height: 2px;
 }
 .histogram-bar:hover .histogram-bar-ok {
   opacity: 1;

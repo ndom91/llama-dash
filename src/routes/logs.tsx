@@ -94,6 +94,7 @@ function Logs() {
       <div className="content">
         <div className="page">
           <PageHeader
+            kicker="§04 · logs"
             title="Logs"
             subtitle="live log stream from llama-swap"
             action={

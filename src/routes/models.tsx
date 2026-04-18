@@ -42,6 +42,7 @@ function Models() {
       <div className="content">
         <div className="page">
           <PageHeader
+            kicker="§02 · models"
             title="Models"
             subtitle={
               <>

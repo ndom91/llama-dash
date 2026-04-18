@@ -4,6 +4,7 @@ import { ChevronRight, Download, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { ModelTimeline } from '../components/ModelTimeline'
+import { PageHeader } from '../components/PageHeader'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
@@ -38,39 +39,38 @@ function Dashboard() {
 
   return (
     <div className="main-col">
-      <TopBar
-        actions={
-          <>
-            <Tooltip label="Refresh">
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon"
-                onClick={doRefresh}
-                disabled={refreshing}
-                aria-label="Refresh dashboard"
-              >
-                <RefreshCw
-                  className={`icon-14${refreshing ? ' animate-spin' : ''}`}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                />
-              </button>
-            </Tooltip>
-            <Tooltip label="Export CSV">
-              <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export CSV">
-                <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
-              </button>
-            </Tooltip>
-          </>
-        }
-      />
+      <TopBar />
       <div className="content">
         <div className="page">
-          <div className="kicker" style={{ marginBottom: 4 }}>
-            §01 · overview
-          </div>
-          <h1 className="page-title">Operator dashboard</h1>
-          <p className="page-sub">what's loaded, what just ran</p>
+          <PageHeader
+            kicker="§01 · overview"
+            title="Operator dashboard"
+            subtitle="what's loaded, what just ran"
+            action={
+              <>
+                <Tooltip label="Refresh">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon"
+                    onClick={doRefresh}
+                    disabled={refreshing}
+                    aria-label="Refresh dashboard"
+                  >
+                    <RefreshCw
+                      className={`icon-14${refreshing ? ' animate-spin' : ''}`}
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Export CSV">
+                  <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export CSV">
+                    <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                </Tooltip>
+              </>
+            }
+          />
 
           <div className="stats-row">
             <StatCard

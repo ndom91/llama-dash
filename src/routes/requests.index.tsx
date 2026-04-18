@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react
 import { useMemo, useState } from 'react'
 import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
+import { PageHeader } from '../components/PageHeader'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
@@ -117,14 +118,17 @@ function Requests() {
       />
       <div className="content">
         <div className="page">
-          <div className="kicker" style={{ marginBottom: 4 }}>
-            §03 · log
-          </div>
-          <h1 className="page-title">Request log</h1>
-          <p className="page-sub">
-            point clients at{' '}
-            <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> · newest first
-          </p>
+          <PageHeader
+            kicker="§03 · requests"
+            title="Request log"
+            subtitle={
+              <>
+                point clients at{' '}
+                <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> · newest
+                first
+              </>
+            }
+          />
 
           {error ? <div className="err-banner">{error.message}</div> : null}
 
@@ -179,7 +183,7 @@ function Requests() {
           </div>
 
           {histogram && histogram.length > 0 ? (
-            <section className="panel" style={{ marginBottom: 16 }}>
+            <section className="panel">
               <div className="histogram-header">
                 <div>
                   <span className="panel-title">req/s</span>
