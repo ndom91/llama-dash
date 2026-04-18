@@ -310,13 +310,13 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
               <th className="mono">endpoint</th>
               <th>model</th>
               <th style={{ width: 80 }}>status</th>
-              <th className="num" style={{ width: 72 }}>
+              <th className="num" style={{ width: 80 }}>
                 tok-in
               </th>
-              <th className="num" style={{ width: 72 }}>
+              <th className="num" style={{ width: 80 }}>
                 tok-out
               </th>
-              <th className="num" style={{ width: 180 }}>
+              <th className="num" style={{ width: 120 }}>
                 duration
               </th>
             </tr>

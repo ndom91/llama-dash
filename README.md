@@ -28,7 +28,7 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
   </tr>
   <tr>
     <td>
-      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-nktx.png" />
+      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-ruby.png" />
     </td>
     <td>
       <img alt="Light - Playground" src="./.github/assets/SCR-20260418-nfrw.png" />
