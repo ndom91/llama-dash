@@ -66,10 +66,10 @@ function Keys() {
                     <th style={{ width: 18 }} aria-label="status" />
                     <th>name</th>
                     <th className="mono">prefix</th>
-                    <th>models</th>
-                    <th className="num">rpm</th>
-                    <th className="num">tpm</th>
-                    <th>created</th>
+                    <th className="hide-mobile">models</th>
+                    <th className="num hide-mobile">rpm</th>
+                    <th className="num hide-mobile">tpm</th>
+                    <th className="hide-mobile">created</th>
                     <th style={{ width: 90 }} className="num">
                       actions
                     </th>
@@ -285,7 +285,7 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
       <td className="mono">
         <CopyableCode text={`${apiKey.keyPrefix}…`} />
       </td>
-      <td>
+      <td className="hide-mobile">
         {apiKey.allowedModels.length === 0 ? (
           <span className="dim">all</span>
         ) : (
@@ -294,9 +294,11 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
           </span>
         )}
       </td>
-      <td className="num mono">{apiKey.rateLimitRpm ?? <span className="dim">—</span>}</td>
-      <td className="num mono">{apiKey.rateLimitTpm ?? <span className="dim">—</span>}</td>
-      <td style={{ fontSize: 12, color: 'var(--fg-dim)' }}>{new Date(apiKey.createdAt).toLocaleDateString()}</td>
+      <td className="num mono hide-mobile">{apiKey.rateLimitRpm ?? <span className="dim">—</span>}</td>
+      <td className="num mono hide-mobile">{apiKey.rateLimitTpm ?? <span className="dim">—</span>}</td>
+      <td className="hide-mobile" style={{ fontSize: 12, color: 'var(--fg-dim)' }}>
+        {new Date(apiKey.createdAt).toLocaleDateString()}
+      </td>
       <td className="num">
         {isRevoked ? (
           <Tooltip label="Delete permanently">

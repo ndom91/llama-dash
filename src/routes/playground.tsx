@@ -108,9 +108,7 @@ function Playground() {
               <textarea
                 ref={inputRef}
                 className="pg-input"
-                placeholder={
-                  chat.model ? 'Type a message… (Enter to send, Shift+Enter for newline)' : 'Select a model first…'
-                }
+                placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
                 disabled={!chat.model}
                 rows={1}
                 onKeyDown={handleKeyDown}
