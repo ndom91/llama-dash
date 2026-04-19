@@ -9,7 +9,7 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
 - **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight.
-- **API keys** — per-key rate limits (RPM/TPM), model allow-lists, hashed at rest.
+- **API keys** — per-key rate limits (RPM/TPM), model allow-lists, hashed at rest, per-key detail page with stats and model breakdown.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit `config.yaml` in-browser with validation and auto-reload.
@@ -88,7 +88,7 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
 - `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
-- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`.
+- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`.
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 
 ## Useful scripts

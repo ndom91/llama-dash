@@ -84,9 +84,14 @@ function AppShell() {
   return (
     <MobileMenuContext value={{ open, toggle, close }}>
       <div className="app-shell">
-        {open ? (
-          <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={close} tabIndex={-1} />
-        ) : null}
+        <button
+          type="button"
+          className={`sidebar-backdrop${open ? ' sidebar-backdrop-visible' : ''}`}
+          aria-label="Close menu"
+          onClick={close}
+          tabIndex={-1}
+          aria-hidden={!open}
+        />
         <Sidebar />
         <Outlet />
       </div>

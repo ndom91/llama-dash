@@ -1,13 +1,13 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ChevronRight } from 'lucide-react'
-import { useMemo } from 'react'
+import { ChevronRight, Pencil } from 'lucide-react'
+import { useRef, useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import type { ApiKeyDetail, ApiKeyModelBreakdown, ApiKeyStats, ApiRequest } from '../lib/api'
-import { useKeyDetail } from '../lib/queries'
+import { useKeyDetail, useRenameApiKey } from '../lib/queries'
 
 export const Route = createFileRoute('/keys/$id')({ component: KeyDetailPage })
 
@@ -36,6 +36,26 @@ function KeyDetailPage() {
 function KeyContent({ data }: { data: ApiKeyDetail }) {
   const { key, stats, requests, modelBreakdown } = data
   const isRevoked = key.disabledAt != null
+  const renameKey = useRenameApiKey()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(key.name)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const startEdit = () => {
+    if (isRevoked) return
+    setDraft(key.name)
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 0)
+  }
+
+  const commitRename = () => {
+    const trimmed = draft.trim()
+    if (!trimmed || trimmed === key.name) {
+      setEditing(false)
+      return
+    }
+    renameKey.mutate({ id: key.id, name: trimmed }, { onSuccess: () => setEditing(false) })
+  }
 
   return (
     <>
@@ -49,9 +69,36 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
         <div className="detail-endpoint">
           <div className="detail-endpoint-row">
             <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
-            <span className="detail-endpoint-method" style={{ marginLeft: 8 }}>
-              {key.name}
-            </span>
+            {editing ? (
+              <input
+                ref={inputRef}
+                className="ml-2 bg-transparent border border-accent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none"
+                type="text"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitRename()
+                  if (e.key === 'Escape') setEditing(false)
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                className="group inline-flex items-center gap-1.5 ml-2 cursor-pointer bg-transparent border-none font-mono text-[22px] font-semibold tracking-tight text-fg"
+                onClick={startEdit}
+                disabled={isRevoked}
+              >
+                {key.name}
+                {!isRevoked ? (
+                  <Pencil
+                    size={13}
+                    strokeWidth={2}
+                    className="text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                ) : null}
+              </button>
+            )}
           </div>
           <div className="detail-endpoint-meta">
             ↳ <span className="mono">{key.keyPrefix}…</span>

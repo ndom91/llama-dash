@@ -1,6 +1,7 @@
-import { Check, ChevronDown, ChevronRight, Copy, Pencil, RefreshCw } from 'lucide-react'
+import { Check, ChevronRight, Copy, Pencil, RefreshCw } from 'lucide-react'
 import { type FormEvent, useCallback, useState } from 'react'
 import Markdown from 'react-markdown'
+import { cn } from '../lib/cn'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from '../lib/stream-chat'
@@ -58,18 +59,19 @@ export function PlaygroundMessage({
       {isAssistant && message.reasoningContent ? (
         <div className="pg-reasoning">
           <button type="button" className="pg-reasoning-toggle" onClick={() => setReasoningOpen(!reasoningOpen)}>
-            {reasoningOpen ? (
-              <ChevronDown className="icon-12" strokeWidth={2} />
-            ) : (
-              <ChevronRight className="icon-12" strokeWidth={2} />
-            )}
+            <ChevronRight
+              className={cn('icon-12 transition-transform duration-150', reasoningOpen && 'rotate-90')}
+              strokeWidth={2}
+            />
             <span>reasoning</span>
             {isReasoning && isLast ? <span className="pg-reasoning-pulse" /> : null}
             {message.reasoningTimeMs ? (
               <span className="dim">{(message.reasoningTimeMs / 1000).toFixed(1)}s</span>
             ) : null}
           </button>
-          {reasoningOpen ? <pre className="pg-reasoning-text">{message.reasoningContent}</pre> : null}
+          <pre className={cn('pg-reasoning-text', reasoningOpen && 'pg-reasoning-open')}>
+            {message.reasoningContent}
+          </pre>
         </div>
       ) : null}
 

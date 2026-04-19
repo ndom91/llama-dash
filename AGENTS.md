@@ -46,6 +46,8 @@ src/
     models.$id.tsx          · /models/:id detail (stats, history, config snippet)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
+    keys.index.tsx          · /keys list + create/revoke/delete
+    keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     logs.tsx                · /logs raw log viewer
   components/             — UI components
     Sidebar.tsx             · nav + VRAM-resident readout in footer
@@ -67,7 +69,7 @@ src/
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
     proxy/                — /v1/* pass-through: handler.ts, usage.ts, log.ts
-    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts
+    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts, key-detail.ts, api-keys.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
@@ -100,6 +102,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
+   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests)
 5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
@@ -108,7 +111,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
    recent requests), Models (list + load/unload + per-model detail),
    Requests (filtered/sorted log + histogram + detail), Logs, Playground,
-   Config editor, API Keys.
+   Config editor, API Keys (list + per-key detail).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate

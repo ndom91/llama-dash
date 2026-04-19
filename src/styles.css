@@ -53,10 +53,14 @@
 @layer components {
   .btn {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
+      transform var(--duration-normal) var(--ease-out-micro);
   }
   .btn:hover:not(:disabled) {
     @apply bg-surface-3 border-accent;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .btn:focus-visible {
     @apply outline-none shadow-focus;
@@ -192,6 +196,14 @@
   --space-md: 12px;
   --space-lg: 16px;
   --space-xl: 24px;
+
+  /* Animation tokens — Easing Blueprint */
+  --ease-out-micro: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-micro: 100ms;
+  --duration-normal: 150ms;
+  --duration-slow: 250ms;
 }
 
 :root[data-theme='light'] {
@@ -362,6 +374,11 @@
 }
 
 
+@keyframes badge-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 @keyframes pulse-ok {
   0%, 100% { box-shadow: 0 0 6px var(--ok); }
   50% { box-shadow: 0 0 12px var(--ok); }
@@ -443,7 +460,7 @@
   border-bottom: 0;
 }
 .dtable tbody tr {
-  transition: background-color 80ms ease;
+  transition: background-color var(--duration-micro) ease;
 }
 .dtable tbody tr:hover {
   background: var(--bg-2);
@@ -505,12 +522,16 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   color: var(--fg-muted);
-  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease,
+    transform var(--duration-normal) var(--ease-out-micro);
 }
 .nav-arrow:hover {
   background: var(--bg-3);
   color: var(--fg);
   border-color: var(--fg-dim);
+}
+.nav-arrow:active:not(.disabled) {
+  transform: scale(0.93);
 }
 .nav-arrow.disabled {
   opacity: 0.3;
@@ -814,6 +835,7 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--warn);
+  animation: badge-in var(--duration-normal) var(--ease-out);
 }
 
 .config-saved-badge {
@@ -828,6 +850,7 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--ok);
+  animation: badge-in var(--duration-normal) var(--ease-out);
 }
 
 .config-errors {
@@ -838,6 +861,7 @@
   margin-bottom: 12px;
   font-size: 13px;
   color: var(--err);
+  animation: badge-in var(--duration-slow) var(--ease-out);
 }
 .config-errors ul {
   margin: 6px 0 0;
@@ -871,6 +895,7 @@
 }
 .sidebar-backdrop {
   display: none;
+  border: none;
 }
 
 @media (max-width: 768px) {
@@ -883,6 +908,13 @@
     inset: 0;
     z-index: 99;
     background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-slow) var(--ease-out);
+  }
+  .sidebar-backdrop-visible {
+    opacity: 1;
+    pointer-events: auto;
   }
   .req-res-columns {
     grid-template-columns: 1fr;
@@ -965,7 +997,8 @@
   font-family: var(--font-mono);
   font-size: 12px;
   outline: none;
-  transition: border-color 120ms ease;
+  transition: border-color var(--duration-micro) ease,
+    box-shadow var(--duration-normal) var(--ease-out);
 }
 .search-input::placeholder {
   color: var(--fg-faint);
@@ -1017,7 +1050,8 @@
   background-repeat: no-repeat;
   background-position: right 8px center;
   cursor: pointer;
-  transition: border-color 120ms ease;
+  transition: border-color var(--duration-micro) ease,
+    box-shadow var(--duration-normal) var(--ease-out);
 }
 .filter-select:focus {
   border-color: var(--accent);
@@ -1227,6 +1261,7 @@ a,
   border-radius: var(--radius);
   font-size: 12px;
   font-family: var(--font-mono);
+  animation: badge-in var(--duration-slow) var(--ease-out);
 }
 
 /* ---- radix tooltip ---- */
@@ -1368,7 +1403,7 @@ a,
 
 .stats-row {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
@@ -1700,6 +1735,7 @@ a,
   font-size: 11px;
   font-weight: 500;
   color: var(--ok);
+  animation: badge-in var(--duration-normal) var(--ease-out);
 }
 
 /* ---- token trace ---- */
@@ -1999,10 +2035,15 @@ a,
   background: transparent;
   color: var(--fg-dim);
   cursor: pointer;
+  transition: background-color var(--duration-micro) ease, color var(--duration-micro) ease,
+    transform var(--duration-normal) var(--ease-out-micro);
 }
 .pg-action-btn:hover {
   background: var(--bg-1);
   color: var(--fg);
+}
+.pg-action-btn:active {
+  transform: scale(0.9);
 }
 
 .pg-reasoning {
@@ -2051,14 +2092,24 @@ a,
 
 .pg-reasoning-text {
   margin: 0;
-  padding: 10px 12px;
+  padding: 0 12px;
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--fg-dim);
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height var(--duration-slow) var(--ease-out),
+    opacity var(--duration-normal) var(--ease-out),
+    padding var(--duration-slow) var(--ease-out);
+}
+.pg-reasoning-text.pg-reasoning-open {
   max-height: 300px;
+  opacity: 1;
+  padding: 10px 12px;
   overflow-y: auto;
 }
 
@@ -2106,6 +2157,8 @@ a,
   resize: none;
   line-height: 1.5;
   max-height: 200px;
+  transition: border-color var(--duration-micro) ease,
+    box-shadow var(--duration-normal) var(--ease-out);
 }
 .pg-input:focus {
   outline: 1px solid var(--accent);
@@ -2128,10 +2181,13 @@ a,
   color: white;
   cursor: pointer;
   flex-shrink: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform var(--duration-normal) var(--ease-out-micro);
 }
 .pg-send-btn:hover:not(:disabled) {
   opacity: 0.85;
+}
+.pg-send-btn:active:not(:disabled) {
+  transform: scale(0.93);
 }
 .pg-send-btn:disabled {
   opacity: 0.4;
@@ -2208,6 +2264,8 @@ a,
   border-radius: var(--radius-sm);
   background: var(--bg-0);
   color: var(--fg);
+  transition: border-color var(--duration-micro) ease,
+    box-shadow var(--duration-normal) var(--ease-out);
 }
 .key-field-input:focus {
   outline: none;
