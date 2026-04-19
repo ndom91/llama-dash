@@ -117,7 +117,10 @@ export function PlaygroundMessage({
             </button>
           ) : null}
           <button type="button" className="pg-action-btn" onClick={copyContent} title="Copy">
-            {copied ? <Check className="icon-12" strokeWidth={2} /> : <Copy className="icon-12" strokeWidth={2} />}
+            <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+              <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
+              <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
+            </span>
           </button>
         </div>
       ) : null}

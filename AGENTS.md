@@ -142,6 +142,22 @@ paths (proxy will grow middleware; admin will grow CRUD).
   hood). Server functions via `createServerFn` are available but we haven't
   leaned on them yet; UI data fetching goes client-side against `/api/*`.
 
+## Styling
+
+- **Tailwind v4** is the primary styling tool. Prefer Tailwind utility
+  classes in JSX over adding new rules to `src/styles.css`.
+- Existing component classes in `styles.css` (`.btn`, `.dtable`, `.panel`,
+  `.stat-card`, etc.) are fine to use — don't duplicate them with inline
+  utilities. But for one-off layout, spacing, typography, or color, reach
+  for Tailwind first.
+- Theme tokens are mapped in the `@theme` block at the top of `styles.css`
+  (e.g. `--color-fg`, `--color-surface-1`, `--color-accent`). Use the
+  corresponding Tailwind classes (`text-fg`, `bg-surface-1`, `border-accent`)
+  instead of raw `var(--fg)` in inline styles.
+- Animation tokens (`--duration-normal`, `--ease-out`, etc.) live in `:root`.
+  Use them via arbitrary values when needed (`transition-[border-color_var(--duration-micro)_ease]`),
+  or keep short transitions in `styles.css` if the arbitrary syntax gets unwieldy.
+
 ## Dependency version policy
 
 - No `"latest"` in `package.json` — pin ranges (`^x.y.z`) to versions that

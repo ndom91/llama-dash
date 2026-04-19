@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronRight, Clipboard, Play, Power } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
@@ -307,11 +308,10 @@ function ConfigPanel({ snippet }: { snippet: string }) {
         <span className="panel-title">Configuration</span>
         <span className="panel-sub">· from config.yaml</span>
         <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }} onClick={onCopy}>
-          {copied ? (
-            <Check className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          ) : (
-            <Clipboard className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          )}
+          <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+            <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
+            <Check className="copy-icon-swap-to icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          </span>
           {copied ? 'copied' : 'copy'}
         </button>
       </div>

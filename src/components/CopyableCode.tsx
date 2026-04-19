@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react'
 import { useState } from 'react'
+import { cn } from '../lib/cn'
 
 export function CopyableCode({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -24,21 +25,15 @@ export function CopyableCode({ text }: { text: string }) {
       <code className="[font:inherit]" translate="no">
         {text}
       </code>
-      {copied ? (
-        <Check
-          className="shrink-0 opacity-100 text-ok transition-opacity duration-150"
-          size={12}
-          strokeWidth={2}
-          aria-hidden="true"
-        />
-      ) : (
+      <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
         <Copy
-          className="shrink-0 opacity-50 transition-opacity duration-150 group-hover:opacity-80"
+          className="copy-icon-swap-from shrink-0 opacity-50 group-hover:opacity-80"
           size={12}
           strokeWidth={2}
           aria-hidden="true"
         />
-      )}
+        <Check className="copy-icon-swap-to shrink-0 text-ok" size={12} strokeWidth={2} aria-hidden="true" />
+      </span>
     </button>
   )
 }

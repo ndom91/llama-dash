@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, Copy, KeyRound, Plus, ShieldAlert, Trash2, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { cn } from '../lib/cn'
 import { CopyableCode } from '../components/CopyableCode'
 import { PageHeader } from '../components/PageHeader'
 import { StatusDot } from '../components/StatusDot'
@@ -116,7 +117,10 @@ function KeyCreatedBanner({ created, onDismiss }: { created: ApiKeyCreated; onDi
         <code className="mono">{created.rawKey}</code>
         <Tooltip label={copied ? 'Copied' : 'Copy'}>
           <button type="button" className="btn btn-ghost btn-icon" onClick={copy}>
-            {copied ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={2} />}
+            <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+              <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
+              <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />
+            </span>
           </button>
         </Tooltip>
       </div>

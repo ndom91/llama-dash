@@ -2,6 +2,7 @@ import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronLeft, ChevronRight, Clipboard } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { cn } from '../lib/cn'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiRequestDetail } from '../lib/api'
@@ -349,11 +350,10 @@ function BodySection({ title, subtitle, size, body }: { title: string; subtitle:
         <span className="panel-sub">· {subtitle}</span>
         <span className="body-size">{size}</span>
         <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }} onClick={onCopy}>
-          {copied ? (
-            <Check className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          ) : (
-            <Clipboard className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          )}
+          <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+            <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
+            <Check className="copy-icon-swap-to icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          </span>
           {copied ? 'copied' : 'copy'}
         </button>
       </div>

@@ -664,6 +664,7 @@
   width: 100%;
   text-align: left;
   font: inherit;
+  transition: background-color var(--duration-micro) ease;
 }
 .panel-toggle:hover {
   background: var(--bg-2);
@@ -689,6 +690,7 @@
   padding: 3px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background-color var(--duration-micro) ease, color var(--duration-micro) ease;
 }
 .body-tab:hover {
   color: var(--fg-muted);
@@ -1566,13 +1568,14 @@ a,
   opacity: 0.6;
   border-radius: 1px 1px 0 0;
   min-height: 2px;
-  transition: opacity 120ms ease;
+  transition: opacity 120ms ease, height var(--duration-slow) var(--ease-out);
 }
 .histogram-bar-err {
   background: var(--err);
   opacity: 0.8;
   border-radius: 1px 1px 0 0;
   min-height: 2px;
+  transition: height var(--duration-slow) var(--ease-out);
 }
 .histogram-bar:hover .histogram-bar-ok {
   opacity: 1;
@@ -1928,11 +1931,17 @@ a,
   opacity: 0.3;
 }
 
+@keyframes msg-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .pg-msg {
   display: flex;
   flex-direction: column;
   gap: 4px;
   max-width: 85%;
+  animation: msg-in var(--duration-slow) var(--ease-out);
 }
 
 .pg-msg-user {
@@ -2381,4 +2390,30 @@ a,
 .skel-body-line {
   display: flex;
   gap: 8px;
+}
+
+/* Copy icon crossfade */
+.copy-icon-swap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.copy-icon-swap-from,
+.copy-icon-swap-to {
+  transition: opacity var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--ease-out);
+}
+.copy-icon-swap-to {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.8);
+}
+.copy-icon-swap-done .copy-icon-swap-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+.copy-icon-swap-done .copy-icon-swap-to {
+  opacity: 1;
+  transform: scale(1);
 }

@@ -50,7 +50,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
 ]
 
 const NAV_LINK =
-  'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color] duration-[120ms] hover:bg-surface-3 hover:text-fg'
+  'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-[120ms] hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
 
 export function Sidebar() {

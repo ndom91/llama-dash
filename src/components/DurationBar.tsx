@@ -9,7 +9,10 @@ export function DurationBar({ ms, maxMs, isErr = false }: { ms: number; maxMs: n
     <span className="inline-flex items-center gap-2 justify-end min-w-[90px]">
       <span className="block flex-1 max-w-[60px] h-1 rounded-pill bg-fg-faint overflow-hidden">
         <span
-          className={cn('block h-full rounded-pill', isErr ? 'bg-err' : 'bg-accent')}
+          className={cn(
+            'block h-full rounded-pill transition-[width] duration-[250ms] ease-out',
+            isErr ? 'bg-err' : 'bg-accent',
+          )}
           style={{ width: `${pct}%` }}
         />
       </span>
