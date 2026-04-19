@@ -1,9 +1,10 @@
 import { cn } from '../lib/cn'
 
-const BASELINE_MS = 5000
+const MIN_MAX_MS = 3000
 
-export function DurationBar({ ms, isErr = false }: { ms: number; isErr?: boolean }) {
-  const pct = Math.min(100, (ms / BASELINE_MS) * 100)
+export function DurationBar({ ms, maxMs, isErr = false }: { ms: number; maxMs: number; isErr?: boolean }) {
+  const ceiling = Math.max(MIN_MAX_MS, maxMs * 1.1)
+  const pct = Math.min(100, (ms / ceiling) * 100)
   return (
     <span className="inline-flex items-center gap-2 justify-end min-w-[90px]">
       <span className="block flex-1 max-w-[60px] h-1 rounded-pill bg-fg-faint overflow-hidden">

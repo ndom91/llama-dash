@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronRight, Clipboard, Play, Power } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
@@ -187,6 +187,7 @@ function EventsPanel({ events }: { events: Array<{ id: string; event: string; ti
 
 function RequestsPanel({ rows, modelId }: { rows: Array<ApiRequest>; modelId: string }) {
   const navigate = useNavigate()
+  const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   return (
     <section className="panel">
@@ -242,7 +243,7 @@ function RequestsPanel({ rows, modelId }: { rows: Array<ApiRequest>; modelId: st
                 <td className="num dim">{r.promptTokens ?? '—'}</td>
                 <td className="num">{r.completionTokens ?? '—'}</td>
                 <td>
-                  <DurationBar ms={r.durationMs} isErr={r.statusCode >= 400} />
+                  <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
                 </td>
               </tr>
             ))}

@@ -285,6 +285,7 @@ function GpuRow({ gpu, showIndex }: { gpu: ApiGpuSnapshot['gpus'][number]; showI
 function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null }) {
   const navigate = useNavigate()
   const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
+  const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
     <section className="panel">
@@ -350,7 +351,7 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
                 <td className="num dim">{r.promptTokens ?? '—'}</td>
                 <td className="num">{r.completionTokens ?? '—'}</td>
                 <td>
-                  <DurationBar ms={r.durationMs} isErr={r.statusCode >= 400} />
+                  <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
                 </td>
               </tr>
             ))}
