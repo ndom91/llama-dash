@@ -341,7 +341,10 @@ function Requests() {
 }
 
 function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
-  const maxTotal = useMemo(() => Math.max(...buckets.map((b) => b.total), 5), [buckets])
+  const maxTotal = useMemo(() => {
+    const peak = Math.max(...buckets.map((b) => b.total))
+    return Math.max(Math.ceil(peak * 1.1), 5)
+  }, [buckets])
 
   return (
     <div className="histogram">
