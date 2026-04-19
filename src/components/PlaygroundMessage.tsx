@@ -1,9 +1,9 @@
-import { Check, ChevronRight, Copy, Pencil, RefreshCw } from 'lucide-react'
+import { Check, ChevronRight, Copy, GitBranch, Pencil, RefreshCw } from 'lucide-react'
 import { type FormEvent, useCallback, useState } from 'react'
 import Markdown from 'react-markdown'
-import { cn } from '../lib/cn'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
+import { cn } from '../lib/cn'
 import type { ChatMessage } from '../lib/stream-chat'
 import { Tooltip } from './Tooltip'
 
@@ -15,6 +15,7 @@ export function PlaygroundMessage({
   isReasoning,
   onRegenerate,
   onEdit,
+  onFork,
 }: {
   message: ChatMessage
   index: number
@@ -23,6 +24,7 @@ export function PlaygroundMessage({
   isReasoning: boolean
   onRegenerate: (index: number) => void
   onEdit: (index: number, content: string) => void
+  onFork: (index: number) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
@@ -52,10 +54,19 @@ export function PlaygroundMessage({
 
   const isAssistant = message.role === 'assistant'
   const showActions = !isStreaming || !isLast
+  const metrics = message.metrics
 
   return (
     <div className={`pg-msg pg-msg-${message.role}`}>
-      <div className="pg-msg-role">{isAssistant ? 'assistant' : 'you'}</div>
+      <div className="pg-msg-head">
+        <span className="pg-msg-role">{isAssistant ? 'assistant' : 'you'}</span>
+        {isAssistant && metrics?.ttftMs != null ? (
+          <span className="pg-msg-head-meta">
+            <span>{Math.round(metrics.ttftMs)}ms ttft</span>
+            {metrics.totalMs != null ? <span>→ {(metrics.totalMs / 1000).toFixed(2)}s total</span> : null}
+          </span>
+        ) : null}
+      </div>
 
       {isAssistant && message.reasoningContent ? (
         <div className="pg-reasoning">
@@ -97,7 +108,7 @@ export function PlaygroundMessage({
         <div className={`pg-msg-content${isAssistant ? ' pg-msg-markdown' : ''}`}>
           {isAssistant ? (
             <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {message.content || (isStreaming && isLast ? '...' : '')}
+              {message.content || (isStreaming && isLast ? '…' : '')}
             </Markdown>
           ) : (
             <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{message.content}</p>
@@ -105,22 +116,49 @@ export function PlaygroundMessage({
         </div>
       )}
 
-      {showActions ? (
+      {isAssistant && metrics && showActions ? (
+        <div className="pg-msg-metrics">
+          <MetricChip label="ttft" value={metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'} />
+          <MetricChip
+            label="total"
+            value={metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}
+          />
+          <MetricChip label="tok/s" value={metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'} />
+          <MetricChip label="tokens" value={metrics.tokIn != null ? `${metrics.tokIn} in` : '—'} />
+          <MetricChip label="" value={metrics.tokOut != null ? `${metrics.tokOut} out` : '—'} />
+          <MetricChip label="cost" value={metrics.costUsd != null ? `$${metrics.costUsd.toFixed(4)}` : '~$0.0000'} />
+          <span className="pg-msg-metric-gap" />
+          <Tooltip label="Copy">
+            <button type="button" className="pg-metric-action" onClick={copyContent}>
+              <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+                <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
+                <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
+              </span>
+              copy
+            </button>
+          </Tooltip>
+          <Tooltip label="Regenerate">
+            <button type="button" className="pg-metric-action" onClick={() => onRegenerate(index)}>
+              <RefreshCw className="icon-12" strokeWidth={2} />
+              re-run
+            </button>
+          </Tooltip>
+          <Tooltip label="Fork from here">
+            <button type="button" className="pg-metric-action" onClick={() => onFork(index)}>
+              <GitBranch className="icon-12" strokeWidth={2} />
+              fork
+            </button>
+          </Tooltip>
+        </div>
+      ) : null}
+
+      {!isAssistant && showActions ? (
         <div className="pg-msg-actions">
-          {message.role === 'user' ? (
-            <Tooltip label="Edit">
-              <button type="button" className="pg-action-btn" onClick={startEdit}>
-                <Pencil className="icon-12" strokeWidth={2} />
-              </button>
-            </Tooltip>
-          ) : null}
-          {isAssistant ? (
-            <Tooltip label="Regenerate">
-              <button type="button" className="pg-action-btn" onClick={() => onRegenerate(index)}>
-                <RefreshCw className="icon-12" strokeWidth={2} />
-              </button>
-            </Tooltip>
-          ) : null}
+          <Tooltip label="Edit">
+            <button type="button" className="pg-action-btn" onClick={startEdit}>
+              <Pencil className="icon-12" strokeWidth={2} />
+            </button>
+          </Tooltip>
           <Tooltip label="Copy">
             <button type="button" className="pg-action-btn" onClick={copyContent}>
               <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
@@ -132,5 +170,14 @@ export function PlaygroundMessage({
         </div>
       ) : null}
     </div>
+  )
+}
+
+function MetricChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="pg-metric-chip">
+      {label ? <span className="pg-metric-label">{label}</span> : null}
+      <span className="pg-metric-value">{value}</span>
+    </span>
   )
 }

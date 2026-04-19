@@ -1,10 +1,80 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type ChatMessage, streamChatCompletion } from './stream-chat'
+import {
+  type ChatMessage,
+  type MessageMetrics,
+  type SamplingParams,
+  type StreamEvent,
+  streamChatCompletion,
+} from './stream-chat'
 
 const LS_MESSAGES = 'playground-messages'
 const LS_MODEL = 'playground-model'
 const LS_SYSTEM = 'playground-system-prompt'
-const LS_TEMP = 'playground-temperature'
+const LS_SAMPLING = 'playground-sampling'
+const LS_PRESETS = 'playground-presets'
+const LS_RUNS = 'playground-saved-runs'
+
+export const DEFAULT_SAMPLING: SamplingParams = {
+  temperature: 0.7,
+  topP: 0.95,
+  topK: 40,
+  maxTokens: 2048,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+  stopSequences: [],
+  seed: null,
+  n: 1,
+  stream: true,
+  responseFormat: 'text',
+  logprobs: false,
+}
+
+export type Preset = {
+  id: string
+  name: string
+  createdAt: number
+  model: string
+  systemPrompt: string
+  sampling: SamplingParams
+}
+
+export type SavedRun = {
+  id: string
+  name: string
+  createdAt: number
+  model: string
+  systemPrompt: string
+  sampling: SamplingParams
+  messages: Array<ChatMessage>
+}
+
+export type InspectorState = {
+  lastRequestBody: Record<string, unknown> | null
+  lastRequestUrl: string | null
+  lastResponseText: string
+  lastMetrics: MessageMetrics
+  events: Array<InspectorEvent>
+  timing: InspectorTiming
+}
+
+export type InspectorEvent = { id: string; at: number; tag: string; text: string }
+
+export type InspectorTiming = {
+  queueMs: number | null
+  swapMs: number | null
+  prefillMs: number | null
+  decodeMs: number | null
+  streamCloseMs: number | null
+}
+
+const EMPTY_INSPECTOR: InspectorState = {
+  lastRequestBody: null,
+  lastRequestUrl: null,
+  lastResponseText: '',
+  lastMetrics: {},
+  events: [],
+  timing: { queueMs: null, swapMs: null, prefillMs: null, decodeMs: null, streamCloseMs: null },
+}
 
 function loadJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
@@ -26,13 +96,24 @@ function msgId() {
   return `msg_${Date.now()}_${nextId++}`
 }
 
+function presetId() {
+  return `pst_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+}
+
 export function usePlaygroundChat() {
   const [messages, setMessages] = useState<Array<ChatMessage>>(() => loadJson(LS_MESSAGES, []))
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [systemPrompt, setSystemPromptState] = useState(() => loadString(LS_SYSTEM, ''))
-  const [temperature, setTemperatureState] = useState(() => loadJson(LS_TEMP, 0.7))
+  const [sampling, setSamplingState] = useState<SamplingParams>(() => ({
+    ...DEFAULT_SAMPLING,
+    ...loadJson<Partial<SamplingParams>>(LS_SAMPLING, {}),
+  }))
   const [isStreaming, setIsStreaming] = useState(false)
   const [isReasoning, setIsReasoning] = useState(false)
+  const [inspector, setInspector] = useState<InspectorState>(EMPTY_INSPECTOR)
+  const [presets, setPresets] = useState<Array<Preset>>(() => loadJson(LS_PRESETS, []))
+  const [savedRuns, setSavedRuns] = useState<Array<SavedRun>>(() => loadJson(LS_RUNS, []))
+
   const abortRef = useRef<AbortController | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const apiKeyRef = useRef<string | null>(null)
@@ -67,9 +148,12 @@ export function usePlaygroundChat() {
     localStorage.setItem(LS_SYSTEM, v)
   }, [])
 
-  const setTemperature = useCallback((v: number) => {
-    setTemperatureState(v)
-    localStorage.setItem(LS_TEMP, JSON.stringify(v))
+  const setSampling = useCallback((updater: Partial<SamplingParams> | ((s: SamplingParams) => SamplingParams)) => {
+    setSamplingState((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }
+      localStorage.setItem(LS_SAMPLING, JSON.stringify(next))
+      return next
+    })
   }, [])
 
   const buildApiMessages = useCallback(
@@ -96,26 +180,91 @@ export function usePlaygroundChat() {
 
       const abort = new AbortController()
       abortRef.current = abort
-      const reasoningStart = { current: 0 }
+
+      const timings = {
+        requestAt: 0,
+        firstByteAt: 0,
+        firstContentAt: 0,
+        doneAt: 0,
+        reasoningStart: 0,
+      }
+      const events: Array<InspectorEvent> = []
+      const usage: { prompt?: number; completion?: number } = {}
+
+      let evSeq = 0
+      const pushEvent = (tag: string, text: string) => {
+        const ev = { id: `ev_${Date.now()}_${evSeq++}`, at: Date.now(), tag, text }
+        events.push(ev)
+        setInspector((prev) => ({ ...prev, events: [...events] }))
+      }
 
       try {
         const apiMsgs = buildApiMessages(msgs)
-        const stream = streamChatCompletion(apiMsgs, model, temperature, abort.signal, apiKeyRef.current ?? undefined)
+        const stream = streamChatCompletion({
+          messages: apiMsgs,
+          model,
+          sampling,
+          signal: abort.signal,
+          apiKey: apiKeyRef.current ?? undefined,
+          onEvent: (ev: StreamEvent) => {
+            switch (ev.kind) {
+              case 'request-sent':
+                timings.requestAt = ev.at
+                setInspector((prev) => ({
+                  ...prev,
+                  lastRequestBody: ev.body,
+                  lastRequestUrl: ev.url,
+                  lastResponseText: '',
+                  lastMetrics: {},
+                  events: [],
+                  timing: { queueMs: null, swapMs: null, prefillMs: null, decodeMs: null, streamCloseMs: null },
+                }))
+                pushEvent('REQ', `POST ${ev.url} seed=${sampling.seed ?? 'auto'}`)
+                break
+              case 'first-byte':
+                timings.firstByteAt = ev.at
+                pushEvent('MDL', `${model} resident`)
+                break
+              case 'content-start':
+                timings.firstContentAt = ev.at
+                pushEvent('PFL', `prefilled in ${ev.at - timings.requestAt}ms`)
+                pushEvent('DEC', `streaming started`)
+                break
+              case 'reasoning-start':
+                pushEvent('RSN', `reasoning started`)
+                break
+              case 'usage':
+                if (ev.promptTokens != null) usage.prompt = ev.promptTokens
+                if (ev.completionTokens != null) usage.completion = ev.completionTokens
+                break
+              case 'done':
+                timings.doneAt = ev.at
+                pushEvent('STOP', `finish_reason=${ev.finishReason ?? 'stop'}`)
+                pushEvent('RES', `200 OK · ${usage.completion ?? '?'} tok`)
+                break
+              case 'error':
+                pushEvent('ERR', ev.message)
+                break
+            }
+          },
+        })
+
+        let reasoningStart = 0
 
         for await (const chunk of stream) {
           if (chunk.done) break
 
           if (chunk.reasoningContent) {
-            if (!reasoningStart.current) {
-              reasoningStart.current = Date.now()
+            if (!reasoningStart) {
+              reasoningStart = Date.now()
               setIsReasoning(true)
             }
             assistantMsg.reasoningContent = (assistantMsg.reasoningContent ?? '') + chunk.reasoningContent
           }
 
           if (chunk.content) {
-            if (reasoningStart.current && !assistantMsg.reasoningTimeMs) {
-              assistantMsg.reasoningTimeMs = Date.now() - reasoningStart.current
+            if (reasoningStart && !assistantMsg.reasoningTimeMs) {
+              assistantMsg.reasoningTimeMs = Date.now() - reasoningStart
               setIsReasoning(false)
             }
             assistantMsg.content += chunk.content
@@ -123,6 +272,35 @@ export function usePlaygroundChat() {
 
           setMessages([...msgs, { ...assistantMsg }])
         }
+
+        // Build final metrics
+        const ttftMs = timings.firstContentAt ? timings.firstContentAt - timings.requestAt : undefined
+        const totalMs = timings.doneAt ? timings.doneAt - timings.requestAt : undefined
+        const decodeMs = timings.doneAt && timings.firstContentAt ? timings.doneAt - timings.firstContentAt : undefined
+        const tokOut = usage.completion
+        const tokPerSec = tokOut != null && decodeMs ? (tokOut / decodeMs) * 1000 : undefined
+        const metrics: MessageMetrics = {
+          ttftMs,
+          totalMs,
+          tokIn: usage.prompt,
+          tokOut,
+          tokPerSec,
+        }
+        assistantMsg.metrics = metrics
+        setMessages([...msgs, { ...assistantMsg }])
+
+        setInspector((prev) => ({
+          ...prev,
+          lastResponseText: assistantMsg.content,
+          lastMetrics: metrics,
+          timing: {
+            queueMs: null,
+            swapMs: null,
+            prefillMs: ttftMs ?? null,
+            decodeMs: decodeMs ?? null,
+            streamCloseMs: null,
+          },
+        }))
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
           // keep partial response
@@ -137,7 +315,7 @@ export function usePlaygroundChat() {
         abortRef.current = null
       }
     },
-    [model, temperature, buildApiMessages],
+    [model, sampling, buildApiMessages],
   )
 
   const sendMessage = useCallback(
@@ -170,6 +348,15 @@ export function usePlaygroundChat() {
     [messages, runStream],
   )
 
+  const forkMessage = useCallback(
+    (index: number) => {
+      // Fork = take messages up to and including index as a fresh chat
+      const forked = messages.slice(0, index + 1).map((m) => ({ ...m, id: msgId() }))
+      setMessages(forked)
+    },
+    [messages],
+  )
+
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort()
   }, [])
@@ -178,7 +365,84 @@ export function usePlaygroundChat() {
     abortRef.current?.abort()
     setMessages([])
     localStorage.removeItem(LS_MESSAGES)
+    setInspector(EMPTY_INSPECTOR)
   }, [])
+
+  const savePreset = useCallback(
+    (name: string) => {
+      const preset: Preset = {
+        id: presetId(),
+        name,
+        createdAt: Date.now(),
+        model,
+        systemPrompt,
+        sampling,
+      }
+      const next = [preset, ...presets]
+      setPresets(next)
+      localStorage.setItem(LS_PRESETS, JSON.stringify(next))
+    },
+    [model, systemPrompt, sampling, presets],
+  )
+
+  const applyPreset = useCallback(
+    (id: string) => {
+      const p = presets.find((x) => x.id === id)
+      if (!p) return
+      setModel(p.model)
+      setSystemPrompt(p.systemPrompt)
+      setSampling(p.sampling)
+    },
+    [presets, setModel, setSystemPrompt, setSampling],
+  )
+
+  const deletePreset = useCallback(
+    (id: string) => {
+      const next = presets.filter((x) => x.id !== id)
+      setPresets(next)
+      localStorage.setItem(LS_PRESETS, JSON.stringify(next))
+    },
+    [presets],
+  )
+
+  const saveRun = useCallback(
+    (name: string) => {
+      const run: SavedRun = {
+        id: presetId(),
+        name,
+        createdAt: Date.now(),
+        model,
+        systemPrompt,
+        sampling,
+        messages,
+      }
+      const next = [run, ...savedRuns]
+      setSavedRuns(next)
+      localStorage.setItem(LS_RUNS, JSON.stringify(next))
+    },
+    [model, systemPrompt, sampling, messages, savedRuns],
+  )
+
+  const loadRun = useCallback(
+    (id: string) => {
+      const r = savedRuns.find((x) => x.id === id)
+      if (!r) return
+      setModel(r.model)
+      setSystemPrompt(r.systemPrompt)
+      setSampling(r.sampling)
+      setMessages(r.messages)
+    },
+    [savedRuns, setModel, setSystemPrompt, setSampling],
+  )
+
+  const deleteRun = useCallback(
+    (id: string) => {
+      const next = savedRuns.filter((x) => x.id !== id)
+      setSavedRuns(next)
+      localStorage.setItem(LS_RUNS, JSON.stringify(next))
+    },
+    [savedRuns],
+  )
 
   return {
     messages,
@@ -186,14 +450,24 @@ export function usePlaygroundChat() {
     setModel,
     systemPrompt,
     setSystemPrompt,
-    temperature,
-    setTemperature,
+    sampling,
+    setSampling,
     isStreaming,
     isReasoning,
+    inspector,
+    presets,
+    savedRuns,
     sendMessage,
     regenerate,
     editMessage,
+    forkMessage,
     stopStreaming,
     clearChat,
+    savePreset,
+    applyPreset,
+    deletePreset,
+    saveRun,
+    loadRun,
+    deleteRun,
   }
 }
