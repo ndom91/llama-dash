@@ -350,13 +350,17 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
         const okH = ok > 0 ? Math.max((ok / maxTotal) * 100, 4) : 2
         const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * 100, 4) : 0
         const empty = b.total === 0
+        const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const label = empty ? time : `${time} — ${b.total} req${b.errors ? `, ${b.errors} err` : ''}`
         return (
-          <div key={b.timestamp} className="histogram-bar">
-            {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
-            {okH > 0 ? (
-              <div className="histogram-bar-ok" style={{ height: `${okH}%`, opacity: empty ? 0.15 : undefined }} />
-            ) : null}
-          </div>
+          <Tooltip key={b.timestamp} label={label} side="top">
+            <div className="histogram-bar">
+              {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
+              {okH > 0 ? (
+                <div className="histogram-bar-ok" style={{ height: `${okH}%`, opacity: empty ? 0.15 : undefined }} />
+              ) : null}
+            </div>
+          </Tooltip>
         )
       })}
     </div>
