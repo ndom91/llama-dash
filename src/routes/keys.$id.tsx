@@ -73,7 +73,8 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
             {editing ? (
               <input
                 ref={inputRef}
-                className="ml-2 min-w-[320px] bg-transparent border border-accent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none"
+                className="ml-2 bg-transparent border border-accent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none"
+                style={{ minWidth: `max(320px, ${key.name.length + 2}ch)` }}
                 type="text"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
