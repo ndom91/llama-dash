@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
 import { StatusCell } from '../components/StatusCell'
@@ -36,6 +36,9 @@ function Requests() {
   const [sortKey, setSortKey] = useState<SortKey>('startedAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [keyFilter, setKeyFilter] = useState<string>('all')
+  const [selectedIdx, setSelectedIdx] = useState(-1)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const tbodyRef = useRef<HTMLTableSectionElement>(null)
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
@@ -101,6 +104,52 @@ function Requests() {
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on data change
+  useEffect(() => {
+    setSelectedIdx(-1)
+  }, [rows])
+
+  useEffect(() => {
+    if (selectedIdx < 0 || !tbodyRef.current) return
+    const row = tbodyRef.current.children[selectedIdx] as HTMLElement | undefined
+    row?.scrollIntoView({ block: 'nearest' })
+  }, [selectedIdx])
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+        if (e.key === 'Escape') (e.target as HTMLElement).blur()
+        return
+      }
+
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault()
+        searchRef.current?.focus()
+        return
+      }
+
+      if (rows.length === 0) return
+
+      if (e.key === 'ArrowDown' || e.key === 'j') {
+        e.preventDefault()
+        setSelectedIdx((i) => Math.min(i + 1, rows.length - 1))
+      } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        e.preventDefault()
+        setSelectedIdx((i) => Math.max(i - 1, 0))
+      } else if (e.key === 'Enter' && selectedIdx >= 0 && selectedIdx < rows.length) {
+        e.preventDefault()
+        navigate({ to: '/requests/$id', params: { id: rows[selectedIdx].id } })
+      }
+    },
+    [rows, selectedIdx, navigate],
+  )
+
+  useEffect(() => {
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [onKeyDown])
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else {
@@ -153,6 +202,7 @@ function Requests() {
             <div className="search-box">
               <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
               <input
+                ref={searchRef}
                 type="text"
                 className="search-input"
                 placeholder="Search endpoint, model, status…"
@@ -307,11 +357,11 @@ function Requests() {
                     </SortTh>
                   </tr>
                 </thead>
-                <tbody>
-                  {rows.map((r) => (
+                <tbody ref={tbodyRef}>
+                  {rows.map((r, i) => (
                     <tr
                       key={r.id}
-                      className="clickable-row"
+                      className={`clickable-row${i === selectedIdx ? ' selected-row' : ''}`}
                       onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
                     >
                       <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>

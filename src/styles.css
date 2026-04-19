@@ -451,6 +451,9 @@
 .dtable tbody tr.clickable-row {
   cursor: pointer;
 }
+.dtable tbody tr.selected-row {
+  background: var(--bg-3);
+}
 .dtable td.num {
   text-align: right;
   font-family: var(--font-mono);
