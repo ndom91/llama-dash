@@ -113,7 +113,8 @@ export function getKeyModelBreakdown(keyId: string): Array<ApiKeyModelBreakdown>
 
   const byModel = new Map<string | null, { requestCount: number; totalTokens: number; errorCount: number }>()
   for (const r of rows) {
-    const model = r.model ?? null
+    const raw = r.model ?? null
+    const model = raw?.includes('/') ? raw.split('/').pop()! : raw
     const entry = byModel.get(model) ?? { requestCount: 0, totalTokens: 0, errorCount: 0 }
     entry.requestCount++
     entry.totalTokens += r.totalTokens ?? 0
