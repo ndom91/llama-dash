@@ -62,7 +62,7 @@ export function useHealth(): UseQueryResult<ApiHealth> {
 export function useModels<T = Array<ApiModel>>(select?: (data: Array<ApiModel>) => T): UseQueryResult<T> {
   return useQuery({
     queryKey: qk.models,
-    queryFn: () => api.listModels().then((r) => r.models),
+    queryFn: () => api.listModels().then((r) => mergeModelTransitions(r.models)),
     refetchInterval: POLL_MS,
     select,
   })
@@ -169,27 +169,49 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
   })
 }
 
-// ---- mutations ----
+// ---- optimistic model state ----
 
-function setModelState(qc: ReturnType<typeof useQueryClient>, id: string, running: boolean, state: string) {
-  qc.setQueryData<Array<ApiModel>>(qk.models, (old) => old?.map((m) => (m.id === id ? { ...m, running, state } : m)))
+const pendingLoads = new Set<string>()
+const pendingUnloads = new Set<string>()
+
+function mergeModelTransitions(models: Array<ApiModel>): Array<ApiModel> {
+  return models.map((m) => {
+    if (pendingLoads.has(m.id)) {
+      if (m.running) {
+        pendingLoads.delete(m.id)
+        return m
+      }
+      return { ...m, running: true, state: 'loading' }
+    }
+    if (pendingUnloads.has(m.id)) {
+      if (!m.running) {
+        pendingUnloads.delete(m.id)
+        return m
+      }
+      return { ...m, state: 'stopping' }
+    }
+    return m
+  })
 }
+
+// ---- mutations ----
 
 export function useLoadModel(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.loadModel(id),
     onMutate: (id) => {
-      const prev = qc.getQueryData<Array<ApiModel>>(qk.models)
-      setModelState(qc, id, true, 'loading')
-      return { prev }
+      pendingLoads.add(id)
+      qc.setQueryData<Array<ApiModel>>(qk.models, (old) => old && mergeModelTransitions(old))
     },
     onSuccess: (_data, id) => {
       toast.success(`Loaded ${id}`)
+      pendingLoads.delete(id)
       qc.invalidateQueries({ queryKey: qk.models })
     },
-    onError: (e, _id, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.models, ctx.prev)
+    onError: (e, id) => {
+      pendingLoads.delete(id)
+      qc.invalidateQueries({ queryKey: qk.models })
       toast.error('Load failed', { description: e.message })
     },
   })
@@ -200,16 +222,17 @@ export function useUnloadModel(): UseMutationResult<{ ok: true }, Error, string>
   return useMutation({
     mutationFn: (id: string) => api.unloadModel(id),
     onMutate: (id) => {
-      const prev = qc.getQueryData<Array<ApiModel>>(qk.models)
-      setModelState(qc, id, false, 'stopped')
-      return { prev }
+      pendingUnloads.add(id)
+      qc.setQueryData<Array<ApiModel>>(qk.models, (old) => old && mergeModelTransitions(old))
     },
     onSuccess: (_data, id) => {
       toast.success(`Unloaded ${id}`)
+      pendingUnloads.delete(id)
       qc.invalidateQueries({ queryKey: qk.models })
     },
-    onError: (e, _id, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.models, ctx.prev)
+    onError: (e, id) => {
+      pendingUnloads.delete(id)
+      qc.invalidateQueries({ queryKey: qk.models })
       toast.error('Unload failed', { description: e.message })
     },
   })
@@ -221,17 +244,19 @@ export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
     mutationFn: () => api.unloadAll(),
     onMutate: () => {
       const prev = qc.getQueryData<Array<ApiModel>>(qk.models)
-      qc.setQueryData<Array<ApiModel>>(qk.models, (old) =>
-        old?.map((m) => (m.running ? { ...m, running: false, state: 'stopped' } : m)),
-      )
-      return { prev }
+      prev?.forEach((m) => {
+        if (m.running) pendingUnloads.add(m.id)
+      })
+      qc.setQueryData<Array<ApiModel>>(qk.models, (old) => old && mergeModelTransitions(old))
     },
     onSuccess: () => {
       toast.success('Unloaded all models')
+      pendingUnloads.clear()
       qc.invalidateQueries({ queryKey: qk.models })
     },
-    onError: (e, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(qk.models, ctx.prev)
+    onError: (e) => {
+      pendingUnloads.clear()
+      qc.invalidateQueries({ queryKey: qk.models })
       toast.error('Unload-all failed', { description: e.message })
     },
   })

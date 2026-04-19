@@ -121,11 +121,17 @@ function ModelRow({
   onUnload: () => void
 }) {
   const navigate = useNavigate()
-  const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
+  const tone = loading
+    ? ('warn' as const)
+    : unloading
+      ? ('idle' as const)
+      : model.kind === 'peer'
+        ? ('warn' as const)
+        : stateTone(model.state, model.running)
   return (
     <tr className="clickable-row" onClick={() => navigate({ to: '/models/$id', params: { id: model.id } })}>
       <td>
-        <StatusDot tone={tone} live={model.running} />
+        <StatusDot tone={tone} live={loading || model.running} />
       </td>
       <td className="mono" translate="no">
         {model.id}
@@ -137,11 +143,23 @@ function ModelRow({
         </span>
       </td>
       <td className="hide-mobile">
-        <span className={`state-label state-label-${tone}`}>{model.kind === 'peer' ? 'peer' : model.state}</span>
+        <span className={`state-label state-label-${tone}`}>
+          {loading ? 'loading' : unloading ? 'stopping' : model.kind === 'peer' ? 'peer' : model.state}
+        </span>
       </td>
       <td className="num hide-mobile">
         {model.kind === 'local' ? (
-          model.running ? (
+          loading ? (
+            <button type="button" className="btn btn-xs" disabled title={`Loading ${model.id}`}>
+              <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              loading…
+            </button>
+          ) : unloading ? (
+            <button type="button" className="btn btn-xs" disabled title={`Unloading ${model.id}`}>
+              <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              unloading…
+            </button>
+          ) : model.running ? (
             <button
               type="button"
               className="btn btn-xs"
@@ -149,11 +167,10 @@ function ModelRow({
                 e.stopPropagation()
                 onUnload()
               }}
-              disabled={unloading}
               title={`Unload ${model.id}`}
             >
               <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              {unloading ? 'unloading…' : 'unload'}
+              unload
             </button>
           ) : (
             <button
@@ -163,11 +180,10 @@ function ModelRow({
                 e.stopPropagation()
                 onLoad()
               }}
-              disabled={loading}
               title={`Load ${model.id}`}
             >
               <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              {loading ? 'loading…' : 'load'}
+              load
             </button>
           )
         ) : (
