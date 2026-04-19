@@ -5,6 +5,7 @@ import { cn } from '../lib/cn'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import type { ChatMessage } from '../lib/stream-chat'
+import { Tooltip } from './Tooltip'
 
 export function PlaygroundMessage({
   message,
@@ -107,21 +108,27 @@ export function PlaygroundMessage({
       {showActions ? (
         <div className="pg-msg-actions">
           {message.role === 'user' ? (
-            <button type="button" className="pg-action-btn" onClick={startEdit} title="Edit">
-              <Pencil className="icon-12" strokeWidth={2} />
-            </button>
+            <Tooltip label="Edit">
+              <button type="button" className="pg-action-btn" onClick={startEdit}>
+                <Pencil className="icon-12" strokeWidth={2} />
+              </button>
+            </Tooltip>
           ) : null}
           {isAssistant ? (
-            <button type="button" className="pg-action-btn" onClick={() => onRegenerate(index)} title="Regenerate">
-              <RefreshCw className="icon-12" strokeWidth={2} />
-            </button>
+            <Tooltip label="Regenerate">
+              <button type="button" className="pg-action-btn" onClick={() => onRegenerate(index)}>
+                <RefreshCw className="icon-12" strokeWidth={2} />
+              </button>
+            </Tooltip>
           ) : null}
-          <button type="button" className="pg-action-btn" onClick={copyContent} title="Copy">
-            <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-              <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
-              <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
-            </span>
-          </button>
+          <Tooltip label="Copy">
+            <button type="button" className="pg-action-btn" onClick={copyContent}>
+              <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+                <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
+                <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
+              </span>
+            </button>
+          </Tooltip>
         </div>
       ) : null}
     </div>

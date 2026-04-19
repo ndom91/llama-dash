@@ -2,6 +2,7 @@ import { Download, Loader2, Volume2 } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback } from 'react'
 import { useModels } from '../lib/queries'
 import { usePlaygroundSpeech } from '../lib/use-playground-speech'
+import { Tooltip } from './Tooltip'
 
 export function PlaygroundSpeech() {
   const speech = usePlaygroundSpeech()
@@ -111,18 +112,19 @@ export function PlaygroundSpeech() {
         </div>
       </div>
 
-      <section className="panel pg-chat-panel">
-        <div className="pg-chat-scroll pg-center-content">
+      <section className="panel pg-chat-panel pg-compact-panel">
+        <div className="pg-chat-scroll">
           {speech.error ? <div className="pg-error">{speech.error}</div> : null}
 
           {speech.audioUrl ? (
             <div className="pg-audio-result">
               {/* biome-ignore lint/a11y/useMediaCaption: generated speech has no caption source */}
               <audio src={speech.audioUrl} controls className="pg-audio-player" />
-              <button type="button" className="btn btn-ghost btn-xs" onClick={downloadAudio}>
-                <Download className="icon-12" strokeWidth={2} />
-                download
-              </button>
+              <Tooltip label="Download">
+                <button type="button" className="pg-action-btn" onClick={downloadAudio}>
+                  <Download className="icon-14" strokeWidth={2} />
+                </button>
+              </Tooltip>
             </div>
           ) : !speech.loading && !speech.error ? (
             <div className="pg-empty">
@@ -144,18 +146,19 @@ export function PlaygroundSpeech() {
             onInput={(e) => autoResize(e.currentTarget)}
             spellCheck={false}
           />
-          <button
-            type="submit"
-            className="pg-send-btn"
-            disabled={!speech.model || !speech.text.trim() || speech.loading}
-            title="Generate speech"
-          >
-            {speech.loading ? (
-              <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
-            ) : (
-              <Volume2 className="icon-14" strokeWidth={2} />
-            )}
-          </button>
+          <Tooltip label="Generate speech">
+            <button
+              type="submit"
+              className="pg-send-btn"
+              disabled={!speech.model || !speech.text.trim() || speech.loading}
+            >
+              {speech.loading ? (
+                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+              ) : (
+                <Volume2 className="icon-14" strokeWidth={2} />
+              )}
+            </button>
+          </Tooltip>
         </form>
       </section>
     </>

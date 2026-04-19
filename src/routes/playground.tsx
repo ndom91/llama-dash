@@ -7,6 +7,7 @@ import { PlaygroundMessage } from '../components/PlaygroundMessage'
 import { PlaygroundSettings } from '../components/PlaygroundSettings'
 import { PlaygroundSpeech } from '../components/PlaygroundSpeech'
 import { PlaygroundTranscribe } from '../components/PlaygroundTranscribe'
+import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { cn } from '../lib/cn'
 import { usePlaygroundChat } from '../lib/use-playground-chat'
@@ -168,9 +169,11 @@ function ChatTab() {
             spellCheck={false}
             autoComplete="off"
           />
-          <button type="submit" className="pg-send-btn" disabled={!chat.model || chat.isStreaming} title="Send message">
-            <Send className="icon-14" strokeWidth={2} />
-          </button>
+          <Tooltip label="Send message">
+            <button type="submit" className="pg-send-btn" disabled={!chat.model || chat.isStreaming}>
+              <Send className="icon-14" strokeWidth={2} />
+            </button>
+          </Tooltip>
         </form>
       </section>
     </>

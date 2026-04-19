@@ -1,7 +1,9 @@
 import { Download, ImageIcon, Loader2, Trash2 } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback } from 'react'
 import { useModels } from '../lib/queries'
+import type { ImageEntry } from '../lib/use-playground-image'
 import { usePlaygroundImage } from '../lib/use-playground-image'
+import { Tooltip } from './Tooltip'
 
 export function PlaygroundImage() {
   const img = usePlaygroundImage()
@@ -45,13 +47,6 @@ export function PlaygroundImage() {
     <>
       <div className="pg-settings">
         <div className="pg-settings-row">
-          {img.images.length > 0 ? (
-            <button type="button" className="pg-settings-group pg-new-chat-btn" onClick={img.clearImages}>
-              <Trash2 className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              clear
-            </button>
-          ) : null}
-
           <div className="pg-settings-group">
             <label className="pg-settings-label" htmlFor="pg-img-model">
               model
@@ -100,6 +95,14 @@ export function PlaygroundImage() {
               <option value="1024x1024">1024×1024</option>
             </select>
           </div>
+
+          {img.entries.length > 0 ? (
+            <Tooltip label="Clear">
+              <button type="button" className="pg-action-btn ml-auto" onClick={img.clearEntries}>
+                <Trash2 className="icon-14" strokeWidth={2} />
+              </button>
+            </Tooltip>
+          ) : null}
         </div>
       </div>
 
@@ -107,20 +110,10 @@ export function PlaygroundImage() {
         <div className="pg-chat-scroll">
           {img.error ? <div className="pg-error">{img.error}</div> : null}
 
-          {img.images.length > 0 ? (
-            <div className="pg-img-grid">
-              {img.images.map((image, i) => (
-                <div key={image.id} className="pg-img-card">
-                  <img src={image.url} alt={image.revisedPrompt ?? 'Generated image'} className="pg-img-result" />
-                  <button
-                    type="button"
-                    className="pg-img-download"
-                    onClick={() => downloadImage(image.url, i)}
-                    title="Download"
-                  >
-                    <Download className="icon-14" strokeWidth={2} />
-                  </button>
-                </div>
+          {img.entries.length > 0 ? (
+            <div className="pg-img-entries">
+              {img.entries.map((entry) => (
+                <ImageEntryCard key={entry.id} entry={entry} onDownload={downloadImage} />
               ))}
             </div>
           ) : !img.loading && !img.error ? (
@@ -143,20 +136,47 @@ export function PlaygroundImage() {
             onInput={(e) => autoResize(e.currentTarget)}
             spellCheck={false}
           />
-          <button
-            type="submit"
-            className="pg-send-btn"
-            disabled={!img.model || !img.prompt.trim() || img.loading}
-            title="Generate image"
-          >
-            {img.loading ? (
-              <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
-            ) : (
-              <ImageIcon className="icon-14" strokeWidth={2} />
-            )}
-          </button>
+          <Tooltip label="Generate image">
+            <button type="submit" className="pg-send-btn" disabled={!img.model || !img.prompt.trim() || img.loading}>
+              {img.loading ? (
+                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+              ) : (
+                <ImageIcon className="icon-14" strokeWidth={2} />
+              )}
+            </button>
+          </Tooltip>
         </form>
       </section>
     </>
+  )
+}
+
+function ImageEntryCard({
+  entry,
+  onDownload,
+}: {
+  entry: ImageEntry
+  onDownload: (url: string, index: number) => void
+}) {
+  return (
+    <div className="pg-img-entry">
+      <div className="pg-img-entry-prompt">{entry.prompt}</div>
+      {entry.kind === 'images' ? (
+        <div className="pg-img-grid">
+          {entry.images.map((image, i) => (
+            <div key={image.url} className="pg-img-card">
+              <img src={image.url} alt={image.revisedPrompt ?? 'Generated image'} className="pg-img-result" />
+              <Tooltip label="Download">
+                <button type="button" className="pg-img-download" onClick={() => onDownload(image.url, i)}>
+                  <Download className="icon-14" strokeWidth={2} />
+                </button>
+              </Tooltip>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="pg-img-text-response">{entry.text}</div>
+      )}
+    </div>
   )
 }

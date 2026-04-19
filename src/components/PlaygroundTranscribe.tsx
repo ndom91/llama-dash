@@ -3,6 +3,7 @@ import { type DragEvent, useCallback, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
 import { useModels } from '../lib/queries'
 import { usePlaygroundTranscribe } from '../lib/use-playground-transcribe'
+import { Tooltip } from './Tooltip'
 
 function fmtSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -90,11 +91,12 @@ export function PlaygroundTranscribe() {
         </div>
       </div>
 
-      <section className="panel pg-chat-panel">
-        <div className="pg-chat-scroll pg-center-content">
+      <section className="panel pg-chat-panel pg-compact-panel">
+        <div className="pg-chat-scroll">
           {tx.error ? <div className="pg-error">{tx.error}</div> : null}
 
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: dropzone delegates to hidden file input */}
+          {/* biome-ignore lint/a11y/useSemanticElements: dropzone needs drag events that button doesn't support */}
           <div
             role="button"
             tabIndex={tx.file ? -1 : 0}
@@ -122,17 +124,18 @@ export function PlaygroundTranscribe() {
                   <div className="pg-file-name">{tx.file.name}</div>
                   <div className="pg-file-size">{fmtSize(tx.file.size)}</div>
                 </div>
-                <button
-                  type="button"
-                  className="pg-action-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    tx.setFile(null)
-                  }}
-                  title="Remove file"
-                >
-                  <Trash2 className="icon-12" strokeWidth={2} />
-                </button>
+                <Tooltip label="Remove file">
+                  <button
+                    type="button"
+                    className="pg-action-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      tx.setFile(null)
+                    }}
+                  >
+                    <Trash2 className="icon-12" strokeWidth={2} />
+                  </button>
+                </Tooltip>
               </div>
             ) : (
               <>
@@ -147,12 +150,14 @@ export function PlaygroundTranscribe() {
             <div className="pg-transcript">
               <div className="pg-transcript-header">
                 <span className="pg-settings-label">transcript</span>
-                <button type="button" className="pg-action-btn" onClick={copyTranscript} title="Copy">
-                  <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                    <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
-                    <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
-                  </span>
-                </button>
+                <Tooltip label="Copy">
+                  <button type="button" className="pg-action-btn" onClick={copyTranscript}>
+                    <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+                      <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
+                      <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
+                    </span>
+                  </button>
+                </Tooltip>
               </div>
               <p className="pg-transcript-text">{tx.transcript}</p>
             </div>
@@ -172,19 +177,20 @@ export function PlaygroundTranscribe() {
             </button>
           )}
 
-          <button
-            type="button"
-            className="pg-send-btn"
-            disabled={!tx.model || !tx.file || tx.loading}
-            onClick={tx.transcribe}
-            title="Transcribe"
-          >
-            {tx.loading ? (
-              <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
-            ) : (
-              <FileAudio className="icon-14" strokeWidth={2} />
-            )}
-          </button>
+          <Tooltip label="Transcribe">
+            <button
+              type="button"
+              className="pg-send-btn"
+              disabled={!tx.model || !tx.file || tx.loading}
+              onClick={tx.transcribe}
+            >
+              {tx.loading ? (
+                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+              ) : (
+                <FileAudio className="icon-14" strokeWidth={2} />
+              )}
+            </button>
+          </Tooltip>
         </div>
       </section>
     </>

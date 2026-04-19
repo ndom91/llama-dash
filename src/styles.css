@@ -2288,8 +2288,16 @@ a,
 
 /* ── playground shared ──────────────────────────────────── */
 
-.pg-center-content {
-  justify-content: center;
+.pg-compact-panel {
+  flex: 0 1 auto;
+  min-height: 300px;
+}
+
+.pg-compact-panel > .pg-chat-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: visible;
 }
 
 .pg-error {
@@ -2332,6 +2340,40 @@ a,
   border-radius: 50%;
   background: var(--err);
   animation: pg-pulse 1s ease-in-out infinite;
+}
+
+/* image entries */
+
+.pg-img-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pg-img-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pg-img-entry-prompt {
+  font-size: 13px;
+  color: var(--fg-2);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+}
+
+.pg-img-text-response {
+  font-size: 13px;
+  color: var(--fg);
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* image grid */
@@ -2385,17 +2427,17 @@ a,
 
 .pg-audio-result {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
+  gap: 10px;
+  padding: 16px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-1);
 }
 
 .pg-audio-player {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   max-width: 480px;
   height: 40px;
 }
@@ -2404,6 +2446,7 @@ a,
 
 .pg-dropzone {
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
