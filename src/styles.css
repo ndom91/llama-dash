@@ -180,6 +180,8 @@
 
   --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
 
+  --accent-shifted: oklch(72% 0.09 60);
+
   --radius-sm: 3px;
   --radius: 6px;
   --radius-lg: 9px;
@@ -1240,14 +1242,14 @@ a,
   transform: rotate(45deg);
 }
 .llama-tooltip[data-side='top']::after {
-  bottom: -5px;
+  bottom: -4px;
   left: 50%;
   margin-left: -4px;
   border-top: none;
   border-left: none;
 }
 .llama-tooltip[data-side='bottom']::after {
-  top: -5px;
+  top: -4px;
   left: 50%;
   margin-left: -4px;
   border-bottom: none;
