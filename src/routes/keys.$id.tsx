@@ -75,9 +75,17 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
                 ref={inputRef}
                 className={cn(
                   'bg-transparent rounded px-1.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none',
-                  editing ? 'border border-accent min-w-[320px]' : 'border border-transparent cursor-pointer',
+                  editing
+                    ? 'border border-accent min-w-[320px] w-auto'
+                    : 'border border-transparent cursor-pointer w-[--name-w]',
                 )}
-                style={{ height: 'auto', lineHeight: 'inherit' }}
+                style={
+                  {
+                    height: 'auto',
+                    lineHeight: 'inherit',
+                    ...(!editing && { '--name-w': `${key.name.length + 1}ch` }),
+                  } as React.CSSProperties
+                }
                 type="text"
                 value={editing ? draft : key.name}
                 readOnly={!editing}
