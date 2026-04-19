@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LogsRouteImport } from './routes/logs'
+import { Route as EndpointsRouteImport } from './routes/endpoints'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
@@ -28,6 +29,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EndpointsRoute = EndpointsRouteImport.update({
+  id: '/endpoints',
+  path: '/endpoints',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -74,6 +80,7 @@ const KeysIdRoute = KeysIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
+  '/endpoints': typeof EndpointsRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/keys/$id': typeof KeysIdRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
+  '/endpoints': typeof EndpointsRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/keys/$id': typeof KeysIdRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
+  '/endpoints': typeof EndpointsRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/keys/$id': typeof KeysIdRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/config'
+    | '/endpoints'
     | '/logs'
     | '/playground'
     | '/keys/$id'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/config'
+    | '/endpoints'
     | '/logs'
     | '/playground'
     | '/keys/$id'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/config'
+    | '/endpoints'
     | '/logs'
     | '/playground'
     | '/keys/$id'
@@ -150,6 +162,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfigRoute: typeof ConfigRoute
+  EndpointsRoute: typeof EndpointsRoute
   LogsRoute: typeof LogsRoute
   PlaygroundRoute: typeof PlaygroundRoute
   KeysIdRoute: typeof KeysIdRoute
@@ -174,6 +187,13 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/endpoints': {
+      id: '/endpoints'
+      path: '/endpoints'
+      fullPath: '/endpoints'
+      preLoaderRoute: typeof EndpointsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -238,6 +258,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfigRoute: ConfigRoute,
+  EndpointsRoute: EndpointsRoute,
   LogsRoute: LogsRoute,
   PlaygroundRoute: PlaygroundRoute,
   KeysIdRoute: KeysIdRoute,
