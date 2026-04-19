@@ -467,7 +467,7 @@ function TokenTrace({
           <div className="token-trace-fill" />
         </div>
         <div className="token-trace-labels">
-          <span className="token-trace-label" style={{ color: 'var(--warn)' }}>
+          <span className="token-trace-label" style={{ color: 'var(--accent-shifted)' }}>
             start
           </span>
           <span className="token-trace-label">

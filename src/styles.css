@@ -180,7 +180,7 @@
 
   --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
 
-  --accent-shifted: oklch(78% 0.054 0);
+  --accent-shifted: oklch(84% 0.036 300);
 
   --radius-sm: 3px;
   --radius: 6px;
@@ -1714,7 +1714,7 @@ a,
 }
 .token-trace-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-shifted) 0%, var(--accent) 15%, var(--accent) 100%);
+  background: linear-gradient(90deg, var(--accent-shifted) 0%, var(--accent) 40%);
   opacity: 0.5;
   border-radius: var(--radius-sm);
   width: 100%;
