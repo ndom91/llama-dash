@@ -11,13 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LogsRouteImport } from './routes/logs'
-import { Route as KeysRouteImport } from './routes/keys'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
 import { Route as ModelsIndexRouteImport } from './routes/models.index'
+import { Route as KeysIndexRouteImport } from './routes/keys.index'
 import { Route as RequestsIdRouteImport } from './routes/requests.$id'
 import { Route as ModelsIdRouteImport } from './routes/models.$id'
+import { Route as KeysIdRouteImport } from './routes/keys.$id'
 
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
@@ -27,11 +28,6 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KeysRoute = KeysRouteImport.update({
-  id: '/keys',
-  path: '/keys',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfigRoute = ConfigRouteImport.update({
@@ -54,6 +50,11 @@ const ModelsIndexRoute = ModelsIndexRouteImport.update({
   path: '/models/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KeysIndexRoute = KeysIndexRouteImport.update({
+  id: '/keys/',
+  path: '/keys/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsIdRoute = RequestsIdRouteImport.update({
   id: '/requests/$id',
   path: '/requests/$id',
@@ -64,26 +65,33 @@ const ModelsIdRoute = ModelsIdRouteImport.update({
   path: '/models/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KeysIdRoute = KeysIdRouteImport.update({
+  id: '/keys/$id',
+  path: '/keys/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
-  '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
+  '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/keys/': typeof KeysIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
-  '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
+  '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/keys': typeof KeysIndexRoute
   '/models': typeof ModelsIndexRoute
   '/requests': typeof RequestsIndexRoute
 }
@@ -91,11 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/config': typeof ConfigRoute
-  '/keys': typeof KeysRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
+  '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/keys/': typeof KeysIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
 }
@@ -104,33 +113,36 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/config'
-    | '/keys'
     | '/logs'
     | '/playground'
+    | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/keys/'
     | '/models/'
     | '/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/config'
-    | '/keys'
     | '/logs'
     | '/playground'
+    | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/keys'
     | '/models'
     | '/requests'
   id:
     | '__root__'
     | '/'
     | '/config'
-    | '/keys'
     | '/logs'
     | '/playground'
+    | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/keys/'
     | '/models/'
     | '/requests/'
   fileRoutesById: FileRoutesById
@@ -138,11 +150,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConfigRoute: typeof ConfigRoute
-  KeysRoute: typeof KeysRoute
   LogsRoute: typeof LogsRoute
   PlaygroundRoute: typeof PlaygroundRoute
+  KeysIdRoute: typeof KeysIdRoute
   ModelsIdRoute: typeof ModelsIdRoute
   RequestsIdRoute: typeof RequestsIdRoute
+  KeysIndexRoute: typeof KeysIndexRoute
   ModelsIndexRoute: typeof ModelsIndexRoute
   RequestsIndexRoute: typeof RequestsIndexRoute
 }
@@ -161,13 +174,6 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof LogsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/keys': {
-      id: '/keys'
-      path: '/keys'
-      fullPath: '/keys'
-      preLoaderRoute: typeof KeysRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/config': {
@@ -198,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/keys/': {
+      id: '/keys/'
+      path: '/keys'
+      fullPath: '/keys/'
+      preLoaderRoute: typeof KeysIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests/$id': {
       id: '/requests/$id'
       path: '/requests/$id'
@@ -212,17 +225,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ModelsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/keys/$id': {
+      id: '/keys/$id'
+      path: '/keys/$id'
+      fullPath: '/keys/$id'
+      preLoaderRoute: typeof KeysIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConfigRoute: ConfigRoute,
-  KeysRoute: KeysRoute,
   LogsRoute: LogsRoute,
   PlaygroundRoute: PlaygroundRoute,
+  KeysIdRoute: KeysIdRoute,
   ModelsIdRoute: ModelsIdRoute,
   RequestsIdRoute: RequestsIdRoute,
+  KeysIndexRoute: KeysIndexRoute,
   ModelsIndexRoute: ModelsIndexRoute,
   RequestsIndexRoute: RequestsIndexRoute,
 }

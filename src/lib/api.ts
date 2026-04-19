@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
-import { ApiKeyCreatedSchema, ApiKeyListResponseSchema } from './schemas/api-key'
+import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
@@ -35,7 +35,7 @@ export type {
   ApiConfigValidation,
   ApiConfigSaveResult,
 } from './schemas/config'
-export type { ApiKeyItem, ApiKeyCreated } from './schemas/api-key'
+export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -95,6 +95,7 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return fetch(`/api/requests/histogram${suffix}`).then(validated(HistogramResponseSchema))
   },
+  getKeyDetail: (id: string) => fetch(`/api/keys/${id}`).then(validated(KeyDetailResponseSchema)),
   listKeys: () => fetch('/api/keys').then(validated(ApiKeyListResponseSchema)),
   createKey: (body: {
     name: string

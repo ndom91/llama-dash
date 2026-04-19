@@ -4,7 +4,16 @@ import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schema
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { createApiKey, deleteApiKey, getSystemKeyRaw, listApiKeys, renameApiKey, revokeApiKey } from './api-keys.ts'
+import {
+  createApiKey,
+  deleteApiKey,
+  getApiKeyById,
+  getSystemKeyRaw,
+  listApiKeys,
+  renameApiKey,
+  revokeApiKey,
+} from './api-keys.ts'
+import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from './key-detail.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import {
   extractModelConfig,
@@ -290,6 +299,23 @@ const routes: Array<Route> = [
       }
       const created = createApiKey(result.output)
       return json(201, created)
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/keys\/([a-zA-Z0-9_]+)$/,
+    handler: async (_request, match) => {
+      const id = match[1]
+      const key = getApiKeyById(id)
+      if (!key) return error(404, `Key ${id} not found`)
+
+      const [stats, requests, modelBreakdown] = await Promise.all([
+        getKeyStats(id),
+        getKeyRequests(id, 20),
+        getKeyModelBreakdown(id),
+      ])
+
+      return json(200, { key, stats, requests, modelBreakdown })
     },
   },
   {

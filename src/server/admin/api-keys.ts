@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import type { ApiKeyItem } from '../../lib/schemas/api-key.ts'
 import { db, schema } from '../db/index.ts'
@@ -13,6 +13,15 @@ export function listApiKeys(): Array<ApiKeyItem> {
     .all()
 
   return rows.map(toApiShape)
+}
+
+export function getApiKeyById(id: string): ApiKeyItem | null {
+  const row = db
+    .select()
+    .from(schema.apiKeys)
+    .where(and(eq(schema.apiKeys.id, id), eq(schema.apiKeys.system, false)))
+    .get()
+  return row ? toApiShape(row) : null
 }
 
 export function createApiKey(input: {

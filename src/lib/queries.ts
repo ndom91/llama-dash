@@ -14,6 +14,7 @@ import {
   type ApiHealth,
   type ApiHistogramBucket,
   type ApiKeyCreated,
+  type ApiKeyDetail,
   type ApiKeyItem,
   type ApiModel,
   type ApiModelDetail,
@@ -39,6 +40,7 @@ export const qk = {
   request: (id: string) => ['requests', id] as const,
   modelDetail: (id: string) => ['models', id] as const,
   keys: ['keys'] as const,
+  keyDetail: (id: string) => ['keys', id] as const,
 }
 
 // ---- queries ----
@@ -229,6 +231,14 @@ export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
 }
 
 // ---- API keys ----
+
+export function useKeyDetail(id: string): UseQueryResult<ApiKeyDetail> {
+  return useQuery({
+    queryKey: qk.keyDetail(id),
+    queryFn: () => api.getKeyDetail(id),
+    refetchInterval: POLL_MS,
+  })
+}
 
 export function useApiKeys(): UseQueryResult<Array<ApiKeyItem>> {
   return useQuery({

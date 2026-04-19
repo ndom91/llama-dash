@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, Copy, KeyRound, Pencil, Plus, ShieldAlert, Trash2, X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { CopyableCode } from '../components/CopyableCode'
@@ -16,7 +16,7 @@ import {
   useRevokeApiKey,
 } from '../lib/queries'
 
-export const Route = createFileRoute('/keys')({ component: Keys })
+export const Route = createFileRoute('/keys/')({ component: Keys })
 
 function Keys() {
   const { data: keys, error, isLoading } = useApiKeys()
@@ -232,6 +232,7 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
 }
 
 function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
+  const navigate = useNavigate()
   const revokeKey = useRevokeApiKey()
   const deleteKey = useDeleteApiKey()
   const renameKey = useRenameApiKey()
@@ -240,7 +241,8 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
   const [draft, setDraft] = useState(apiKey.name)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const startEdit = () => {
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (isRevoked) return
     setDraft(apiKey.name)
     setEditing(true)
@@ -257,7 +259,10 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
   }
 
   return (
-    <tr className={isRevoked ? 'row-revoked' : ''}>
+    <tr
+      className={`clickable-row${isRevoked ? ' row-revoked' : ''}`}
+      onClick={() => navigate({ to: '/keys/$id', params: { id: apiKey.id } })}
+    >
       <td>
         <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
       </td>
@@ -305,7 +310,10 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
             <button
               type="button"
               className="btn btn-danger-ghost btn-xs"
-              onClick={() => deleteKey.mutate(apiKey.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteKey.mutate(apiKey.id)
+              }}
               disabled={deleteKey.isPending}
             >
               <Trash2 className="icon-btn-12" strokeWidth={2} />
@@ -317,7 +325,10 @@ function KeyRow({ apiKey }: { apiKey: ApiKeyItem }) {
             <button
               type="button"
               className="btn btn-xs"
-              onClick={() => revokeKey.mutate(apiKey.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                revokeKey.mutate(apiKey.id)
+              }}
               disabled={revokeKey.isPending}
             >
               {revokeKey.isPending ? 'revoking…' : 'revoke'}
