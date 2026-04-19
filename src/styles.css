@@ -484,6 +484,43 @@
   color: var(--fg-dim);
 }
 
+.dtable-virtual-wrap {
+  display: flex;
+  flex-direction: column;
+  max-height: min(70vh, 800px);
+}
+.dtable-virtual {
+  table-layout: fixed;
+}
+.dtable-virtual-body {
+  flex: 1;
+  overflow: auto;
+}
+.dtable-virtual-body::-webkit-scrollbar {
+  width: 10px;
+}
+.dtable-virtual-body::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-3));
+  border: 2px solid var(--bg-1);
+  border-radius: var(--radius-pill);
+}
+.dtable-virtual-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 50%, var(--bg-3));
+}
+.dtable-virtual-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vt-row {
+  cursor: pointer;
+  transition: background-color var(--duration-micro) ease;
+}
+.vt-row:hover {
+  background: var(--bg-2);
+}
+.vt-row.selected-row {
+  background: var(--bg-3);
+}
+
 .empty-state {
   padding: 28px;
   text-align: center;

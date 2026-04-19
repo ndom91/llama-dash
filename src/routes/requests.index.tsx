@@ -1,6 +1,8 @@
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowDown, ArrowUp, Download, RefreshCw, Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
 import { StatusCell } from '../components/StatusCell'
@@ -18,6 +20,20 @@ export const Route = createFileRoute('/requests/')({
     model: typeof search.model === 'string' ? search.model : undefined,
   }),
 })
+
+const ROW_HEIGHT = 37
+const COL_WIDTHS = [100, '22%', '28%', 70, 80, 80, 110] as const
+
+function VtColgroup() {
+  return (
+    <colgroup>
+      {COL_WIDTHS.map((w, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static column list
+        <col key={i} style={{ width: w }} />
+      ))}
+    </colgroup>
+  )
+}
 
 type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
 type SortDir = 'asc' | 'desc'
@@ -38,7 +54,6 @@ function Requests() {
   const [keyFilter, setKeyFilter] = useState<string>('all')
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
-  const tbodyRef = useRef<HTMLTableSectionElement>(null)
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
@@ -103,6 +118,25 @@ function Requests() {
 
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  const fetchNextRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length })
+  fetchNextRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length }
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+    onChange: (v) => {
+      const last = v.getVirtualItems().at(-1)
+      if (!last) return
+      const { hasNextPage, isFetchingNextPage, fetchNextPage, rowCount } = fetchNextRef.current
+      if (last.index >= rowCount - 20 && hasNextPage && !isFetchingNextPage) {
+        fetchNextPage()
+      }
+    },
+  })
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on data change
   useEffect(() => {
@@ -110,10 +144,8 @@ function Requests() {
   }, [rows])
 
   useEffect(() => {
-    if (selectedIdx < 0 || !tbodyRef.current) return
-    const row = tbodyRef.current.children[selectedIdx] as HTMLElement | undefined
-    row?.scrollIntoView({ block: 'nearest' })
-  }, [selectedIdx])
+    if (selectedIdx >= 0) virtualizer.scrollToIndex(selectedIdx, { align: 'auto' })
+  }, [selectedIdx, virtualizer])
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -306,109 +338,97 @@ function Requests() {
                 )}
               </div>
             ) : (
-              <table className="dtable">
-                <thead>
-                  <tr>
-                    <SortTh
-                      field="startedAt"
-                      current={sortKey}
-                      dir={sortDir}
-                      onToggle={toggleSort}
-                      className="mono"
-                      style={{ width: 100, whiteSpace: 'nowrap' }}
-                    >
-                      t
-                    </SortTh>
-                    <th className="mono" style={{ width: '22%' }}>
-                      endpoint
-                    </th>
-                    <th style={{ width: '28%' }}>model</th>
-                    <SortTh
-                      field="statusCode"
-                      current={sortKey}
-                      dir={sortDir}
-                      onToggle={toggleSort}
-                      style={{ width: 70 }}
-                    >
-                      status
-                    </SortTh>
-                    <SortTh
-                      field="totalTokens"
-                      current={sortKey}
-                      dir={sortDir}
-                      onToggle={toggleSort}
-                      className="num"
-                      style={{ width: 80 }}
-                    >
-                      tok-in
-                    </SortTh>
-                    <th className="num" style={{ width: 80 }}>
-                      tok-out
-                    </th>
-                    <SortTh
-                      field="durationMs"
-                      current={sortKey}
-                      dir={sortDir}
-                      onToggle={toggleSort}
-                      className="num"
-                      style={{ width: 140 }}
-                    >
-                      duration
-                    </SortTh>
-                  </tr>
-                </thead>
-                <tbody ref={tbodyRef}>
-                  {rows.map((r, i) => (
-                    <tr
-                      key={r.id}
-                      className={`clickable-row${i === selectedIdx ? ' selected-row' : ''}`}
-                      onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
-                    >
-                      <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                        {formatWhen(r.startedAt)}
-                      </td>
-                      <td className="mono" translate="no">
-                        {r.endpoint}
-                      </td>
-                      <td
-                        className="dim"
-                        style={{
-                          maxWidth: 260,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                        translate="no"
-                      >
-                        {r.model ?? '—'}
-                      </td>
-                      <td>
-                        <StatusCell code={r.statusCode} streamed={r.streamed} />
-                      </td>
-                      <td className="num dim">{r.promptTokens ?? '—'}</td>
-                      <td className="num">{r.completionTokens ?? '—'}</td>
-                      <td>
-                        <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
-                      </td>
+              <div className="dtable-virtual-wrap">
+                <table className="dtable dtable-virtual">
+                  <VtColgroup />
+                  <thead>
+                    <tr>
+                      <SortTh field="startedAt" current={sortKey} dir={sortDir} onToggle={toggleSort} className="mono">
+                        t
+                      </SortTh>
+                      <th className="mono">endpoint</th>
+                      <th>model</th>
+                      <SortTh field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                        status
+                      </SortTh>
+                      <SortTh field="totalTokens" current={sortKey} dir={sortDir} onToggle={toggleSort} className="num">
+                        tok-in
+                      </SortTh>
+                      <th className="num">tok-out</th>
+                      <SortTh field="durationMs" current={sortKey} dir={sortDir} onToggle={toggleSort} className="num">
+                        duration
+                      </SortTh>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                </table>
+                <div ref={scrollRef} className="dtable-virtual-body">
+                  <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                    {virtualizer.getVirtualItems().map((vRow) => {
+                      const r = rows[vRow.index]
+                      return (
+                        // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled globally
+                        <div
+                          key={r.id}
+                          tabIndex={-1}
+                          className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: ROW_HEIGHT,
+                            transform: `translateY(${vRow.start}px)`,
+                          }}
+                          onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                          }}
+                        >
+                          <table className="dtable dtable-virtual">
+                            <VtColgroup />
+                            <tbody>
+                              <tr>
+                                <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                                  {formatWhen(r.startedAt)}
+                                </td>
+                                <td className="mono" translate="no">
+                                  {r.endpoint}
+                                </td>
+                                <td
+                                  className="dim"
+                                  style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  translate="no"
+                                >
+                                  {r.model ?? '—'}
+                                </td>
+                                <td>
+                                  <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                </td>
+                                <td className="num dim">{r.promptTokens ?? '—'}</td>
+                                <td className="num">{r.completionTokens ?? '—'}</td>
+                                <td>
+                                  <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {isFetchingNextPage ? (
+                    <div className="empty-state" style={{ padding: '8px 0' }}>
+                      loading more…
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             )}
           </section>
-
-          {hasNextPage ? (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn-xs"
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-              >
-                {isFetchingNextPage ? 'loading…' : 'load more'}
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
     </div>
@@ -430,7 +450,8 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
         const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * barPx, 3) : 0
         const empty = b.total === 0
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const label = empty ? time : `${time} · ${b.total}${b.errors ? ` (${b.errors} err)` : ''}`
+        const errSuffix = b.errors ? ' (' + b.errors + ' err)' : ''
+        const label = empty ? time : time + ' · ' + b.total + errSuffix
         return (
           <div key={b.timestamp} className="histogram-bar">
             <Tooltip label={label} side="top">
@@ -455,7 +476,6 @@ function SortTh({
   onToggle,
   children,
   className,
-  style,
 }: {
   field: SortKey
   current: SortKey
@@ -463,15 +483,14 @@ function SortTh({
   onToggle: (k: SortKey) => void
   children: React.ReactNode
   className?: string
-  style?: React.CSSProperties
 }) {
   const active = current === field
   const Icon = active && dir === 'asc' ? ArrowUp : ArrowDown
   return (
-    <th className={`sortable-th ${className ?? ''}`} style={style} onClick={() => onToggle(field)}>
+    <th className={cn('sortable-th', className)} onClick={() => onToggle(field)}>
       <span className="sort-label">
         {children}
-        <Icon className={`sort-icon${active ? ' active' : ''}`} size={12} strokeWidth={2} aria-hidden="true" />
+        <Icon className={cn('sort-icon', active && 'active')} size={12} strokeWidth={2} aria-hidden="true" />
       </span>
     </th>
   )
