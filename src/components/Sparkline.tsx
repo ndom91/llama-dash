@@ -8,10 +8,12 @@ function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.5): string
     const p1 = pts[i]
     const p2 = pts[i + 1]
     const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const minY = Math.min(p1.y, p2.y)
+    const maxY = Math.max(p1.y, p2.y)
     const cp1x = p1.x + ((p2.x - p0.x) * tension) / 3
-    const cp1y = p1.y + ((p2.y - p0.y) * tension) / 3
+    const cp1y = Math.min(maxY, Math.max(minY, p1.y + ((p2.y - p0.y) * tension) / 3))
     const cp2x = p2.x - ((p3.x - p1.x) * tension) / 3
-    const cp2y = p2.y - ((p3.y - p1.y) * tension) / 3
+    const cp2y = Math.min(maxY, Math.max(minY, p2.y - ((p3.y - p1.y) * tension) / 3))
     d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
   }
   return d
