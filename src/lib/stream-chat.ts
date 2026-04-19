@@ -17,10 +17,14 @@ export async function* streamChatCompletion(
   model: string,
   temperature: number,
   signal?: AbortSignal,
+  apiKey?: string,
 ): AsyncGenerator<StreamChunk> {
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`
+
   const res = await fetch('/v1/chat/completions', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify({ model, messages, stream: true, temperature }),
     signal,
   })

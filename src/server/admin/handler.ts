@@ -4,7 +4,7 @@ import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schema
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
-import { createApiKey, deleteApiKey, listApiKeys, renameApiKey, revokeApiKey } from './api-keys.ts'
+import { createApiKey, deleteApiKey, getSystemKeyRaw, listApiKeys, renameApiKey, revokeApiKey } from './api-keys.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import {
   extractModelConfig,
@@ -330,6 +330,15 @@ const routes: Array<Route> = [
       const ok = deleteApiKey(id)
       if (!ok) return error(404, `Key ${id} not found`)
       return json(200, { ok: true })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/playground-key$/,
+    handler: async () => {
+      const raw = getSystemKeyRaw()
+      if (!raw) return error(500, 'System key not available')
+      return json(200, { key: raw })
     },
   },
   {

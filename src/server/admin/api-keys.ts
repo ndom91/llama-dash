@@ -5,7 +5,12 @@ import type { ApiKeyItem } from '../../lib/schemas/api-key.ts'
 import { db, schema } from '../db/index.ts'
 
 export function listApiKeys(): Array<ApiKeyItem> {
-  const rows = db.select().from(schema.apiKeys).orderBy(desc(schema.apiKeys.createdAt)).all()
+  const rows = db
+    .select()
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.system, false))
+    .orderBy(desc(schema.apiKeys.createdAt))
+    .all()
 
   return rows.map(toApiShape)
 }
@@ -34,6 +39,7 @@ export function createApiKey(input: {
     rateLimitRpm: input.rateLimitRpm ?? null,
     rateLimitTpm: input.rateLimitTpm ?? null,
     monthlyTokenQuota: input.monthlyTokenQuota ?? null,
+    system: false,
   }
 
   db.insert(schema.apiKeys).values(row).run()
@@ -64,17 +70,83 @@ export function findKeyByHash(hash: string): schema.ApiKey | undefined {
   return db.select().from(schema.apiKeys).where(eq(schema.apiKeys.keyHash, hash)).get()
 }
 
-let _hasKeysCache: boolean | null = null
+let _hasUserKeysCache: boolean | null = null
 
-export function hasAnyKeys(): boolean {
-  if (_hasKeysCache != null) return _hasKeysCache
-  const row = db.select({ id: schema.apiKeys.id }).from(schema.apiKeys).limit(1).get()
-  _hasKeysCache = row != null
-  return _hasKeysCache
+export function hasAnyUserKeys(): boolean {
+  if (_hasUserKeysCache != null) return _hasUserKeysCache
+  const row = db
+    .select({ id: schema.apiKeys.id })
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.system, false))
+    .limit(1)
+    .get()
+  _hasUserKeysCache = row != null
+  return _hasUserKeysCache
 }
 
 export function invalidateKeyCache() {
-  _hasKeysCache = null
+  _hasUserKeysCache = null
+}
+
+let _systemRawKey: string | null = null
+
+export function ensureSystemKey(): void {
+  const existing = db
+    .select({ id: schema.apiKeys.id, keyHash: schema.apiKeys.keyHash })
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.system, true))
+    .get()
+
+  if (existing) {
+    _systemRawKey = null
+    return
+  }
+
+  const rawKey = `sk-sys-${randomBytes(32).toString('hex')}`
+  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+  const id = `key_${ulid()}`
+
+  db.insert(schema.apiKeys)
+    .values({
+      id,
+      name: 'Playground (system)',
+      keyHash,
+      keyPrefix: rawKey.slice(0, 10),
+      createdAt: new Date(),
+      disabledAt: null,
+      allowedModels: '[]',
+      rateLimitRpm: null,
+      rateLimitTpm: null,
+      monthlyTokenQuota: null,
+      system: true,
+    })
+    .run()
+
+  _systemRawKey = rawKey
+}
+
+export function getSystemKeyRaw(): string | null {
+  if (_systemRawKey) return _systemRawKey
+
+  const row = db
+    .select({ keyHash: schema.apiKeys.keyHash })
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.system, true))
+    .get()
+
+  if (!row) return null
+
+  // Can't reverse hash — if key existed before this boot, we need to regenerate
+  const rawKey = `sk-sys-${randomBytes(32).toString('hex')}`
+  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+
+  db.update(schema.apiKeys)
+    .set({ keyHash, keyPrefix: rawKey.slice(0, 10) })
+    .where(eq(schema.apiKeys.system, true))
+    .run()
+
+  _systemRawKey = rawKey
+  return _systemRawKey
 }
 
 function toApiShape(row: schema.ApiKey): ApiKeyItem {

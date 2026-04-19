@@ -1,0 +1,1 @@
+ALTER TABLE `api_keys` ADD `system` integer DEFAULT false NOT NULL;

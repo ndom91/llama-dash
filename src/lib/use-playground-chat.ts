@@ -35,6 +35,16 @@ export function usePlaygroundChat() {
   const [isReasoning, setIsReasoning] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const apiKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/playground-key')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.key) apiKeyRef.current = d.key
+      })
+      .catch(() => {})
+  }, [])
 
   const persistMessages = useCallback((msgs: Array<ChatMessage>) => {
     clearTimeout(saveTimer.current)
@@ -90,7 +100,7 @@ export function usePlaygroundChat() {
 
       try {
         const apiMsgs = buildApiMessages(msgs)
-        const stream = streamChatCompletion(apiMsgs, model, temperature, abort.signal)
+        const stream = streamChatCompletion(apiMsgs, model, temperature, abort.signal, apiKeyRef.current ?? undefined)
 
         for await (const chunk of stream) {
           if (chunk.done) break

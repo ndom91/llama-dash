@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { ApiKey } from '../db/schema.ts'
-import { findKeyByHash, hasAnyKeys } from '../admin/api-keys.ts'
+import { findKeyByHash, hasAnyUserKeys } from '../admin/api-keys.ts'
 import { checkRpm, checkTpm } from './rate-limiter.ts'
 
 type AuthOk = { ok: true; keyId: string | null; keyRow: ApiKey | null }
@@ -8,7 +8,7 @@ type AuthErr = { ok: false; status: number; retryAfterMs?: number; body: { error
 export type AuthResult = AuthOk | AuthErr
 
 export function authenticateRequest(request: Request, requestBody: string | null): AuthResult {
-  if (!hasAnyKeys()) {
+  if (!hasAnyUserKeys()) {
     return { ok: true, keyId: null, keyRow: null }
   }
 

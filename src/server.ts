@@ -9,6 +9,9 @@ if (config.llamaSwapInsecure) {
 const { runMigrations } = await import('./server/db/migrate.ts')
 runMigrations()
 
+const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
+ensureSystemKey()
+
 const { startModelWatcher } = await import('./server/model-watcher.ts')
 startModelWatcher()
 

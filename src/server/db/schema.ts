@@ -44,6 +44,7 @@ export const apiKeys = sqliteTable('api_keys', {
   rateLimitRpm: integer('rate_limit_rpm'),
   rateLimitTpm: integer('rate_limit_tpm'),
   monthlyTokenQuota: integer('monthly_token_quota'),
+  system: integer('system', { mode: 'boolean' }).notNull().default(false),
 })
 
 export type ApiKey = typeof apiKeys.$inferSelect
