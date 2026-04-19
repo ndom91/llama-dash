@@ -33,8 +33,7 @@ client ──► llama-dash :8080 ──► llama-swap (internal) ──► llam
 ```
 
 One public port. llama-swap is not exposed on the host. The proxy layer is
-where auth, ACL, rate-limiting, filters, and logging all hang off — today
-auth, ACL, rate-limiting, and logging are wired up; filters are future work.
+where auth, ACL, rate-limiting, policies/filters, and logging all hang off.
 
 ## Repo layout
 
@@ -48,6 +47,8 @@ src/
     requests.$id.tsx        · /requests/:id detail view
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
+    policies.tsx            · /policies model aliases + request limits
+    endpoints.tsx           · /endpoints client connection examples
     logs.tsx                · /logs raw log viewer
   components/             — UI components
     Sidebar.tsx             · nav + VRAM-resident readout in footer
@@ -68,8 +69,8 @@ src/
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
-    proxy/                — /v1/* pass-through: handler.ts, usage.ts, log.ts
-    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts, key-detail.ts, api-keys.ts
+    proxy/                — /v1/* pass-through: handler.ts, transforms.ts, usage.ts, log.ts, auth.ts, rate-limiter.ts
+    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts, key-detail.ts, api-keys.ts, model-aliases.ts, settings.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
@@ -84,9 +85,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Three tables: `requests` (per-call
+2. SQLite (`data/dash.db`) + Drizzle. Five tables: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
-   event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs).
+   event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
+   default model + system prompt), `model_aliases` (global model name
+   mapping), `settings` (key-value config like request limits).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses).
@@ -102,7 +105,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
-   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name` and/or `allowedModels`
+   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `defaultModel`, `systemPrompt`
+   - `/api/aliases` — CRUD for model aliases (global model name mapping)
+   - `/api/settings/request-limits` — GET/PATCH global request size limits
 5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
@@ -111,11 +116,19 @@ paths (proxy will grow middleware; admin will grow CRUD).
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
    recent requests), Models (list + load/unload + per-model detail),
    Requests (filtered/sorted log + histogram + detail), Logs, Playground,
-   Config editor, API Keys (list + per-key detail).
+   Config editor, API Keys (list + per-key detail), Policies (aliases +
+   request limits), Endpoints (connection examples for curl, Python, TS,
+   Home Assistant, Claude Code, opencode, Continue, Open WebUI).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
+9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
+   POST `/v1/*` requests between auth and forwarding. Parses body once,
+   applies transforms in order, re-serializes only if mutated:
+   model pinning → allow-list check → alias resolution → system prompt
+   injection → request size limits. In-memory caches for aliases and
+   settings, invalidated on admin writes.
 
 ## Tooling
 
@@ -178,6 +191,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | Request     | `req`  |
 | ModelEvent  | `mev`  |
 | ApiKey      | `key`  |
+| ModelAlias  | `mal`  |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

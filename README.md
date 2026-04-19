@@ -10,9 +10,11 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
 - **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
+- **Policies** — model aliases (global name mapping), per-key model pinning, per-key system prompt injection, global request size limits.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit `config.yaml` in-browser with validation and auto-reload.
+- **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
 
 <table>
   <tr>

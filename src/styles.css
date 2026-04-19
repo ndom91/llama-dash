@@ -1830,32 +1830,32 @@ a,
 
 .pg-tab-bar {
   display: flex;
-  gap: 2px;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
 }
 
 .pg-tab {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-1);
+  padding: 7px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
   color: var(--fg-dim);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .pg-tab:hover {
-  background: var(--bg-3);
   color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
 }
 .pg-tab-active {
-  background: var(--bg-3);
-  border-color: var(--accent);
   color: var(--fg);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .pg-settings {
@@ -1924,6 +1924,10 @@ a,
   min-width: 140px;
   outline: none;
   cursor: pointer;
+}
+.pg-select:focus {
+  outline: none;
+  box-shadow: none;
 }
 .pg-select option {
   background: var(--bg-2);
@@ -2281,51 +2285,7 @@ a,
   cursor: not-allowed;
 }
 
-/* ── playground modality panels ─────────────────────────── */
-
-.pg-modality-panel {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  padding: 16px;
-  gap: 12px;
-}
-
-.pg-modality-settings {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-wrap: wrap;
-}
-
-.pg-gen-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pg-gen-input {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-1);
-  color: var(--fg);
-  resize: vertical;
-  width: 100%;
-  line-height: 1.5;
-}
-.pg-gen-input:focus {
-  outline: 1px solid var(--accent);
-  border-color: var(--accent);
-}
-.pg-gen-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+/* ── playground shared ──────────────────────────────────── */
 
 .pg-error {
   font-size: 12px;
@@ -2347,8 +2307,26 @@ a,
   min-width: 100px;
   outline: none;
 }
+.pg-voice-input:focus {
+  outline: none;
+  box-shadow: none;
+}
 .pg-voice-input::placeholder {
   color: var(--fg-faint);
+}
+
+/* transcribe bottom bar */
+
+.pg-tx-bar {
+  justify-content: space-between;
+}
+
+.pg-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--err);
+  animation: pg-pulse 1s ease-in-out infinite;
 }
 
 /* image grid */
@@ -2357,9 +2335,6 @@ a,
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
-  overflow-y: auto;
-  flex: 1;
-  min-height: 0;
 }
 
 .pg-img-card {
@@ -2407,8 +2382,8 @@ a,
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px;
+  gap: 12px;
+  padding: 24px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-1);
@@ -2416,11 +2391,11 @@ a,
 
 .pg-audio-player {
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
   height: 40px;
 }
 
-/* transcription */
+/* transcription dropzone */
 
 .pg-dropzone {
   display: flex;
@@ -2449,6 +2424,10 @@ a,
   border-width: 1px;
   padding: 12px 16px;
   min-height: auto;
+}
+.pg-dropzone-has-file:hover {
+  border-color: var(--border);
+  background: var(--bg-1);
 }
 
 .pg-dropzone-icon {
@@ -2489,11 +2468,7 @@ a,
   color: var(--fg-faint);
 }
 
-.pg-tx-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
+/* transcript output */
 
 .pg-transcript {
   border: 1px solid var(--border);
