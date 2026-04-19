@@ -36,6 +36,13 @@ export const CreateApiKeyBodySchema = v.object({
 
 export type CreateApiKeyBody = v.InferOutput<typeof CreateApiKeyBodySchema>
 
+export const UpdateApiKeyBodySchema = v.object({
+  name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(100))),
+  allowedModels: v.optional(v.array(v.string())),
+})
+
+export type UpdateApiKeyBody = v.InferOutput<typeof UpdateApiKeyBodySchema>
+
 export const KeyStatsSchema = v.object({
   totalRequests: v.number(),
   errorCount: v.number(),

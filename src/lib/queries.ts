@@ -273,6 +273,25 @@ export function useRenameApiKey(): UseMutationResult<{ ok: true }, Error, { id: 
   })
 }
 
+export function useUpdateKeyModels(): UseMutationResult<
+  { ok: true },
+  Error,
+  { id: string; allowedModels: Array<string> }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, allowedModels }: { id: string; allowedModels: Array<string> }) =>
+      api.updateKeyModels(id, allowedModels),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: qk.keys })
+      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+    },
+    onError: (e) => {
+      toast.error('Failed to update models', { description: e.message })
+    },
+  })
+}
+
 export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({

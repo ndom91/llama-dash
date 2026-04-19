@@ -115,6 +115,12 @@ export const api = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name }),
     }).then(validated(OkSchema)),
+  updateKeyModels: (id: string, allowedModels: Array<string>) =>
+    fetch(`/api/keys/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ allowedModels }),
+    }).then(validated(OkSchema)),
   revokeKey: (id: string) => fetch(`/api/keys/${id}/revoke`, { method: 'POST' }).then(validated(OkSchema)),
   deleteKey: (id: string) => fetch(`/api/keys/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
 }

@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { CreateApiKeyBodySchema } from '../../lib/schemas/api-key.ts'
+import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../lib/schemas/api-key.ts'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schemas/config'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
@@ -10,8 +10,8 @@ import {
   getApiKeyById,
   getSystemKeyRaw,
   listApiKeys,
-  renameApiKey,
   revokeApiKey,
+  updateApiKey,
 } from './api-keys.ts'
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from './key-detail.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
@@ -329,11 +329,18 @@ const routes: Array<Route> = [
       } catch {
         return error(400, 'Invalid JSON body')
       }
-      const body = parsed as Record<string, unknown>
-      if (typeof body.name !== 'string' || !body.name.trim()) {
-        return error(400, 'Body must have "name" (non-empty string)')
+      const result = v.safeParse(UpdateApiKeyBodySchema, parsed)
+      if (!result.success) {
+        return error(400, 'Body must have "name" (string) and/or "allowedModels" (string[])')
       }
-      const ok = renameApiKey(id, body.name.trim())
+      const body = result.output
+      if (!body.name && !body.allowedModels) {
+        return error(400, 'At least one field to update is required')
+      }
+      const ok = updateApiKey(id, {
+        name: body.name?.trim(),
+        allowedModels: body.allowedModels,
+      })
       if (!ok) return error(404, `Key ${id} not found`)
       return json(200, { ok: true })
     },

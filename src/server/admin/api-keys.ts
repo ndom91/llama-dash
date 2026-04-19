@@ -62,6 +62,15 @@ export function renameApiKey(id: string, name: string): boolean {
   return result.changes > 0
 }
 
+export function updateApiKey(id: string, fields: { name?: string; allowedModels?: Array<string> }): boolean {
+  const set: Record<string, unknown> = {}
+  if (fields.name != null) set.name = fields.name
+  if (fields.allowedModels != null) set.allowedModels = JSON.stringify(fields.allowedModels)
+  if (Object.keys(set).length === 0) return false
+  const result = db.update(schema.apiKeys).set(set).where(eq(schema.apiKeys.id, id)).run()
+  return result.changes > 0
+}
+
 export function revokeApiKey(id: string): boolean {
   const result = db.update(schema.apiKeys).set({ disabledAt: new Date() }).where(eq(schema.apiKeys.id, id)).run()
 
