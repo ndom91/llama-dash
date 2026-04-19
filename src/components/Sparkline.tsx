@@ -1,5 +1,22 @@
 let nextId = 0
 
+function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.3): string {
+  if (pts.length < 2) return ''
+  let d = `M${pts[0].x},${pts[0].y}`
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(pts.length - 1, i + 2)]
+    const cp1x = p1.x + ((p2.x - p0.x) * tension) / 3
+    const cp1y = p1.y + ((p2.y - p0.y) * tension) / 3
+    const cp2x = p2.x - ((p3.x - p1.x) * tension) / 3
+    const cp2y = p2.y - ((p3.y - p1.y) * tension) / 3
+    d += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`
+  }
+  return d
+}
+
 export function Sparkline({
   data,
   height = 40,
@@ -20,14 +37,9 @@ export function Sparkline({
     x: i * step,
     y: height - (v / max) * height * 0.75 - 2,
   }))
-  const line = coords.map((p) => `${p.x},${p.y}`).join(' ')
-  const glowArea = [
-    ...coords.map((p) => `${p.x},${p.y}`),
-    ...coords
-      .slice()
-      .reverse()
-      .map((p) => `${p.x},${Math.max(0, p.y - glowH)}`),
-  ].join(' ')
+  const linePath = smoothPath(coords)
+  const glowCoords = coords.map((p) => ({ x: p.x, y: Math.max(0, p.y - glowH) }))
+  const glowPath = `${smoothPath(coords)} L${coords[coords.length - 1].x},${glowCoords[glowCoords.length - 1].y} ${smoothPath(glowCoords.slice().reverse()).replace('M', 'L')} Z`
 
   return (
     <svg
@@ -45,15 +57,8 @@ export function Sparkline({
           <stop offset="100%" stopColor={color} stopOpacity={0.18} />
         </linearGradient>
       </defs>
-      <polygon points={glowArea} fill={`url(#${id}-glow)`} />
-      <polyline
-        points={line}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <path d={glowPath} fill={`url(#${id}-glow)`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
