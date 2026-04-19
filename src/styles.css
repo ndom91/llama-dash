@@ -472,6 +472,7 @@
 }
 .dtable tbody td {
   padding: 8px 14px;
+  height: 42px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
   color: var(--fg);
