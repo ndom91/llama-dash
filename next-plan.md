@@ -9,7 +9,7 @@ Items marked ~~strikethrough~~ are shipped. See AGENTS.md § "What's shipped" fo
 3. ~~**API key detail page**~~ — **shipped.** Per-key stats (requests, error rate, tokens, duration, tok/s with sparklines), interactive model access panel with checkbox toggles and per-model usage stats, inline key rename, recent requests table. Clickable from keys list. Real $ cost tracking deferred (needs upstream pricing data).
 4. ~~**Endpoint directory**~~ — **shipped.** Standalone `/endpoints` page with copyable base URL, API key selector, tabbed code examples (curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI), syntax highlighting, filename headers.
 5. **Audit log** — admin actions (key created, config reloaded, model loaded by X) separate from request log.
-6. **Policies / filters** — prompt guards, max_tokens ceilings, model aliases, denylist/allowlist. Per-key, per-route. Someday.
+6. ~~**Policies / filters**~~ — **shipped.** Model aliases (global name mapping), per-key model pinning, per-key system prompt injection, global request size limits (max messages, max estimated tokens). Managed from `/policies` page and per-key detail page.
 7. ~~**VRAM timeline**~~ — **descoped.** Model swap timeline on the dashboard already shows model residency over time. A dedicated VRAM memory graph would be incremental — revisit if GPU memory pressure becomes a real issue.
 
 ## Backlog
@@ -36,7 +36,7 @@ Items marked ~~strikethrough~~ are shipped. See AGENTS.md § "What's shipped" fo
 
 - ~~API keys vault~~ — **shipped.** Create/revoke/delete, per-key RPM/TPM rate limits, model allow-lists, SHA-256 hashed at rest, per-key usage tracking.
 - Upstream credentials — stored per-peer for when llama-dash proxies to external providers.
-- ~~Policies / filters~~ → promoted to priority #6
+- ~~Policies / filters~~ — **shipped** (priority #6). Model aliases, per-key pinning, system prompt injection, request size limits.
 - ~~Audit log~~ → promoted to priority #5
 - ~~Cost ledger~~ → folded into API key detail page (priority #3)
 

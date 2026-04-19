@@ -90,7 +90,7 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
 - `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
-- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`.
+- `src/routes/*` — TanStack Start routes: `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/policies`, `/endpoints`.
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 
 ## Useful scripts
