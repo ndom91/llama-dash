@@ -22,9 +22,8 @@ export function Tooltip({ label, children, side = 'bottom', align = 'center' }: 
     <RTooltip.Root>
       <RTooltip.Trigger asChild>{children}</RTooltip.Trigger>
       <RTooltip.Portal>
-        <RTooltip.Content className="llama-tooltip" side={side} align={align} sideOffset={6} collisionPadding={8}>
+        <RTooltip.Content className="llama-tooltip" side={side} align={align} sideOffset={10} collisionPadding={8}>
           {label}
-          <RTooltip.Arrow className="llama-tooltip-arrow" width={8} height={4} />
         </RTooltip.Content>
       </RTooltip.Portal>
     </RTooltip.Root>
