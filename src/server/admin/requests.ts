@@ -15,6 +15,10 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     .orderBy(desc(schema.requests.id))
     .limit(opts.limit)
     .all()
+
+  const keys = listApiKeys()
+  const keyMap = new Map(keys.map((k) => [k.id, k.name]))
+
   return rows.map((r) => ({
     id: r.id,
     startedAt: r.startedAt.toISOString(),
@@ -28,6 +32,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     totalTokens: r.totalTokens,
     streamed: r.streamed,
     error: r.error,
+    keyName: r.keyId ? (keyMap.get(r.keyId) ?? null) : null,
   }))
 }
 

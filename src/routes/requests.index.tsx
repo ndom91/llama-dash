@@ -35,12 +35,19 @@ function Requests() {
   const [modelFilter, setModelFilter] = useState<string>(modelParam ?? 'all')
   const [sortKey, setSortKey] = useState<SortKey>('startedAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [keyFilter, setKeyFilter] = useState<string>('all')
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
   const models = useMemo(() => {
     const set = new Set<string>()
     for (const r of allRows) if (r.model) set.add(r.model)
+    return Array.from(set).sort()
+  }, [allRows])
+
+  const keyNames = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of allRows) if (r.keyName) set.add(r.keyName)
     return Array.from(set).sort()
   }, [allRows])
 
@@ -59,6 +66,11 @@ function Requests() {
 
     if (modelFilter !== 'all') out = out.filter((r) => r.model === modelFilter)
 
+    if (keyFilter !== 'all') {
+      if (keyFilter === '__none__') out = out.filter((r) => r.keyName == null)
+      else out = out.filter((r) => r.keyName === keyFilter)
+    }
+
     if (search) {
       const q = search.toLowerCase()
       out = out.filter(
@@ -71,7 +83,7 @@ function Requests() {
     }
 
     return out
-  }, [allRows, statusFilter, modelFilter, search])
+  }, [allRows, statusFilter, modelFilter, keyFilter, search])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -97,7 +109,7 @@ function Requests() {
     }
   }
 
-  const hasFilters = search !== '' || statusFilter !== 'all' || modelFilter !== 'all'
+  const hasFilters = search !== '' || statusFilter !== 'all' || modelFilter !== 'all' || keyFilter !== 'all'
 
   return (
     <div className="main-col">
@@ -171,6 +183,17 @@ function Requests() {
                   </option>
                 ))}
               </select>
+              {keyNames.length > 0 ? (
+                <select className="filter-select" value={keyFilter} onChange={(e) => setKeyFilter(e.target.value)}>
+                  <option value="all">All keys</option>
+                  <option value="__none__">No key</option>
+                  {keyNames.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
               {hasFilters ? (
                 <button
                   type="button"
@@ -179,6 +202,7 @@ function Requests() {
                     setSearch('')
                     setStatusFilter('all')
                     setModelFilter('all')
+                    setKeyFilter('all')
                   }}
                 >
                   Clear

@@ -112,6 +112,7 @@ export function getModelRequests(
       totalTokens: r.totalTokens,
       streamed: r.streamed,
       error: r.error,
+      keyName: null,
     }))
 
   return {
