@@ -157,6 +157,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - Animation tokens (`--duration-normal`, `--ease-out`, etc.) live in `:root`.
   Use them via arbitrary values when needed (`transition-[border-color_var(--duration-micro)_ease]`),
   or keep short transitions in `styles.css` if the arbitrary syntax gets unwieldy.
+- **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
+  for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
+  over template literals or string concatenation.
 
 ## Dependency version policy
 
