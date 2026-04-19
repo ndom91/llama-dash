@@ -5,7 +5,8 @@ import { cn } from '../lib/cn'
 export function CopyableCode({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
 
-  const copy = () => {
+  const copy = (e: React.MouseEvent) => {
+    e.stopPropagation()
     navigator.clipboard.writeText(text).then(
       () => {
         setCopied(true)

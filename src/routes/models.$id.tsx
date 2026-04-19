@@ -256,6 +256,7 @@ function RequestsPanel({ rows, modelId }: { rows: Array<ApiRequest>; modelId: st
 }
 
 function KeyBreakdownPanel({ breakdown }: { breakdown: Array<ApiModelKeyBreakdown> }) {
+  const navigate = useNavigate()
   return (
     <section className="panel">
       <div className="panel-head">
@@ -279,7 +280,11 @@ function KeyBreakdownPanel({ breakdown }: { breakdown: Array<ApiModelKeyBreakdow
         </thead>
         <tbody>
           {breakdown.map((b) => (
-            <tr key={b.keyId ?? '_anon'}>
+            <tr
+              key={b.keyId ?? '_anon'}
+              className={b.keyId ? 'clickable-row' : ''}
+              onClick={b.keyId ? () => navigate({ to: '/keys/$id', params: { id: b.keyId! } }) : undefined}
+            >
               <td className="mono">{b.keyName ?? (b.keyId ? b.keyId.slice(0, 12) : 'anonymous')}</td>
               <td className="num">{b.requestCount.toLocaleString()}</td>
               <td className="num">{b.totalTokens.toLocaleString()}</td>
