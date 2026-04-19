@@ -70,43 +70,36 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
         <div className="detail-endpoint">
           <div className="detail-endpoint-row">
             <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
-            <span className="group relative inline-grid items-center ml-2">
-              <span
-                className="invisible col-start-1 row-start-1 whitespace-pre rounded px-1.5 border border-transparent font-mono text-[22px] font-semibold tracking-tight"
-                aria-hidden="true"
-              >
-                {editing ? draft : key.name}
-              </span>
+            {editing ? (
               <input
                 ref={inputRef}
-                className={cn(
-                  'col-start-1 row-start-1 bg-transparent rounded px-1.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none',
-                  editing ? 'border border-accent min-w-[320px]' : 'border border-transparent cursor-pointer',
-                )}
-                style={{ height: 'auto', lineHeight: 'inherit' }}
+                className="ml-2 min-w-[320px] bg-transparent border border-accent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none"
                 type="text"
-                value={editing ? draft : key.name}
-                readOnly={!editing}
+                value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                onClick={!editing && !isRevoked ? startEdit : undefined}
-                onBlur={editing ? commitRename : undefined}
-                onKeyDown={
-                  editing
-                    ? (e) => {
-                        if (e.key === 'Enter') commitRename()
-                        if (e.key === 'Escape') setEditing(false)
-                      }
-                    : undefined
-                }
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitRename()
+                  if (e.key === 'Escape') setEditing(false)
+                }}
               />
-              {!editing && !isRevoked ? (
-                <Pencil
-                  size={13}
-                  strokeWidth={2}
-                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+6px)] text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity"
-                />
-              ) : null}
-            </span>
+            ) : (
+              <button
+                type="button"
+                className="group inline-flex items-center gap-1.5 ml-2 cursor-pointer bg-transparent border border-transparent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg"
+                onClick={startEdit}
+                disabled={isRevoked}
+              >
+                {key.name}
+                {!isRevoked ? (
+                  <Pencil
+                    size={13}
+                    strokeWidth={2}
+                    className="text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                ) : null}
+              </button>
+            )}
           </div>
           <div className="detail-endpoint-meta">
             ↳ <span className="mono">{key.keyPrefix}…</span>
