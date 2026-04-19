@@ -351,7 +351,7 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
         const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * 100, 4) : 0
         const empty = b.total === 0
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const label = empty ? time : `${time} — ${b.total} req${b.errors ? `, ${b.errors} err` : ''}`
+        const label = empty ? time : `${time} · ${b.total}${b.errors ? ` (${b.errors} err)` : ''}`
         return (
           <Tooltip key={b.timestamp} label={label} side="top">
             <div className="histogram-bar">
