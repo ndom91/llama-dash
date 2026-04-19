@@ -12,9 +12,11 @@ export function PlaygroundSpeech() {
   const handleSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault()
+      if (!speech.text.trim()) return
       speech.generate()
+      speech.setText('')
     },
-    [speech.generate],
+    [speech.generate, speech.text, speech.setText],
   )
 
   const handleKeyDown = useCallback(
@@ -110,7 +112,7 @@ export function PlaygroundSpeech() {
       </div>
 
       <section className="panel pg-chat-panel">
-        <div className="pg-chat-scroll">
+        <div className="pg-chat-scroll pg-center-content">
           {speech.error ? <div className="pg-error">{speech.error}</div> : null}
 
           {speech.audioUrl ? (

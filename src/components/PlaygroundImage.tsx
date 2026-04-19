@@ -12,9 +12,11 @@ export function PlaygroundImage() {
   const handleSubmit = useCallback(
     (e: FormEvent) => {
       e.preventDefault()
+      if (!img.prompt.trim()) return
       img.generate()
+      img.setPrompt('')
     },
-    [img.generate],
+    [img.generate, img.prompt, img.setPrompt],
   )
 
   const handleKeyDown = useCallback(

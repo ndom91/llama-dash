@@ -2246,6 +2246,7 @@ a,
   background: var(--bg-1);
   color: var(--fg);
   resize: none;
+  overflow: hidden;
   line-height: 1.5;
   max-height: 200px;
   transition: border-color var(--duration-micro) ease,
@@ -2286,6 +2287,10 @@ a,
 }
 
 /* ── playground shared ──────────────────────────────────── */
+
+.pg-center-content {
+  justify-content: center;
+}
 
 .pg-error {
   font-size: 12px;

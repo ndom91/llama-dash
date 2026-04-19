@@ -91,7 +91,7 @@ export function PlaygroundTranscribe() {
       </div>
 
       <section className="panel pg-chat-panel">
-        <div className="pg-chat-scroll">
+        <div className="pg-chat-scroll pg-center-content">
           {tx.error ? <div className="pg-error">{tx.error}</div> : null}
 
           {/* biome-ignore lint/a11y/useKeyWithClickEvents: dropzone delegates to hidden file input */}
