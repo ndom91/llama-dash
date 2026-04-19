@@ -346,12 +346,16 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
   return (
     <div className="histogram">
       {buckets.map((b) => {
-        const okH = Math.max(((b.total - b.errors) / maxTotal) * 100, 2)
-        const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * 100, 2) : 0
+        const ok = b.total - b.errors
+        const okH = ok > 0 ? Math.max((ok / maxTotal) * 100, 4) : 2
+        const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * 100, 4) : 0
+        const empty = b.total === 0
         return (
           <div key={b.timestamp} className="histogram-bar">
             {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
-            <div className="histogram-bar-ok" style={{ height: `${okH}%` }} />
+            {okH > 0 ? (
+              <div className="histogram-bar-ok" style={{ height: `${okH}%`, opacity: empty ? 0.15 : undefined }} />
+            ) : null}
           </div>
         )
       })}
