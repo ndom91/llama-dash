@@ -180,7 +180,7 @@
 
   --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
 
-  --accent-shifted: oklch(72% 0.09 60);
+  --accent-shifted: oklch(78% 0.054 0);
 
   --radius-sm: 3px;
   --radius: 6px;
@@ -685,6 +685,24 @@
   overflow: auto;
   max-height: 600px;
   color: var(--fg);
+}
+.body-pre::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.body-pre::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 30%, var(--bg-3));
+  border: 2px solid var(--bg-1);
+  border-radius: var(--radius-pill);
+}
+.body-pre::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 50%, var(--bg-3));
+}
+.body-pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.body-pre::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* headers table — key column auto-sizes, capped at 50% */
