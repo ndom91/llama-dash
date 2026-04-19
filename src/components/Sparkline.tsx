@@ -1,6 +1,6 @@
 let nextId = 0
 
-function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.5): string {
+function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.6): string {
   if (pts.length < 2) return ''
   let d = `M${pts[0].x},${pts[0].y}`
   for (let i = 0; i < pts.length - 1; i++) {
