@@ -41,6 +41,17 @@ services:
       - llama-dash-data:/data
     networks:
       - internal
+    # AMD GPU stats — amdgpu_top needs access to /dev/dri
+    devices:
+      - /dev/dri:/dev/dri
+    # For NVIDIA, replace 'devices' above with:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
     depends_on:
       llama-swap:
         condition: service_healthy
