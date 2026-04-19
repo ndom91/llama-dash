@@ -2365,16 +2365,6 @@ a,
   border: 1px solid var(--border);
 }
 
-.pg-img-text-response {
-  font-size: 13px;
-  color: var(--fg);
-  padding: 12px;
-  border-radius: var(--radius);
-  background: var(--bg-1);
-  border: 1px solid var(--border);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
 
 /* image grid */
 

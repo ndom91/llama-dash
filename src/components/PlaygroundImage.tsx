@@ -161,22 +161,18 @@ function ImageEntryCard({
   return (
     <div className="pg-img-entry">
       <div className="pg-img-entry-prompt">{entry.prompt}</div>
-      {entry.kind === 'images' ? (
-        <div className="pg-img-grid">
-          {entry.images.map((image, i) => (
-            <div key={image.url} className="pg-img-card">
-              <img src={image.url} alt={image.revisedPrompt ?? 'Generated image'} className="pg-img-result" />
-              <Tooltip label="Download">
-                <button type="button" className="pg-img-download" onClick={() => onDownload(image.url, i)}>
-                  <Download className="icon-14" strokeWidth={2} />
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="pg-img-text-response">{entry.text}</div>
-      )}
+      <div className="pg-img-grid">
+        {entry.images.map((image, i) => (
+          <div key={image.url} className="pg-img-card">
+            <img src={image.url} alt={image.revisedPrompt ?? 'Generated image'} className="pg-img-result" />
+            <Tooltip label="Download">
+              <button type="button" className="pg-img-download" onClick={() => onDownload(image.url, i)}>
+                <Download className="icon-14" strokeWidth={2} />
+              </button>
+            </Tooltip>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
