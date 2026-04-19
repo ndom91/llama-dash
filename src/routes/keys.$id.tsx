@@ -70,22 +70,20 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
         <div className="detail-endpoint">
           <div className="detail-endpoint-row">
             <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
-            <span className="group relative inline-flex items-center ml-2">
+            <span className="group relative inline-grid items-center ml-2">
+              <span
+                className="invisible col-start-1 row-start-1 whitespace-pre rounded px-1.5 border border-transparent font-mono text-[22px] font-semibold tracking-tight"
+                aria-hidden="true"
+              >
+                {editing ? draft : key.name}
+              </span>
               <input
                 ref={inputRef}
                 className={cn(
-                  'bg-transparent rounded px-1.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none',
-                  editing
-                    ? 'border border-accent min-w-[320px] w-auto'
-                    : 'border border-transparent cursor-pointer w-[--name-w]',
+                  'col-start-1 row-start-1 bg-transparent rounded px-1.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none',
+                  editing ? 'border border-accent min-w-[320px]' : 'border border-transparent cursor-pointer',
                 )}
-                style={
-                  {
-                    height: 'auto',
-                    lineHeight: 'inherit',
-                    ...(!editing && { '--name-w': `${key.name.length + 1}ch` }),
-                  } as React.CSSProperties
-                }
+                style={{ height: 'auto', lineHeight: 'inherit' }}
                 type="text"
                 value={editing ? draft : key.name}
                 readOnly={!editing}
@@ -105,7 +103,7 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
                 <Pencil
                   size={13}
                   strokeWidth={2}
-                  className="text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity ml-1.5"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-[calc(100%+6px)] text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity"
                 />
               ) : null}
             </span>
