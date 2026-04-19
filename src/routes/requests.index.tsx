@@ -356,14 +356,16 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         const label = empty ? time : `${time} · ${b.total}${b.errors ? ` (${b.errors} err)` : ''}`
         return (
-          <Tooltip key={b.timestamp} label={label} side="top">
-            <div className="histogram-bar">
-              {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
-              {okH > 0 ? (
-                <div className="histogram-bar-ok" style={{ height: `${okH}%`, opacity: empty ? 0.15 : undefined }} />
-              ) : null}
-            </div>
-          </Tooltip>
+          <div key={b.timestamp} className="histogram-bar">
+            <Tooltip label={label} side="top">
+              <div className="histogram-bar-inner">
+                {errH > 0 ? <div className="histogram-bar-err" style={{ height: `${errH}%` }} /> : null}
+                {okH > 0 ? (
+                  <div className="histogram-bar-ok" style={{ height: `${okH}%`, opacity: empty ? 0.15 : undefined }} />
+                ) : null}
+              </div>
+            </Tooltip>
+          </div>
         )
       })}
     </div>
