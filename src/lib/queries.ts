@@ -121,6 +121,7 @@ export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>>
   return useQuery({
     queryKey: qk.requestsRecent,
     queryFn: () => api.listRequests({ limit }).then((r) => r.requests),
+    refetchInterval: POLL_MS,
   })
 }
 

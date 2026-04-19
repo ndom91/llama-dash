@@ -9,6 +9,7 @@ import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
+import { useModelTimeline, useRecentRequests, useRequestHistogram, useRequestsList } from '../lib/queries'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 2_000, retry: 1 } },
@@ -76,6 +77,14 @@ function RootDocument() {
   )
 }
 
+function GlobalPolling() {
+  useModelTimeline()
+  useRecentRequests()
+  useRequestHistogram()
+  useRequestsList()
+  return null
+}
+
 function AppShell() {
   const [open, setOpen] = useState(false)
   const toggle = useCallback(() => setOpen((v) => !v), [])
@@ -83,6 +92,7 @@ function AppShell() {
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>
+      <GlobalPolling />
       <div className="app-shell">
         <button
           type="button"
