@@ -102,7 +102,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
-   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests)
+   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name` and/or `allowedModels`
 5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
