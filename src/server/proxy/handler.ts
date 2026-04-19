@@ -2,7 +2,7 @@ import { config } from '../config.ts'
 import { authenticateRequest } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
-import { applyTransforms } from './transforms.ts'
+import { applyTransforms, checkModelAllowed } from './transforms.ts'
 import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
@@ -41,20 +41,20 @@ function headersToRecord(headers: Headers): Record<string, string> {
   return out
 }
 
+function nullUsage(model?: string | null): Usage {
+  return { model: model ?? null, promptTokens: null, completionTokens: null, totalTokens: null }
+}
+
 export async function handleProxyRequest(request: Request): Promise<Response> {
   const startedAt = Date.now()
   const method = request.method.toUpperCase()
   const url = new URL(request.url)
   const endpoint = url.pathname
   const upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
-
   const reqHeaders = filterRequestHeaders(request.headers)
   const hasBody = method !== 'GET' && method !== 'HEAD'
-
-  let reqBodyText: string | null = null
-  if (hasBody) {
-    reqBodyText = await request.text()
-  }
+  const reqContentType = request.headers.get('content-type') ?? ''
+  const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
 
   const authResult = authenticateRequest(request)
   if (!authResult.ok) {
@@ -68,33 +68,58 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const keyId = authResult.keyId
   const keyRow = authResult.keyRow
 
+  let reqBodyText: string | null = null
   let parsedBody: Record<string, unknown> | null = null
-  if (hasBody && reqBodyText) {
+  let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
+
+  if (isMultipart) {
+    try {
+      const clone = request.clone()
+      const formData = await clone.formData()
+      const modelField = formData.get('model')
+      if (typeof modelField === 'string') {
+        parsedBody = { model: modelField }
+      }
+    } catch {
+      // Can't parse form data — still forward the request
+    }
+
+    if (parsedBody) {
+      const allowErr = checkModelAllowed(keyRow, parsedBody)
+      if (allowErr) return Response.json(allowErr.body, { status: allowErr.status })
+    }
+
+    fetchBody = request.body ?? undefined
+  } else if (hasBody) {
+    reqBodyText = await request.text()
+
     try {
       parsedBody = JSON.parse(reqBodyText)
     } catch {
       // non-JSON body — skip transforms
     }
+
+    if (parsedBody) {
+      const transformResult = applyTransforms(parsedBody, { keyRow, endpoint, method })
+      if (!transformResult.ok) {
+        return Response.json(transformResult.body, { status: transformResult.status })
+      }
+      if (transformResult.mutated) {
+        reqBodyText = JSON.stringify(transformResult.body)
+      }
+    }
+
+    fetchBody = reqBodyText
+      ? new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(reqBodyText!))
+            controller.close()
+          },
+        })
+      : undefined
   }
 
-  if (parsedBody) {
-    const transformResult = applyTransforms(parsedBody, { keyRow, endpoint, method })
-    if (!transformResult.ok) {
-      return Response.json(transformResult.body, { status: transformResult.status })
-    }
-    if (transformResult.mutated) {
-      reqBodyText = JSON.stringify(transformResult.body)
-    }
-  }
-
-  const fetchBody = reqBodyText
-    ? new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(reqBodyText!))
-          controller.close()
-        },
-      })
-    : undefined
+  const reqModel = (parsedBody?.model as string) ?? null
 
   let upstreamResponse: Response
   try {
@@ -113,11 +138,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       status: 502,
       method,
       endpoint,
-      usage: { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+      usage: nullUsage(reqModel),
       streamed: false,
       error: message,
       reqHeaders: JSON.stringify(reqHeaders),
-      reqBody: reqBodyText,
+      reqBody: isMultipart ? null : reqBodyText,
       resHeaders: null,
       resBody: null,
       keyId,
@@ -130,6 +155,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
   const isSse = contentType.includes('text/event-stream')
   const isJson = contentType.includes('application/json')
+  const isBinaryResponse = !isSse && !isJson
 
   if (!upstreamResponse.body) {
     writeLog({
@@ -137,11 +163,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       status: upstreamResponse.status,
       method,
       endpoint,
-      usage: { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+      usage: nullUsage(reqModel),
       streamed: false,
       error: null,
       reqHeaders: JSON.stringify(reqHeaders),
-      reqBody: reqBodyText,
+      reqBody: isMultipart ? null : reqBodyText,
       resHeaders: resHeadersJson,
       resBody: null,
       keyId,
@@ -150,7 +176,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   const reader = upstreamResponse.body.getReader()
-  const decoder = new TextDecoder()
+  const decoder = isBinaryResponse ? null : new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner() : null
   const responseChunks: Array<string> = []
 
@@ -160,17 +186,19 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         const { value, done } = await reader.read()
         if (done) {
           controller.close()
-          const tail = decoder.decode()
-          if (tail) {
-            responseChunks.push(tail)
-            if (sseScanner) sseScanner.feed(tail)
+          if (decoder) {
+            const tail = decoder.decode()
+            if (tail) {
+              responseChunks.push(tail)
+              if (sseScanner) sseScanner.feed(tail)
+            }
           }
-          const resBody = responseChunks.join('')
+          const resBody = decoder ? responseChunks.join('') : null
           const usage: Usage = sseScanner
             ? sseScanner.done()
-            : isJson
+            : isJson && resBody
               ? usageFromJsonBody(resBody)
-              : { model: null, promptTokens: null, completionTokens: null, totalTokens: null }
+              : nullUsage(reqModel)
 
           writeLog({
             startedAt,
@@ -181,9 +209,9 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             streamed: isSse,
             error: null,
             reqHeaders: JSON.stringify(reqHeaders),
-            reqBody: reqBodyText,
+            reqBody: isMultipart ? null : reqBodyText,
             resHeaders: resHeadersJson,
-            resBody: resBody || null,
+            resBody,
             keyId,
           })
 
@@ -193,9 +221,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           return
         }
         controller.enqueue(value)
-        const text = decoder.decode(value, { stream: true })
-        responseChunks.push(text)
-        if (sseScanner) sseScanner.feed(text)
+        if (decoder) {
+          const text = decoder.decode(value, { stream: true })
+          responseChunks.push(text)
+          if (sseScanner) sseScanner.feed(text)
+        }
       } catch (err) {
         controller.error(err)
         const message = err instanceof Error ? err.message : String(err)
@@ -204,15 +234,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           status: upstreamResponse.status,
           method,
           endpoint,
-          usage: sseScanner
-            ? sseScanner.done()
-            : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+          usage: sseScanner ? sseScanner.done() : nullUsage(reqModel),
           streamed: isSse,
           error: message,
           reqHeaders: JSON.stringify(reqHeaders),
-          reqBody: reqBodyText,
+          reqBody: isMultipart ? null : reqBodyText,
           resHeaders: resHeadersJson,
-          resBody: responseChunks.join('') || null,
+          resBody: decoder ? responseChunks.join('') || null : null,
           keyId,
         })
       }
@@ -224,15 +252,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         status: upstreamResponse.status,
         method,
         endpoint,
-        usage: sseScanner
-          ? sseScanner.done()
-          : { model: null, promptTokens: null, completionTokens: null, totalTokens: null },
+        usage: sseScanner ? sseScanner.done() : nullUsage(reqModel),
         streamed: isSse,
         error: 'Client disconnected',
         reqHeaders: JSON.stringify(reqHeaders),
-        reqBody: reqBodyText,
+        reqBody: isMultipart ? null : reqBodyText,
         resHeaders: resHeadersJson,
-        resBody: responseChunks.join('') || null,
+        resBody: decoder ? responseChunks.join('') || null : null,
         keyId,
       })
     },
