@@ -104,7 +104,10 @@ function Logs() {
             subtitle="live output from llama-swap"
             action={
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="topbar-chip" title={connected ? 'Connected' : 'Disconnected'}>
+                <span
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em]"
+                  title={connected ? 'Connected' : 'Disconnected'}
+                >
                   <StatusDot tone={connected ? 'ok' : 'err'} live={connected} />
                   <span>{connected ? 'connected' : 'disconnected'}</span>
                 </span>

@@ -1,13 +1,20 @@
+import { cn } from '../lib/cn'
+
 const BASELINE_MS = 5000
 
 export function DurationBar({ ms, isErr = false }: { ms: number; isErr?: boolean }) {
   const pct = Math.min(100, (ms / BASELINE_MS) * 100)
   return (
-    <span className="dur">
-      <span className="dur-bar">
-        <span className={`dur-bar-fill${isErr ? ' is-err' : ''}`} style={{ width: `${pct}%` }} />
+    <span className="inline-flex items-center gap-2 justify-end min-w-[90px]">
+      <span className="block flex-1 max-w-[60px] h-1 rounded-pill bg-fg-faint overflow-hidden">
+        <span
+          className={cn('block h-full rounded-pill', isErr ? 'bg-err' : 'bg-accent')}
+          style={{ width: `${pct}%` }}
+        />
       </span>
-      <span className="dur-val">{formatMs(ms)}</span>
+      <span className="font-mono tabular-nums text-[11px] text-fg min-w-[52px] text-right whitespace-nowrap">
+        {formatMs(ms)}
+      </span>
     </span>
   )
 }

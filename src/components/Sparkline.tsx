@@ -33,7 +33,7 @@ export function Sparkline({
     <svg
       viewBox={`0 0 ${vw} ${height}`}
       preserveAspectRatio="none"
-      className="sparkline"
+      className="block w-full mt-auto"
       style={{ height }}
       aria-hidden="true"
     >

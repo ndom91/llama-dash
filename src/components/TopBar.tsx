@@ -35,47 +35,63 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   }, [])
 
   return (
-    <header className="topbar">
-      <button type="button" className="mobile-menu-btn" onClick={toggle} aria-label="Toggle menu">
+    <header className="bg-surface-0 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
+      <button
+        type="button"
+        className="hidden max-md:inline-flex items-center justify-center text-fg p-1 cursor-pointer mr-1"
+        onClick={toggle}
+        aria-label="Toggle menu"
+      >
         <Menu size={20} strokeWidth={1.75} />
       </button>
-      <span className="topbar-title">{title}</span>
-      <span className="topbar-sep" aria-hidden="true" />
+      <span className="text-[13px] font-medium -tracking-[0.005em]">{title}</span>
+      <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
 
-      <span className="topbar-chip" title={reachable ? 'llama-swap reachable' : 'llama-swap unreachable'}>
+      <span
+        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
+        title={reachable ? 'llama-swap reachable' : 'llama-swap unreachable'}
+      >
         <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
         <span>upstream</span>
         {version ? (
-          <span className="topbar-chip-num" translate="no">
+          <span className="text-fg font-medium" translate="no">
             v{version}
           </span>
         ) : (
-          <span className="topbar-chip-num">—</span>
+          <span className="text-fg font-medium">—</span>
         )}
       </span>
 
-      <span className="topbar-chip" title="Currently loaded models">
+      <span
+        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
+        title="Currently loaded models"
+      >
         <span>running</span>
-        <span className="topbar-chip-num">{counts?.running ?? '—'}</span>
+        <span className="text-fg font-medium">{counts?.running ?? '—'}</span>
         {counts && counts.peers > 0 ? (
           <>
-            <span className="topbar-chip-sep" aria-hidden="true">
+            <span className="text-fg-faint -mx-0.5" aria-hidden="true">
               ·
             </span>
             <span>peer</span>
-            <span className="topbar-chip-num">{counts.peers}</span>
+            <span className="text-fg font-medium">{counts.peers}</span>
           </>
         ) : null}
       </span>
 
-      <span className="topbar-chip" title="Requests per second (1 min)">
+      <span
+        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
+        title="Requests per second (1 min)"
+      >
         <span>req/s</span>
-        <span className="topbar-chip-num">{stats ? formatRate(stats.reqPerSec) : '—'}</span>
+        <span className="text-fg font-medium">{stats ? formatRate(stats.reqPerSec) : '—'}</span>
       </span>
 
-      <div className="topbar-actions">
+      <div className="ml-auto flex items-center gap-1.5">
         {actions}
-        <span className="topbar-datetime mono">{formatDatetime(now)}</span>
+        <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">
+          {formatDatetime(now)}
+        </span>
       </div>
     </header>
   )

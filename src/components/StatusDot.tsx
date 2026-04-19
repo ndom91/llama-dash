@@ -1,15 +1,26 @@
+import { cn } from '../lib/cn'
+
 type Tone = 'ok' | 'warn' | 'err' | 'idle'
 
-/**
- * Terminal-inspired status indicator. Decorative by default — always paired
- * with a text state label — so it gets `aria-hidden`. `live` toggles the
- * pulsing glow for transitional or ongoing states.
- */
+const toneStyles: Record<Tone, string> = {
+  ok: 'bg-ok shadow-[0_0_6px_var(--ok)]',
+  warn: 'bg-warn shadow-[0_0_6px_var(--warn)]',
+  err: 'bg-err shadow-[0_0_6px_var(--err)]',
+  idle: 'bg-transparent border border-fg-faint shadow-none',
+}
+
 export function StatusDot({ tone, live = false }: { tone: Tone; live?: boolean }) {
-  const classes = ['dot', `dot-${tone}`, live && (tone === 'ok' || tone === 'warn') ? 'is-live' : '']
-    .filter(Boolean)
-    .join(' ')
-  return <span className={classes} aria-hidden="true" />
+  return (
+    <span
+      className={cn(
+        'size-2 rounded-pill shrink-0 inline-block transition-[background-color,box-shadow] duration-[180ms]',
+        toneStyles[tone],
+        live && tone === 'ok' && 'animate-pulse-ok',
+        live && tone === 'warn' && 'animate-pulse-warn',
+      )}
+      aria-hidden="true"
+    />
+  )
 }
 
 export function stateTone(state: string, running: boolean): Tone {

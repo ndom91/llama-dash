@@ -59,7 +59,7 @@ export function ThemeToggle() {
   return (
     <Tooltip label="Toggle Theme">
       <button type="button" onClick={cycle} aria-label={ariaLabel} className="btn btn-ghost btn-icon">
-        <Icon className="icon-14" strokeWidth={1.75} aria-hidden="true" />
+        <Icon className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
       </button>
     </Tooltip>
   )

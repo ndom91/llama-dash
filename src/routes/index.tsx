@@ -143,6 +143,7 @@ function StatCard({
 }
 
 function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total: number | null }) {
+  const navigate = useNavigate()
   const runningCount = active.filter((m) => m.running && m.kind !== 'peer').length
   const peerCount = active.filter((m) => m.kind === 'peer').length
   const subtitle =
@@ -180,7 +181,11 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
               const tone = m.kind === 'peer' ? ('warn' as const) : stateTone(m.state, m.running)
               const label = m.kind === 'peer' ? 'peer' : m.state
               return (
-                <tr key={m.id}>
+                <tr
+                  key={m.id}
+                  className="clickable-row"
+                  onClick={() => navigate({ to: '/models/$id', params: { id: m.id } })}
+                >
                   <td>
                     <StatusDot tone={tone} live />
                   </td>

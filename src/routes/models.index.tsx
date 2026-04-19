@@ -1,4 +1,4 @@
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Play, Power, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../components/PageHeader'
@@ -128,9 +128,7 @@ function ModelRow({
         <StatusDot tone={tone} live={model.running} />
       </td>
       <td className="mono" translate="no">
-        <Link to="/models/$id" params={{ id: model.id }} className="link-subtle">
-          {model.id}
-        </Link>
+        {model.id}
       </td>
       <td>{model.name}</td>
       <td className="hide-mobile">
