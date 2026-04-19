@@ -1230,11 +1230,13 @@ a,
   overflow: visible;
   animation: tooltip-in 120ms ease-out;
 }
+.llama-tooltip span:has(> .llama-tooltip-arrow) {
+  visibility: visible !important;
+}
 .llama-tooltip-arrow {
   fill: #05070a;
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.12));
   margin-top: -1px;
-  visibility: visible !important;
 }
 .llama-tooltip[data-side='bottom'] .llama-tooltip-arrow {
   filter: drop-shadow(0 -1px 0 rgba(255, 255, 255, 0.12));
