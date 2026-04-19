@@ -220,13 +220,12 @@ rest_command:
           lang: 'json',
           code: `{
   "provider": {
-    "openai-compatible": {
+    "llama-dash": {
       "apiKey": "${apiKey}",
       "models": {
         "${model}": {
           "name": "${model}",
-          "apiUrl": "${baseUrl}/v1/chat/completions",
-          "maxTokens": 8192
+          "apiUrl": "${baseUrl}/v1/chat/completions"
         }
       }
     }
