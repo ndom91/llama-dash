@@ -61,6 +61,7 @@ function Logs() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: remeasure all rows when wrap toggles
   useEffect(() => {
+    if (wrap) resetWidth()
     virtualizer.measure()
   }, [wrap])
 
