@@ -1227,6 +1227,7 @@ a,
   z-index: 50;
   max-width: 260px;
   user-select: none;
+  overflow: visible;
   animation: tooltip-in 120ms ease-out;
 }
 .llama-tooltip-arrow {
