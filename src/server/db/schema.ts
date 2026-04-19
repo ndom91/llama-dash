@@ -44,8 +44,28 @@ export const apiKeys = sqliteTable('api_keys', {
   rateLimitRpm: integer('rate_limit_rpm'),
   rateLimitTpm: integer('rate_limit_tpm'),
   monthlyTokenQuota: integer('monthly_token_quota'),
+  defaultModel: text('default_model'),
+  systemPrompt: text('system_prompt'),
   system: integer('system', { mode: 'boolean' }).notNull().default(false),
 })
 
 export type ApiKey = typeof apiKeys.$inferSelect
 export type NewApiKey = typeof apiKeys.$inferInsert
+
+export const modelAliases = sqliteTable('model_aliases', {
+  id: text('id').primaryKey(),
+  alias: text('alias').notNull().unique(),
+  model: text('model').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type ModelAlias = typeof modelAliases.$inferSelect
+export type NewModelAlias = typeof modelAliases.$inferInsert
+
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type Setting = typeof settings.$inferSelect

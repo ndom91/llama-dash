@@ -1,6 +1,8 @@
 import * as v from 'valibot'
 import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../lib/schemas/api-key.ts'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schemas/config'
+import { CreateModelAliasBodySchema, UpdateModelAliasBodySchema } from '../../lib/schemas/model-alias.ts'
+import { UpdateRequestLimitsBodySchema } from '../../lib/schemas/settings.ts'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
@@ -15,6 +17,8 @@ import {
 } from './api-keys.ts'
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from './key-detail.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
+import { createModelAlias, deleteModelAlias, listModelAliases, updateModelAlias } from './model-aliases.ts'
+import { getRequestLimits, setRequestLimits } from './settings.ts'
 import {
   extractModelConfig,
   getModelEvents,
@@ -278,6 +282,105 @@ const routes: Array<Route> = [
   },
   {
     method: 'GET',
+    pattern: /^\/api\/aliases$/,
+    handler: async () => {
+      return json(200, { aliases: listModelAliases() })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/aliases$/,
+    handler: async (request) => {
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(CreateModelAliasBodySchema, parsed)
+      if (!result.success) {
+        return error(400, 'Body must have "alias" and "model" (non-empty strings)')
+      }
+      try {
+        const alias = createModelAlias(result.output)
+        return json(201, alias)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('UNIQUE constraint')) {
+          return error(409, `Alias '${result.output.alias}' already exists`)
+        }
+        throw err
+      }
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/aliases\/([a-zA-Z0-9_]+)$/,
+    handler: async (request, match) => {
+      const id = match[1]
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(UpdateModelAliasBodySchema, parsed)
+      if (!result.success) {
+        return error(400, 'Body must have "alias" and/or "model" (non-empty strings)')
+      }
+      if (!result.output.alias && !result.output.model) {
+        return error(400, 'At least one field to update is required')
+      }
+      try {
+        const updated = updateModelAlias(id, result.output)
+        if (!updated) return error(404, `Alias ${id} not found`)
+        return json(200, updated)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('UNIQUE constraint')) {
+          return error(409, `Alias '${result.output.alias}' already exists`)
+        }
+        throw err
+      }
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/aliases\/([a-zA-Z0-9_]+)$/,
+    handler: async (_request, match) => {
+      const id = match[1]
+      const ok = deleteModelAlias(id)
+      if (!ok) return error(404, `Alias ${id} not found`)
+      return json(200, { ok: true })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/settings\/request-limits$/,
+    handler: async () => {
+      return json(200, getRequestLimits())
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/settings\/request-limits$/,
+    handler: async (request) => {
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(UpdateRequestLimitsBodySchema, parsed)
+      if (!result.success) {
+        return error(400, 'Invalid request limits body')
+      }
+      setRequestLimits(result.output)
+      return json(200, getRequestLimits())
+    },
+  },
+  {
+    method: 'GET',
     pattern: /^\/api\/keys$/,
     handler: async () => {
       return json(200, { keys: listApiKeys() })
@@ -334,12 +437,14 @@ const routes: Array<Route> = [
         return error(400, 'Body must have "name" (string) and/or "allowedModels" (string[])')
       }
       const body = result.output
-      if (!body.name && !body.allowedModels) {
+      if (!body.name && !body.allowedModels && body.defaultModel === undefined && body.systemPrompt === undefined) {
         return error(400, 'At least one field to update is required')
       }
       const ok = updateApiKey(id, {
         name: body.name?.trim(),
         allowedModels: body.allowedModels,
+        defaultModel: body.defaultModel,
+        systemPrompt: body.systemPrompt,
       })
       if (!ok) return error(404, `Key ${id} not found`)
       return json(200, { ok: true })

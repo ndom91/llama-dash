@@ -49,7 +49,7 @@ function EndpointsPage() {
       <TopBar />
       <div className="content">
         <div className="page">
-          <PageHeader kicker="§08 · integrate" title="Endpoints" subtitle="connect clients to llama-dash" />
+          <PageHeader kicker="§10 · integrate" title="Endpoints" subtitle="connect clients to llama-dash" />
 
           <div className={`grid gap-4 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
             <section className="panel">

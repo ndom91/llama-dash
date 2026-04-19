@@ -1,5 +1,15 @@
 import { Link } from '@tanstack/react-router'
-import { Boxes, KeyRound, LayoutDashboard, Link2, MessageSquare, ScrollText, Settings, Terminal } from 'lucide-react'
+import {
+  Boxes,
+  KeyRound,
+  LayoutDashboard,
+  Link2,
+  MessageSquare,
+  ScrollText,
+  Settings,
+  Shield,
+  Terminal,
+} from 'lucide-react'
 import { cn } from '../lib/cn'
 import { useColorTheme } from '../lib/use-color-theme'
 import { useMobileMenu } from '../lib/use-mobile-menu'
@@ -10,7 +20,7 @@ import { Tooltip } from './Tooltip'
 import { Logo } from './Logo'
 
 type NavItem = {
-  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config' | '/keys' | '/endpoints'
+  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config' | '/keys' | '/endpoints' | '/policies'
   label: string
   shortcut: string
   Icon: typeof LayoutDashboard
@@ -45,7 +55,8 @@ const SECTIONS: ReadonlyArray<NavSection> = [
     items: [
       { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
       { to: '/keys', label: 'API Keys', shortcut: 'K07', Icon: KeyRound },
-      { to: '/endpoints', label: 'Endpoints', shortcut: 'E08', Icon: Link2 },
+      { to: '/policies', label: 'Policies', shortcut: 'P09', Icon: Shield },
+      { to: '/endpoints', label: 'Endpoints', shortcut: 'E10', Icon: Link2 },
     ],
   },
 ]

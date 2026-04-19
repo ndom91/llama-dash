@@ -135,6 +135,9 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
   const [allowedModels, setAllowedModels] = useState<Array<string>>([])
   const [rpm, setRpm] = useState('')
   const [tpm, setTpm] = useState('')
+  const [defaultModel, setDefaultModel] = useState('')
+  const [systemPrompt, setSystemPrompt] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -145,6 +148,8 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
         allowedModels,
         rateLimitRpm: rpm ? Number(rpm) : null,
         rateLimitTpm: tpm ? Number(tpm) : null,
+        defaultModel: defaultModel || null,
+        systemPrompt: systemPrompt.trim() || null,
       },
       { onSuccess: (data) => onCreated(data) },
     )
@@ -214,6 +219,46 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
             />
           </label>
         </div>
+
+        <button
+          type="button"
+          className="text-xs font-mono text-fg-dim hover:text-fg bg-transparent border-none cursor-pointer p-0 self-start"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          {showAdvanced ? '▾ Hide advanced' : '▸ Advanced options'}
+        </button>
+
+        {showAdvanced ? (
+          <>
+            <label className="key-field">
+              <span className="key-field-label">Default model</span>
+              <span className="key-field-hint">overrides the model in all requests using this key</span>
+              <select
+                className="key-field-input cursor-pointer"
+                value={defaultModel}
+                onChange={(e) => setDefaultModel(e.target.value)}
+              >
+                <option value="">none (use client's model)</option>
+                {models?.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="key-field">
+              <span className="key-field-label">System prompt</span>
+              <span className="key-field-hint">prepended to all chat completion requests</span>
+              <textarea
+                className="key-field-input resize-y min-h-[60px]"
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                placeholder="Enter a system prompt..."
+                maxLength={10000}
+              />
+            </label>
+          </>
+        ) : null}
       </div>
 
       <div className="key-create-actions">

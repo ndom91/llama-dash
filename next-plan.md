@@ -7,7 +7,7 @@ Items marked ~~strikethrough~~ are shipped. See AGENTS.md § "What's shipped" fo
 1. ~~**Model detail page**~~ — **shipped.** Per-model stats (requests, error rate, avg duration, avg tok/s), load/unload history, recent requests, per-key usage breakdown, config.yaml snippet. TTFT, context-len histogram, GGUF info deferred (need upstream changes).
 2. ~~**Live stream console**~~ — **cut.** The request log + detail view already covers this; a real-time token viewer doesn't add enough value.
 3. ~~**API key detail page**~~ — **shipped.** Per-key stats (requests, error rate, tokens, duration, tok/s with sparklines), interactive model access panel with checkbox toggles and per-model usage stats, inline key rename, recent requests table. Clickable from keys list. Real $ cost tracking deferred (needs upstream pricing data).
-4. **Endpoint directory** — copyable base URLs per key with code examples for openai-python, curl, Continue, OpenWebUI, etc.
+4. ~~**Endpoint directory**~~ — **shipped.** Standalone `/endpoints` page with copyable base URL, API key selector, tabbed code examples (curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI), syntax highlighting, filename headers.
 5. **Audit log** — admin actions (key created, config reloaded, model loaded by X) separate from request log.
 6. **Policies / filters** — prompt guards, max_tokens ceilings, model aliases, denylist/allowlist. Per-key, per-route. Someday.
 7. ~~**VRAM timeline**~~ — **descoped.** Model swap timeline on the dashboard already shows model residency over time. A dedicated VRAM memory graph would be incremental — revisit if GPU memory pressure becomes a real issue.
@@ -42,7 +42,7 @@ Items marked ~~strikethrough~~ are shipped. See AGENTS.md § "What's shipped" fo
 
 ### Integrate
 
-- ~~Endpoint directory~~ → promoted to priority #4
+- ~~Endpoint directory~~ — **shipped** (priority #4)
 - Peer federation — add remote llama-swap as backend; route specific model IDs to it.
 - Webhooks — fire on model-load, OOM, error-rate spike.
 - OpenAPI browser — rendered /v1/* schema with "try it" panel.

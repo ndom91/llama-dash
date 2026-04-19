@@ -22,8 +22,12 @@ import {
   type ApiRequest,
   type ApiRequestDetail,
   type ApiRequestStats,
+  type ModelAliasItem,
+  type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
+import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
+import type { UpdateRequestLimitsBody } from './schemas/settings'
 
 const POLL_MS = 5_000
 
@@ -41,6 +45,8 @@ export const qk = {
   modelDetail: (id: string) => ['models', id] as const,
   keys: ['keys'] as const,
   keyDetail: (id: string) => ['keys', id] as const,
+  aliases: ['aliases'] as const,
+  requestLimits: ['settings', 'request-limits'] as const,
 }
 
 // ---- queries ----
@@ -293,6 +299,44 @@ export function useUpdateKeyModels(): UseMutationResult<
   })
 }
 
+export function useUpdateKeyDefaultModel(): UseMutationResult<
+  { ok: true },
+  Error,
+  { id: string; defaultModel: string | null }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, defaultModel }: { id: string; defaultModel: string | null }) =>
+      api.updateKeyDefaultModel(id, defaultModel),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: qk.keys })
+      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+    },
+    onError: (e) => {
+      toast.error('Failed to update default model', { description: e.message })
+    },
+  })
+}
+
+export function useUpdateKeySystemPrompt(): UseMutationResult<
+  { ok: true },
+  Error,
+  { id: string; systemPrompt: string | null }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, systemPrompt }: { id: string; systemPrompt: string | null }) =>
+      api.updateKeySystemPrompt(id, systemPrompt),
+    onSuccess: (_data, { id }) => {
+      qc.invalidateQueries({ queryKey: qk.keys })
+      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+    },
+    onError: (e) => {
+      toast.error('Failed to update system prompt', { description: e.message })
+    },
+  })
+}
+
 export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({
@@ -317,6 +361,80 @@ export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string
     },
     onError: (e) => {
       toast.error('Delete failed', { description: e.message })
+    },
+  })
+}
+
+// ---- Model aliases ----
+
+export function useAliases(): UseQueryResult<Array<ModelAliasItem>> {
+  return useQuery({
+    queryKey: qk.aliases,
+    queryFn: () => api.listAliases().then((r) => r.aliases),
+  })
+}
+
+export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, CreateModelAliasBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateModelAliasBody) => api.createAlias(body),
+    onSuccess: () => {
+      toast.success('Alias created')
+      qc.invalidateQueries({ queryKey: qk.aliases })
+    },
+    onError: (e) => {
+      toast.error('Failed to create alias', { description: e.message })
+    },
+  })
+}
+
+export function useUpdateAlias(): UseMutationResult<ModelAliasItem, Error, { id: string } & UpdateModelAliasBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & UpdateModelAliasBody) => api.updateAlias(id, body),
+    onSuccess: () => {
+      toast.success('Alias updated')
+      qc.invalidateQueries({ queryKey: qk.aliases })
+    },
+    onError: (e) => {
+      toast.error('Failed to update alias', { description: e.message })
+    },
+  })
+}
+
+export function useDeleteAlias(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.deleteAlias(id),
+    onSuccess: () => {
+      toast.success('Alias deleted')
+      qc.invalidateQueries({ queryKey: qk.aliases })
+    },
+    onError: (e) => {
+      toast.error('Failed to delete alias', { description: e.message })
+    },
+  })
+}
+
+// ---- Request limits ----
+
+export function useRequestLimits(): UseQueryResult<RequestLimits> {
+  return useQuery({
+    queryKey: qk.requestLimits,
+    queryFn: () => api.getRequestLimits(),
+  })
+}
+
+export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error, UpdateRequestLimitsBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: UpdateRequestLimitsBody) => api.updateRequestLimits(body),
+    onSuccess: () => {
+      toast.success('Request limits updated')
+      qc.invalidateQueries({ queryKey: qk.requestLimits })
+    },
+    onError: (e) => {
+      toast.error('Failed to update limits', { description: e.message })
     },
   })
 }

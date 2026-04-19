@@ -8,7 +8,14 @@ import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import type { ApiKeyDetail, ApiKeyModelBreakdown, ApiKeyStats, ApiRequest } from '../lib/api'
-import { useKeyDetail, useModels, useRenameApiKey, useUpdateKeyModels } from '../lib/queries'
+import {
+  useKeyDetail,
+  useModels,
+  useRenameApiKey,
+  useUpdateKeyDefaultModel,
+  useUpdateKeyModels,
+  useUpdateKeySystemPrompt,
+} from '../lib/queries'
 
 export const Route = createFileRoute('/keys/$id')({ component: KeyDetailPage })
 
@@ -117,6 +124,12 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
               {key.allowedModels.length === 0 ? 'all' : key.allowedModels.length}
             </span>
           </div>
+          {key.defaultModel != null ? (
+            <div className="detail-stat">
+              <span className="detail-stat-label">pinned model</span>
+              <span className="detail-stat-value">{key.defaultModel}</span>
+            </div>
+          ) : null}
           {key.rateLimitRpm != null ? (
             <div className="detail-stat">
               <span className="detail-stat-label">rpm</span>
@@ -139,6 +152,10 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
       </div>
 
       <StatsRow stats={stats} />
+
+      <DefaultModelPanel keyId={key.id} defaultModel={key.defaultModel} isRevoked={isRevoked} />
+
+      <SystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
 
       <ModelAccessPanel
         keyId={key.id}
@@ -192,6 +209,174 @@ function StatsRow({ stats }: { stats: ApiKeyStats }) {
         </div>
       </div>
     </div>
+  )
+}
+
+function DefaultModelPanel({
+  keyId,
+  defaultModel,
+  isRevoked,
+}: {
+  keyId: string
+  defaultModel: string | null
+  isRevoked: boolean
+}) {
+  const { data: allModels } = useModels()
+  const updateDefault = useUpdateKeyDefaultModel()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(defaultModel ?? '')
+
+  const save = () => {
+    const val = draft.trim() || null
+    if (val === defaultModel) {
+      setEditing(false)
+      return
+    }
+    updateDefault.mutate({ id: keyId, defaultModel: val }, { onSuccess: () => setEditing(false) })
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="panel-title">Default model</span>
+        <span className="panel-sub">· {defaultModel ? `pinned to ${defaultModel}` : 'not set'}</span>
+        {!isRevoked && !editing ? (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs ml-auto"
+            onClick={() => {
+              setDraft(defaultModel ?? '')
+              setEditing(true)
+            }}
+          >
+            {defaultModel ? 'change' : 'set'}
+          </button>
+        ) : null}
+      </div>
+      {editing ? (
+        <div className="p-4 flex gap-2 items-end">
+          <select
+            className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer flex-1"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          >
+            <option value="">none (use client's model)</option>
+            {allModels?.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn btn-primary btn-xs" onClick={save} disabled={updateDefault.isPending}>
+            Save
+          </button>
+          <button type="button" className="btn btn-xs" onClick={() => setEditing(false)}>
+            Cancel
+          </button>
+        </div>
+      ) : defaultModel ? (
+        <div className="p-4">
+          <p className="text-xs text-fg-dim font-mono m-0">
+            All requests using this key will have their model overridden to{' '}
+            <code className="text-fg">{defaultModel}</code>, regardless of what the client sends.
+          </p>
+        </div>
+      ) : (
+        <div className="p-4">
+          <p className="text-xs text-fg-dim font-mono m-0">
+            No default model set. The client's requested model is used as-is.
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
+function SystemPromptPanel({
+  keyId,
+  systemPrompt,
+  isRevoked,
+}: {
+  keyId: string
+  systemPrompt: string | null
+  isRevoked: boolean
+}) {
+  const updatePrompt = useUpdateKeySystemPrompt()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(systemPrompt ?? '')
+
+  const save = () => {
+    const val = draft.trim() || null
+    if (val === systemPrompt) {
+      setEditing(false)
+      return
+    }
+    updatePrompt.mutate({ id: keyId, systemPrompt: val }, { onSuccess: () => setEditing(false) })
+  }
+
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="panel-title">System prompt</span>
+        <span className="panel-sub">· {systemPrompt ? 'active' : 'not set'}</span>
+        {!isRevoked && !editing ? (
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs ml-auto"
+            onClick={() => {
+              setDraft(systemPrompt ?? '')
+              setEditing(true)
+            }}
+          >
+            {systemPrompt ? 'edit' : 'set'}
+          </button>
+        ) : null}
+      </div>
+      {editing ? (
+        <div className="p-4 flex flex-col gap-2">
+          <textarea
+            className="bg-surface-3 border border-border rounded px-3 py-2 font-mono text-xs text-fg resize-y min-h-[80px]"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={10000}
+            placeholder="Enter a system prompt to prepend to all chat completion requests..."
+          />
+          <div className="flex gap-2">
+            <button type="button" className="btn btn-primary btn-xs" onClick={save} disabled={updatePrompt.isPending}>
+              Save
+            </button>
+            <button type="button" className="btn btn-xs" onClick={() => setEditing(false)}>
+              Cancel
+            </button>
+            {systemPrompt ? (
+              <button
+                type="button"
+                className="btn btn-xs btn-danger ml-auto"
+                onClick={() => {
+                  updatePrompt.mutate({ id: keyId, systemPrompt: null }, { onSuccess: () => setEditing(false) })
+                }}
+                disabled={updatePrompt.isPending}
+              >
+                Remove
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : systemPrompt ? (
+        <div className="p-4">
+          <pre className="bg-surface-3 border border-border rounded p-3 font-mono text-xs text-fg whitespace-pre-wrap m-0 max-h-[200px] overflow-y-auto">
+            {systemPrompt}
+          </pre>
+        </div>
+      ) : (
+        <div className="p-4">
+          <p className="text-xs text-fg-dim font-mono m-0">
+            No system prompt configured. Set one to prepend a system message to all chat completion requests using this
+            key.
+          </p>
+        </div>
+      )}
+    </section>
   )
 }
 

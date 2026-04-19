@@ -2,6 +2,7 @@ import { config } from '../config.ts'
 import { authenticateRequest } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
+import { applyTransforms } from './transforms.ts'
 import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
@@ -55,7 +56,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     reqBodyText = await request.text()
   }
 
-  const authResult = authenticateRequest(request, reqBodyText)
+  const authResult = authenticateRequest(request)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
@@ -66,6 +67,25 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   const keyId = authResult.keyId
   const keyRow = authResult.keyRow
+
+  let parsedBody: Record<string, unknown> | null = null
+  if (hasBody && reqBodyText) {
+    try {
+      parsedBody = JSON.parse(reqBodyText)
+    } catch {
+      // non-JSON body — skip transforms
+    }
+  }
+
+  if (parsedBody) {
+    const transformResult = applyTransforms(parsedBody, { keyRow, endpoint, method })
+    if (!transformResult.ok) {
+      return Response.json(transformResult.body, { status: transformResult.status })
+    }
+    if (transformResult.mutated) {
+      reqBodyText = JSON.stringify(transformResult.body)
+    }
+  }
 
   const fetchBody = reqBodyText
     ? new ReadableStream<Uint8Array>({

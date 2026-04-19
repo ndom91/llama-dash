@@ -7,7 +7,7 @@ type AuthOk = { ok: true; keyId: string | null; keyRow: ApiKey | null }
 type AuthErr = { ok: false; status: number; retryAfterMs?: number; body: { error: { message: string; type: string } } }
 export type AuthResult = AuthOk | AuthErr
 
-export function authenticateRequest(request: Request, requestBody: string | null): AuthResult {
+export function authenticateRequest(request: Request): AuthResult {
   if (!hasAnyUserKeys()) {
     return { ok: true, keyId: null, keyRow: null }
   }
@@ -70,23 +70,6 @@ export function authenticateRequest(request: Request, requestBody: string | null
         retryAfterMs: tpm.retryAfterMs,
         body: { error: { message: 'Rate limit exceeded (TPM)', type: 'rate_limit_exceeded' } },
       }
-    }
-  }
-
-  const allowedModels: Array<string> = JSON.parse(keyRow.allowedModels)
-  if (allowedModels.length > 0 && requestBody) {
-    try {
-      const parsed = JSON.parse(requestBody)
-      const model = typeof parsed.model === 'string' ? parsed.model : null
-      if (model && !allowedModels.includes(model)) {
-        return {
-          ok: false,
-          status: 403,
-          body: { error: { message: `Model '${model}' is not allowed for this API key`, type: 'model_not_allowed' } },
-        }
-      }
-    } catch {
-      // non-JSON body — skip model check
     }
   }
 

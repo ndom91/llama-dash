@@ -30,6 +30,8 @@ export function createApiKey(input: {
   rateLimitRpm?: number | null
   rateLimitTpm?: number | null
   monthlyTokenQuota?: number | null
+  defaultModel?: string | null
+  systemPrompt?: string | null
 }): { key: ApiKeyItem; rawKey: string } {
   const rawKey = `sk-${randomBytes(32).toString('hex')}`
   const keyHash = createHash('sha256').update(rawKey).digest('hex')
@@ -48,6 +50,8 @@ export function createApiKey(input: {
     rateLimitRpm: input.rateLimitRpm ?? null,
     rateLimitTpm: input.rateLimitTpm ?? null,
     monthlyTokenQuota: input.monthlyTokenQuota ?? null,
+    defaultModel: input.defaultModel ?? null,
+    systemPrompt: input.systemPrompt ?? null,
     system: false,
   }
 
@@ -62,12 +66,23 @@ export function renameApiKey(id: string, name: string): boolean {
   return result.changes > 0
 }
 
-export function updateApiKey(id: string, fields: { name?: string; allowedModels?: Array<string> }): boolean {
+export function updateApiKey(
+  id: string,
+  fields: {
+    name?: string
+    allowedModels?: Array<string>
+    defaultModel?: string | null
+    systemPrompt?: string | null
+  },
+): boolean {
   const set: Record<string, unknown> = {}
   if (fields.name != null) set.name = fields.name
   if (fields.allowedModels != null) set.allowedModels = JSON.stringify(fields.allowedModels)
+  if (fields.defaultModel !== undefined) set.defaultModel = fields.defaultModel
+  if (fields.systemPrompt !== undefined) set.systemPrompt = fields.systemPrompt
   if (Object.keys(set).length === 0) return false
   const result = db.update(schema.apiKeys).set(set).where(eq(schema.apiKeys.id, id)).run()
+  invalidateKeyCache()
   return result.changes > 0
 }
 
@@ -178,5 +193,7 @@ function toApiShape(row: schema.ApiKey): ApiKeyItem {
     rateLimitRpm: row.rateLimitRpm,
     rateLimitTpm: row.rateLimitTpm,
     monthlyTokenQuota: row.monthlyTokenQuota,
+    defaultModel: row.defaultModel,
+    systemPrompt: row.systemPrompt,
   }
 }

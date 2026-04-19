@@ -1,6 +1,8 @@
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
+import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
+import { RequestLimitsSchema } from './schemas/settings'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
@@ -36,6 +38,8 @@ export type {
   ApiConfigSaveResult,
 } from './schemas/config'
 export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
+export type { ModelAliasItem } from './schemas/model-alias'
+export type { RequestLimits } from './schemas/settings'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -121,6 +125,39 @@ export const api = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ allowedModels }),
     }).then(validated(OkSchema)),
+  updateKeyDefaultModel: (id: string, defaultModel: string | null) =>
+    fetch(`/api/keys/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ defaultModel }),
+    }).then(validated(OkSchema)),
+  updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>
+    fetch(`/api/keys/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ systemPrompt }),
+    }).then(validated(OkSchema)),
   revokeKey: (id: string) => fetch(`/api/keys/${id}/revoke`, { method: 'POST' }).then(validated(OkSchema)),
   deleteKey: (id: string) => fetch(`/api/keys/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
+  listAliases: () => fetch('/api/aliases').then(validated(ModelAliasListResponseSchema)),
+  createAlias: (body: { alias: string; model: string }) =>
+    fetch('/api/aliases', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(validated(ModelAliasSchema)),
+  updateAlias: (id: string, body: { alias?: string; model?: string }) =>
+    fetch(`/api/aliases/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(validated(ModelAliasSchema)),
+  deleteAlias: (id: string) => fetch(`/api/aliases/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
+  getRequestLimits: () => fetch('/api/settings/request-limits').then(validated(RequestLimitsSchema)),
+  updateRequestLimits: (body: { maxMessages?: number | null; maxEstimatedTokens?: number | null }) =>
+    fetch('/api/settings/request-limits', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(validated(RequestLimitsSchema)),
 }
