@@ -1447,15 +1447,6 @@ a,
   margin-top: 2px;
   word-break: break-all;
 }
-.llama-toast-close {
-  background: var(--bg-3) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--fg-muted) !important;
-}
-.llama-toast-close:hover {
-  background: var(--bg-4) !important;
-  color: var(--fg) !important;
-}
 
 
 /* ---- stat cards ---- */

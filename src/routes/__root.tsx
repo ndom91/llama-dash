@@ -53,13 +53,11 @@ function RootDocument() {
           <Toaster
             position="bottom-center"
             theme="system"
-            closeButton
             toastOptions={{
               classNames: {
                 toast: 'llama-toast',
                 title: 'llama-toast-title',
                 description: 'llama-toast-desc',
-                closeButton: 'llama-toast-close',
               },
             }}
           />

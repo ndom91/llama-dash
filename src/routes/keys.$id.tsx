@@ -254,7 +254,7 @@ function DefaultModelPanel({
         ) : null}
       </div>
       {editing ? (
-        <div className="p-4 flex gap-2 items-end">
+        <div className="p-4 flex gap-2 items-center">
           <select
             className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer flex-1"
             value={draft}
@@ -267,10 +267,10 @@ function DefaultModelPanel({
               </option>
             ))}
           </select>
-          <button type="button" className="btn btn-primary btn-xs" onClick={save} disabled={updateDefault.isPending}>
+          <button type="button" className="btn btn-primary btn-sm" onClick={save} disabled={updateDefault.isPending}>
             Save
           </button>
-          <button type="button" className="btn btn-xs" onClick={() => setEditing(false)}>
+          <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>
             Cancel
           </button>
         </div>
