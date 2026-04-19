@@ -1,6 +1,8 @@
 node_modules
 .git
 data
+config
+models
 .env
 .nitro
 .tanstack

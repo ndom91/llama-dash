@@ -9,6 +9,7 @@ services:
       - ./models:/models
     networks:
       - internal
+    restart: unless-stopped
     # AMD GPU passthrough
     devices:
       - /dev/kfd:/dev/kfd
@@ -22,7 +23,7 @@ services:
     #           count: all
     #           capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || wget -qO- http://localhost:8080/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -41,10 +42,11 @@ services:
       - llama-dash-data:/data
     networks:
       - internal
-    # AMD GPU stats — amdgpu_top needs access to /dev/dri
-    devices:
-      - /dev/dri:/dev/dri
-    # For NVIDIA, replace 'devices' above with:
+    restart: unless-stopped
+    # Uncomment for AMD GPU stats (amdgpu_top needs /dev/dri):
+    # devices:
+    #   - /dev/dri:/dev/dri
+    # For NVIDIA, use:
     # deploy:
     #   resources:
     #     reservations:
