@@ -321,15 +321,6 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
                 <span className="detail-endpoint-method">{req.method}</span>
                 <span className="detail-endpoint-path">{req.endpoint}</span>
               </div>
-              <div className="detail-endpoint-meta">
-                variant A — three-pane request detail
-                {req.model ? (
-                  <>
-                    <span> · </span>
-                    <span translate="no">{req.model}</span>
-                  </>
-                ) : null}
-              </div>
             </div>
             <div className="detail-stats-strip request-detail-hero-stats">
               <div className="detail-stat">
@@ -449,17 +440,13 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
 
           <section className="detail-sidecar-section detail-sidecar-danger">
             <div className="detail-sidecar-title">Actions</div>
-            <Link to="/playground" className="btn btn-ghost btn-sm">
+            <Link to="/playground" className="btn btn-sm">
               Open in Playground
             </Link>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => navigator.clipboard.writeText(curlCommand)}
-            >
+            <button type="button" className="btn btn-sm" onClick={() => navigator.clipboard.writeText(curlCommand)}>
               Copy as curl
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled>
+            <button type="button" className="btn btn-sm" disabled>
               Download .jsonl
             </button>
           </section>

@@ -1329,7 +1329,6 @@
   .detail-stats-strip {
     flex-wrap: wrap;
     border-left: 0;
-    border-top: 1px solid var(--border);
   }
   .detail-stat {
     min-width: 80px;
@@ -2688,13 +2687,14 @@ a,
 }
 
 .request-detail-shell {
-  grid-template-columns: 176px minmax(0, 1fr) 280px;
+  grid-template-columns: 250px minmax(0, 1fr) 280px;
 }
 
 .request-detail-main {
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
   min-height: 0;
 }
 
@@ -2703,12 +2703,49 @@ a,
 }
 
 .request-detail-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.request-detail-hero .detail-endpoint {
+  min-width: 280px;
+  flex: 1 1 420px;
+  border-bottom: 1px solid var(--border);
+}
+
+.request-detail-hero-stats {
+  flex: 1 1 auto;
 }
 
 .request-detail-hero-stats .detail-stat {
   min-width: 88px;
+}
+
+@media (max-width: 1200px) {
+  .request-detail-hero {
+    flex-direction: column;
+  }
+
+  .request-detail-hero .detail-endpoint {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .request-detail-hero-stats {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .request-detail-hero-stats .detail-stat:first-child {
+    border-left: 0;
+    border-bottom: 0;
+  }
+
+  .detail-stats-strip {
+    justify-content: stretch;
+    border-left: 1px solid var(--border);
+  }
 }
 
 .request-detail-panel {
@@ -2722,12 +2759,15 @@ a,
 .request-workspace-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  flex: 1;
   min-height: 0;
+  align-items: stretch;
 }
 
 .request-payload-pane {
   display: flex;
   flex-direction: column;
+  height: 100%;
   min-height: 0;
   border-right: 1px solid var(--border);
 }
@@ -2742,7 +2782,6 @@ a,
   gap: 10px;
   min-height: 40px;
   padding: 0 12px;
-  border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   background: var(--bg-1);
 }
@@ -2769,14 +2808,18 @@ a,
 }
 
 .request-payload-pre {
-  flex: 1;
-  max-height: none;
-  min-height: 320px;
+  flex: 1 1 0;
+  min-height: 50%;
   border-top: 0;
+  overflow: auto;
 }
 
 .request-payload-headers {
+  flex: 0 1 auto;
   border-top: 1px solid var(--border);
+  min-height: 25%;
+  max-height: 50%;
+  overflow: auto;
 }
 
 .request-payload-headers-title {
@@ -2864,6 +2907,7 @@ a,
   flex: 1;
   padding: 16px 20px;
   min-width: 0;
+  border-bottom: 0;
 }
 .detail-endpoint-row {
   display: flex;
@@ -2907,7 +2951,7 @@ a,
 .detail-stats-strip {
   display: flex;
   align-items: stretch;
-  border-left: 1px solid var(--border);
+  border-left: none;
 }
 .detail-stat {
   flex: 1;
