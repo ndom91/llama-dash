@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { BookOpen, ChevronDown, ImageIcon, MessageSquare, Mic, Play, Save, Send, Volume2, X } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
@@ -15,8 +15,6 @@ import { cn } from '../lib/cn'
 import { useModels } from '../lib/queries'
 import { usePlaygroundChat } from '../lib/use-playground-chat'
 
-const LS_TAB = 'playground-tab'
-
 type PlaygroundTab = 'chat' | 'image' | 'speech' | 'transcribe'
 
 const TABS: Array<{ id: PlaygroundTab; label: string; Icon: typeof MessageSquare }> = [
@@ -28,16 +26,25 @@ const TABS: Array<{ id: PlaygroundTab; label: string; Icon: typeof MessageSquare
 
 export const Route = createFileRoute('/playground')({ component: Playground })
 
-function Playground() {
-  const [tab, setTabState] = useState<PlaygroundTab>(() => {
-    if (typeof window === 'undefined') return 'chat'
-    return (localStorage.getItem(LS_TAB) as PlaygroundTab) ?? 'chat'
-  })
+function isPlaygroundTab(value: unknown): value is PlaygroundTab {
+  return value === 'chat' || value === 'image' || value === 'speech' || value === 'transcribe'
+}
 
-  const setTab = useCallback((t: PlaygroundTab) => {
-    setTabState(t)
-    localStorage.setItem(LS_TAB, t)
-  }, [])
+function Playground() {
+  const navigate = useNavigate()
+  const search = Route.useSearch() as { tab?: string }
+  const tab: PlaygroundTab = isPlaygroundTab(search.tab) ? search.tab : 'chat'
+
+  const setTab = useCallback(
+    (t: PlaygroundTab) => {
+      navigate({
+        to: '/playground',
+        search: (prev: Record<string, unknown>) => ({ ...prev, tab: t }),
+        replace: true,
+      })
+    },
+    [navigate],
+  )
 
   const chat = usePlaygroundChat()
 
