@@ -21,8 +21,13 @@ function PoliciesPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
-          <PageHeader kicker="dsh · policies" title="Policies" subtitle="proxy-layer request transforms" />
+        <div className="page policies-page">
+          <PageHeader
+            kicker="dsh · policies"
+            title="Policies"
+            subtitle="proxy-layer request transforms"
+            variant="integrated"
+          />
           <AliasPanel />
           <RequestLimitsPanel />
         </div>
@@ -57,8 +62,8 @@ function AliasPanel() {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel policies-panel">
+      <div className="panel-head policies-panel-head">
         <span className="panel-title">Model Aliases</span>
         <span className="panel-sub">· map client model names to llama-swap model IDs</span>
       </div>
@@ -240,8 +245,8 @@ function RequestLimitsPanel() {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel policies-panel">
+      <div className="panel-head policies-panel-head">
         <span className="panel-title">Request Limits</span>
         <span className="panel-sub">· global size limits on proxied requests</span>
         {!editing ? (

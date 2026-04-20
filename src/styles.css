@@ -3983,6 +3983,32 @@ a,
   }
 }
 
+.policies-page {
+  min-height: 100%;
+}
+
+.policies-panel {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.policies-panel + .policies-panel {
+  border-top: none;
+}
+
+.policies-panel-head {
+  padding-inline: 24px;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .policies-panel-head {
+    padding-inline: 12px;
+  }
+}
+
 .key-name-cell {
   all: unset;
   cursor: pointer;
