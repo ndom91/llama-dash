@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ChevronRight, Pencil } from 'lucide-react'
+import { ChevronRight, Pencil, Power, RotateCw } from 'lucide-react'
 import { useRef, useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
@@ -10,8 +10,10 @@ import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import type { ApiKeyDetail, ApiKeyModelBreakdown, ApiKeyStats, ApiRequest } from '../lib/api'
 import {
+  useApiKeys,
   useKeyDetail,
   useModels,
+  useRevokeApiKey,
   useRenameApiKey,
   useUpdateKeyDefaultModel,
   useUpdateKeyModels,
@@ -28,7 +30,7 @@ function KeyDetailPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page detail-page key-detail-page">
+        <div className="page detail-page detail-page-sidecar key-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : data == null ? (
@@ -45,10 +47,14 @@ function KeyDetailPage() {
 function KeyContent({ data }: { data: ApiKeyDetail }) {
   const { key, stats, requests, modelBreakdown } = data
   const isRevoked = key.disabledAt != null
+  const revokeKey = useRevokeApiKey()
+  const { data: allKeys } = useApiKeys()
   const renameKey = useRenameApiKey()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(key.name)
   const inputRef = useRef<HTMLInputElement>(null)
+  const lastUsedAt = requests.rows[0]?.startedAt ?? null
+  const scopedModels = key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of 5`
 
   const startEdit = () => {
     if (isRevoked) return
@@ -69,111 +75,133 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
   return (
     <>
       <PageHeader
-        kicker="dsh · keys · detail"
-        title="API key detail"
-        subtitle={<span translate="no">{key.keyPrefix}…</span>}
+        kicker={`key · ${key.name}`}
+        title={key.name}
+        subtitle={
+          <span translate="no">
+            {key.keyPrefix}… · {isRevoked ? 'revoked' : 'active'} · created{' '}
+            {new Date(key.createdAt).toLocaleDateString()}
+          </span>
+        }
         variant="integrated"
+        action={
+          <div className="detail-header-actions">
+            <button type="button" className="btn btn-ghost btn-xs" disabled>
+              <RotateCw size={12} strokeWidth={2} />
+              rotate
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger-ghost btn-xs"
+              disabled={isRevoked || revokeKey.isPending}
+              onClick={() => revokeKey.mutate(key.id)}
+            >
+              <Power size={12} strokeWidth={2} />
+              revoke
+            </button>
+          </div>
+        }
       />
 
-      <div className="detail-hero">
-        <div className="detail-endpoint">
-          <div className="detail-endpoint-row">
-            <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
-            {editing ? (
-              <input
-                ref={inputRef}
-                className="ml-2 bg-transparent border border-accent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg outline-none"
-                style={{ minWidth: `max(320px, ${key.name.length + 2}ch)` }}
-                type="text"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitRename()
-                  if (e.key === 'Escape') setEditing(false)
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                className="group inline-flex items-center gap-1.5 ml-2 cursor-pointer bg-transparent border border-transparent rounded px-1.5 py-0.5 font-mono text-[22px] font-semibold tracking-tight text-fg"
-                onClick={startEdit}
-                disabled={isRevoked}
-              >
-                {key.name}
-                {!isRevoked ? (
-                  <Pencil
-                    size={13}
-                    strokeWidth={2}
-                    className="text-fg-faint opacity-0 group-hover:opacity-100 transition-opacity"
-                  />
-                ) : null}
-              </button>
-            )}
+      <div className="detail-sidecar-shell">
+        <aside className="detail-meta-rail">
+          <div className="detail-meta-section">
+            <div className="detail-meta-kicker">Key</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>status</dt>
+                <dd>
+                  <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
+                  <span>{isRevoked ? 'revoked' : 'active'}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>prefix</dt>
+                <dd className="mono">{key.keyPrefix}…</dd>
+              </div>
+              <div>
+                <dt>created</dt>
+                <dd>{new Date(key.createdAt).toLocaleDateString()}</dd>
+              </div>
+              <div>
+                <dt>last used</dt>
+                <dd>{lastUsedAt ? formatRelative(lastUsedAt) : 'never'}</dd>
+              </div>
+            </dl>
           </div>
-          <div className="detail-endpoint-meta">
-            ↳ <span className="mono">{key.keyPrefix}…</span>
-            <span> · </span>
-            <span>{isRevoked ? 'revoked' : 'active'}</span>
-            <span> · created </span>
-            <span>{new Date(key.createdAt).toLocaleDateString()}</span>
+
+          <div className="detail-meta-section">
+            <div className="detail-meta-kicker">Limits</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>rpm</dt>
+                <dd>{key.rateLimitRpm?.toLocaleString() ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>tpm</dt>
+                <dd>{key.rateLimitTpm?.toLocaleString() ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>models</dt>
+                <dd>{scopedModels}</dd>
+              </div>
+            </dl>
           </div>
+        </aside>
+
+        <div className="detail-main-stack detail-key-main">
+          <StatsRow stats={stats} />
+
+          <DefaultModelPanel keyId={key.id} defaultModel={key.defaultModel} isRevoked={isRevoked} />
+
+          <SystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
+
+          <ModelAccessPanel
+            keyId={key.id}
+            allowedModels={key.allowedModels}
+            breakdown={modelBreakdown}
+            isRevoked={isRevoked}
+          />
+
+          <RequestsPanel rows={requests.rows} />
         </div>
-        <div className="detail-stats-strip">
-          <div className="detail-stat">
-            <span className="detail-stat-label">models</span>
-            <span className="detail-stat-value">
-              {key.allowedModels.length === 0 ? 'all' : key.allowedModels.length}
-            </span>
-          </div>
-          {key.defaultModel != null ? (
-            <div className="detail-stat">
-              <span className="detail-stat-label">pinned model</span>
-              <span className="detail-stat-value">{key.defaultModel}</span>
-            </div>
-          ) : null}
-          {key.rateLimitRpm != null ? (
-            <div className="detail-stat">
-              <span className="detail-stat-label">rpm</span>
-              <span className="detail-stat-value">{key.rateLimitRpm.toLocaleString()}</span>
-            </div>
-          ) : null}
-          {key.rateLimitTpm != null ? (
-            <div className="detail-stat">
-              <span className="detail-stat-label">tpm</span>
-              <span className="detail-stat-value">{key.rateLimitTpm.toLocaleString()}</span>
-            </div>
-          ) : null}
-          {key.monthlyTokenQuota != null ? (
-            <div className="detail-stat">
-              <span className="detail-stat-label">monthly quota</span>
-              <span className="detail-stat-value">{key.monthlyTokenQuota.toLocaleString()}</span>
-            </div>
-          ) : null}
-        </div>
+
+        <aside className="detail-sidecar detail-sidecar-dark">
+          <section className="detail-sidecar-section">
+            <div className="detail-sidecar-title">Use this key</div>
+            <pre className="detail-sidecar-code">{buildKeySnippet(key.keyPrefix)}</pre>
+          </section>
+
+          <section className="detail-sidecar-section">
+            <div className="detail-sidecar-title">Activity · 30m</div>
+            <dl className="detail-sidecar-metrics">
+              <div>
+                <dt>requests</dt>
+                <dd>{stats.totalRequests}</dd>
+              </div>
+              <div>
+                <dt>success</dt>
+                <dd>{stats.totalRequests - stats.errorCount}</dd>
+              </div>
+              <div>
+                <dt>errors</dt>
+                <dd>{stats.errorCount}</dd>
+              </div>
+              <div>
+                <dt>tokens</dt>
+                <dd>{(stats.totalPromptTokens + stats.totalCompletionTokens).toLocaleString()}</dd>
+              </div>
+            </dl>
+          </section>
+        </aside>
       </div>
-
-      <StatsRow stats={stats} />
-
-      <DefaultModelPanel keyId={key.id} defaultModel={key.defaultModel} isRevoked={isRevoked} />
-
-      <SystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
-
-      <ModelAccessPanel
-        keyId={key.id}
-        allowedModels={key.allowedModels}
-        breakdown={modelBreakdown}
-        isRevoked={isRevoked}
-      />
-
-      <RequestsPanel rows={requests.rows} />
     </>
   )
 }
 
 function StatsRow({ stats }: { stats: ApiKeyStats }) {
   return (
-    <div className="stats-row">
+    <div className="stats-row detail-stacked-section detail-stacked-stats-row">
       <div className="stat-card">
         <div className="stat-card-label">requests · 30m</div>
         <div className="stat-card-row">
@@ -238,7 +266,7 @@ function DefaultModelPanel({
   }
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section">
       <div className="panel-head">
         <span className="panel-title">Default model</span>
         <span className="panel-sub">· {defaultModel ? `pinned to ${defaultModel}` : 'not set'}</span>
@@ -317,7 +345,7 @@ function SystemPromptPanel({
   }
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section">
       <div className="panel-head">
         <span className="panel-title">System prompt</span>
         <span className="panel-sub">· {systemPrompt ? 'active' : 'not set'}</span>
@@ -428,7 +456,7 @@ function ModelAccessPanel({
   if (!allModels) return null
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section">
       <div className="panel-head">
         <span className="panel-title">Model access</span>
         <span className="panel-sub">
@@ -512,7 +540,7 @@ function RequestsPanel({ rows }: { rows: Array<ApiRequest> }) {
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section detail-fill-panel">
       <div className="panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">· last 20</span>
@@ -580,4 +608,23 @@ function formatDuration(ms: number): string {
   const m = Math.floor(s / 60)
   const rem = Math.floor(s % 60)
   return `${m}m ${rem}s`
+}
+
+function formatRelative(timestamp: string) {
+  const diff = Date.now() - new Date(timestamp).getTime()
+  const mins = Math.max(1, Math.round(diff / 60_000))
+  if (mins < 60) return `${mins} min ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `${hours} hr ago`
+  return `${Math.round(hours / 24)} d ago`
+}
+
+function buildKeySnippet(keyPrefix: string) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llama-dash.example'
+
+  return `curl ${origin}/v1/\\
+  chat/completions \\
+  -H "Authorization: Bearer ${keyPrefix}…" \\
+  -d '{"model":"gemma-4",\\
+    "messages":[…]}'`
 }
