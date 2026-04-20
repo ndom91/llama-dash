@@ -98,13 +98,14 @@ function Logs() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page logs-page">
           <PageHeader
             kicker="dsh · logs"
             title="Logs"
             subtitle="live output from llama-swap"
+            variant="integrated"
             action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="logs-header-actions">
                 <span
                   className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em]"
                   title={connected ? 'Connected' : 'Disconnected'}
@@ -127,7 +128,7 @@ function Logs() {
             }
           />
 
-          <section className="panel log-panel">
+          <section className="panel log-panel logs-panel">
             <div className="log-toolbar">
               <div className="body-tabs">
                 {(['all', 'upstream', 'proxy'] as const).map((s) => (
@@ -141,7 +142,7 @@ function Logs() {
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="logs-toolbar-actions">
                 <div className="log-search">
                   <Search className="log-search-icon" strokeWidth={2} aria-hidden="true" />
                   <input
