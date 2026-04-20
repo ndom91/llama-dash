@@ -870,13 +870,18 @@
   line-height: inherit;
   white-space: pre;
   word-wrap: normal;
+  overflow-wrap: normal;
   overflow: auto;
   tab-size: 2;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-rendering: auto;
 }
 
 .config-highlight {
   pointer-events: none;
   color: var(--fg);
+  overflow: hidden;
 }
 
 .config-textarea {
