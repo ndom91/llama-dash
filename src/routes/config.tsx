@@ -97,14 +97,15 @@ function ConfigPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page config-page">
           <PageHeader
             kicker="dsh · config"
             title="Configuration"
             subtitle="edit the llama-swap configuration"
+            variant="integrated"
             action={
               loadState.status === 'ready' ? (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div className="config-header-actions">
                   {isDirty ? <span className="config-dirty-badge">unsaved</span> : null}
                   {saveResult && 'saved' in saveResult && saveResult.saved ? (
                     <span className="config-saved-badge">
@@ -138,18 +139,18 @@ function ConfigPage() {
           />
 
           {loadState.status === 'loading' ? (
-            <div className="empty-state">loading config…</div>
+            <div className="empty-state config-empty-state">loading config…</div>
           ) : loadState.status === 'unavailable' ? (
-            <div className="empty-state">
+            <div className="empty-state config-empty-state">
               <code>LLAMASWAP_CONFIG_FILE</code> is not set. Set it to the path of your llama-swap config.yaml to enable
               editing.
             </div>
           ) : loadState.status === 'error' ? (
-            <div className="err-banner">{loadState.message}</div>
+            <div className="err-banner config-error-banner">{loadState.message}</div>
           ) : (
             <>
               {saveResult && 'conflict' in saveResult && saveResult.conflict ? (
-                <div className="err-banner" style={{ marginBottom: 12 }}>
+                <div className="err-banner config-error-banner">
                   <AlertTriangle size={14} strokeWidth={2} /> Config was modified externally. Reload to get latest
                   version.
                   <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 8 }} onClick={load}>
@@ -159,7 +160,7 @@ function ConfigPage() {
               ) : null}
 
               {validation && !validation.valid && validation.errors ? (
-                <div className="config-errors">
+                <div className="config-errors config-validation-errors">
                   <strong>Validation errors:</strong>
                   <ul>
                     {validation.errors.map((e) => (
@@ -169,7 +170,7 @@ function ConfigPage() {
                 </div>
               ) : null}
 
-              <div className="config-editor-panel panel">
+              <div className="config-editor-panel panel config-shell-panel">
                 <YamlEditor value={content} onChange={setContent} />
                 <div className="config-footer-hint">
                   <kbd>Cmd+S</kbd> to save · Tab inserts 2 spaces · llama-swap auto-reloads on file change

@@ -834,6 +834,32 @@
 
 /* ---- config editor ---- */
 
+.config-page {
+  min-height: 100%;
+}
+
+.config-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-error-banner,
+.config-validation-errors {
+  margin: 12px 24px 0;
+}
+
+.config-shell-panel {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.config-empty-state {
+  padding-inline: 24px;
+}
+
 .config-editor-panel {
   overflow: hidden;
   border-color: var(--border-strong);
@@ -907,6 +933,22 @@
   outline: none;
   resize: none;
   -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .config-error-banner,
+  .config-validation-errors {
+    margin-inline: 12px;
+  }
+
+  .config-empty-state {
+    padding-inline: 12px;
+  }
+
+  .config-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 .config-dirty-badge {
