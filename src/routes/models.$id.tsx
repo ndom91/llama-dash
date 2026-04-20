@@ -1,14 +1,13 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Check, ChevronRight, Clipboard, Play, Power } from 'lucide-react'
-import { useMemo, useState } from 'react'
-import { cn } from '../lib/cn'
+import { ChevronRight, Play, Power } from 'lucide-react'
+import { useMemo } from 'react'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
-import type { ApiModelDetail, ApiModelKeyBreakdown, ApiModelStats, ApiRequest } from '../lib/api'
+import type { ApiModelDetail, ApiModelStats, ApiRequest } from '../lib/api'
 import { useLoadModel, useModelDetail, useUnloadModel } from '../lib/queries'
 
 export const Route = createFileRoute('/models/$id')({ component: ModelDetailPage })
@@ -21,7 +20,7 @@ function ModelDetailPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page detail-page model-detail-page">
+        <div className="page detail-page detail-page-sidecar model-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : data == null ? (
@@ -36,95 +35,163 @@ function ModelDetailPage() {
 }
 
 function ModelContent({ data }: { data: ApiModelDetail }) {
-  const { model, events, stats, requests, configSnippet, keyBreakdown } = data
+  const { model, events, stats, requests, configSnippet } = data
   const loadModel = useLoadModel()
   const unloadModel = useUnloadModel()
   const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
+  const configMeta = useMemo(() => parseModelConfigSnippet(configSnippet), [configSnippet])
 
   return (
     <>
       <PageHeader
-        kicker="dsh · models · detail"
-        title="Model detail"
-        subtitle={<span translate="no">{model.id}</span>}
+        kicker={`mdl · ${model.name.toLowerCase()}`}
+        title={model.name}
+        subtitle={
+          <span translate="no">
+            {model.id} · {model.kind}
+          </span>
+        }
         variant="integrated"
         action={
-          model.kind === 'local' ? (
-            model.running ? (
-              <button
-                type="button"
-                className="btn btn-xs"
-                onClick={() => unloadModel.mutate(model.id)}
-                disabled={unloadModel.isPending}
-              >
-                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                {unloadModel.isPending ? 'unloading…' : 'unload'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-xs"
-                onClick={() => loadModel.mutate(model.id)}
-                disabled={loadModel.isPending}
-              >
-                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                {loadModel.isPending ? 'loading…' : 'load'}
-              </button>
-            )
-          ) : null
+          <div className="detail-header-actions">
+            {model.kind === 'local' ? (
+              model.running ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs"
+                  onClick={() => unloadModel.mutate(model.id)}
+                  disabled={unloadModel.isPending}
+                >
+                  <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  {unloadModel.isPending ? 'unloading…' : 'unload'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-xs"
+                  onClick={() => loadModel.mutate(model.id)}
+                  disabled={loadModel.isPending}
+                >
+                  <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  {loadModel.isPending ? 'loading…' : 'load'}
+                </button>
+              )
+            ) : null}
+          </div>
         }
       />
 
-      <div className="detail-hero">
-        <div className="detail-endpoint">
-          <div className="detail-endpoint-row">
-            <StatusDot tone={tone} live={model.running} />
-            <span className="detail-endpoint-method" style={{ marginLeft: 8 }}>
-              {model.name}
-            </span>
+      <div className="detail-sidecar-shell">
+        <aside className="detail-meta-rail">
+          <div className="detail-meta-section">
+            <div className="detail-meta-kicker">Summary</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>state</dt>
+                <dd>
+                  <StatusDot tone={tone} live={model.running} />
+                  <span>{model.kind === 'peer' ? 'peer' : model.state}</span>
+                </dd>
+              </div>
+              <div>
+                <dt>kind</dt>
+                <dd>{model.kind}</dd>
+              </div>
+              <div>
+                <dt>ctx</dt>
+                <dd>{configMeta.ctxSize ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>ttl</dt>
+                <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
+              </div>
+              <div>
+                <dt>port</dt>
+                <dd>{configMeta.port ?? '—'}</dd>
+              </div>
+            </dl>
           </div>
-          <div className="detail-endpoint-meta">
-            ↳ <span className="mono">{model.id}</span>
-            <span> · </span>
-            <span>{model.kind}</span>
-            {model.peerId ? (
-              <>
-                <span> · peer </span>
-                <span className="mono">{model.peerId}</span>
-              </>
-            ) : null}
-          </div>
-        </div>
-        <div className="detail-stats-strip">
-          <div className="detail-stat">
-            <span className="detail-stat-label">state</span>
-            <span className={`state-label state-label-${tone}`}>{model.kind === 'peer' ? 'peer' : model.state}</span>
-          </div>
-          {model.ttl != null ? (
-            <div className="detail-stat">
-              <span className="detail-stat-label">ttl</span>
-              <span className="detail-stat-value">{formatTtl(model.ttl)}</span>
+
+          {configMeta.aliases.length > 0 ? (
+            <div className="detail-meta-section">
+              <div className="detail-meta-kicker">Aliases</div>
+              <div className="detail-meta-links">
+                {configMeta.aliases.map((alias) => (
+                  <span key={alias} className="detail-meta-link">
+                    {alias}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : null}
+        </aside>
+
+        <div className="detail-main-stack detail-model-main">
+          <StatsRow stats={stats} />
+
+          {events.length > 0 ? <EventsPanel events={events} /> : null}
+
+          <RequestsPanel rows={requests.rows} modelId={model.id} />
         </div>
+
+        <aside className="detail-sidecar detail-sidecar-dark detail-model-sidecar">
+          {configSnippet ? (
+            <section className="detail-sidecar-section">
+              <div className="detail-sidecar-title">Command</div>
+              <pre className="detail-sidecar-code">{configSnippet}</pre>
+            </section>
+          ) : null}
+
+          <section className="detail-sidecar-section">
+            <div className="detail-sidecar-title">Resident</div>
+            <dl className="detail-sidecar-metrics">
+              <div>
+                <dt>kind</dt>
+                <dd>{model.kind}</dd>
+              </div>
+              <div>
+                <dt>ttl</dt>
+                <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
+              </div>
+              <div>
+                <dt>ctx</dt>
+                <dd>{configMeta.ctxSize ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>port</dt>
+                <dd>{configMeta.port ?? '—'}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="detail-sidecar-section detail-sidecar-danger">
+            <div className="detail-sidecar-title">Actions</div>
+            <Link to="/playground" className="btn btn-sm">
+              Open in Playground
+            </Link>
+            <Link to="/config" className="btn btn-sm">
+              Edit in config.yaml
+            </Link>
+            {model.kind === 'local' ? (
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={() => unloadModel.mutate(model.id)}
+                disabled={!model.running || unloadModel.isPending}
+              >
+                Unload
+              </button>
+            ) : null}
+          </section>
+        </aside>
       </div>
-
-      <StatsRow stats={stats} />
-
-      {events.length > 0 ? <EventsPanel events={events} /> : null}
-
-      <RequestsPanel rows={requests.rows} modelId={model.id} />
-
-      {keyBreakdown.length > 0 ? <KeyBreakdownPanel breakdown={keyBreakdown} /> : null}
-
-      {configSnippet ? <ConfigPanel snippet={configSnippet} /> : null}
     </>
   )
 }
 
 function StatsRow({ stats }: { stats: ApiModelStats }) {
   return (
-    <div className="stats-row">
+    <div className="stats-row detail-stacked-section detail-stacked-stats-row">
       <div className="stat-card">
         <div className="stat-card-label">requests · 30m</div>
         <div className="stat-card-row">
@@ -161,7 +228,7 @@ function EventsPanel({ events }: { events: Array<{ id: string; event: string; ti
   const recentEvents = events.slice(0, 12)
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section">
       <div className="panel-head">
         <span className="panel-title">History</span>
         <span className="panel-sub">· latest 12 load/unload events</span>
@@ -195,7 +262,7 @@ function RequestsPanel({ rows, modelId }: { rows: Array<ApiRequest>; modelId: st
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   return (
-    <section className="panel">
+    <section className="panel detail-stacked-section">
       <div className="panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">· last 20</span>
@@ -259,76 +326,6 @@ function RequestsPanel({ rows, modelId }: { rows: Array<ApiRequest>; modelId: st
   )
 }
 
-function KeyBreakdownPanel({ breakdown }: { breakdown: Array<ApiModelKeyBreakdown> }) {
-  const navigate = useNavigate()
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <span className="panel-title">Usage by key</span>
-        <span className="panel-sub">· last 30m</span>
-      </div>
-      <table className="dtable">
-        <thead>
-          <tr>
-            <th>key</th>
-            <th className="num" style={{ width: 100 }}>
-              requests
-            </th>
-            <th className="num" style={{ width: 100 }}>
-              tokens
-            </th>
-            <th className="num" style={{ width: 80 }}>
-              errors
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {breakdown.map((b) => (
-            <tr
-              key={b.keyId ?? '_anon'}
-              className={b.keyId ? 'clickable-row' : ''}
-              onClick={b.keyId ? () => navigate({ to: '/keys/$id', params: { id: b.keyId! } }) : undefined}
-            >
-              <td className="mono">{b.keyName ?? (b.keyId ? b.keyId.slice(0, 12) : 'anonymous')}</td>
-              <td className="num">{b.requestCount.toLocaleString()}</td>
-              <td className="num">{b.totalTokens.toLocaleString()}</td>
-              <td className="num">
-                {b.errorCount > 0 ? <span style={{ color: 'var(--err)' }}>{b.errorCount}</span> : '0'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
-  )
-}
-
-function ConfigPanel({ snippet }: { snippet: string }) {
-  const [copied, setCopied] = useState(false)
-  const onCopy = () => {
-    navigator.clipboard.writeText(snippet)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  return (
-    <section className="panel">
-      <div className="panel-head">
-        <span className="panel-title">Configuration</span>
-        <span className="panel-sub">· from config.yaml</span>
-        <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }} onClick={onCopy}>
-          <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-            <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
-            <Check className="copy-icon-swap-to icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          </span>
-          {copied ? 'copied' : 'copy'}
-        </button>
-      </div>
-      <pre className="body-pre">{snippet}</pre>
-    </section>
-  )
-}
-
 function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   const s = ms / 1000
@@ -343,4 +340,18 @@ function formatTtl(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   return s > 0 ? `${m}m ${s}s` : `${m}m`
+}
+
+function parseModelConfigSnippet(snippet: string | null) {
+  if (!snippet) return { aliases: [] as Array<string>, ctxSize: null as string | null, port: null as string | null }
+
+  const aliasesMatch = snippet.match(/aliases:\s*\[([^\]]+)\]/)
+  const ctxMatch = snippet.match(/--ctx-size\s+(\d+)/)
+  const portMatch = snippet.match(/--port\s+(\$\{PORT\}|\d+)/)
+
+  return {
+    aliases: aliasesMatch ? aliasesMatch[1].split(',').map((part) => part.trim()) : [],
+    ctxSize: ctxMatch ? Number(ctxMatch[1]).toLocaleString() : null,
+    port: portMatch ? portMatch[1] : null,
+  }
 }

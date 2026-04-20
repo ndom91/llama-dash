@@ -76,6 +76,12 @@
   .btn-primary:hover:not(:disabled) {
     @apply bg-accent-strong border-accent-strong;
   }
+  .btn-danger {
+    @apply bg-err-bg border-err text-err;
+  }
+  .btn-danger:hover:not(:disabled) {
+    @apply bg-err border-err text-white;
+  }
   .btn-ghost {
     @apply border-transparent bg-transparent text-fg-muted;
   }

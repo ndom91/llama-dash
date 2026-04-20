@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ChevronRight, Pencil, Power, RotateCw } from 'lucide-react'
-import { useRef, useMemo, useState } from 'react'
+import { ChevronRight, Power, RotateCw } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
 import { PageHeader } from '../components/PageHeader'
@@ -10,11 +10,9 @@ import { StatusDot } from '../components/StatusDot'
 import { TopBar } from '../components/TopBar'
 import type { ApiKeyDetail, ApiKeyModelBreakdown, ApiKeyStats, ApiRequest } from '../lib/api'
 import {
-  useApiKeys,
   useKeyDetail,
   useModels,
   useRevokeApiKey,
-  useRenameApiKey,
   useUpdateKeyDefaultModel,
   useUpdateKeyModels,
   useUpdateKeySystemPrompt,
@@ -48,29 +46,8 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
   const { key, stats, requests, modelBreakdown } = data
   const isRevoked = key.disabledAt != null
   const revokeKey = useRevokeApiKey()
-  const { data: allKeys } = useApiKeys()
-  const renameKey = useRenameApiKey()
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(key.name)
-  const inputRef = useRef<HTMLInputElement>(null)
   const lastUsedAt = requests.rows[0]?.startedAt ?? null
   const scopedModels = key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of 5`
-
-  const startEdit = () => {
-    if (isRevoked) return
-    setDraft(key.name)
-    setEditing(true)
-    setTimeout(() => inputRef.current?.select(), 0)
-  }
-
-  const commitRename = () => {
-    const trimmed = draft.trim()
-    if (!trimmed || trimmed === key.name) {
-      setEditing(false)
-      return
-    }
-    renameKey.mutate({ id: key.id, name: trimmed }, { onSuccess: () => setEditing(false) })
-  }
 
   return (
     <>
