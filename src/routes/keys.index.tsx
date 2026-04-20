@@ -23,7 +23,7 @@ function Keys() {
       <div className="content">
         <div className="page">
           <PageHeader
-            kicker="§07 · auth"
+            kicker="dsh · keys"
             title="API Keys"
             subtitle="manage proxy authentication and rate limits"
             action={

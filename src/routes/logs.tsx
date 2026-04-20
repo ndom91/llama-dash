@@ -100,7 +100,7 @@ function Logs() {
       <div className="content">
         <div className="page">
           <PageHeader
-            kicker="§04 · logs"
+            kicker="dsh · logs"
             title="Logs"
             subtitle="live output from llama-swap"
             action={

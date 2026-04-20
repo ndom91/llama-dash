@@ -63,6 +63,7 @@ function Playground() {
             kicker="dsh · playground · compare"
             title="Playground"
             subtitle="Test prompts against loaded models · inspector visible · multi-model compare"
+            variant="integrated"
             action={
               tab === 'chat' ? (
                 <HeaderActions
@@ -79,7 +80,7 @@ function Playground() {
             }
           />
 
-          <div className="pg-tab-bar">
+          <div className="pg-tab-bar pg-tab-bar-integrated">
             {TABS.map((t) => (
               <button
                 key={t.id}

@@ -226,7 +226,7 @@ function Requests() {
       />
       <div className="content">
         <div className="page">
-          <PageHeader kicker="§03 · requests" title="Request log" subtitle="proxied API calls, newest first" />
+          <PageHeader kicker="dsh · requests" title="Request log" subtitle="proxied API calls, newest first" />
 
           {error ? <div className="err-banner">{error.message}</div> : null}
 

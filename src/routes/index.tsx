@@ -46,7 +46,7 @@ function Dashboard() {
       <div className="content">
         <div className="page">
           <PageHeader
-            kicker="§01 · overview"
+            kicker="dsh · overview"
             title="Operator dashboard"
             subtitle="system overview and recent activity"
             action={

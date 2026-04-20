@@ -99,7 +99,7 @@ function ConfigPage() {
       <div className="content">
         <div className="page">
           <PageHeader
-            kicker="§06 · settings"
+            kicker="dsh · config"
             title="Configuration"
             subtitle="edit the llama-swap configuration"
             action={

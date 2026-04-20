@@ -42,7 +42,7 @@ function Models() {
       <div className="content">
         <div className="page">
           <PageHeader
-            kicker="§02 · models"
+            kicker="dsh · models"
             title="Models"
             subtitle="available models and their current state"
             action={

@@ -22,7 +22,7 @@ function PoliciesPage() {
       <TopBar />
       <div className="content">
         <div className="page">
-          <PageHeader kicker="§09 · govern" title="Policies" subtitle="proxy-layer request transforms" />
+          <PageHeader kicker="dsh · policies" title="Policies" subtitle="proxy-layer request transforms" />
           <AliasPanel />
           <RequestLimitsPanel />
         </div>
