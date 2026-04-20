@@ -225,9 +225,8 @@ function YamlEditor({ value, onChange }: { value: string; onChange: (v: string) 
         ))}
       </div>
       <div className="config-editor-inner">
-        <pre ref={preRef} className="config-highlight" aria-hidden="true">
-          {highlightedToJsx(highlighted)}
-        </pre>
+        {/* biome-ignore format: whitespace inside <pre> shifts the highlight overlay */}
+        <pre ref={preRef} className="config-highlight" aria-hidden="true">{highlightedToJsx(highlighted)}{'\n'}</pre>
         <textarea
           ref={textareaRef}
           className="config-textarea"

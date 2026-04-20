@@ -881,7 +881,10 @@
 .config-highlight {
   pointer-events: none;
   color: var(--fg);
-  overflow: hidden;
+  scrollbar-width: none;
+}
+.config-highlight::-webkit-scrollbar {
+  display: none;
 }
 
 .config-textarea {
@@ -1024,10 +1027,15 @@
 /* ---- page header ---- */
 
 .page {
-  padding: 20px 24px 48px;
+  padding: 0 0 48px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 0;
+}
+
+.page-header {
+  padding: 10px 24px 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 
