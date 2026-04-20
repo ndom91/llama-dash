@@ -3829,6 +3829,29 @@ a,
 
 /* ---- API keys ---- */
 
+.keys-page {
+  min-height: 100%;
+}
+
+.keys-error-banner,
+.keys-created-banner {
+  margin: 12px 24px 0;
+}
+
+.keys-panel {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.keys-table thead th,
+.keys-table tbody td,
+.keys-empty-state,
+.key-create-form {
+  padding-inline: 24px;
+}
+
 .key-created-banner {
   border: 1px solid var(--ok);
   background: var(--ok-bg);
@@ -3944,6 +3967,20 @@ a,
 .row-revoked td {
   text-decoration: line-through;
   text-decoration-color: var(--fg-faint);
+}
+
+@media (max-width: 768px) {
+  .keys-error-banner,
+  .keys-created-banner {
+    margin-inline: 12px;
+  }
+
+  .keys-table thead th,
+  .keys-table tbody td,
+  .keys-empty-state,
+  .key-create-form {
+    padding-inline: 12px;
+  }
 }
 
 .key-name-cell {

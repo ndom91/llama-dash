@@ -21,11 +21,12 @@ function Keys() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page keys-page">
           <PageHeader
             kicker="dsh · keys"
             title="API Keys"
             subtitle="manage proxy authentication and rate limits"
+            variant="integrated"
             action={
               <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
                 <Plus size={14} strokeWidth={2} />
@@ -34,7 +35,7 @@ function Keys() {
             }
           />
 
-          {error ? <div className="err-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner keys-error-banner">{error.message}</div> : null}
 
           {created ? <KeyCreatedBanner created={created} onDismiss={() => setCreated(null)} /> : null}
 
@@ -48,13 +49,13 @@ function Keys() {
             />
           ) : null}
 
-          <section className="panel">
+          <section className="panel keys-panel">
             {isLoading ? (
-              <div className="empty-state">loading…</div>
+              <div className="empty-state keys-empty-state">loading…</div>
             ) : !keys || keys.length === 0 ? (
               <EmptyKeys />
             ) : (
-              <table className="dtable">
+              <table className="dtable keys-table">
                 <thead>
                   <tr>
                     <th style={{ width: 18 }} aria-label="status" />
@@ -85,7 +86,7 @@ function Keys() {
 
 function EmptyKeys() {
   return (
-    <div className="empty-state" style={{ padding: '32px 24px' }}>
+    <div className="empty-state keys-empty-state" style={{ paddingBlock: 32 }}>
       <ShieldAlert size={28} strokeWidth={1.5} style={{ color: 'var(--fg-dim)', marginBottom: 8 }} />
       <div style={{ marginBottom: 4 }}>No API keys configured</div>
       <div style={{ fontSize: 12, color: 'var(--fg-dim)' }}>
@@ -105,7 +106,7 @@ function KeyCreatedBanner({ created, onDismiss }: { created: ApiKeyCreated; onDi
   }, [created.rawKey])
 
   return (
-    <div className="key-created-banner">
+    <div className="key-created-banner keys-created-banner">
       <div className="key-created-header">
         <Check size={16} strokeWidth={2} style={{ color: 'var(--ok)' }} />
         <strong>Key created — copy it now, it won't be shown again</strong>
@@ -160,7 +161,7 @@ function CreateKeyForm({ onCreated, onCancel }: { onCreated: (r: ApiKeyCreated) 
   }
 
   return (
-    <form className="key-create-form panel" onSubmit={submit}>
+    <form className="key-create-form panel keys-panel" onSubmit={submit}>
       <div className="key-create-form-header">
         <KeyRound size={16} strokeWidth={2} />
         <strong>New API key</strong>
