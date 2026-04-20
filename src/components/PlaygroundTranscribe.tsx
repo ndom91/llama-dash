@@ -19,18 +19,13 @@ export function PlaygroundTranscribe() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [copied, setCopied] = useState(false)
-  const transcriptRows = tx.transcript
-    ? tx.transcript
-        .split(/(?<=[.!?])\s+/)
-        .filter(Boolean)
-        .map((text, index) => ({
-          id: `line-${index}`,
-          start: formatSegmentTime(index * 4.21),
-          end: formatSegmentTime((index + 1) * 4.21),
-          confidence: Math.max(74, 98 - index * 4),
-          text,
-        }))
-    : []
+  const transcriptRows = (tx.transcriptData?.segments ?? []).map((segment, index) => ({
+    id: segment.id != null ? `segment-${segment.id}` : `segment-${index}`,
+    start: typeof segment.start === 'number' ? formatSegmentTime(segment.start) : '—',
+    end: typeof segment.end === 'number' ? formatSegmentTime(segment.end) : '—',
+    confidence: getSegmentConfidence(segment),
+    text: segment.text?.trim() ?? '',
+  }))
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -129,8 +124,7 @@ export function PlaygroundTranscribe() {
                   <div className="pg-file-meta">
                     <div className="pg-file-name">{tx.file.name}</div>
                     <div className="pg-file-size">
-                      {formatSegmentTime(tx.transcript ? transcriptRows.length * 4.21 : 0)} · {fmtSize(tx.file.size)} ·
-                      aac · 44.1 kHz
+                      {formatSegmentTime(tx.transcriptData?.duration ?? 0)} · {fmtSize(tx.file.size)}
                     </div>
                   </div>
                 </div>
@@ -170,13 +164,12 @@ export function PlaygroundTranscribe() {
 
           {transcriptRows.length > 0 ? (
             <div className="pg-tx-transcript-shell">
-              {transcriptRows.map((row, index) => (
-                <div key={row.id} className={cn('pg-tx-segment', index === 2 && 'is-active')}>
+              {transcriptRows.map((row) => (
+                <div key={row.id} className={'pg-tx-segment'}>
                   <div className="pg-tx-segment-time mono">
-                    <div>{row.start} →</div>
-                    <div>{row.end}</div>
+                    {row.start} → {row.end}
                   </div>
-                  <div className="pg-tx-segment-confidence mono">{row.confidence}%</div>
+                  <div className="pg-tx-segment-confidence mono">{row.confidence ?? '—'}</div>
                   <div className="pg-tx-segment-text">{row.text}</div>
                 </div>
               ))}
@@ -201,7 +194,7 @@ export function PlaygroundTranscribe() {
               stop recording
             </button>
           ) : (
-            <button type="button" className="btn btn-ghost" onClick={tx.startRecording} disabled={tx.loading}>
+            <button type="button" className="btn btn-md btn-ghost" onClick={tx.startRecording} disabled={tx.loading}>
               <Mic className="icon-14" strokeWidth={2} />
               record
             </button>
@@ -210,7 +203,7 @@ export function PlaygroundTranscribe() {
           <Tooltip label="Transcribe">
             <button
               type="button"
-              className="pg-send-btn"
+              className="btn btn-primary btn-md"
               disabled={!tx.model || !tx.file || tx.loading}
               onClick={tx.transcribe}
             >
@@ -219,6 +212,7 @@ export function PlaygroundTranscribe() {
               ) : (
                 <FileAudio className="icon-14" strokeWidth={2} />
               )}
+              <span>transcribe</span>
             </button>
           </Tooltip>
         </div>
@@ -233,4 +227,20 @@ function formatSegmentTime(seconds: number) {
   const secs = whole % 60
   const hundredths = Math.floor((seconds - whole) * 100)
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
+}
+
+function getSegmentConfidence(segment: { avg_logprob?: number; words?: Array<{ probability?: number }> }) {
+  if (segment.words && segment.words.length > 0) {
+    const probs = segment.words
+      .map((word) => word.probability)
+      .filter((value): value is number => typeof value === 'number')
+    if (probs.length > 0) return `${Math.round((probs.reduce((sum, value) => sum + value, 0) / probs.length) * 100)}%`
+  }
+
+  if (typeof segment.avg_logprob === 'number') {
+    const approx = Math.exp(segment.avg_logprob)
+    return `${Math.round(Math.max(0, Math.min(1, approx)) * 100)}%`
+  }
+
+  return null
 }

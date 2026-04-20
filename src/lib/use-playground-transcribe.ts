@@ -24,6 +24,7 @@ export function usePlaygroundTranscribe() {
   const [file, setFileState] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [transcript, setTranscript] = useState<string | null>(null)
+  const [transcriptData, setTranscriptData] = useState<TranscriptionVerbose | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
@@ -65,6 +66,7 @@ export function usePlaygroundTranscribe() {
     setLoading(true)
     setError(null)
     setTranscript(null)
+    setTranscriptData(null)
 
     const abort = new AbortController()
     abortRef.current = abort
@@ -72,6 +74,8 @@ export function usePlaygroundTranscribe() {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('model', model)
+    formData.append('response_format', 'verbose_json')
+    formData.append('timestamp_granularities[]', 'segment')
 
     const headers: Record<string, string> = {}
     if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
@@ -91,6 +95,7 @@ export function usePlaygroundTranscribe() {
 
       const data = await res.json()
       setTranscript(data.text ?? JSON.stringify(data))
+      setTranscriptData(data as TranscriptionVerbose)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : String(err))
@@ -146,6 +151,7 @@ export function usePlaygroundTranscribe() {
   const clear = useCallback(() => {
     setFileState(null)
     setTranscript(null)
+    setTranscriptData(null)
     setError(null)
   }, [])
 
@@ -156,6 +162,7 @@ export function usePlaygroundTranscribe() {
     setFile,
     loading,
     transcript,
+    transcriptData,
     error,
     recording,
     transcribe,
@@ -164,4 +171,22 @@ export function usePlaygroundTranscribe() {
     stop,
     clear,
   }
+}
+
+export type TranscriptionVerbose = {
+  text?: string
+  duration?: number
+  segments?: Array<{
+    id?: number
+    text?: string
+    start?: number
+    end?: number
+    avg_logprob?: number
+    words?: Array<{
+      word?: string
+      probability?: number
+      start?: number
+      end?: number
+    }>
+  }>
 }
