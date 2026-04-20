@@ -4009,6 +4009,45 @@ a,
   }
 }
 
+.endpoints-page {
+  min-height: 100%;
+}
+
+.endpoints-grid {
+  gap: 0;
+}
+
+.endpoints-panel {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.endpoints-grid > .endpoints-panel + .endpoints-panel {
+  border-left: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+}
+
+.endpoints-code-panel {
+  border-top: none;
+}
+
+.endpoints-panel-head {
+  padding-inline: 24px;
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .endpoints-panel-head {
+    padding-inline: 12px;
+  }
+
+  .endpoints-grid > .endpoints-panel + .endpoints-panel {
+    border-left: none;
+    border-top: none;
+  }
+}
+
 .key-name-cell {
   all: unset;
   cursor: pointer;

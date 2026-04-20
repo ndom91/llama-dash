@@ -48,12 +48,17 @@ function EndpointsPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
-          <PageHeader kicker="dsh · endpoints" title="Endpoints" subtitle="connect clients to llama-dash" />
+        <div className="page endpoints-page">
+          <PageHeader
+            kicker="dsh · endpoints"
+            title="Endpoints"
+            subtitle="connect clients to llama-dash"
+            variant="integrated"
+          />
 
-          <div className={`grid gap-4 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
-            <section className="panel">
-              <div className="panel-head">
+          <div className={`grid endpoints-grid ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
+            <section className="panel endpoints-panel">
+              <div className="panel-head endpoints-panel-head">
                 <span className="panel-title">Base URL</span>
               </div>
               <div className="p-4 flex flex-col gap-3">
@@ -66,8 +71,8 @@ function EndpointsPage() {
             </section>
 
             {hasKeys ? (
-              <section className="panel">
-                <div className="panel-head">
+              <section className="panel endpoints-panel">
+                <div className="panel-head endpoints-panel-head">
                   <span className="panel-title">API Key</span>
                   <span className="panel-sub">· used in examples below</span>
                 </div>
@@ -91,8 +96,8 @@ function EndpointsPage() {
             ) : null}
           </div>
 
-          <section className="panel">
-            <div className="panel-head">
+          <section className="panel endpoints-panel endpoints-code-panel">
+            <div className="panel-head endpoints-panel-head">
               <span className="panel-title">Code examples</span>
               <span className="panel-sub">· {TABS.find((t) => t.id === tab)?.label}</span>
             </div>
