@@ -43,11 +43,6 @@ export function PlaygroundSpeech() {
     link.click()
   }, [speech.audioUrl])
 
-  const waveformBars = Array.from({ length: 48 }, (_, i) => ({
-    id: `bar-${14 + ((i * 13) % 56)}-${i < 21 ? 'on' : 'off'}-${i}`,
-    height: `${14 + ((i * 13) % 56)}px`,
-    active: i < 21,
-  }))
   const renderLabel = speech.renderMs != null ? `${(speech.renderMs / 1000).toFixed(1)} s render` : '— render'
   const ratioLabel =
     speech.renderMs != null && speech.audioDurationSec != null && speech.renderMs > 0
@@ -144,12 +139,7 @@ export function PlaygroundSpeech() {
                   <span className="pg-settings-label">preview</span>
                   <span className="pg-speech-preview-meta">{previewMeta}</span>
                 </div>
-                <div className="pg-speech-waveform" aria-hidden="true">
-                  {waveformBars.map((bar) => (
-                    <span key={bar.id} className={bar.active ? 'is-active' : ''} style={{ height: bar.height }} />
-                  ))}
-                </div>
-                <div className="pg-speech-preview-player">
+                <div className="pg-speech-preview-player pg-speech-preview-player-simple">
                   {/* biome-ignore lint/a11y/useMediaCaption: generated speech has no caption source */}
                   <audio src={speech.audioUrl} controls className="pg-audio-player" />
                   <Tooltip label="Download">
@@ -158,31 +148,6 @@ export function PlaygroundSpeech() {
                     </button>
                   </Tooltip>
                 </div>
-              </div>
-
-              <div className="pg-speech-clips">
-                <div className="pg-speech-clips-title">recent clips · 3</div>
-                {[
-                  {
-                    id: 'clip-1',
-                    text: 'Good afternoon. All lights are off and the front door is locked…',
-                    meta: '5.8 s · 16:48',
-                  },
-                  {
-                    id: 'clip-2',
-                    text: 'The oven is preheated to three-fifty. Timer set for twenty minutes.',
-                    meta: '4.3 s · 16:45',
-                  },
-                  { id: 'clip-3', text: 'Motion detected at the back door ninety seconds ago.', meta: '3.1 s · 16:42' },
-                ].map((clip) => (
-                  <div key={clip.id} className="pg-speech-clip-row">
-                    <button type="button" className="pg-speech-clip-play" aria-label="Play clip">
-                      <Volume2 className="icon-12" strokeWidth={2} />
-                    </button>
-                    <span className="pg-speech-clip-text">{clip.text}</span>
-                    <span className="pg-speech-clip-meta">{clip.meta}</span>
-                  </div>
-                ))}
               </div>
             </div>
           ) : !speech.loading && !speech.error ? (
