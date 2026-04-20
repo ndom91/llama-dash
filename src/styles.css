@@ -1502,6 +1502,8 @@
 
 .models-page {
   min-height: 100%;
+  height: 100%;
+  flex: 1;
 }
 
 .models-error-banner {
@@ -1509,10 +1511,14 @@
 }
 
 .models-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
   border-left: none;
   border-right: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+  background: var(--bg-1);
 }
 
 .models-table thead th,
