@@ -12,6 +12,7 @@ export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [voice, setVoiceState] = useState(() => loadString(LS_VOICE, ''))
   const [text, setText] = useState('')
+  const [lastInput, setLastInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [renderMs, setRenderMs] = useState<number | null>(null)
@@ -78,7 +79,8 @@ export function usePlaygroundSpeech() {
 
     try {
       const startedAt = performance.now()
-      const body: Record<string, unknown> = { model, input: text.trim() }
+      const input = text.trim()
+      const body: Record<string, unknown> = { model, input }
       if (voice.trim()) body.voice = voice.trim()
 
       const res = await fetch('/v1/audio/speech', {
@@ -96,6 +98,7 @@ export function usePlaygroundSpeech() {
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       setAudioUrl(url)
+      setLastInput(input)
       setRenderMs(performance.now() - startedAt)
       setAudioDurationSec(await readAudioDuration(url))
     } catch (err) {
@@ -119,6 +122,7 @@ export function usePlaygroundSpeech() {
     voices,
     text,
     setText,
+    lastInput,
     loading,
     audioUrl,
     renderMs,

@@ -133,7 +133,7 @@ export function PlaygroundImage() {
 
         <form className="pg-input-bar pg-img-prompt-bar" onSubmit={handleSubmit}>
           <textarea
-            className="pg-input pg-img-prompt-input"
+            className="pg-input rounded!"
             placeholder={img.model ? 'Describe the image…' : 'Select a model first…'}
             value={img.prompt}
             onChange={(e) => img.setPrompt(e.target.value)}
@@ -146,7 +146,7 @@ export function PlaygroundImage() {
           <Tooltip label="Generate image">
             <button
               type="submit"
-              className="pg-send-btn pg-img-generate-btn"
+              className="btn btn-primary btn-md"
               disabled={!img.model || !img.prompt.trim() || img.loading}
             >
               {img.loading ? (
@@ -154,7 +154,6 @@ export function PlaygroundImage() {
               ) : (
                 <ImageIcon className="icon-14" strokeWidth={2} />
               )}
-              <span className="pg-img-generate-arrow">→</span>
               <span>generate</span>
             </button>
           </Tooltip>

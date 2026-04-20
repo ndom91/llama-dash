@@ -98,7 +98,16 @@
     @apply bg-err-bg text-err border-transparent;
   }
   .btn-xs {
-    @apply py-[3px] px-[7px] text-[11px];
+    @apply py-1 px-2 text-[11px];
+  }
+  .btn-sm {
+    @apply py-1 px-2 text-[12px];
+  }
+  .btn-md {
+    @apply py-2.5 px-3 text-[13px];
+  }
+  .btn-lg {
+    @apply py-2.5 px-3.5 text-[15px];
   }
   .btn-icon {
     @apply p-1.5;
@@ -4735,28 +4744,6 @@ a,
   background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-0));
 }
 
-.pg-img-prompt-input {
-  min-height: 38px;
-  border-radius: 0;
-  background: var(--bg-2);
-}
-
-.pg-img-generate-btn {
-  width: auto;
-  min-width: 146px;
-  gap: 10px;
-  padding: 0 16px;
-  border-radius: 0;
-  background: var(--ok);
-  color: var(--bg-0);
-}
-
-.pg-img-generate-arrow {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1;
-}
-
 .pg-speech-controls-row {
   align-items: stretch;
   min-height: 42px;
@@ -4844,12 +4831,58 @@ a,
   margin-bottom: 12px;
 }
 
+.pg-speech-preview-text {
+  margin-bottom: 14px;
+  padding-left: 2px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--fg);
+}
+
 .pg-speech-preview-meta {
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--fg-dim);
+}
+
+.pg-speech-preview-player-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pg-speech-waveform {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 72px;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.pg-speech-waveform span {
+  width: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg-dim) 38%, transparent);
+  transition: background-color var(--duration-micro) ease;
+}
+
+.pg-speech-waveform span.is-active {
+  background: color-mix(in srgb, var(--accent) 88%, white 10%);
+}
+
+.pg-speech-playhead {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: color-mix(in srgb, var(--accent) 78%, white 18%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 16%, transparent);
+  transform: translateX(-0.5px);
+  pointer-events: none;
 }
 
 .pg-speech-preview-player {
@@ -4862,6 +4895,78 @@ a,
   padding-top: 2px;
 }
 
+.pg-speech-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg-0);
+  flex: 0 0 auto;
+}
+
+.pg-speech-play-btn:hover {
+  background: color-mix(in srgb, var(--accent) 88%, white 8%);
+}
+
+.pg-speech-time {
+  min-width: 54px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.pg-speech-time-end {
+  text-align: right;
+}
+
+.pg-speech-progress {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  cursor: pointer;
+}
+
+.pg-speech-progress-track,
+.pg-speech-progress-fill {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.pg-speech-progress-track {
+  left: 0;
+  right: 0;
+  background: color-mix(in srgb, var(--border) 90%, transparent);
+}
+
+.pg-speech-progress-fill {
+  left: 0;
+  background: color-mix(in srgb, var(--accent) 88%, white 10%);
+}
+
+.pg-speech-progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  background: color-mix(in srgb, white 92%, var(--accent) 8%);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, white 20%);
+  transform: translate(-50%, -50%);
+}
+
+.pg-speech-format-chip {
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: lowercase;
+  color: var(--fg-dim);
+}
+
 .pg-audio-player {
   flex: 1;
   min-width: 0;
@@ -4872,35 +4977,6 @@ a,
 .pg-speech-prompt-bar {
   padding: 10px 18px 12px;
   background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-0));
-}
-
-.pg-speech-prompt-input {
-  min-height: 38px;
-  border-radius: 0;
-  background: var(--bg-2);
-}
-
-.pg-speech-generate-btn {
-  width: auto;
-  min-width: 80px;
-  font-family: var(--font-mono);
-  height: 100%;
-  gap: 8px;
-  padding-inline: 16px;
-  border-radius: 0;
-}
-
-.pg-speech-generate-arrow {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  line-height: 1;
-}
-
-.pg-img-generate-btn span {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: lowercase;
-  letter-spacing: 0.06em;
 }
 
 /* audio result */
