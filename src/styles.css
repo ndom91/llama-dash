@@ -4439,13 +4439,14 @@ a,
 
 .policies-page {
   min-height: 100%;
+  background: var(--bg-1);
 }
 
 .policies-panel {
   border-left: none;
   border-right: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+  background: var(--bg-1);
 }
 
 .policies-panel + .policies-panel {
