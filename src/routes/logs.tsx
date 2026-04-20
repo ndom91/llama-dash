@@ -100,22 +100,19 @@ function Logs() {
       <div className="content">
         <div className="page logs-page">
           <PageHeader
-            kicker="dsh · logs"
+            kicker="log · stream"
             title="Logs"
             subtitle="live output from llama-swap"
             variant="integrated"
             action={
               <div className="logs-header-actions">
-                <span
-                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em]"
-                  title={connected ? 'Connected' : 'Disconnected'}
-                >
+                <span className="logs-connection-badge" title={connected ? 'Connected' : 'Disconnected'}>
                   <StatusDot tone={connected ? 'ok' : 'err'} live={connected} />
                   <span>{connected ? 'connected' : 'disconnected'}</span>
                 </span>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-xs"
+                  className="btn btn-ghost btn-xs logs-clear-btn"
                   onClick={() => {
                     clear()
                     resetWidth()
@@ -166,7 +163,7 @@ function Logs() {
                 </div>
                 <button
                   type="button"
-                  className={`btn btn-ghost btn-xs${wrap ? ' btn-active' : ''}`}
+                  className={`btn btn-ghost btn-xs log-wrap-btn${wrap ? ' btn-active' : ''}`}
                   onClick={() => setWrap(!wrap)}
                   title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
                 >

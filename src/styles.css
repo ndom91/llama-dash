@@ -1148,6 +1148,7 @@
   position: relative;
   align-items: flex-end;
   padding: 16px 24px 12px;
+  background: var(--bg-1);
   border-bottom-color: color-mix(in srgb, var(--border) 86%, transparent);
 }
 
@@ -1304,24 +1305,78 @@
   min-height: 100%;
   height: 100%;
   min-height: 0;
+  flex: 1;
 }
 
-.requests-toolbar {
-  padding: 12px 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-  background: color-mix(in srgb, var(--bg-1) 48%, transparent);
-}
-
-.requests-toolbar-row {
-  justify-content: space-between;
-}
-
-.requests-filter-group {
-  flex-wrap: wrap;
+.requests-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .requests-error-banner {
   margin: 12px 24px 0;
+}
+
+.requests-shell {
+  display: grid;
+  grid-template-columns: 202px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.requests-filters-panel {
+  padding: 14px 12px 0 14px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: var(--bg-1);
+}
+
+.requests-filter-section {
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+}
+
+.requests-filter-label {
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--fg-dim);
+}
+
+.requests-search-box {
+  max-width: none;
+  min-width: 0;
+}
+
+.requests-search-input,
+.requests-filter-select {
+  width: 100%;
+}
+
+.requests-search-shortcut {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 3px;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-faint);
+  pointer-events: none;
+}
+
+.requests-clear-btn {
+  margin-top: 4px;
 }
 
 .requests-body {
@@ -1329,13 +1384,14 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  background: var(--bg-1);
 }
 
 .requests-panel {
   border-left: none;
   border-right: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+  background: transparent;
 }
 
 .requests-log-panel {
@@ -1361,8 +1417,16 @@
   color: var(--fg-faint);
 }
 
+.requests-log-panel .panel-head {
+  min-height: 34px;
+}
+
 .requests-histogram-labels {
   padding-inline: 24px;
+}
+
+.requests-histogram-panel {
+  border-top: none;
 }
 
 .requests-table-wrap {
@@ -1377,6 +1441,24 @@
   padding-inline: 24px;
 }
 
+.requests-table thead th {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+}
+
+.requests-table tbody td {
+  font-size: 11px;
+}
+
+.requests-table .selected-row,
+.requests-table-body .selected-row {
+  background: var(--bg-3);
+}
+
+.requests-table-body .vt-row.selected-row:hover {
+  background: var(--bg-3);
+}
+
 .requests-table-body::-webkit-scrollbar-thumb {
   border-color: color-mix(in srgb, var(--bg-1) 70%, transparent);
 }
@@ -1386,7 +1468,6 @@
 }
 
 @media (max-width: 768px) {
-  .requests-toolbar,
   .requests-panel-head,
   .requests-histogram-labels,
   .requests-table thead th,
@@ -1397,6 +1478,16 @@
 
   .requests-error-banner {
     margin-inline: 12px;
+  }
+
+  .requests-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .requests-filters-panel {
+    padding: 12px;
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   }
 
   .requests-panel-hint {
@@ -1484,6 +1575,20 @@
   gap: 8px;
 }
 
+.logs-connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: color-mix(in srgb, var(--ok) 90%, white 10%);
+}
+
+.logs-clear-btn {
+  min-width: 52px;
+  justify-content: center;
+}
+
 .logs-panel {
   border-left: none;
   border-right: none;
@@ -1501,7 +1606,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 24px;
+  padding: 12px 18px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   flex-shrink: 0;
   background: transparent;
@@ -1529,7 +1634,7 @@
   font-size: 11.5px;
   line-height: 20px;
   white-space: pre;
-  padding: 0 24px;
+  padding: 0 14px;
   color: var(--fg-muted);
 }
 .log-line-wrap {
@@ -1560,11 +1665,11 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--bg-3);
+  background: color-mix(in srgb, var(--bg-2) 80%, var(--bg-0));
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 2px 6px;
-  height: 24px;
+  height: 28px;
 }
 .log-search:focus-within {
   border-color: var(--accent);
@@ -1581,7 +1686,7 @@
   color: var(--fg);
   font-family: var(--font-mono);
   font-size: 11px;
-  width: 120px;
+  width: 180px;
   outline: none;
   padding: 0;
 }
@@ -1601,7 +1706,7 @@
   font-weight: 600;
   color: var(--fg-dim);
   cursor: pointer;
-  padding: 1px 4px;
+  padding: 1px 6px;
   border-radius: var(--radius-sm);
   line-height: 1;
 }
@@ -1612,6 +1717,11 @@
 .log-search-regex.active {
   color: var(--accent);
   background: var(--bg-4);
+}
+
+.log-wrap-btn {
+  min-width: 64px;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
@@ -2270,8 +2380,8 @@ a,
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 100px;
-  padding: 14px;
+  height: 112px;
+  padding: 10px 14px 12px;
 }
 .histogram-bar {
   flex: 1;
@@ -2289,17 +2399,17 @@ a,
   gap: 1px;
 }
 .histogram-bar-ok {
-  background: var(--accent);
-  opacity: 0.6;
+  background: color-mix(in srgb, var(--ok) 92%, white 8%);
+  opacity: 0.95;
   border-radius: 1px 1px 0 0;
-  min-height: 2px;
+  min-height: 3px;
   transition: opacity 120ms ease, height var(--duration-slow) var(--ease-out);
 }
 .histogram-bar-err {
-  background: var(--err);
-  opacity: 0.8;
+  background: color-mix(in srgb, var(--err) 88%, white 12%);
+  opacity: 0.85;
   border-radius: 1px 1px 0 0;
-  min-height: 2px;
+  min-height: 3px;
   transition: height var(--duration-slow) var(--ease-out);
 }
 .histogram-bar:hover .histogram-bar-ok {

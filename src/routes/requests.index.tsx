@@ -138,11 +138,6 @@ function Requests() {
     },
   })
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on data change
-  useEffect(() => {
-    setSelectedIdx(-1)
-  }, [rows])
-
   useEffect(() => {
     if (selectedIdx >= 0) virtualizer.scrollToIndex(selectedIdx, { align: 'auto' })
   }, [selectedIdx, virtualizer])
@@ -151,6 +146,7 @@ function Requests() {
     (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName
       if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+        setSelectedIdx(-1)
         if (e.key === 'Escape') (e.target as HTMLElement).blur()
         return
       }
@@ -182,6 +178,12 @@ function Requests() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onKeyDown])
 
+  useEffect(() => {
+    const clearSelection = () => setSelectedIdx(-1)
+    window.addEventListener('blur', clearSelection)
+    return () => window.removeEventListener('blur', clearSelection)
+  }, [])
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     else {
@@ -194,73 +196,78 @@ function Requests() {
 
   return (
     <div className="main-col">
-      <TopBar
-        actions={
-          <>
-            <Tooltip label="Export">
-              <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export">
-                <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
-              </button>
-            </Tooltip>
-            <Tooltip label="Refresh">
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon"
-                onClick={() => refetch()}
-                disabled={isRefetching}
-                aria-label="Refresh"
-              >
-                <RefreshCw
-                  className={`icon-14${isRefetching ? ' animate-spin' : ''}`}
-                  strokeWidth={1.75}
-                  aria-hidden="true"
-                />
-              </button>
-            </Tooltip>
-            <span className="live-badge">
-              <StatusDot tone="ok" live />
-              live
-            </span>
-          </>
-        }
-      />
+      <TopBar actions={null} />
       <div className="content">
         <div className="page requests-page">
           <PageHeader
-            kicker="dsh · requests"
+            kicker="req · log"
             title="Request log"
             subtitle="proxied API calls, newest first"
             variant="integrated"
+            action={
+              <div className="requests-header-actions">
+                <span className="live-badge requests-live-badge">
+                  <StatusDot tone="ok" live />
+                  live
+                </span>
+                <Tooltip label="Export">
+                  <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export">
+                    <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
+                  </button>
+                </Tooltip>
+                <Tooltip label="Refresh">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon"
+                    onClick={() => refetch()}
+                    disabled={isRefetching}
+                    aria-label="Refresh"
+                  >
+                    <RefreshCw
+                      className={`icon-14${isRefetching ? ' animate-spin' : ''}`}
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
+                  </button>
+                </Tooltip>
+              </div>
+            }
           />
 
           {error ? <div className="err-banner requests-error-banner">{error.message}</div> : null}
 
-          <div className="requests-toolbar">
-            <div className="list-toolbar requests-toolbar-row">
-              <div className="search-box">
-                <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
-                <input
-                  ref={searchRef}
-                  type="text"
-                  className="search-input"
-                  placeholder="Search endpoint, model, status…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                {search ? (
-                  <button
-                    type="button"
-                    className="search-clear"
-                    onClick={() => setSearch('')}
-                    aria-label="Clear search"
-                  >
-                    <X size={12} strokeWidth={2} />
-                  </button>
-                ) : null}
+          <div className="requests-shell">
+            <aside className="requests-filters-panel">
+              <div className="requests-filter-section">
+                <div className="requests-filter-label">Search</div>
+                <div className="search-box requests-search-box">
+                  <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
+                  <input
+                    ref={searchRef}
+                    type="text"
+                    className="search-input requests-search-input"
+                    placeholder="endpoint, model, status"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  {!search ? <span className="requests-search-shortcut">/</span> : null}
+                  {search ? (
+                    <button
+                      type="button"
+                      className="search-clear"
+                      onClick={() => setSearch('')}
+                      aria-label="Clear search"
+                    >
+                      <X size={12} strokeWidth={2} />
+                    </button>
+                  ) : null}
+                </div>
               </div>
-              <div className="filter-group requests-filter-group">
+
+              <div className="requests-filter-section">
+                <div className="requests-filter-label">Status</div>
                 <select
-                  className="filter-select"
+                  className="filter-select requests-filter-select"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 >
@@ -268,7 +275,15 @@ function Requests() {
                   <option value="ok">Success</option>
                   <option value="err">Errors</option>
                 </select>
-                <select className="filter-select" value={modelFilter} onChange={(e) => setModelFilter(e.target.value)}>
+              </div>
+
+              <div className="requests-filter-section">
+                <div className="requests-filter-label">Model</div>
+                <select
+                  className="filter-select requests-filter-select"
+                  value={modelFilter}
+                  onChange={(e) => setModelFilter(e.target.value)}
+                >
                   <option value="all">All models</option>
                   {models.map((m) => (
                     <option key={m} value={m}>
@@ -276,186 +291,193 @@ function Requests() {
                     </option>
                   ))}
                 </select>
-                {keyNames.length > 0 ? (
-                  <select className="filter-select" value={keyFilter} onChange={(e) => setKeyFilter(e.target.value)}>
-                    <option value="all">All keys</option>
-                    <option value="__none__">No key</option>
-                    {keyNames.map((k) => (
-                      <option key={k} value={k}>
-                        {k}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
-                {hasFilters ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs"
-                    onClick={() => {
-                      setSearch('')
-                      setStatusFilter('all')
-                      setModelFilter('all')
-                      setKeyFilter('all')
-                    }}
-                  >
-                    Clear
-                  </button>
-                ) : null}
               </div>
-            </div>
-          </div>
 
-          <div className="requests-body">
-            {histogram && histogram.length > 0 ? (
-              <section className="panel requests-panel requests-histogram-panel">
-                <div className="histogram-header requests-panel-head">
-                  <div>
-                    <span className="panel-title">req/s</span>
-                    <span className="panel-sub" style={{ marginLeft: 8 }}>
-                      last 60m · bucket 1m
-                    </span>
-                  </div>
-                </div>
-                <Histogram buckets={histogram} />
-                <div className="histogram-labels requests-histogram-labels">
-                  <span>-60m</span>
-                  <span>-40m</span>
-                  <span>-20m</span>
-                  <span>now</span>
-                </div>
-              </section>
-            ) : null}
-
-            <section className="panel requests-panel requests-log-panel">
-              <div className="panel-head requests-panel-head">
-                <span className="panel-title">Log</span>
-                <span className="panel-sub">
-                  {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
-                </span>
-                <span className="requests-panel-hint">↑↓ navigate · ⏎ open · / search</span>
+              <div className="requests-filter-section">
+                <div className="requests-filter-label">Key</div>
+                <select
+                  className="filter-select requests-filter-select"
+                  value={keyFilter}
+                  onChange={(e) => setKeyFilter(e.target.value)}
+                >
+                  <option value="all">All keys</option>
+                  <option value="__none__">No key</option>
+                  {keyNames.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                </select>
               </div>
-              {isLoading ? (
-                <div className="empty-state requests-empty-state">loading…</div>
-              ) : rows.length === 0 ? (
-                <div className="empty-state requests-empty-state">
-                  {hasFilters ? (
-                    'no requests match filters'
-                  ) : (
-                    <>
-                      no requests yet. call <code translate="no">/v1/*</code> to populate.
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="dtable-virtual-wrap requests-table-wrap">
-                  <table className="dtable dtable-virtual requests-table">
-                    <VtColgroup />
-                    <thead>
-                      <tr>
-                        <SortTh
-                          field="startedAt"
-                          current={sortKey}
-                          dir={sortDir}
-                          onToggle={toggleSort}
-                          className="mono"
-                        >
-                          t
-                        </SortTh>
-                        <th className="mono">endpoint</th>
-                        <th>model</th>
-                        <SortTh field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
-                          status
-                        </SortTh>
-                        <SortTh
-                          field="totalTokens"
-                          current={sortKey}
-                          dir={sortDir}
-                          onToggle={toggleSort}
-                          className="num"
-                        >
-                          tok-in
-                        </SortTh>
-                        <th className="num">tok-out</th>
-                        <SortTh
-                          field="durationMs"
-                          current={sortKey}
-                          dir={sortDir}
-                          onToggle={toggleSort}
-                          className="num"
-                        >
-                          duration
-                        </SortTh>
-                      </tr>
-                    </thead>
-                  </table>
-                  <div ref={scrollRef} className="dtable-virtual-body requests-table-body">
-                    <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-                      {virtualizer.getVirtualItems().map((vRow) => {
-                        const r = rows[vRow.index]
-                        return (
-                          // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled globally
-                          <div
-                            key={r.id}
-                            tabIndex={-1}
-                            className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: ROW_HEIGHT,
-                              transform: `translateY(${vRow.start}px)`,
-                            }}
-                            onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
-                            }}
-                          >
-                            <table className="dtable dtable-virtual requests-table">
-                              <VtColgroup />
-                              <tbody>
-                                <tr>
-                                  <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                                    {formatWhen(r.startedAt)}
-                                  </td>
-                                  <td className="mono" translate="no">
-                                    {r.endpoint}
-                                  </td>
-                                  <td
-                                    className="dim"
-                                    style={{
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap',
-                                    }}
-                                    translate="no"
-                                  >
-                                    {r.model ?? '—'}
-                                  </td>
-                                  <td>
-                                    <StatusCell code={r.statusCode} streamed={r.streamed} />
-                                  </td>
-                                  <td className="num dim">{r.promptTokens ?? '—'}</td>
-                                  <td className="num">{r.completionTokens ?? '—'}</td>
-                                  <td>
-                                    <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        )
-                      })}
+
+              {hasFilters ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs requests-clear-btn"
+                  onClick={() => {
+                    setSearch('')
+                    setStatusFilter('all')
+                    setModelFilter('all')
+                    setKeyFilter('all')
+                  }}
+                >
+                  Clear filters
+                </button>
+              ) : null}
+            </aside>
+
+            <div className="requests-body">
+              {histogram && histogram.length > 0 ? (
+                <section className="panel requests-panel requests-histogram-panel">
+                  <div className="histogram-header requests-panel-head">
+                    <div>
+                      <span className="panel-title">req/s</span>
+                      <span className="panel-sub" style={{ marginLeft: 8 }}>
+                        last 60m · bucket 1m
+                      </span>
                     </div>
-                    {isFetchingNextPage ? (
-                      <div className="empty-state requests-empty-state" style={{ paddingBlock: 8 }}>
-                        loading more…
-                      </div>
-                    ) : null}
                   </div>
+                  <Histogram buckets={histogram} />
+                  <div className="histogram-labels requests-histogram-labels">
+                    <span>-60m</span>
+                    <span>-40m</span>
+                    <span>-20m</span>
+                    <span>now</span>
+                  </div>
+                </section>
+              ) : null}
+
+              <section className="panel requests-panel requests-log-panel">
+                <div className="panel-head requests-panel-head">
+                  <span className="panel-title">Log</span>
+                  <span className="panel-sub">
+                    {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                  </span>
+                  <span className="requests-panel-hint">↑↓ navigate · ⏎ open · / search</span>
                 </div>
-              )}
-            </section>
+                {isLoading ? (
+                  <div className="empty-state requests-empty-state">loading…</div>
+                ) : rows.length === 0 ? (
+                  <div className="empty-state requests-empty-state">
+                    {hasFilters ? (
+                      'no requests match filters'
+                    ) : (
+                      <>
+                        no requests yet. call <code translate="no">/v1/*</code> to populate.
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="dtable-virtual-wrap requests-table-wrap">
+                    <table className="dtable dtable-virtual requests-table">
+                      <VtColgroup />
+                      <thead>
+                        <tr>
+                          <SortTh
+                            field="startedAt"
+                            current={sortKey}
+                            dir={sortDir}
+                            onToggle={toggleSort}
+                            className="mono"
+                          >
+                            t
+                          </SortTh>
+                          <th className="mono">endpoint</th>
+                          <th>model</th>
+                          <SortTh field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                            status
+                          </SortTh>
+                          <SortTh
+                            field="totalTokens"
+                            current={sortKey}
+                            dir={sortDir}
+                            onToggle={toggleSort}
+                            className="num"
+                          >
+                            tok-in
+                          </SortTh>
+                          <th className="num">tok-out</th>
+                          <SortTh
+                            field="durationMs"
+                            current={sortKey}
+                            dir={sortDir}
+                            onToggle={toggleSort}
+                            className="num"
+                          >
+                            duration
+                          </SortTh>
+                        </tr>
+                      </thead>
+                    </table>
+                    <div ref={scrollRef} className="dtable-virtual-body requests-table-body">
+                      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                        {virtualizer.getVirtualItems().map((vRow) => {
+                          const r = rows[vRow.index]
+                          return (
+                            // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled globally
+                            <div
+                              key={r.id}
+                              tabIndex={-1}
+                              className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: ROW_HEIGHT,
+                                transform: `translateY(${vRow.start}px)`,
+                              }}
+                              onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                              }}
+                            >
+                              <table className="dtable dtable-virtual requests-table">
+                                <VtColgroup />
+                                <tbody>
+                                  <tr>
+                                    <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                                      {formatWhen(r.startedAt)}
+                                    </td>
+                                    <td className="mono" translate="no">
+                                      {r.endpoint}
+                                    </td>
+                                    <td
+                                      className="dim"
+                                      style={{
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                      }}
+                                      translate="no"
+                                    >
+                                      {r.model ?? '—'}
+                                    </td>
+                                    <td>
+                                      <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                    </td>
+                                    <td className="num dim">{r.promptTokens ?? '—'}</td>
+                                    <td className="num">{r.completionTokens ?? '—'}</td>
+                                    <td>
+                                      <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {isFetchingNextPage ? (
+                        <div className="empty-state requests-empty-state" style={{ paddingBlock: 8 }}>
+                          loading more…
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         </div>
       </div>
@@ -474,8 +496,8 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
       {buckets.map((b) => {
         const ok = b.total - b.errors
         const barPx = 72
-        const okH = ok > 0 ? Math.max((ok / maxTotal) * barPx, 3) : 2
-        const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * barPx, 3) : 0
+        const okH = ok > 0 ? Math.max(Math.sqrt(ok / maxTotal) * barPx, 3) : 2
+        const errH = b.errors > 0 ? Math.max(Math.sqrt(b.errors / maxTotal) * barPx, 3) : 0
         const empty = b.total === 0
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         const errSuffix = b.errors ? ` (${b.errors} err)` : ''
