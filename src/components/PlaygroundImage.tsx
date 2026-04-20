@@ -92,17 +92,6 @@ export function PlaygroundImage() {
             </select>
           </div>
 
-          <div className="pg-img-control-block pg-img-static-group" aria-hidden="true">
-            <div className="pg-img-control-label">n</div>
-            <div className="pg-img-static-value">4</div>
-          </div>
-
-          <div className="pg-img-controls-meta" aria-hidden="true">
-            <span>seed</span>
-            <span className="pg-img-seed mono">8174392</span>
-            <span>12.4 s</span>
-          </div>
-
           {img.entries.length > 0 ? (
             <Tooltip label="Clear">
               <button type="button" className="pg-action-btn pg-img-clear" onClick={img.clearEntries}>

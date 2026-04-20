@@ -35,23 +35,20 @@ export function PlaygroundSpeech() {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [])
 
-  const downloadAudio = useCallback(() => {
-    if (!speech.audioUrl) return
+  const downloadAudio = useCallback((audioUrl: string) => {
     const link = document.createElement('a')
-    link.href = speech.audioUrl
+    link.href = audioUrl
     link.download = 'speech.mp3'
     link.click()
-  }, [speech.audioUrl])
+  }, [])
 
-  const renderLabel = speech.renderMs != null ? `${(speech.renderMs / 1000).toFixed(1)} s render` : '— render'
-  const ratioLabel =
-    speech.renderMs != null && speech.audioDurationSec != null && speech.renderMs > 0
-      ? `${(speech.audioDurationSec / (speech.renderMs / 1000)).toFixed(1)}× real-time`
+  const renderLabel = (renderMs: number | null) =>
+    renderMs != null ? `${(renderMs / 1000).toFixed(1)} s render` : '— render'
+  const ratioLabel = (renderMs: number | null, durationSec: number | null) =>
+    renderMs != null && durationSec != null && renderMs > 0
+      ? `${(durationSec / (renderMs / 1000)).toFixed(1)}× real-time`
       : '— real-time'
-  const previewMeta =
-    speech.audioDurationSec != null
-      ? `${speech.voice || 'default'} • ${formatClock(speech.audioDurationSec)}`
-      : `${speech.voice || 'default'} • --:--.-`
+  const durationLabel = (durationSec: number | null) => (durationSec != null ? formatClock(durationSec) : '--:--.-')
 
   return (
     <div className="pg-compact-shell">
@@ -120,11 +117,6 @@ export function PlaygroundSpeech() {
             <div className="pg-settings-label">format</div>
             <div className="pg-speech-format-value">mp3 • 24 kHz</div>
           </div>
-
-          <div className="pg-speech-controls-meta" aria-hidden="true">
-            <span>{renderLabel}</span>
-            <span>{ratioLabel}</span>
-          </div>
         </div>
       </div>
 
@@ -132,21 +124,27 @@ export function PlaygroundSpeech() {
         <div className="pg-chat-scroll pg-speech-stage">
           {speech.error ? <div className="pg-error">{speech.error}</div> : null}
 
-          {speech.audioUrl ? (
+          {speech.entries.length > 0 ? (
             <div className="pg-speech-stack">
-              <div className="pg-speech-preview-card">
-                <div className="pg-speech-preview-head">
-                  <span className="pg-settings-label">preview</span>
-                  <span className="pg-speech-preview-meta">{previewMeta}</span>
+              {speech.entries.map((entry) => (
+                <div key={entry.id} className="pg-speech-preview-card">
+                  <div className="pg-speech-preview-head">
+                    <span className="pg-settings-label">preview</span>
+                    <div className="pg-speech-preview-meta">
+                      <span>{entry.voice}</span> ·<span>{durationLabel(entry.audioDurationSec)}</span> ·
+                      <span>{renderLabel(entry.renderMs)}</span> ·
+                      <span>{ratioLabel(entry.renderMs, entry.audioDurationSec)}</span>
+                    </div>
+                  </div>
+                  <div className="pg-speech-preview-text">{entry.input}</div>
+                  <SpeechPreviewPlayer
+                    key={entry.audioUrl}
+                    src={entry.audioUrl}
+                    durationHint={entry.audioDurationSec}
+                    onDownload={() => downloadAudio(entry.audioUrl)}
+                  />
                 </div>
-                {speech.lastInput ? <div className="pg-speech-preview-text">{speech.lastInput}</div> : null}
-                <SpeechPreviewPlayer
-                  key={speech.audioUrl}
-                  src={speech.audioUrl}
-                  durationHint={speech.audioDurationSec}
-                  onDownload={downloadAudio}
-                />
-              </div>
+              ))}
             </div>
           ) : !speech.loading && !speech.error ? (
             <div className="pg-empty">

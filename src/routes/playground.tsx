@@ -1,19 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { encode as encodeTokens } from 'gpt-tokenizer'
-import {
-  BookOpen,
-  ChevronDown,
-  ImageIcon,
-  MessageSquare,
-  Mic,
-  Paperclip,
-  Play,
-  Save,
-  Send,
-  Volume2,
-  X,
-} from 'lucide-react'
-import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { BookOpen, ChevronDown, ImageIcon, MessageSquare, Mic, Play, Save, Send, Volume2, X } from 'lucide-react'
+import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { PlaygroundImage } from '../components/PlaygroundImage'
 import { PlaygroundInspector } from '../components/PlaygroundInspector'
@@ -62,7 +49,7 @@ function Playground() {
           <PageHeader
             kicker="dsh · playground · compare"
             title="Playground"
-            subtitle="Test prompts against loaded models · inspector visible · multi-model compare"
+            subtitle="Test prompts against loaded models · inspector visible · multi-model"
             variant="integrated"
             action={
               tab === 'chat' ? (
@@ -136,15 +123,6 @@ function ChatTab({ chat }: { chat: ReturnType<typeof usePlaygroundChat> }) {
     if (!el) return
     userScrolledUp.current = el.scrollHeight - el.scrollTop - el.clientHeight > 40
   }, [])
-
-  const tokensIn = useMemo(() => {
-    if (!draft.trim()) return 0
-    try {
-      return encodeTokens(draft).length
-    } catch {
-      return Math.ceil(draft.length / 4)
-    }
-  }, [draft])
 
   const handleSubmit = useCallback(
     (e?: FormEvent) => {
@@ -259,20 +237,7 @@ function ChatTab({ chat }: { chat: ReturnType<typeof usePlaygroundChat> }) {
         </div>
 
         <div className="pg-input-wrap">
-          <div className="pg-input-toolbar">
-            <button type="button" className="pg-tool-btn" disabled title="Attachments coming soon">
-              <Paperclip className="icon-12" strokeWidth={2} />
-              attach
-            </button>
-            <span className="pg-tool-sep">/</span>
-            <button type="button" className="pg-tool-btn" disabled title="Commands coming soon">
-              command
-            </button>
-            <span className="pg-tool-sep">var:</span>
-            <code className="pg-tool-var">${'{path}'}</code>
-            <span className="pg-input-tokens">tokens in: {tokensIn}</span>
-          </div>
-          <form className="pg-input-bar" onSubmit={handleSubmit}>
+          <form className="pg-input-bar border-t-0!" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
               className="pg-input"
@@ -300,9 +265,6 @@ function ChatTab({ chat }: { chat: ReturnType<typeof usePlaygroundChat> }) {
             </span>
             <span>
               <kbd>⇧⏎</kbd> newline
-            </span>
-            <span>
-              <kbd>/</kbd> prompt library
             </span>
             <span>
               <kbd>r</kbd> send & re-run

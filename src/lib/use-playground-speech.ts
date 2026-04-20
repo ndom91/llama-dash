@@ -12,11 +12,8 @@ export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [voice, setVoiceState] = useState(() => loadString(LS_VOICE, ''))
   const [text, setText] = useState('')
-  const [lastInput, setLastInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
-  const [renderMs, setRenderMs] = useState<number | null>(null)
-  const [audioDurationSec, setAudioDurationSec] = useState<number | null>(null)
+  const [entries, setEntries] = useState<Array<SpeechEntry>>([])
   const [error, setError] = useState<string | null>(null)
   const [voices, setVoices] = useState<Array<string> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -51,6 +48,12 @@ export function usePlaygroundSpeech() {
     return () => clearTimeout(timer)
   }, [])
 
+  useEffect(() => {
+    return () => {
+      for (const entry of entries) URL.revokeObjectURL(entry.audioUrl)
+    }
+  }, [entries])
+
   const setModel = useCallback((v: string) => {
     setModelState(v)
     localStorage.setItem(LS_MODEL, v)
@@ -65,11 +68,6 @@ export function usePlaygroundSpeech() {
     if (!model || !text.trim()) return
     setLoading(true)
     setError(null)
-    setRenderMs(null)
-    setAudioDurationSec(null)
-
-    if (audioUrl) URL.revokeObjectURL(audioUrl)
-    setAudioUrl(null)
 
     const abort = new AbortController()
     abortRef.current = abort
@@ -97,10 +95,19 @@ export function usePlaygroundSpeech() {
 
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      setAudioUrl(url)
-      setLastInput(input)
-      setRenderMs(performance.now() - startedAt)
-      setAudioDurationSec(await readAudioDuration(url))
+      const renderMs = performance.now() - startedAt
+      const audioDurationSec = await readAudioDuration(url)
+      setEntries((prev) => [
+        {
+          id: `speech_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          audioUrl: url,
+          input,
+          voice: voice.trim() || 'default',
+          renderMs,
+          audioDurationSec,
+        },
+        ...prev,
+      ])
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : String(err))
@@ -108,7 +115,7 @@ export function usePlaygroundSpeech() {
       setLoading(false)
       abortRef.current = null
     }
-  }, [model, text, voice, audioUrl])
+  }, [model, text, voice])
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -122,15 +129,21 @@ export function usePlaygroundSpeech() {
     voices,
     text,
     setText,
-    lastInput,
     loading,
-    audioUrl,
-    renderMs,
-    audioDurationSec,
+    entries,
     error,
     generate,
     stop,
   }
+}
+
+type SpeechEntry = {
+  id: string
+  audioUrl: string
+  input: string
+  voice: string
+  renderMs: number
+  audioDurationSec: number | null
 }
 
 function readAudioDuration(url: string) {
