@@ -22,7 +22,7 @@ function RequestDetail() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page request-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : req == null ? (
@@ -124,10 +124,10 @@ function DetailSkeleton() {
       </div>
 
       <div className="req-res-columns">
-        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+        <div className="request-detail-column">
           <BodySkeleton title="Request" />
         </div>
-        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+        <div className="request-detail-column">
           <BodySkeleton title="Response" />
         </div>
       </div>
@@ -266,8 +266,8 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
       ) : null}
 
       {req.error ? (
-        <section className="panel">
-          <div className="panel-head">
+        <section className="panel request-detail-panel">
+          <div className="panel-head request-detail-panel-head">
             <span className="panel-title" style={{ color: 'var(--err)' }}>
               Error
             </span>
@@ -277,13 +277,13 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
       ) : null}
 
       <div className="req-res-columns">
-        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+        <div className="request-detail-column">
           {req.requestBody ? (
             <BodySection title="Request" subtitle="body" size={byteSize(req.requestBody)} body={req.requestBody} />
           ) : null}
           {reqHeaders ? <HeadersSection title="Headers" subtitle="in" headers={reqHeaders} /> : null}
         </div>
-        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+        <div className="request-detail-column">
           {req.responseBody ? (
             <BodySection
               title="Response"
@@ -312,8 +312,8 @@ function HeadersSection({
   if (entries.length === 0) return null
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel request-detail-panel">
+      <div className="panel-head request-detail-panel-head">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· {subtitle}</span>
       </div>
@@ -344,8 +344,8 @@ function BodySection({ title, subtitle, size, body }: { title: string; subtitle:
   }
 
   return (
-    <section className="panel detail-body-panel">
-      <div className="panel-head">
+    <section className="panel detail-body-panel request-detail-panel">
+      <div className="panel-head request-detail-panel-head">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· {subtitle}</span>
         <span className="body-size">{size}</span>
@@ -454,8 +454,8 @@ function TokenTrace({
   tokPerSec: number | null
 }) {
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel request-detail-panel">
+      <div className="panel-head request-detail-panel-head">
         <span className="panel-title">Stream</span>
         <span className="panel-sub">· token trace</span>
         <span className="panel-sub" style={{ marginLeft: 'auto' }}>

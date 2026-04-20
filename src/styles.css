@@ -1018,7 +1018,7 @@
 .req-res-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 0;
 }
 .sidebar-backdrop {
   display: none;
@@ -2009,6 +2009,41 @@ a,
 
 /* ---- request detail v2 ---- */
 
+.request-detail-page {
+  min-height: 100%;
+}
+
+.request-detail-page .err-banner,
+.request-detail-page .empty-state {
+  margin-inline: 24px;
+}
+
+.request-detail-page .detail-hero,
+.request-detail-panel {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.request-detail-page .stats-row {
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+}
+
+.request-detail-panel-head {
+  padding-inline: 24px;
+  background: transparent;
+}
+
+.request-detail-column {
+  display: grid;
+  gap: 0;
+  align-content: start;
+}
+
 .detail-breadcrumb {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -2195,6 +2230,17 @@ a,
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--fg-dim);
+}
+
+@media (max-width: 768px) {
+  .request-detail-page .err-banner,
+  .request-detail-page .empty-state {
+    margin-inline: 12px;
+  }
+
+  .request-detail-panel-head {
+    padding-inline: 12px;
+  }
 }
 
 /* ── playground ─────────────────────────────────────────── */
