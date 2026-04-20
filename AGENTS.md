@@ -50,7 +50,16 @@ src/
     policies.tsx            · /policies model aliases + request limits
     endpoints.tsx           · /endpoints client connection examples
     logs.tsx                · /logs raw log viewer
-  components/             — UI components
+  features/               — route-owned UI, one component per file, grouped by feature
+    dashboard/             · dashboard panels + metrics helpers
+    endpoints/             · endpoint examples + copy/highlight helpers
+    keys/                  · keys list/detail panels and forms
+    models/                · models list/detail panels and helpers
+    playground/            · playground tabs, rails, and media tools
+    policies/              · alias and request-limit editing panels
+    requests/              · request list/detail pages and payload helpers
+    config/, logs/         · config editor + log viewer feature-local pieces
+  components/             — shared UI components reused across features
     Sidebar.tsx             · nav + VRAM-resident readout in footer
     ModelTimeline.tsx        · 30-min model swap timeline (spans + legend)
     Sparkline.tsx           · SVG sparkline with above-line glow
@@ -129,6 +138,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    model pinning → allow-list check → alias resolution → system prompt
    injection → request size limits. In-memory caches for aliases and
    settings, invalidated on admin writes.
+10. Feature-local UI structure under `src/features/*`. Route files are thin
+   entrypoints; page-specific components live with their feature instead of
+   accumulating inside `src/routes/*` or flat shared component files.
 
 ## Tooling
 
