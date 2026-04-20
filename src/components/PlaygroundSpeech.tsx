@@ -44,8 +44,8 @@ export function PlaygroundSpeech() {
   }, [speech.audioUrl])
 
   return (
-    <>
-      <div className="pg-settings">
+    <div className="pg-compact-shell">
+      <div className="pg-settings pg-compact-settings">
         <div className="pg-settings-row">
           <div className="pg-settings-group">
             <label className="pg-settings-label" htmlFor="pg-speech-model">
@@ -112,7 +112,7 @@ export function PlaygroundSpeech() {
         </div>
       </div>
 
-      <section className="panel pg-chat-panel pg-compact-panel">
+      <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
         <div className="pg-chat-scroll">
           {speech.error ? <div className="pg-error">{speech.error}</div> : null}
 
@@ -161,6 +161,6 @@ export function PlaygroundSpeech() {
           </Tooltip>
         </form>
       </section>
-    </>
+    </div>
   )
 }

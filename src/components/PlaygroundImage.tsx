@@ -44,8 +44,8 @@ export function PlaygroundImage() {
   }, [])
 
   return (
-    <>
-      <div className="pg-settings">
+    <div className="pg-compact-shell">
+      <div className="pg-settings pg-compact-settings">
         <div className="pg-settings-row">
           <div className="pg-settings-group">
             <label className="pg-settings-label" htmlFor="pg-img-model">
@@ -106,7 +106,7 @@ export function PlaygroundImage() {
         </div>
       </div>
 
-      <section className="panel pg-chat-panel">
+      <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
         <div className="pg-chat-scroll">
           {img.error ? <div className="pg-error">{img.error}</div> : null}
 
@@ -147,7 +147,7 @@ export function PlaygroundImage() {
           </Tooltip>
         </form>
       </section>
-    </>
+    </div>
   )
 }
 

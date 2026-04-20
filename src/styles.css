@@ -4469,16 +4469,60 @@ a,
 
 /* ── playground shared ──────────────────────────────────── */
 
+.pg-compact-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-1);
+}
+
+.pg-compact-settings {
+  background: var(--bg-1);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+}
+
+.pg-compact-settings .pg-settings-row {
+  padding: 0 0 0 14px;
+  gap: 0;
+}
+
+.pg-compact-settings .pg-settings-group {
+  min-width: 0;
+  border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+}
+
+.pg-compact-settings .pg-settings-group:last-child {
+  border-right: 0;
+}
+
+.pg-compact-settings .pg-select,
+.pg-compact-settings .pg-voice-input,
+.pg-compact-settings .pg-new-chat-btn {
+  background: var(--bg-1);
+}
+
+.pg-compact-surface {
+  flex: 1;
+  min-height: 0;
+  border-top: 0;
+  background: var(--bg-1);
+}
+
 .pg-compact-panel {
-  flex: 0 1 auto;
-  min-height: 300px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .pg-compact-panel > .pg-chat-scroll {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow-y: visible;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-1);
 }
 
 .pg-error {
@@ -4528,7 +4572,7 @@ a,
 .pg-img-entries {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .pg-img-entry {
@@ -4542,7 +4586,7 @@ a,
   color: var(--fg-2);
   padding: 8px 12px;
   border-radius: var(--radius);
-  background: var(--bg-1);
+  background: var(--bg-2);
   border: 1px solid var(--border);
 }
 
@@ -4560,7 +4604,7 @@ a,
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
-  background: var(--bg-0);
+  background: var(--bg-2);
 }
 
 .pg-img-result {
@@ -4603,7 +4647,7 @@ a,
   padding: 16px 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-1);
+  background: var(--bg-2);
 }
 
 .pg-audio-player {
@@ -4625,7 +4669,7 @@ a,
   padding: 24px;
   border: 2px dashed var(--border);
   border-radius: var(--radius);
-  background: var(--bg-1);
+  background: var(--bg-2);
   color: var(--fg-dim);
   font-size: 13px;
   cursor: pointer;
@@ -4635,7 +4679,7 @@ a,
 .pg-dropzone:hover,
 .pg-dropzone-active {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 4%, var(--bg-1));
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-2));
 }
 .pg-dropzone-has-file {
   cursor: default;
@@ -4646,7 +4690,7 @@ a,
 }
 .pg-dropzone-has-file:hover {
   border-color: var(--border);
-  background: var(--bg-1);
+  background: var(--bg-2);
 }
 
 .pg-dropzone-icon {
@@ -4692,7 +4736,7 @@ a,
 .pg-transcript {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--bg-1);
+  background: var(--bg-2);
   overflow: hidden;
 }
 
@@ -4702,7 +4746,7 @@ a,
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--bg-0);
+  background: color-mix(in srgb, var(--bg-2) 76%, var(--bg-1));
 }
 
 .pg-transcript-text {
