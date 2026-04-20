@@ -5578,6 +5578,9 @@ a,
 
 .endpoints-page {
   min-height: 100%;
+  height: 100%;
+  flex: 1;
+  background: var(--bg-1);
 }
 
 .endpoints-grid {
@@ -5585,10 +5588,12 @@ a,
 }
 
 .endpoints-panel {
+  display: flex;
+  flex-direction: column;
   border-left: none;
   border-right: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+  background: var(--bg-1);
 }
 
 .endpoints-grid > .endpoints-panel + .endpoints-panel {
@@ -5596,6 +5601,8 @@ a,
 }
 
 .endpoints-code-panel {
+  flex: 1;
+  min-height: 0;
   border-top: none;
 }
 
