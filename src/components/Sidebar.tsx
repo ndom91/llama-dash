@@ -85,7 +85,7 @@ export function Sidebar() {
       return
     }
     const id = setInterval(() => {
-      nextIdx.current += 1
+      nextIdx.current = (nextIdx.current + 1) % runningCount
       setSlide('out')
     }, 8_000)
     return () => clearInterval(id)
@@ -191,12 +191,12 @@ export function Sidebar() {
         </div>
         <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-1 overflow-x-clip">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
-            <span>vram ·</span>
+            <span>{gpu?.driver === 'apple' ? 'memory' : 'vram'} ·</span>
             <span className="ml-auto text-fg-muted">
               {hasVram
                 ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
                 : resident
-                  ? `${runningCount} of ${totalCount}`
+                  ? `${visibleIdx} of ${totalCount}`
                   : 'idle'}
             </span>
           </div>
@@ -224,7 +224,6 @@ export function Sidebar() {
                 <div className="font-mono text-[10px] text-fg-dim">
                   {resident.state}
                   {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
-                  {` · ${runningCount} of ${totalCount}`}
                   {hasVram ? ` · ${gpuCard.memoryPercent}%` : ''}
                 </div>
               </div>

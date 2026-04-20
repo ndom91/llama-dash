@@ -243,9 +243,51 @@ async function pollAmdTop(): Promise<Array<GpuInfo>> {
   return parseAmdTop(output)
 }
 
+async function getAppleMemory(): Promise<{ usedMiB: number; totalMiB: number; percent: number } | null> {
+  try {
+    const [memSizeStr, vmStatStr] = await Promise.all([run('sysctl', ['-n', 'hw.memsize']), run('vm_stat', [])])
+    const totalBytes = Number(memSizeStr.trim())
+    if (!Number.isFinite(totalBytes) || totalBytes === 0) return null
+
+    const pageMatch = vmStatStr.match(/page size of (\d+) bytes/)
+    const pageSize = pageMatch ? Number(pageMatch[1]) : 16384
+
+    const val = (label: string): number => {
+      const m = vmStatStr.match(new RegExp(`${label}:\\s+(\\d+)`))
+      return m ? Number(m[1]) : 0
+    }
+    const free = val('Pages free')
+    const inactive = val('Pages inactive')
+    const purgeable = val('Pages purgeable')
+    const speculative = val('Pages speculative')
+
+    const availableBytes = (free + inactive + purgeable + speculative) * pageSize
+    const usedBytes = totalBytes - availableBytes
+
+    const totalMiB = Math.round(totalBytes / (1024 * 1024))
+    const usedMiB = Math.round(Math.max(0, usedBytes) / (1024 * 1024))
+    const percent = Math.round((usedMiB / totalMiB) * 100)
+    return { usedMiB, totalMiB, percent }
+  } catch {
+    return null
+  }
+}
+
+let appleGpuCache: Array<GpuInfo> | null = null
+
 async function pollApple(): Promise<Array<GpuInfo>> {
-  const jsonStr = await run('system_profiler', ['SPDisplaysDataType', '-json'])
-  return parseApple(jsonStr)
+  if (!appleGpuCache) {
+    const jsonStr = await run('system_profiler', ['SPDisplaysDataType', '-json'])
+    appleGpuCache = parseApple(jsonStr)
+  }
+
+  const mem = await getAppleMemory()
+  return appleGpuCache.map((gpu) => ({
+    ...gpu,
+    memoryUsedMiB: mem?.usedMiB ?? null,
+    memoryTotalMiB: mem?.totalMiB ?? null,
+    memoryPercent: mem?.percent ?? null,
+  }))
 }
 
 async function detectDriver(): Promise<Driver | null> {
@@ -313,9 +355,7 @@ export async function startGpuPoller() {
   }
 
   await poll()
-  if (detectedDriver !== 'apple') {
-    setInterval(poll, POLL_INTERVAL_MS)
-  }
+  setInterval(poll, POLL_INTERVAL_MS)
 }
 
 export function getGpuSnapshot(): GpuSnapshot {
