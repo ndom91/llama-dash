@@ -112,7 +112,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'bg-surface-1 border-r border-border flex flex-col overflow-hidden',
+        'bg-surface-0 border-r border-border flex flex-col overflow-hidden',
         'max-md:fixed max-md:top-0 max-md:left-0 max-md:bottom-0 max-md:w-[260px] max-md:z-[100] max-md:-translate-x-full max-md:transition-transform max-md:duration-200',
         open && 'max-md:translate-x-0',
       )}

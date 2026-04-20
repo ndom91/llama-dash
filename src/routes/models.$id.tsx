@@ -3,6 +3,7 @@ import { Check, ChevronRight, Clipboard, Play, Power } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
+import { PageHeader } from '../components/PageHeader'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
@@ -20,7 +21,7 @@ function ModelDetailPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page detail-page model-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : data == null ? (
@@ -42,11 +43,37 @@ function ModelContent({ data }: { data: ApiModelDetail }) {
 
   return (
     <>
-      <div className="detail-breadcrumb">
-        <Link to="/models">Models</Link>
-        <span>/</span>
-        <span style={{ color: 'var(--fg-muted)' }}>{model.name}</span>
-      </div>
+      <PageHeader
+        kicker="dsh · models · detail"
+        title="Model detail"
+        subtitle={<span translate="no">{model.id}</span>}
+        variant="integrated"
+        action={
+          model.kind === 'local' ? (
+            model.running ? (
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => unloadModel.mutate(model.id)}
+                disabled={unloadModel.isPending}
+              >
+                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                {unloadModel.isPending ? 'unloading…' : 'unload'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={() => loadModel.mutate(model.id)}
+                disabled={loadModel.isPending}
+              >
+                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                {loadModel.isPending ? 'loading…' : 'load'}
+              </button>
+            )
+          ) : null
+        }
+      />
 
       <div className="detail-hero">
         <div className="detail-endpoint">
@@ -79,31 +106,6 @@ function ModelContent({ data }: { data: ApiModelDetail }) {
               <span className="detail-stat-value">{formatTtl(model.ttl)}</span>
             </div>
           ) : null}
-          <div className="detail-stat" style={{ marginLeft: 'auto' }}>
-            {model.kind === 'local' ? (
-              model.running ? (
-                <button
-                  type="button"
-                  className="btn btn-xs"
-                  onClick={() => unloadModel.mutate(model.id)}
-                  disabled={unloadModel.isPending}
-                >
-                  <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                  {unloadModel.isPending ? 'unloading…' : 'unload'}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="btn btn-xs"
-                  onClick={() => loadModel.mutate(model.id)}
-                  disabled={loadModel.isPending}
-                >
-                  <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                  {loadModel.isPending ? 'loading…' : 'load'}
-                </button>
-              )
-            ) : null}
-          </div>
         </div>
       </div>
 
@@ -156,11 +158,13 @@ function StatsRow({ stats }: { stats: ApiModelStats }) {
 }
 
 function EventsPanel({ events }: { events: Array<{ id: string; event: string; timestamp: string }> }) {
+  const recentEvents = events.slice(0, 12)
+
   return (
     <section className="panel">
       <div className="panel-head">
         <span className="panel-title">History</span>
-        <span className="panel-sub">· load/unload events, last 24h</span>
+        <span className="panel-sub">· latest 12 load/unload events</span>
       </div>
       <table className="dtable">
         <thead>
@@ -171,7 +175,7 @@ function EventsPanel({ events }: { events: Array<{ id: string; event: string; ti
           </tr>
         </thead>
         <tbody>
-          {events.map((e) => (
+          {recentEvents.map((e) => (
             <tr key={e.id}>
               <td>
                 <StatusDot tone={e.event === 'load' ? 'ok' : 'idle'} />

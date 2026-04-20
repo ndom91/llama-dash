@@ -3,6 +3,7 @@ import { ChevronRight, Pencil } from 'lucide-react'
 import { useRef, useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
 import { DurationBar } from '../components/DurationBar'
+import { PageHeader } from '../components/PageHeader'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot } from '../components/StatusDot'
@@ -27,7 +28,7 @@ function KeyDetailPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page detail-page key-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : data == null ? (
@@ -67,11 +68,12 @@ function KeyContent({ data }: { data: ApiKeyDetail }) {
 
   return (
     <>
-      <div className="detail-breadcrumb">
-        <Link to="/keys">Keys</Link>
-        <span>/</span>
-        <span style={{ color: 'var(--fg-muted)' }}>{key.name}</span>
-      </div>
+      <PageHeader
+        kicker="dsh · keys · detail"
+        title="API key detail"
+        subtitle={<span translate="no">{key.keyPrefix}…</span>}
+        variant="integrated"
+      />
 
       <div className="detail-hero">
         <div className="detail-endpoint">

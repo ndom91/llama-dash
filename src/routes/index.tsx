@@ -4,14 +4,13 @@ import { ChevronRight, Download, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CopyableCode } from '../components/CopyableCode'
 import { DurationBar } from '../components/DurationBar'
-import { ModelTimeline } from '../components/ModelTimeline'
 import { PageHeader } from '../components/PageHeader'
 import { Sparkline } from '../components/Sparkline'
 import { StatusCell } from '../components/StatusCell'
 import { StatusDot, stateTone } from '../components/StatusDot'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
-import type { ApiGpuSnapshot, ApiHealth, ApiModel, ApiRequest } from '../lib/api'
+import type { ApiGpuSnapshot, ApiHealth, ApiModel, ApiModelEvent, ApiRequest } from '../lib/api'
 import { qk, useGpu, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../lib/queries'
 
 export const Route = createFileRoute('/')({ component: Dashboard })
@@ -76,42 +75,44 @@ function Dashboard() {
             }
           />
 
-          <div className="stats-row dashboard-stats-row">
-            <StatCard
-              label="req/s · 1m"
-              value={stats ? formatRate(stats.reqPerSec) : '—'}
-              unit="per-sec"
-              sparkline={stats?.sparklines.reqs}
-            />
-            <StatCard
-              label="tok/s · 1m"
-              value={stats ? Math.round(stats.tokPerSec).toLocaleString() : '—'}
-              unit="tok-sec"
-              sparkline={stats?.sparklines.toks}
-            />
-            <StatCard
-              label="p50 latency"
-              value={stats ? formatLatency(stats.p50Latency) : '—'}
-              unit="seconds"
-              sparkline={stats?.sparklines.latency}
-            />
-            <StatCard
-              label="error rate"
-              value={stats ? stats.errorRate.toFixed(1) : '—'}
-              unit="percent"
-              sparkline={stats?.sparklines.errors}
-              color="var(--err)"
-            />
-          </div>
+          <div className="dashboard-shell">
+            <TelemetryPanel health={health} gpu={gpu} />
+            <div className="dashboard-main-stack">
+              <div className="dashboard-metric-grid">
+                <StatCard
+                  label="req/s · 1m"
+                  value={stats ? formatRate(stats.reqPerSec) : '—'}
+                  unit="per-sec"
+                  sparkline={stats?.sparklines.reqs}
+                />
+                <StatCard
+                  label="tok/s · 1m"
+                  value={stats ? Math.round(stats.tokPerSec).toLocaleString() : '—'}
+                  unit="tok-sec"
+                  sparkline={stats?.sparklines.toks}
+                />
+                <StatCard
+                  label="p50 latency"
+                  value={stats ? formatLatency(stats.p50Latency) : '—'}
+                  unit="seconds"
+                  sparkline={stats?.sparklines.latency}
+                />
+                <StatCard
+                  label="error rate"
+                  value={stats ? stats.errorRate.toFixed(1) : '—'}
+                  unit="percent"
+                  sparkline={stats?.sparklines.errors}
+                  color="var(--err)"
+                />
+              </div>
 
-          {timelineEvents ? <ModelTimeline events={timelineEvents} className="dashboard-panel" /> : null}
+              <ResidencyPanel events={timelineEvents ?? []} active={active} />
+            </div>
 
-          <div className="dash-grid dashboard-grid">
             <RunningModelsPanel active={active} total={models?.length ?? null} />
-            <UpstreamHealthPanel health={health} gpu={gpu} />
-          </div>
 
-          <RecentRequestsPanel requests={requests ?? null} />
+            <RecentRequestsPanel requests={requests ?? null} />
+          </div>
         </div>
       </div>
     </div>
@@ -132,7 +133,7 @@ function StatCard({
   color?: string
 }) {
   return (
-    <div className="stat-card">
+    <div className="stat-card dashboard-stat-card">
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-row">
         <span className="stat-card-value">{value}</span>
@@ -141,6 +142,190 @@ function StatCard({
       {sparkline ? <Sparkline data={sparkline} height={32} color={color} /> : null}
     </div>
   )
+}
+
+function TelemetryPanel({ health, gpu }: { health: ApiHealth | undefined; gpu: ApiGpuSnapshot | undefined }) {
+  const upstream = health?.upstream
+  const gpus = gpu?.available ? gpu.gpus : []
+
+  return (
+    <section className="panel dashboard-panel dashboard-telemetry-panel">
+      <div className="dashboard-section-kicker">Upstream</div>
+      <dl className="dashboard-kv-list">
+        <div>
+          <dt>host</dt>
+          <dd className="mono">{upstream?.reachable ? upstream.host : '—'}</dd>
+        </div>
+        <div>
+          <dt>version</dt>
+          <dd className="mono">{upstream?.reachable ? `v${upstream.version}` : '—'}</dd>
+        </div>
+        <div>
+          <dt>/health</dt>
+          <dd className="mono dashboard-health-inline">
+            {upstream?.reachable ? (
+              <>
+                <StatusDot tone="ok" /> <span>ok · {upstream.latencyMs}ms</span>
+              </>
+            ) : (
+              <>
+                <StatusDot tone="err" /> <span>unreachable</span>
+              </>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      {gpus.length > 0
+        ? gpus.map((gpuEntry, index) => (
+            <div key={`${gpuEntry.index}-${gpuEntry.name}`} className="dashboard-gpu-block">
+              <div className="dashboard-section-kicker">{gpus.length > 1 ? `GPU ${index + 1}` : 'GPU'}</div>
+              <dl className="dashboard-kv-list">
+                <div>
+                  <dt>device</dt>
+                  <dd className="mono">{gpuEntry.name}</dd>
+                </div>
+                {gpuEntry.memoryTotalMiB != null ? (
+                  <div>
+                    <dt>vram</dt>
+                    <dd className="mono dashboard-vram-row">
+                      <span>
+                        {formatMiBGb(gpuEntry.memoryUsedMiB)} / {formatMiBGb(gpuEntry.memoryTotalMiB)}
+                      </span>
+                      <span>GB</span>
+                    </dd>
+                    <div className="dashboard-vram-track">
+                      <span className="dashboard-vram-fill" style={{ width: `${gpuEntry.memoryPercent ?? 0}%` }} />
+                    </div>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>util · temp</dt>
+                  <dd className="mono">
+                    {gpuEntry.utilizationPercent != null ? `${gpuEntry.utilizationPercent}%` : '—'}
+                    {gpuEntry.temperatureC != null ? ` · ${gpuEntry.temperatureC}°C` : ''}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ))
+        : null}
+    </section>
+  )
+}
+
+type ResidencySpan = {
+  modelId: string
+  start: number
+  end: number
+}
+
+const DASHBOARD_WINDOW_MS = 60 * 60_000
+
+function ResidencyPanel({ events, active }: { events: Array<ApiModelEvent>; active: Array<ApiModel> }) {
+  const now = Date.now()
+  const windowStart = now - DASHBOARD_WINDOW_MS
+  const spans = useMemo(() => buildResidencySpans(events, now), [events, now])
+  const peerIds = useMemo(() => new Set(active.filter((m) => m.kind === 'peer').map((m) => m.id)), [active])
+  const barColors = ['var(--ok)', 'var(--accent)', 'var(--info)']
+
+  const rows = useMemo(() => {
+    const byModel = new Map<string, Array<ResidencySpan>>()
+    for (const span of spans) {
+      const arr = byModel.get(span.modelId) ?? []
+      arr.push(span)
+      byModel.set(span.modelId, arr)
+    }
+
+    return active.map((model) => ({
+      id: model.id,
+      label: model.name || model.id,
+      kind: model.kind,
+      spans: byModel.get(model.id) ?? [],
+    }))
+  }, [active, spans])
+
+  return (
+    <section className="panel dashboard-panel dashboard-residency-panel">
+      <div className="panel-head dashboard-panel-head">
+        <span className="panel-title">Model residency</span>
+        <span className="panel-sub">· 60 min</span>
+        <span className="panel-sub" style={{ marginLeft: 'auto' }}>
+          {active.filter((m) => m.running && m.kind !== 'peer').length} resident · {peerIds.size} peer
+        </span>
+      </div>
+      <div className="dashboard-residency-body">
+        {rows.length === 0 ? (
+          <div className="dashboard-empty-state">no active model residency in the last hour</div>
+        ) : (
+          rows.map((row) => {
+            const totalMs = row.spans.reduce((sum, span) => sum + (span.end - span.start), 0)
+            return (
+              <div key={row.id} className="dashboard-residency-row">
+                <div className="dashboard-residency-label mono" translate="no">
+                  {row.id}
+                  <span className="dim">{row.kind === 'peer' ? ' · peer' : ''}</span>
+                </div>
+                <div className="dashboard-residency-track">
+                  {row.spans.map((span) => {
+                    const left = ((span.start - windowStart) / DASHBOARD_WINDOW_MS) * 100
+                    const width = ((span.end - span.start) / DASHBOARD_WINDOW_MS) * 100
+                    return (
+                      <span
+                        key={`${row.id}-${span.start}`}
+                        className={`dashboard-residency-fill${row.kind === 'peer' ? ' is-peer' : ''}`}
+                        style={{
+                          left: `${left}%`,
+                          width: `${Math.max(width, 0.8)}%`,
+                          background:
+                            row.kind === 'peer'
+                              ? 'var(--info)'
+                              : barColors[active.findIndex((m) => m.id === row.id) % barColors.length],
+                        }}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="dashboard-residency-duration mono dim">{formatDurationMinutes(totalMs)}</div>
+              </div>
+            )
+          })
+        )}
+        <div className="dashboard-residency-axis mono dim">
+          <span>-60m</span>
+          <span>-45m</span>
+          <span>-30m</span>
+          <span>-15m</span>
+          <span>now</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function buildResidencySpans(events: Array<ApiModelEvent>, now: number): Array<ResidencySpan> {
+  const windowStart = now - DASHBOARD_WINDOW_MS
+  const active = new Map<string, number>()
+  const spans: Array<ResidencySpan> = []
+
+  for (const ev of events) {
+    const ts = new Date(ev.timestamp).getTime()
+    if (ev.event === 'load') {
+      active.set(ev.modelId, ts)
+      continue
+    }
+    const loadTs = active.get(ev.modelId)
+    if (loadTs != null) {
+      spans.push({ modelId: ev.modelId, start: Math.max(loadTs, windowStart), end: ts })
+      active.delete(ev.modelId)
+    }
+  }
+
+  for (const [modelId, start] of active) {
+    spans.push({ modelId, start: Math.max(start, windowStart), end: now })
+  }
+
+  return spans
 }
 
 function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total: number | null }) {
@@ -156,7 +341,7 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
       <div className="panel-head dashboard-panel-head">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
-        <Link to="/models" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
+        <Link to="/models" className="dashboard-panel-link" style={{ marginLeft: 'auto' }}>
           manage
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
@@ -168,7 +353,7 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
       ) : (
-        <table className="dtable dashboard-table">
+        <table className="dtable dashboard-table dashboard-running-table">
           <thead>
             <tr>
               <th style={{ width: 18 }} aria-label="state" />
@@ -194,7 +379,7 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
                     {m.id}
                   </td>
                   <td>{m.name}</td>
-                  <td>
+                  <td className="dashboard-state-cell">
                     <span className={`state-label state-label-${tone}`}>{label}</span>
                   </td>
                 </tr>
@@ -207,95 +392,19 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
   )
 }
 
-function UpstreamHealthPanel({ health, gpu }: { health: ApiHealth | undefined; gpu: ApiGpuSnapshot | undefined }) {
-  const up = health?.upstream
-
-  return (
-    <section className="panel dashboard-panel">
-      <div className="panel-head dashboard-panel-head">
-        <span className="panel-title">Upstream</span>
-        <span className="panel-sub">llama-swap health</span>
-      </div>
-      <dl className="dl-grid">
-        <dt>host</dt>
-        <dd className="mono">{up?.reachable ? up.host : '—'}</dd>
-        <dt>version</dt>
-        <dd className="mono">{up?.reachable ? `v${up.version}` : '—'}</dd>
-        <dt>/health</dt>
-        <dd className="mono">
-          {up?.reachable ? (
-            <>
-              <StatusDot tone="ok" />{' '}
-              <span style={{ marginLeft: 6 }}>
-                {up.health} · {up.latencyMs}ms
-              </span>
-            </>
-          ) : (
-            <>
-              <StatusDot tone="err" /> <span style={{ marginLeft: 6 }}>unreachable</span>
-            </>
-          )}
-        </dd>
-        {gpu?.available ? gpu.gpus.map((g) => <GpuRow key={g.index} gpu={g} showIndex={gpu.gpus.length > 1} />) : null}
-      </dl>
-    </section>
-  )
-}
-
-function GpuRow({ gpu, showIndex }: { gpu: ApiGpuSnapshot['gpus'][number]; showIndex: boolean }) {
-  const label = showIndex ? `gpu ${gpu.index}` : 'gpu'
-  const hasVram = gpu.memoryTotalMiB != null
-  const hasUtil = gpu.utilizationPercent != null || gpu.temperatureC != null
-  return (
-    <>
-      <dt>{label}</dt>
-      <dd className="mono">
-        <span translate="no">{gpu.name}</span>
-        {gpu.cores != null ? <span className="dim"> · {gpu.cores} cores</span> : null}
-      </dd>
-      {hasVram ? (
-        <>
-          <dt>vram</dt>
-          <dd className="mono">
-            <span className="gpu-vram-bar-wrap">
-              <span className="gpu-vram-bar" style={{ width: `${gpu.memoryPercent ?? 0}%` }} />
-            </span>
-            <span style={{ marginLeft: 8 }}>
-              {gpu.memoryUsedMiB?.toLocaleString()} / {gpu.memoryTotalMiB?.toLocaleString()} MiB ({gpu.memoryPercent}%)
-            </span>
-          </dd>
-        </>
-      ) : null}
-      {hasUtil ? (
-        <>
-          <dt>util / temp</dt>
-          <dd className="mono">
-            {gpu.utilizationPercent != null ? `${gpu.utilizationPercent}%` : '—'}
-            <span className="dim">
-              {gpu.temperatureC != null ? ` · ${gpu.temperatureC}°C` : ''}
-              {gpu.powerW != null ? ` · ${Math.round(gpu.powerW)}W` : ''}
-              {gpu.powerMaxW != null ? ` / ${Math.round(gpu.powerMaxW)}W` : ''}
-            </span>
-          </dd>
-        </>
-      ) : null}
-    </>
-  )
-}
-
 function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null }) {
   const navigate = useNavigate()
   const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
   const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
-    <section className="panel dashboard-panel">
+    <section className="panel dashboard-panel dashboard-recent-panel">
       <div className="panel-head dashboard-panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
           newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
         </span>
-        <Link to="/requests" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
+        <Link to="/requests" className="dashboard-panel-link" style={{ marginLeft: 'auto' }}>
           view all
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
@@ -308,7 +417,7 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
           <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> to see them here.
         </div>
       ) : (
-        <table className="dtable dashboard-table">
+        <table className="dtable dashboard-table dashboard-requests-table">
           <thead>
             <tr>
               <th className="mono" style={{ width: 80 }}>
@@ -361,6 +470,17 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
       )}
     </section>
   )
+}
+
+function formatMiBGb(value: number | null | undefined) {
+  if (value == null) return '—'
+  return (value / 1024).toFixed(1)
+}
+
+function formatDurationMinutes(ms: number) {
+  if (ms <= 0) return '0m'
+  const mins = Math.round(ms / 60_000)
+  return `${mins}m`
 }
 
 function formatLatency(ms: number): string {

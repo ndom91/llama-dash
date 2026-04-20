@@ -3,6 +3,7 @@ import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronLeft, ChevronRight, Clipboard } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
+import { PageHeader } from '../components/PageHeader'
 import { Tooltip } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import type { ApiRequestDetail } from '../lib/api'
@@ -22,7 +23,7 @@ function RequestDetail() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page request-detail-page">
+        <div className="page detail-page request-detail-page">
           {error ? (
             <div className="err-banner">{error.message}</div>
           ) : req == null ? (
@@ -86,21 +87,7 @@ function BodySkeleton({ title }: { title: string }) {
 function DetailSkeleton() {
   return (
     <>
-      <div className="detail-breadcrumb">
-        <Link to="/requests">Requests</Link>
-        <span>/</span>
-        <span className="skel skel-text" style={{ width: 220 }} />
-        <div style={{ marginLeft: 'auto' }}>
-          <div className="detail-nav-arrows">
-            <span className="nav-arrow disabled" aria-hidden="true">
-              <ChevronLeft size={16} strokeWidth={2} />
-            </span>
-            <span className="nav-arrow disabled" aria-hidden="true">
-              <ChevronRight size={16} strokeWidth={2} />
-            </span>
-          </div>
-        </div>
-      </div>
+      <PageHeader kicker="dsh · requests · detail" title="Request detail" subtitle="loading…" variant="integrated" />
 
       <div className="detail-hero">
         <div className="detail-endpoint">
@@ -161,11 +148,12 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
 
   return (
     <>
-      <div className="detail-breadcrumb">
-        <Link to="/requests">Requests</Link>
-        <span>/</span>
-        <span style={{ color: 'var(--fg-muted)' }}>{req.id}</span>
-        <div style={{ marginLeft: 'auto' }}>
+      <PageHeader
+        kicker="dsh · requests · detail"
+        title="Request detail"
+        subtitle={<span translate="no">{req.id}</span>}
+        variant="integrated"
+        action={
           <div className="detail-nav-arrows">
             <Tooltip
               label={
@@ -206,8 +194,8 @@ function Detail({ req, prevId, nextId }: { req: ApiRequestDetail; prevId: string
               </Link>
             </Tooltip>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="detail-hero">
         <div className="detail-endpoint">

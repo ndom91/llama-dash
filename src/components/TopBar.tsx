@@ -35,7 +35,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   }, [])
 
   return (
-    <header className="bg-surface-0 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
+    <header className="bg-surface-1 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
       <button
         type="button"
         className="hidden max-md:inline-flex items-center justify-center text-fg p-1 cursor-pointer mr-1"
