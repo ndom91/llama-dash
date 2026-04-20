@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import type { ApiModelEvent } from '../lib/api'
+import { cn } from '../lib/cn'
 
 const WINDOW_MS = 30 * 60_000
 const MODEL_COLORS = ['var(--accent)', 'var(--info)', 'var(--ok)', 'var(--warn)', 'var(--err)']
@@ -72,7 +73,7 @@ function formatDuration(ms: number): string {
 
 const TICK_COUNT = 7
 
-export function ModelTimeline({ events }: { events: Array<ApiModelEvent> }) {
+export function ModelTimeline({ events, className }: { events: Array<ApiModelEvent>; className?: string }) {
   const now = Date.now()
   const windowStart = now - WINDOW_MS
 
@@ -115,19 +116,19 @@ export function ModelTimeline({ events }: { events: Array<ApiModelEvent> }) {
 
   if (spans.length === 0) {
     return (
-      <section className="panel">
-        <div className="panel-head">
+      <section className={cn('panel', className)}>
+        <div className={cn('panel-head', className && 'dashboard-panel-head')}>
           <span className="panel-title">Model swap timeline</span>
           <span className="panel-sub">30 min · resident in VRAM</span>
         </div>
-        <div className="empty-state">no model activity in last 30 min</div>
+        <div className={cn('empty-state', className && 'dashboard-empty-state')}>no model activity in last 30 min</div>
       </section>
     )
   }
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className={cn('panel', className)}>
+      <div className={cn('panel-head', className && 'dashboard-panel-head')}>
         <span className="panel-title">Model swap timeline</span>
         <span className="panel-sub">30 min · resident in VRAM</span>
         <span className="panel-sub" style={{ marginLeft: 'auto' }}>

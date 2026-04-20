@@ -44,11 +44,12 @@ function Dashboard() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page">
+        <div className="page dashboard-page">
           <PageHeader
             kicker="dsh · overview"
             title="Operator dashboard"
             subtitle="system overview and recent activity"
+            variant="integrated"
             action={
               <>
                 <Tooltip label="Refresh">
@@ -75,7 +76,7 @@ function Dashboard() {
             }
           />
 
-          <div className="stats-row">
+          <div className="stats-row dashboard-stats-row">
             <StatCard
               label="req/s · 1m"
               value={stats ? formatRate(stats.reqPerSec) : '—'}
@@ -103,9 +104,9 @@ function Dashboard() {
             />
           </div>
 
-          {timelineEvents ? <ModelTimeline events={timelineEvents} /> : null}
+          {timelineEvents ? <ModelTimeline events={timelineEvents} className="dashboard-panel" /> : null}
 
-          <div className="dash-grid">
+          <div className="dash-grid dashboard-grid">
             <RunningModelsPanel active={active} total={models?.length ?? null} />
             <UpstreamHealthPanel health={health} gpu={gpu} />
           </div>
@@ -151,8 +152,8 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
       ? '—'
       : `${runningCount} of ${total} loaded${peerCount > 0 ? ` · ${peerCount} peer${peerCount > 1 ? 's' : ''}` : ''}`
   return (
-    <section className="panel running-panel">
-      <div className="panel-head">
+    <section className="panel dashboard-panel running-panel dashboard-running-panel">
+      <div className="panel-head dashboard-panel-head">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
         <Link to="/models" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
@@ -161,13 +162,13 @@ function RunningModelsPanel({ active, total }: { active: Array<ApiModel>; total:
         </Link>
       </div>
       {total == null ? (
-        <div className="empty-state">loading…</div>
+        <div className="empty-state dashboard-empty-state">loading…</div>
       ) : active.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state dashboard-empty-state">
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
       ) : (
-        <table className="dtable">
+        <table className="dtable dashboard-table">
           <thead>
             <tr>
               <th style={{ width: 18 }} aria-label="state" />
@@ -210,8 +211,8 @@ function UpstreamHealthPanel({ health, gpu }: { health: ApiHealth | undefined; g
   const up = health?.upstream
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel dashboard-panel">
+      <div className="panel-head dashboard-panel-head">
         <span className="panel-title">Upstream</span>
         <span className="panel-sub">llama-swap health</span>
       </div>
@@ -288,8 +289,8 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
   const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
-    <section className="panel">
-      <div className="panel-head">
+    <section className="panel dashboard-panel">
+      <div className="panel-head dashboard-panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
           newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
@@ -300,14 +301,14 @@ function RecentRequestsPanel({ requests }: { requests: Array<ApiRequest> | null 
         </Link>
       </div>
       {requests == null ? (
-        <div className="empty-state">loading…</div>
+        <div className="empty-state dashboard-empty-state">loading…</div>
       ) : requests.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state dashboard-empty-state">
           no requests yet. point clients at{' '}
           <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> to see them here.
         </div>
       ) : (
-        <table className="dtable">
+        <table className="dtable dashboard-table">
           <thead>
             <tr>
               <th className="mono" style={{ width: 80 }}>
