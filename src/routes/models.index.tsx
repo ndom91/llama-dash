@@ -40,11 +40,12 @@ function Models() {
         }
       />
       <div className="content">
-        <div className="page">
+        <div className="page models-page">
           <PageHeader
             kicker="dsh · models"
             title="Models"
             subtitle="available models and their current state"
+            variant="integrated"
             action={
               <button
                 type="button"
@@ -59,15 +60,15 @@ function Models() {
             }
           />
 
-          {error ? <div className="err-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner models-error-banner">{error.message}</div> : null}
 
-          <section className="panel">
+          <section className="panel models-panel">
             {models == null ? (
-              <div className="empty-state">loading…</div>
+              <div className="empty-state models-empty-state">loading…</div>
             ) : models.length === 0 ? (
-              <div className="empty-state">no models configured in llama-swap.</div>
+              <div className="empty-state models-empty-state">no models configured in llama-swap.</div>
             ) : (
-              <table className="dtable">
+              <table className="dtable models-table">
                 <thead>
                   <tr>
                     <th style={{ width: 18 }} aria-label="state" />
