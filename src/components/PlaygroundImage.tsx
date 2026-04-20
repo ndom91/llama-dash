@@ -46,14 +46,12 @@ export function PlaygroundImage() {
   return (
     <div className="pg-compact-shell">
       <div className="pg-settings pg-compact-settings">
-        <div className="pg-settings-row">
-          <div className="pg-settings-group">
-            <label className="pg-settings-label" htmlFor="pg-img-model">
-              model
-            </label>
+        <div className="pg-settings-row pg-img-controls-row">
+          <div className="pg-img-control-block">
+            <div className="pg-img-control-label">model</div>
             <select
               id="pg-img-model"
-              className="pg-select"
+              className="pg-select pg-img-toolbar-select"
               value={img.model}
               onChange={(e) => img.setModel(e.target.value)}
             >
@@ -80,13 +78,11 @@ export function PlaygroundImage() {
             </select>
           </div>
 
-          <div className="pg-settings-group">
-            <label className="pg-settings-label" htmlFor="pg-img-size">
-              size
-            </label>
+          <div className="pg-img-control-block">
+            <div className="pg-img-control-label">size</div>
             <select
               id="pg-img-size"
-              className="pg-select"
+              className="pg-select pg-img-toolbar-select"
               value={img.size}
               onChange={(e) => img.setSize(e.target.value)}
             >
@@ -96,9 +92,20 @@ export function PlaygroundImage() {
             </select>
           </div>
 
+          <div className="pg-img-control-block pg-img-static-group" aria-hidden="true">
+            <div className="pg-img-control-label">n</div>
+            <div className="pg-img-static-value">4</div>
+          </div>
+
+          <div className="pg-img-controls-meta" aria-hidden="true">
+            <span>seed</span>
+            <span className="pg-img-seed mono">8174392</span>
+            <span>12.4 s</span>
+          </div>
+
           {img.entries.length > 0 ? (
             <Tooltip label="Clear">
-              <button type="button" className="pg-action-btn ml-auto" onClick={img.clearEntries}>
+              <button type="button" className="pg-action-btn pg-img-clear" onClick={img.clearEntries}>
                 <Trash2 className="icon-14" strokeWidth={2} />
               </button>
             </Tooltip>
@@ -107,7 +114,7 @@ export function PlaygroundImage() {
       </div>
 
       <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
-        <div className="pg-chat-scroll">
+        <div className="pg-chat-scroll pg-img-stage">
           {img.error ? <div className="pg-error">{img.error}</div> : null}
 
           {img.entries.length > 0 ? (
@@ -124,9 +131,9 @@ export function PlaygroundImage() {
           ) : null}
         </div>
 
-        <form className="pg-input-bar" onSubmit={handleSubmit}>
+        <form className="pg-input-bar pg-img-prompt-bar" onSubmit={handleSubmit}>
           <textarea
-            className="pg-input"
+            className="pg-input pg-img-prompt-input"
             placeholder={img.model ? 'Describe the image…' : 'Select a model first…'}
             value={img.prompt}
             onChange={(e) => img.setPrompt(e.target.value)}
@@ -137,12 +144,18 @@ export function PlaygroundImage() {
             spellCheck={false}
           />
           <Tooltip label="Generate image">
-            <button type="submit" className="pg-send-btn" disabled={!img.model || !img.prompt.trim() || img.loading}>
+            <button
+              type="submit"
+              className="pg-send-btn pg-img-generate-btn"
+              disabled={!img.model || !img.prompt.trim() || img.loading}
+            >
               {img.loading ? (
                 <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
               ) : (
                 <ImageIcon className="icon-14" strokeWidth={2} />
               )}
+              <span className="pg-img-generate-arrow">→</span>
+              <span>generate</span>
             </button>
           </Tooltip>
         </form>

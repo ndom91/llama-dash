@@ -14,6 +14,8 @@ export function usePlaygroundSpeech() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [renderMs, setRenderMs] = useState<number | null>(null)
+  const [audioDurationSec, setAudioDurationSec] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [voices, setVoices] = useState<Array<string> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -62,6 +64,8 @@ export function usePlaygroundSpeech() {
     if (!model || !text.trim()) return
     setLoading(true)
     setError(null)
+    setRenderMs(null)
+    setAudioDurationSec(null)
 
     if (audioUrl) URL.revokeObjectURL(audioUrl)
     setAudioUrl(null)
@@ -73,6 +77,7 @@ export function usePlaygroundSpeech() {
     if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
 
     try {
+      const startedAt = performance.now()
       const body: Record<string, unknown> = { model, input: text.trim() }
       if (voice.trim()) body.voice = voice.trim()
 
@@ -89,7 +94,10 @@ export function usePlaygroundSpeech() {
       }
 
       const blob = await res.blob()
-      setAudioUrl(URL.createObjectURL(blob))
+      const url = URL.createObjectURL(blob)
+      setAudioUrl(url)
+      setRenderMs(performance.now() - startedAt)
+      setAudioDurationSec(await readAudioDuration(url))
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : String(err))
@@ -113,8 +121,32 @@ export function usePlaygroundSpeech() {
     setText,
     loading,
     audioUrl,
+    renderMs,
+    audioDurationSec,
     error,
     generate,
     stop,
   }
+}
+
+function readAudioDuration(url: string) {
+  return new Promise<number | null>((resolve) => {
+    const audio = document.createElement('audio')
+    const cleanup = () => {
+      audio.removeAttribute('src')
+      audio.load()
+    }
+
+    audio.preload = 'metadata'
+    audio.src = url
+    audio.onloadedmetadata = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : null
+      cleanup()
+      resolve(duration)
+    }
+    audio.onerror = () => {
+      cleanup()
+      resolve(null)
+    }
+  })
 }
