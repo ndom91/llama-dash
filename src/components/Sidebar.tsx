@@ -10,6 +10,7 @@ import {
   Shield,
   Terminal,
 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
 import { useColorTheme } from '../lib/use-color-theme'
 import { useMobileMenu } from '../lib/use-mobile-menu'
@@ -72,9 +73,37 @@ export function Sidebar() {
   const { data: gpu } = useGpu()
   const colorTheme = useColorTheme()
 
-  const resident = running[0] ?? null
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
+
+  const [visibleIdx, setVisibleIdx] = useState(0)
+  const [slide, setSlide] = useState<'out' | 'in' | null>(null)
+  const nextIdx = useRef(0)
+  useEffect(() => {
+    if (runningCount <= 1) {
+      setSlide(null)
+      return
+    }
+    const id = setInterval(() => {
+      nextIdx.current += 1
+      setSlide('out')
+    }, 8_000)
+    return () => clearInterval(id)
+  }, [runningCount])
+  useEffect(() => {
+    if (slide === 'out') {
+      const t = setTimeout(() => {
+        setVisibleIdx(nextIdx.current)
+        setSlide('in')
+      }, 300)
+      return () => clearTimeout(t)
+    }
+    if (slide === 'in') {
+      const t = setTimeout(() => setSlide(null), 300)
+      return () => clearTimeout(t)
+    }
+  }, [slide])
+  const resident = runningCount > 0 ? running[visibleIdx % runningCount] : null
 
   const gpuCard = gpu?.available ? gpu.gpus[0] : null
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
@@ -160,7 +189,7 @@ export function Sidebar() {
           </div>
           <ThemeToggle />
         </div>
-        <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-1">
+        <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-1 overflow-x-clip">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
             <span>vram ·</span>
             <span className="ml-auto text-fg-muted">
@@ -184,20 +213,22 @@ export function Sidebar() {
             />
           </div>
           {resident ? (
-            <>
-              <div className="font-mono text-xs text-fg break-all leading-[1.3]">
-                <StatusDot tone={stateTone(resident.state, true)} live />{' '}
-                <span style={{ marginLeft: 6 }} translate="no">
-                  {resident.id}
-                </span>
+            <div className="">
+              <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
+                <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
+                  <StatusDot tone={stateTone(resident.state, true)} live />{' '}
+                  <span style={{ marginLeft: 6 }} translate="no">
+                    {resident.id}
+                  </span>
+                </div>
+                <div className="font-mono text-[10px] text-fg-dim">
+                  {resident.state}
+                  {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
+                  {` · ${runningCount} of ${totalCount}`}
+                  {hasVram ? ` · ${gpuCard.memoryPercent}%` : ''}
+                </div>
               </div>
-              <div className="font-mono text-[10px] text-fg-dim">
-                {resident.state}
-                {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
-                {runningCount > 1 ? ` · ${runningCount} of ${totalCount}` : ` · 1 of ${totalCount}`}
-                {hasVram ? ` · ${gpuCard.memoryPercent}%` : ''}
-              </div>
-            </>
+            </div>
           ) : (
             <>
               <div className="font-mono text-xs text-fg-dim break-all leading-[1.3]">
