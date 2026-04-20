@@ -97,14 +97,16 @@ export function usePlaygroundSpeech() {
       const url = URL.createObjectURL(blob)
       const renderMs = performance.now() - startedAt
       const audioDurationSec = await readAudioDuration(url)
+      const createdAt = Date.now()
       setEntries((prev) => [
         {
-          id: `speech_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          id: `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
           audioUrl: url,
           input,
           voice: voice.trim() || 'default',
           renderMs,
           audioDurationSec,
+          createdAt,
         },
         ...prev,
       ])
@@ -121,6 +123,19 @@ export function usePlaygroundSpeech() {
     abortRef.current?.abort()
   }, [])
 
+  const removeEntry = useCallback((id: string) => {
+    setEntries((prev) => {
+      const next = prev.filter((entry) => {
+        if (entry.id === id) {
+          URL.revokeObjectURL(entry.audioUrl)
+          return false
+        }
+        return true
+      })
+      return next
+    })
+  }, [])
+
   return {
     model,
     setModel,
@@ -134,6 +149,7 @@ export function usePlaygroundSpeech() {
     error,
     generate,
     stop,
+    removeEntry,
   }
 }
 
@@ -144,6 +160,7 @@ type SpeechEntry = {
   voice: string
   renderMs: number
   audioDurationSec: number | null
+  createdAt?: number
 }
 
 function readAudioDuration(url: string) {

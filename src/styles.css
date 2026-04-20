@@ -4833,6 +4833,13 @@ a,
   margin-bottom: 12px;
 }
 
+.pg-speech-preview-head-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
 .pg-speech-preview-text {
   margin-bottom: 14px;
   padding-left: 2px;
@@ -4852,6 +4859,13 @@ a,
   text-transform: uppercase;
   color: var(--fg-dim);
   text-align: right;
+}
+
+.pg-speech-close-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  flex: 0 0 auto;
 }
 
 .pg-speech-preview-player-shell {

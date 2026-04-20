@@ -1,4 +1,4 @@
-import { Download, Loader2, Pause, Play, Volume2 } from 'lucide-react'
+import { Download, Loader2, Pause, Play, Volume2, X } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useModels } from '../lib/queries'
 import { usePlaygroundSpeech } from '../lib/use-playground-speech'
@@ -35,10 +35,10 @@ export function PlaygroundSpeech() {
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [])
 
-  const downloadAudio = useCallback((audioUrl: string) => {
+  const downloadAudio = useCallback((audioUrl: string, input: string, createdAt: number) => {
     const link = document.createElement('a')
     link.href = audioUrl
-    link.download = 'speech.mp3'
+    link.download = buildSpeechFilename(input, createdAt)
     link.click()
   }, [])
 
@@ -130,10 +130,22 @@ export function PlaygroundSpeech() {
                 <div key={entry.id} className="pg-speech-preview-card">
                   <div className="pg-speech-preview-head">
                     <span className="pg-settings-label">preview</span>
-                    <div className="pg-speech-preview-meta">
-                      <span>{entry.voice}</span> ·<span>{durationLabel(entry.audioDurationSec)}</span> ·
-                      <span>{renderLabel(entry.renderMs)}</span> ·
-                      <span>{ratioLabel(entry.renderMs, entry.audioDurationSec)}</span>
+                    <div className="pg-speech-preview-head-right">
+                      <div className="pg-speech-preview-meta">
+                        <span>{entry.voice}</span> ·<span>{durationLabel(entry.audioDurationSec)}</span> ·
+                        <span>{renderLabel(entry.renderMs)}</span> ·
+                        <span>{ratioLabel(entry.renderMs, entry.audioDurationSec)}</span>
+                      </div>
+                      <Tooltip label="Close">
+                        <button
+                          type="button"
+                          className="pg-action-btn pg-speech-close-btn"
+                          onClick={() => speech.removeEntry(entry.id)}
+                          aria-label="Remove speech result"
+                        >
+                          <X className="icon-12" strokeWidth={2} />
+                        </button>
+                      </Tooltip>
                     </div>
                   </div>
                   <div className="pg-speech-preview-text">{entry.input}</div>
@@ -141,7 +153,7 @@ export function PlaygroundSpeech() {
                     key={entry.audioUrl}
                     src={entry.audioUrl}
                     durationHint={entry.audioDurationSec}
-                    onDownload={() => downloadAudio(entry.audioUrl)}
+                    onDownload={() => downloadAudio(entry.audioUrl, entry.input, entry.createdAt ?? Date.now())}
                   />
                 </div>
               ))}
@@ -192,6 +204,25 @@ function formatClock(seconds: number) {
   const secs = whole % 60
   const tenths = Math.floor((seconds - whole) * 10)
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`
+}
+
+function buildSpeechFilename(input: string, createdAt: number) {
+  const base =
+    input
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]+/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 5)
+      .join('-') || 'speech'
+
+  const date = new Date(Number.isFinite(createdAt) ? createdAt : Date.now())
+  const stamp = Number.isFinite(date.getTime())
+    ? date.toISOString().replace(/[-:]/g, '').slice(0, 15)
+    : new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)
+
+  return `${base}_${stamp}.mp3`
 }
 
 function SpeechPreviewPlayer({
