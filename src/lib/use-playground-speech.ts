@@ -2,10 +2,21 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const LS_MODEL = 'playground-speech-model'
 const LS_VOICE = 'playground-speech-voice'
+const LS_ENTRIES = 'playground-speech-entries'
 
 function loadString(key: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback
   return localStorage.getItem(key) ?? fallback
+}
+
+function loadJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
+  } catch {
+    return fallback
+  }
 }
 
 export function usePlaygroundSpeech() {
@@ -13,7 +24,7 @@ export function usePlaygroundSpeech() {
   const [voice, setVoiceState] = useState(() => loadString(LS_VOICE, ''))
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
-  const [entries, setEntries] = useState<Array<SpeechEntry>>([])
+  const [entries, setEntries] = useState<Array<SpeechEntry>>(() => loadJson(LS_ENTRIES, []))
   const [error, setError] = useState<string | null>(null)
   const [voices, setVoices] = useState<Array<string> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -49,8 +60,10 @@ export function usePlaygroundSpeech() {
   }, [])
 
   useEffect(() => {
-    return () => {
-      for (const entry of entries) URL.revokeObjectURL(entry.audioUrl)
+    try {
+      localStorage.setItem(LS_ENTRIES, JSON.stringify(entries))
+    } catch {
+      // Ignore storage quota or serialization failures; history remains in memory.
     }
   }, [entries])
 
@@ -94,14 +107,14 @@ export function usePlaygroundSpeech() {
       }
 
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const dataUrl = await readBlobAsDataUrl(blob)
       const renderMs = performance.now() - startedAt
-      const audioDurationSec = await readAudioDuration(url)
+      const audioDurationSec = await readAudioDuration(dataUrl)
       const createdAt = Date.now()
       setEntries((prev) => [
         {
           id: `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
-          audioUrl: url,
+          audioUrl: dataUrl,
           input,
           voice: voice.trim() || 'default',
           renderMs,
@@ -124,16 +137,7 @@ export function usePlaygroundSpeech() {
   }, [])
 
   const removeEntry = useCallback((id: string) => {
-    setEntries((prev) => {
-      const next = prev.filter((entry) => {
-        if (entry.id === id) {
-          URL.revokeObjectURL(entry.audioUrl)
-          return false
-        }
-        return true
-      })
-      return next
-    })
+    setEntries((prev) => prev.filter((entry) => entry.id !== id))
   }, [])
 
   return {
@@ -182,5 +186,14 @@ function readAudioDuration(url: string) {
       cleanup()
       resolve(null)
     }
+  })
+}
+
+function readBlobAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read audio blob'))
+    reader.readAsDataURL(blob)
   })
 }
