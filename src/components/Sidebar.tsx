@@ -63,7 +63,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
 ]
 
 const NAV_LINK =
-  'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-[120ms] hover:bg-surface-3 hover:text-fg'
+  'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
 
 export function Sidebar() {
@@ -189,7 +189,7 @@ export function Sidebar() {
           </div>
           <ThemeToggle />
         </div>
-        <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-1 overflow-x-clip">
+        <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
             <span>{gpu?.driver === 'apple' ? 'memory' : 'vram'} ·</span>
             <span className="ml-auto text-fg-muted">
@@ -200,7 +200,7 @@ export function Sidebar() {
                   : 'idle'}
             </span>
           </div>
-          <div className="h-[3px] rounded-pill bg-surface-4 overflow-hidden my-1">
+          <div className="h-1 rounded-pill bg-surface-4 overflow-hidden my-1">
             <div
               className="h-full bg-accent rounded-pill transition-[width] duration-300"
               style={{
@@ -213,19 +213,16 @@ export function Sidebar() {
             />
           </div>
           {resident ? (
-            <div className="">
-              <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
-                <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
-                  <StatusDot tone={stateTone(resident.state, true)} live />{' '}
-                  <span style={{ marginLeft: 6 }} translate="no">
-                    {resident.id}
-                  </span>
-                </div>
-                <div className="font-mono text-[10px] text-fg-dim">
-                  {resident.state}
-                  {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
-                  {hasVram ? ` · ${gpuCard.memoryPercent}%` : ''}
-                </div>
+            <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
+              <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
+                <StatusDot tone={stateTone(resident.state, true)} live />{' '}
+                <span style={{ marginLeft: 6 }} translate="no">
+                  {resident.id}
+                </span>
+              </div>
+              <div className="font-mono text-[10px] text-fg-dim">
+                {resident.state}
+                {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
               </div>
             </div>
           ) : (
