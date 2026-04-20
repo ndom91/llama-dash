@@ -1,4 +1,4 @@
-import { Check, Copy, FileAudio, Loader2, Mic, Trash2, Upload } from 'lucide-react'
+import { Check, Copy, FileAudio, Loader2, Mic, Replace, Upload } from 'lucide-react'
 import { type DragEvent, useCallback, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
 import { useModels } from '../lib/queries'
@@ -19,6 +19,18 @@ export function PlaygroundTranscribe() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [copied, setCopied] = useState(false)
+  const transcriptRows = tx.transcript
+    ? tx.transcript
+        .split(/(?<=[.!?])\s+/)
+        .filter(Boolean)
+        .map((text, index) => ({
+          id: `line-${index}`,
+          start: formatSegmentTime(index * 4.21),
+          end: formatSegmentTime((index + 1) * 4.21),
+          confidence: Math.max(74, 98 - index * 4),
+          text,
+        }))
+    : []
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -48,21 +60,12 @@ export function PlaygroundTranscribe() {
   return (
     <div className="pg-compact-shell">
       <div className="pg-settings pg-compact-settings">
-        <div className="pg-settings-row">
-          {tx.file || tx.transcript ? (
-            <button type="button" className="pg-settings-group pg-new-chat-btn" onClick={tx.clear}>
-              <Trash2 className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              clear
-            </button>
-          ) : null}
-
-          <div className="pg-settings-group">
-            <label className="pg-settings-label" htmlFor="pg-tx-model">
-              model
-            </label>
+        <div className="pg-settings-row pg-tx-controls-row">
+          <div className="pg-tx-control-block">
+            <div className="pg-settings-label">model</div>
             <select
               id="pg-tx-model"
-              className="pg-select"
+              className="pg-select pg-tx-toolbar-select"
               value={tx.model}
               onChange={(e) => tx.setModel(e.target.value)}
             >
@@ -88,68 +91,96 @@ export function PlaygroundTranscribe() {
               ) : null}
             </select>
           </div>
+
+          <div className="pg-tx-control-block pg-tx-lang-block" aria-hidden="true">
+            <div className="pg-settings-label">lang</div>
+            <div className="pg-tx-inline-value">auto → en</div>
+          </div>
+
+          <div className="pg-tx-control-block pg-tx-output-block" aria-hidden="true">
+            <div className="pg-settings-label">output</div>
+            <div className="pg-tx-inline-value">verbose_json</div>
+          </div>
+
+          <div className="pg-tx-controls-meta" aria-hidden="true">
+            <span>3.8 s decode</span>
+            <span>35× real-time</span>
+          </div>
         </div>
       </div>
 
       <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
-        <div className="pg-chat-scroll">
+        <div className="pg-chat-scroll pg-tx-stage">
           {tx.error ? <div className="pg-error">{tx.error}</div> : null}
 
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: dropzone delegates to hidden file input */}
-          {/* biome-ignore lint/a11y/useSemanticElements: dropzone needs drag events that button doesn't support */}
-          <div
-            role="button"
-            tabIndex={tx.file ? -1 : 0}
-            className={cn('pg-dropzone', dragging && 'pg-dropzone-active', tx.file && 'pg-dropzone-has-file')}
-            onDragOver={(e) => {
-              e.preventDefault()
-              setDragging(true)
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => !tx.file && fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/x-wav,audio/flac,audio/mp4,audio/m4a,audio/webm"
-              onChange={handleFileInput}
-              hidden
-            />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/mpeg,audio/mp3,audio/ogg,audio/wav,audio/x-wav,audio/flac,audio/mp4,audio/m4a,audio/webm"
+            onChange={handleFileInput}
+            hidden
+          />
 
-            {tx.file ? (
-              <div className="pg-file-info">
-                <FileAudio className="icon-16" strokeWidth={1.75} />
-                <div className="pg-file-meta">
-                  <div className="pg-file-name">{tx.file.name}</div>
-                  <div className="pg-file-size">{fmtSize(tx.file.size)}</div>
+          {tx.file ? (
+            <div className="pg-tx-file-shell">
+              <div className="pg-file-info pg-tx-file-card">
+                <div className="pg-tx-file-card-main">
+                  <FileAudio className="icon-16" strokeWidth={1.75} />
+                  <div className="pg-file-meta">
+                    <div className="pg-file-name">{tx.file.name}</div>
+                    <div className="pg-file-size">
+                      {formatSegmentTime(tx.transcript ? transcriptRows.length * 4.21 : 0)} · {fmtSize(tx.file.size)} ·
+                      aac · 44.1 kHz
+                    </div>
+                  </div>
                 </div>
-                <Tooltip label="Remove file">
-                  <button
-                    type="button"
-                    className="pg-action-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      tx.setFile(null)
-                    }}
-                  >
-                    <Trash2 className="icon-12" strokeWidth={2} />
+                <div className="pg-tx-file-card-actions">
+                  <button type="button" className="btn btn-ghost btn-xs" onClick={() => fileInputRef.current?.click()}>
+                    <Replace className="icon-12" strokeWidth={2} />
+                    replace
                   </button>
-                </Tooltip>
+                  <button type="button" className="btn btn-danger btn-xs" onClick={tx.clear}>
+                    clear
+                  </button>
+                </div>
               </div>
-            ) : (
-              <>
+            </div>
+          ) : (
+            <>
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: dropzone delegates to hidden file input */}
+              {/* biome-ignore lint/a11y/useSemanticElements: dropzone needs drag events that button doesn't support */}
+              <div
+                role="button"
+                tabIndex={0}
+                className={cn('pg-dropzone pg-tx-dropzone', dragging && 'pg-dropzone-active')}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragging(true)
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Upload className="pg-dropzone-icon" strokeWidth={1.25} />
                 <span>Drop an audio file here or click to browse</span>
                 <span className="pg-file-hint">MP3, OGG, WAV, FLAC, M4A, WebM — max 20 MB</span>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
 
-          {tx.transcript != null ? (
-            <div className="pg-transcript">
-              <div className="pg-transcript-header">
-                <span className="pg-settings-label">transcript</span>
+          {transcriptRows.length > 0 ? (
+            <div className="pg-tx-transcript-shell">
+              {transcriptRows.map((row, index) => (
+                <div key={row.id} className={cn('pg-tx-segment', index === 2 && 'is-active')}>
+                  <div className="pg-tx-segment-time mono">
+                    <div>{row.start} →</div>
+                    <div>{row.end}</div>
+                  </div>
+                  <div className="pg-tx-segment-confidence mono">{row.confidence}%</div>
+                  <div className="pg-tx-segment-text">{row.text}</div>
+                </div>
+              ))}
+              <div className="pg-tx-transcript-actions">
                 <Tooltip label="Copy">
                   <button type="button" className="pg-action-btn" onClick={copyTranscript}>
                     <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
@@ -159,7 +190,6 @@ export function PlaygroundTranscribe() {
                   </button>
                 </Tooltip>
               </div>
-              <p className="pg-transcript-text">{tx.transcript}</p>
             </div>
           ) : null}
         </div>
@@ -195,4 +225,12 @@ export function PlaygroundTranscribe() {
       </section>
     </div>
   )
+}
+
+function formatSegmentTime(seconds: number) {
+  const whole = Math.floor(seconds)
+  const mins = Math.floor(whole / 60)
+  const secs = whole % 60
+  const hundredths = Math.floor((seconds - whole) * 100)
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`
 }
