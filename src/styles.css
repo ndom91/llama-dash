@@ -1593,7 +1593,7 @@
   border-left: none;
   border-right: none;
   border-radius: 0;
-  background: color-mix(in srgb, var(--bg-1) 56%, transparent);
+  background: var(--bg-1);
 }
 
 .log-panel {
@@ -1609,7 +1609,7 @@
   padding: 12px 18px;
   border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
   flex-shrink: 0;
-  background: transparent;
+  background: var(--bg-1);
 }
 .log-count {
   font-size: 11px;
@@ -1619,6 +1619,7 @@
   overflow: auto;
   flex: 1;
   min-height: 0;
+  background: var(--bg-1);
 }
 .log-empty {
   padding: 10px 24px;
@@ -1747,19 +1748,25 @@
   border-radius: 2px;
 }
 
-/* Scrollbar styling for content regions */
-.content::-webkit-scrollbar {
-  width: 10px;
+/* Global themed scrollbars */
+* {
+  scrollbar-color: color-mix(in srgb, var(--accent) 30%, var(--bg-3)) transparent;
+  scrollbar-width: thin;
 }
-.content::-webkit-scrollbar-thumb {
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--accent) 30%, var(--bg-3));
   border: 2px solid var(--bg-0);
   border-radius: var(--radius-pill);
 }
-.content::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent) 50%, var(--bg-3));
 }
-.content::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
 }
 
