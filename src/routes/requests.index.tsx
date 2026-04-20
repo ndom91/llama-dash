@@ -225,210 +225,238 @@ function Requests() {
         }
       />
       <div className="content">
-        <div className="page">
-          <PageHeader kicker="dsh · requests" title="Request log" subtitle="proxied API calls, newest first" />
+        <div className="page requests-page">
+          <PageHeader
+            kicker="dsh · requests"
+            title="Request log"
+            subtitle="proxied API calls, newest first"
+            variant="integrated"
+          />
 
-          {error ? <div className="err-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner requests-error-banner">{error.message}</div> : null}
 
-          <div className="list-toolbar">
-            <div className="search-box">
-              <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
-              <input
-                ref={searchRef}
-                type="text"
-                className="search-input"
-                placeholder="Search endpoint, model, status…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              {search ? (
-                <button type="button" className="search-clear" onClick={() => setSearch('')} aria-label="Clear search">
-                  <X size={12} strokeWidth={2} />
-                </button>
-              ) : null}
-            </div>
-            <div className="filter-group">
-              <select
-                className="filter-select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              >
-                <option value="all">All status</option>
-                <option value="ok">Success</option>
-                <option value="err">Errors</option>
-              </select>
-              <select className="filter-select" value={modelFilter} onChange={(e) => setModelFilter(e.target.value)}>
-                <option value="all">All models</option>
-                {models.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              {keyNames.length > 0 ? (
-                <select className="filter-select" value={keyFilter} onChange={(e) => setKeyFilter(e.target.value)}>
-                  <option value="all">All keys</option>
-                  <option value="__none__">No key</option>
-                  {keyNames.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
+          <div className="requests-toolbar">
+            <div className="list-toolbar requests-toolbar-row">
+              <div className="search-box">
+                <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  className="search-input"
+                  placeholder="Search endpoint, model, status…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                {search ? (
+                  <button
+                    type="button"
+                    className="search-clear"
+                    onClick={() => setSearch('')}
+                    aria-label="Clear search"
+                  >
+                    <X size={12} strokeWidth={2} />
+                  </button>
+                ) : null}
+              </div>
+              <div className="filter-group requests-filter-group">
+                <select
+                  className="filter-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                >
+                  <option value="all">All status</option>
+                  <option value="ok">Success</option>
+                  <option value="err">Errors</option>
+                </select>
+                <select className="filter-select" value={modelFilter} onChange={(e) => setModelFilter(e.target.value)}>
+                  <option value="all">All models</option>
+                  {models.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
                     </option>
                   ))}
                 </select>
-              ) : null}
-              {hasFilters ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs"
-                  onClick={() => {
-                    setSearch('')
-                    setStatusFilter('all')
-                    setModelFilter('all')
-                    setKeyFilter('all')
-                  }}
-                >
-                  Clear
-                </button>
-              ) : null}
+                {keyNames.length > 0 ? (
+                  <select className="filter-select" value={keyFilter} onChange={(e) => setKeyFilter(e.target.value)}>
+                    <option value="all">All keys</option>
+                    <option value="__none__">No key</option>
+                    {keyNames.map((k) => (
+                      <option key={k} value={k}>
+                        {k}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {hasFilters ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      setSearch('')
+                      setStatusFilter('all')
+                      setModelFilter('all')
+                      setKeyFilter('all')
+                    }}
+                  >
+                    Clear
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
 
-          {histogram && histogram.length > 0 ? (
-            <section className="panel">
-              <div className="histogram-header">
-                <div>
-                  <span className="panel-title">req/s</span>
-                  <span className="panel-sub" style={{ marginLeft: 8 }}>
-                    last 60m · bucket 1m
-                  </span>
-                </div>
-              </div>
-              <Histogram buckets={histogram} />
-              <div className="histogram-labels">
-                <span>-60m</span>
-                <span>-40m</span>
-                <span>-20m</span>
-                <span>now</span>
-              </div>
-            </section>
-          ) : null}
-
-          <section className="panel">
-            <div className="panel-head">
-              <span className="panel-title">Log</span>
-              <span className="panel-sub">
-                {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
-              </span>
-              <span
-                style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-faint)' }}
-              >
-                ↑↓ navigate · ⏎ open · / search
-              </span>
-            </div>
-            {isLoading ? (
-              <div className="empty-state">loading…</div>
-            ) : rows.length === 0 ? (
-              <div className="empty-state">
-                {hasFilters ? (
-                  'no requests match filters'
-                ) : (
-                  <>
-                    no requests yet. call <code translate="no">/v1/*</code> to populate.
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="dtable-virtual-wrap">
-                <table className="dtable dtable-virtual">
-                  <VtColgroup />
-                  <thead>
-                    <tr>
-                      <SortTh field="startedAt" current={sortKey} dir={sortDir} onToggle={toggleSort} className="mono">
-                        t
-                      </SortTh>
-                      <th className="mono">endpoint</th>
-                      <th>model</th>
-                      <SortTh field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
-                        status
-                      </SortTh>
-                      <SortTh field="totalTokens" current={sortKey} dir={sortDir} onToggle={toggleSort} className="num">
-                        tok-in
-                      </SortTh>
-                      <th className="num">tok-out</th>
-                      <SortTh field="durationMs" current={sortKey} dir={sortDir} onToggle={toggleSort} className="num">
-                        duration
-                      </SortTh>
-                    </tr>
-                  </thead>
-                </table>
-                <div ref={scrollRef} className="dtable-virtual-body">
-                  <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-                    {virtualizer.getVirtualItems().map((vRow) => {
-                      const r = rows[vRow.index]
-                      return (
-                        // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled globally
-                        <div
-                          key={r.id}
-                          tabIndex={-1}
-                          className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            height: ROW_HEIGHT,
-                            transform: `translateY(${vRow.start}px)`,
-                          }}
-                          onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
-                          }}
-                        >
-                          <table className="dtable dtable-virtual">
-                            <VtColgroup />
-                            <tbody>
-                              <tr>
-                                <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                                  {formatWhen(r.startedAt)}
-                                </td>
-                                <td className="mono" translate="no">
-                                  {r.endpoint}
-                                </td>
-                                <td
-                                  className="dim"
-                                  style={{
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                  translate="no"
-                                >
-                                  {r.model ?? '—'}
-                                </td>
-                                <td>
-                                  <StatusCell code={r.statusCode} streamed={r.streamed} />
-                                </td>
-                                <td className="num dim">{r.promptTokens ?? '—'}</td>
-                                <td className="num">{r.completionTokens ?? '—'}</td>
-                                <td>
-                                  <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      )
-                    })}
+          <div className="requests-body">
+            {histogram && histogram.length > 0 ? (
+              <section className="panel requests-panel requests-histogram-panel">
+                <div className="histogram-header requests-panel-head">
+                  <div>
+                    <span className="panel-title">req/s</span>
+                    <span className="panel-sub" style={{ marginLeft: 8 }}>
+                      last 60m · bucket 1m
+                    </span>
                   </div>
-                  {isFetchingNextPage ? (
-                    <div className="empty-state" style={{ padding: '8px 0' }}>
-                      loading more…
-                    </div>
-                  ) : null}
                 </div>
+                <Histogram buckets={histogram} />
+                <div className="histogram-labels requests-histogram-labels">
+                  <span>-60m</span>
+                  <span>-40m</span>
+                  <span>-20m</span>
+                  <span>now</span>
+                </div>
+              </section>
+            ) : null}
+
+            <section className="panel requests-panel requests-log-panel">
+              <div className="panel-head requests-panel-head">
+                <span className="panel-title">Log</span>
+                <span className="panel-sub">
+                  {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                </span>
+                <span className="requests-panel-hint">↑↓ navigate · ⏎ open · / search</span>
               </div>
-            )}
-          </section>
+              {isLoading ? (
+                <div className="empty-state requests-empty-state">loading…</div>
+              ) : rows.length === 0 ? (
+                <div className="empty-state requests-empty-state">
+                  {hasFilters ? (
+                    'no requests match filters'
+                  ) : (
+                    <>
+                      no requests yet. call <code translate="no">/v1/*</code> to populate.
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="dtable-virtual-wrap requests-table-wrap">
+                  <table className="dtable dtable-virtual requests-table">
+                    <VtColgroup />
+                    <thead>
+                      <tr>
+                        <SortTh
+                          field="startedAt"
+                          current={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          className="mono"
+                        >
+                          t
+                        </SortTh>
+                        <th className="mono">endpoint</th>
+                        <th>model</th>
+                        <SortTh field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
+                          status
+                        </SortTh>
+                        <SortTh
+                          field="totalTokens"
+                          current={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          className="num"
+                        >
+                          tok-in
+                        </SortTh>
+                        <th className="num">tok-out</th>
+                        <SortTh
+                          field="durationMs"
+                          current={sortKey}
+                          dir={sortDir}
+                          onToggle={toggleSort}
+                          className="num"
+                        >
+                          duration
+                        </SortTh>
+                      </tr>
+                    </thead>
+                  </table>
+                  <div ref={scrollRef} className="dtable-virtual-body requests-table-body">
+                    <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                      {virtualizer.getVirtualItems().map((vRow) => {
+                        const r = rows[vRow.index]
+                        return (
+                          // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled globally
+                          <div
+                            key={r.id}
+                            tabIndex={-1}
+                            className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: ROW_HEIGHT,
+                              transform: `translateY(${vRow.start}px)`,
+                            }}
+                            onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                            }}
+                          >
+                            <table className="dtable dtable-virtual requests-table">
+                              <VtColgroup />
+                              <tbody>
+                                <tr>
+                                  <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                                    {formatWhen(r.startedAt)}
+                                  </td>
+                                  <td className="mono" translate="no">
+                                    {r.endpoint}
+                                  </td>
+                                  <td
+                                    className="dim"
+                                    style={{
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                    translate="no"
+                                  >
+                                    {r.model ?? '—'}
+                                  </td>
+                                  <td>
+                                    <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                  </td>
+                                  <td className="num dim">{r.promptTokens ?? '—'}</td>
+                                  <td className="num">{r.completionTokens ?? '—'}</td>
+                                  <td>
+                                    <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    {isFetchingNextPage ? (
+                      <div className="empty-state requests-empty-state" style={{ paddingBlock: 8 }}>
+                        loading more…
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       </div>
     </div>
@@ -450,8 +478,8 @@ function Histogram({ buckets }: { buckets: Array<ApiHistogramBucket> }) {
         const errH = b.errors > 0 ? Math.max((b.errors / maxTotal) * barPx, 3) : 0
         const empty = b.total === 0
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const errSuffix = b.errors ? ' (' + b.errors + ' err)' : ''
-        const label = empty ? time : time + ' · ' + b.total + errSuffix
+        const errSuffix = b.errors ? ` (${b.errors} err)` : ''
+        const label = empty ? time : `${time} · ${b.total}${errSuffix}`
         return (
           <div key={b.timestamp} className="histogram-bar">
             <Tooltip label={label} side="top">
