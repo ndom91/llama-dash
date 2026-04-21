@@ -81,10 +81,10 @@ export function DashboardPage() {
             }
           />
 
-          <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_360px] gap-0 max-[1100px]:grid-cols-[300px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+          <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">
             <DashboardTelemetryPanel health={health} gpu={gpu} />
-            <div className="flex min-w-0 flex-col gap-0">
-              <div className="grid grid-cols-2 gap-0 max-[700px]:grid-cols-1">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)] max-[900px]:border-l-0">
+              <div className="grid grid-cols-4 gap-0 max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
                 <DashboardStatCard
                   label="req/s · 1m"
                   value={stats ? formatRate(stats.reqPerSec) : '—'}
@@ -113,11 +113,9 @@ export function DashboardPage() {
               </div>
 
               <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
+              <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
+              <DashboardRecentRequestsPanel requests={requests ?? null} />
             </div>
-
-            <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
-
-            <DashboardRecentRequestsPanel requests={requests ?? null} />
           </div>
         </div>
       </div>
