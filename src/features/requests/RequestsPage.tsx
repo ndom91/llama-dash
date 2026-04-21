@@ -184,7 +184,7 @@ export function RequestsPage({ modelParam }: Props) {
     <div className="main-col">
       <TopBar actions={null} />
       <div className="content">
-        <div className="page min-h-full bg-surface-0">
+        <div className="page flex min-h-full flex-1 bg-surface-0">
           <PageHeader
             kicker="req · log"
             title="Request log"
@@ -222,25 +222,34 @@ export function RequestsPage({ modelParam }: Props) {
 
           {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
-          <div className="grid min-h-0 grid-cols-[240px_minmax(0,1fr)] gap-0 max-[900px]:grid-cols-1">
-            <aside className="border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-4 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
+            <aside className="h-full border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
               <div className="mb-4 flex flex-col gap-1.5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
-                <div className="search-box requests-search-box">
-                  <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
+                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
+                <div className="relative min-w-0">
+                  <Search
+                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-fg-dim"
+                    size={14}
+                    strokeWidth={2}
+                    aria-hidden="true"
+                  />
                   <input
                     ref={searchRef}
                     type="text"
-                    className="search-input requests-search-input"
+                    className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     placeholder="endpoint, model, status"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
-                  {!search ? <span className="requests-search-shortcut">/</span> : null}
+                  {!search ? (
+                    <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-[color:color-mix(in_srgb,var(--border)_90%,transparent)] px-[3px] py-0 font-mono text-[10px] text-fg-faint">
+                      /
+                    </span>
+                  ) : null}
                   {search ? (
                     <button
                       type="button"
-                      className="search-clear"
+                      className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
                       onClick={() => setSearch('')}
                       aria-label="Clear search"
                     >
@@ -251,9 +260,15 @@ export function RequestsPage({ modelParam }: Props) {
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
+                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
                 <select
-                  className="filter-select requests-filter-select"
+                  className="h-8 w-full cursor-pointer appearance-none rounded border border-border-strong bg-surface-2 px-2.5 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7077' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                  }}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 >
@@ -264,9 +279,15 @@ export function RequestsPage({ modelParam }: Props) {
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
+                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
                 <select
-                  className="filter-select requests-filter-select"
+                  className="h-8 w-full cursor-pointer appearance-none rounded border border-border-strong bg-surface-2 px-2.5 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7077' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                  }}
                   value={modelFilter}
                   onChange={(e) => setModelFilter(e.target.value)}
                 >
@@ -280,9 +301,15 @@ export function RequestsPage({ modelParam }: Props) {
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
+                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
                 <select
-                  className="filter-select requests-filter-select"
+                  className="h-8 w-full cursor-pointer appearance-none rounded border border-border-strong bg-surface-2 px-2.5 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                  style={{
+                    backgroundImage:
+                      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%236b7077' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 5l3 3 3-3'/%3E%3C/svg%3E\")",
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                  }}
                   value={keyFilter}
                   onChange={(e) => setKeyFilter(e.target.value)}
                 >
@@ -312,7 +339,7 @@ export function RequestsPage({ modelParam }: Props) {
               ) : null}
             </aside>
 
-            <div className="flex min-w-0 flex-col gap-0 bg-surface-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-0 max-[900px]:border-l-0">
               {histogram && histogram.length > 0 ? (
                 <section className="panel !rounded-none !border-x-0 !bg-surface-1">
                   <div className="histogram-header panel-head bg-transparent px-4">
@@ -333,7 +360,7 @@ export function RequestsPage({ modelParam }: Props) {
                 </section>
               ) : null}
 
-              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
                 <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
@@ -354,7 +381,7 @@ export function RequestsPage({ modelParam }: Props) {
                     )}
                   </div>
                 ) : (
-                  <div className="dtable-virtual-wrap max-h-[min(70vh,800px)]">
+                  <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
                     <table className="dtable dtable-virtual">
                       <RequestsVirtualColgroup />
                       <thead>
