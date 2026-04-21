@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@10.33.0",
   "imports": {
     "#/*": "./src/*"
   },
