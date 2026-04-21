@@ -211,6 +211,11 @@
   --ld-surface-0: #0b0e11;
   --ld-surface-1: #101419;
   --ld-surface-2: #171c21;
+ 
+  /* old surface colors - daker */
+  --ld-surface-0: #070809;
+  --ld-surface-1: #0e1114;
+  --ld-surface-2: #161a1d;
   --ld-border: #22282d;
 
   /* text on dark */

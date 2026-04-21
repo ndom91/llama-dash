@@ -10,7 +10,7 @@ type Props = {
 export function DashboardTelemetryPanel({ health, gpu }: Props) {
   const upstream = health?.upstream
   const gpus = gpu?.available ? gpu.gpus : []
-  const metaGrid = 'grid items-center gap-2 [grid-template-columns:70px_minmax(0,1fr)]'
+  const metaGrid = 'grid items-center gap-2 [grid-template-columns:90px_minmax(0,1fr)]'
 
   return (
     <section className="panel !rounded-none border-t-0 !border-x-0 !bg-surface-1 h-full px-4 py-4">

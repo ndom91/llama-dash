@@ -4,7 +4,6 @@ import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/stream-chat'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
-import { PlaygroundSegmented } from './PlaygroundSegmented'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
 import { PlaygroundSlider } from './PlaygroundSlider'
 import { PlaygroundToggle } from './PlaygroundToggle'
@@ -62,7 +61,7 @@ export function PlaygroundSession({
   }
 
   return (
-    <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-0 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
+    <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-1 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
       <PlaygroundSessionSection label="session">
         {isStreaming ? (
           <button
@@ -278,19 +277,6 @@ export function PlaygroundSession({
               value={sampling.stream}
               onChange={(v) => setSampling({ stream: v })}
               labels={['off', 'on']}
-            />
-          }
-        />
-        <PlaygroundKVRow
-          k="response"
-          v={
-            <PlaygroundSegmented
-              value={sampling.responseFormat}
-              options={[
-                { value: 'text', label: 'text' },
-                { value: 'json', label: 'json' },
-              ]}
-              onChange={(v) => setSampling({ responseFormat: v as 'text' | 'json' })}
             />
           }
         />
