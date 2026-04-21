@@ -13,7 +13,7 @@ __unconfig*
 todos.json
 data/
 config/config.yaml
-models/
+./models/
 todo.md
 next-plan.md
 plan.md
