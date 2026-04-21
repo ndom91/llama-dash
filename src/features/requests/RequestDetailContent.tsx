@@ -206,33 +206,6 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
               </div>
             </dl>
           </div>
-
-          <div className={railSectionDivider}>
-            <div className={railSectionTitle}>Related</div>
-            <div className="grid gap-1.5">
-              {prevId ? (
-                <Link
-                  to="/requests/$id"
-                  params={{ id: prevId }}
-                  className="font-mono text-[11px] text-fg-muted hover:text-fg"
-                >
-                  ↩ prev
-                </Link>
-              ) : null}
-              <span className="font-mono text-[11px] text-fg-muted">
-                ↪ this · {new Date(req.startedAt).toLocaleTimeString([], { hour12: false })} · {req.statusCode}
-              </span>
-              {nextId ? (
-                <Link
-                  to="/requests/$id"
-                  params={{ id: nextId }}
-                  className="font-mono text-[11px] text-fg-muted hover:text-fg"
-                >
-                  ↪ next
-                </Link>
-              ) : null}
-            </div>
-          </div>
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
@@ -320,7 +293,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
           </section>
         </div>
 
-        <aside className="bg-[color:color-mix(in_srgb,var(--bg-0)_92%,black_8%)] px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+        <aside className="bg-surface-2 px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
           <section>
             <div className={railSectionTitle}>Tokens</div>
             <div className="grid grid-cols-2 gap-2">

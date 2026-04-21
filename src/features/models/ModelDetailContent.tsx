@@ -102,7 +102,7 @@ export function ModelDetailContent({ data }: Props) {
           <ModelRequestsPanel rows={requests.rows} modelId={model.id} />
         </div>
 
-        <aside className="detail-sidecar detail-sidecar-dark">
+        <aside className="detail-sidecar bg-surface-2">
           {configSnippet ? (
             <section className="detail-sidecar-section">
               <div className="detail-sidecar-title">Command</div>

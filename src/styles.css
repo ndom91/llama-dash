@@ -589,10 +589,6 @@
   @apply min-h-full bg-surface-0 px-3.5 py-3;
 }
 
-.detail-sidecar-dark {
-  background: color-mix(in srgb, var(--bg-0) 92%, black 8%);
-}
-
 .detail-page-sidecar .detail-main-stack > .detail-hero,
 .detail-page-sidecar .detail-main-stack > .detail-stacked-stats-row,
 .detail-page-sidecar .detail-main-stack > .detail-stacked-section {
