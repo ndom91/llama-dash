@@ -29,10 +29,18 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   const version = health?.upstream.reachable === true ? health.upstream.version : null
 
   const [now, setNow] = useState(() => new Date())
+  const [mounted, setMounted] = useState(false)
   useEffect(() => {
+    setMounted(true)
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
+
+  const versionLabel = mounted && version ? `v${version}` : '—'
+  const runningLabel = mounted ? (counts?.running ?? '—') : '—'
+  const peerLabel = mounted && counts && counts.peers > 0 ? counts.peers : null
+  const reqRateLabel = mounted && stats ? formatRate(stats.reqPerSec) : '—'
+  const timeLabel = mounted ? formatDatetime(now) : '—'
 
   return (
     <header className="bg-surface-1 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
@@ -53,13 +61,9 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       >
         <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
         <span>upstream</span>
-        {version ? (
-          <span className="text-fg font-medium" translate="no">
-            v{version}
-          </span>
-        ) : (
-          <span className="text-fg font-medium">—</span>
-        )}
+        <span className="text-fg font-medium" translate="no">
+          {versionLabel}
+        </span>
       </span>
 
       <span
@@ -67,14 +71,14 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
         title="Currently loaded models"
       >
         <span>running</span>
-        <span className="text-fg font-medium">{counts?.running ?? '—'}</span>
-        {counts && counts.peers > 0 ? (
+        <span className="text-fg font-medium">{runningLabel}</span>
+        {peerLabel != null ? (
           <>
             <span className="text-fg-faint -mx-0.5" aria-hidden="true">
               ·
             </span>
             <span>peer</span>
-            <span className="text-fg font-medium">{counts.peers}</span>
+            <span className="text-fg font-medium">{peerLabel}</span>
           </>
         ) : null}
       </span>
@@ -84,14 +88,12 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
         title="Requests per second (1 min)"
       >
         <span>req/s</span>
-        <span className="text-fg font-medium">{stats ? formatRate(stats.reqPerSec) : '—'}</span>
+        <span className="text-fg font-medium">{reqRateLabel}</span>
       </span>
 
       <div className="ml-auto flex items-center gap-1.5">
         {actions}
-        <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">
-          {formatDatetime(now)}
-        </span>
+        <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">{timeLabel}</span>
       </div>
     </header>
   )
