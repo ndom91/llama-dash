@@ -895,7 +895,22 @@
 
 /* headers table — keep the table fixed and wrap long values */
 .headers-table {
+  width: calc(100% + var(--headers-scroll-gutter, 10px));
+  margin-right: calc(var(--headers-scroll-gutter, 10px) * -1);
   table-layout: fixed;
+}
+.headers-scroll {
+  --headers-scroll-gutter: 10px;
+  background: var(--bg-1);
+  padding-right: var(--headers-scroll-gutter);
+}
+.headers-scroll::-webkit-scrollbar-track,
+.headers-scroll::-webkit-scrollbar-corner {
+  background: var(--bg-1);
+}
+.headers-scroll-head {
+  margin-right: calc(var(--headers-scroll-gutter, 10px) * -1);
+  padding-right: calc(0.75rem + var(--headers-scroll-gutter, 10px));
 }
 .dtable tbody td.header-key {
   white-space: nowrap;
@@ -904,6 +919,7 @@
   font-weight: 500;
 }
 .dtable tbody td.header-value {
+  padding-right: calc(0.875rem + var(--headers-scroll-gutter, 10px));
   text-align: right;
   white-space: normal;
   overflow-wrap: anywhere;
