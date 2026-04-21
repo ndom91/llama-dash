@@ -42,7 +42,7 @@ export function AliasPanel() {
             </span>
             <input
               type="text"
-              className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg"
+              className="h-8 bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg"
               placeholder="gpt-4"
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
@@ -52,7 +52,7 @@ export function AliasPanel() {
           <label className="flex flex-col gap-1 flex-1 min-w-[140px]">
             <span className="text-[10px] font-mono uppercase tracking-wide text-fg-faint">Model (llama-swap ID)</span>
             <select
-              className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer"
+              className="select-native bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               required

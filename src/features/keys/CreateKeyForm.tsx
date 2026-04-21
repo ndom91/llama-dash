@@ -118,7 +118,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
               <span className="text-xs font-medium text-fg-dim">Default model</span>
               <span className="text-[11px] text-fg-faint">overrides the model in all requests using this key</span>
               <select
-                className="cursor-pointer rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
+                className="select-native cursor-pointer rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
                 value={defaultModel}
                 onChange={(e) => setDefaultModel(e.target.value)}
               >

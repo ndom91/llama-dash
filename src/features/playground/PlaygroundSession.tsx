@@ -97,7 +97,7 @@ export function PlaygroundSession({
 
       <PlaygroundSessionSection label="model">
         <select
-          className="w-full rounded-sm border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
+          className="select-native w-full rounded-sm border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
           value={model}
           onChange={(e) => setModel(e.target.value)}
         >

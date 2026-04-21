@@ -42,7 +42,7 @@ export function AliasRow({ alias, models, onDelete }: Props) {
         </td>
         <td>
           <select
-            className="bg-surface-3 border border-border rounded px-2 py-1 font-mono text-xs text-fg w-full cursor-pointer"
+            className="select-native bg-surface-3 border border-border rounded px-2 py-1 font-mono text-xs text-fg w-full cursor-pointer"
             value={editModel}
             onChange={(e) => setEditModel(e.target.value)}
           >

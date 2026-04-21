@@ -18,7 +18,7 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
       : `${runningCount} of ${total} loaded${peerCount > 0 ? ` · ${peerCount} peer${peerCount > 1 ? 's' : ''}` : ''}`
 
   return (
-    <section className="panel !rounded-none !border-x-0 !bg-surface-1">
+    <section className="panel border-t !rounded-none !border-x-0 !bg-surface-1">
       <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
@@ -50,7 +50,7 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
               return (
                 <tr
                   key={m.id}
-                  className="clickable-row"
+                  className="clickable-row last:border-b last:border-border"
                   onClick={() => navigate({ to: '/models/$id', params: { id: m.id } })}
                 >
                   <td>

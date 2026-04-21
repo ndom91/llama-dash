@@ -61,7 +61,7 @@ export function PlaygroundSpeech() {
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
               id="pg-speech-model"
-              className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
+              className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg outline-none"
               value={speech.model}
               onChange={(e) => speech.setModel(e.target.value)}
             >
@@ -93,7 +93,7 @@ export function PlaygroundSpeech() {
             {speech.voices ? (
               <select
                 id="pg-speech-voice"
-                className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
+                className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg outline-none"
                 value={speech.voice}
                 onChange={(e) => speech.setVoice(e.target.value)}
               >

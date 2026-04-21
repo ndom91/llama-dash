@@ -58,7 +58,7 @@ export function DashboardResidencyPanel({ events, active }: Props) {
                 <div
                   className={cn(
                     'relative h-4 overflow-hidden rounded bg-surface-3',
-                    row.kind === 'peer' && 'bg-info-bg',
+                    row.kind === 'peer' && 'bg-info-bg!',
                   )}
                 >
                   {row.spans.map((span) => {

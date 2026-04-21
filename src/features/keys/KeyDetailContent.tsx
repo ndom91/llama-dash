@@ -115,7 +115,7 @@ export function KeyDetailContent({ data }: Props) {
           <KeyRequestsPanel rows={requests.rows} />
         </div>
 
-        <aside className="detail-sidecar bg-surface-2">
+        <aside className="detail-sidecar bg-surface-2 border-l border-border">
           <section className="detail-sidecar-section">
             <div className="detail-sidecar-title">Use this key</div>
             <pre className="detail-sidecar-code">{buildKeySnippet(key.keyPrefix)}</pre>

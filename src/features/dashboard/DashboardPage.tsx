@@ -55,30 +55,6 @@ export function DashboardPage() {
             title="Operator dashboard"
             subtitle="system overview and recent activity"
             variant="integrated"
-            action={
-              <>
-                <Tooltip label="Refresh">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon"
-                    onClick={doRefresh}
-                    disabled={refreshing}
-                    aria-label="Refresh dashboard"
-                  >
-                    <RefreshCw
-                      className={cn('icon-14', refreshing && 'animate-spin')}
-                      strokeWidth={1.75}
-                      aria-hidden="true"
-                    />
-                  </button>
-                </Tooltip>
-                <Tooltip label="Export CSV">
-                  <button type="button" className="btn btn-ghost btn-icon" disabled aria-label="Export CSV">
-                    <Download className="icon-14" strokeWidth={1.75} aria-hidden="true" />
-                  </button>
-                </Tooltip>
-              </>
-            }
           />
 
           <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">

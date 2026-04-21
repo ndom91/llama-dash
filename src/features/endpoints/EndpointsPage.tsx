@@ -52,7 +52,7 @@ export function EndpointsPage() {
                 </div>
                 <div className="p-4 flex flex-col gap-3">
                   <select
-                    className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer"
+                    className="select-native w-full cursor-pointer rounded border border-border bg-surface-3 px-2 py-1.5 font-mono text-xs text-fg"
                     value={selectedKeyIdx}
                     onChange={(e) => setSelectedKeyIdx(Number(e.target.value))}
                   >
@@ -70,7 +70,7 @@ export function EndpointsPage() {
             ) : null}
           </div>
 
-          <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+          <section className="panel flex min-h-0 flex-1 flex-col border-t !rounded-none !border-x-0 !bg-surface-1">
             <div className="panel-head bg-transparent px-6 max-md:px-3">
               <span className="panel-title">Code examples</span>
               <span className="panel-sub">· {ENDPOINT_TABS.find((t) => t.id === tab)?.label}</span>

@@ -43,7 +43,7 @@ export function KeyDefaultModelPanel({ keyId, defaultModel, isRevoked }: Props) 
       {editing ? (
         <div className="p-4 flex gap-2 items-center">
           <select
-            className="bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer flex-1"
+            className="select-native bg-surface-3 border border-border rounded px-2 py-1.5 font-mono text-xs text-fg cursor-pointer flex-1"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           >

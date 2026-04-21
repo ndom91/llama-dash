@@ -46,7 +46,7 @@ export function CopyBlock({ text, inline, filename, lang }: Props) {
     return (
       <button
         type="button"
-        className="group inline-flex items-center gap-2 px-3 py-1.5 rounded bg-surface-3 border border-border font-mono text-sm text-fg cursor-pointer transition-colors hover:bg-surface-4 hover:border-border-strong"
+        className="group justify-between inline-flex items-center gap-2 px-3 py-1.25 rounded bg-surface-3 border border-border font-mono text-sm text-fg cursor-pointer transition-colors hover:bg-surface-4 hover:border-border-strong"
         onClick={copy}
       >
         <code className="[font:inherit]" translate="no">

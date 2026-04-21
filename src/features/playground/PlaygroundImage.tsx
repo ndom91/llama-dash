@@ -51,7 +51,7 @@ export function PlaygroundImage() {
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
               id="pg-img-model"
-              className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
+              className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg outline-none"
               value={img.model}
               onChange={(e) => img.setModel(e.target.value)}
             >
@@ -82,7 +82,7 @@ export function PlaygroundImage() {
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">size</div>
             <select
               id="pg-img-size"
-              className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
+              className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg outline-none"
               value={img.size}
               onChange={(e) => img.setSize(e.target.value)}
             >

@@ -214,11 +214,11 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-border bg-surface-2 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_108px_108px_108px_108px_108px_92px] max-[1300px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1100px]:grid-cols-3 max-[900px]:grid-cols-2">
+          <div className="border-r border-b border-border bg-surface-1 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
+            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1300px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1100px]:grid-cols-3 max-[900px]:grid-cols-2">
               <div className="border-r border-border px-4 py-4 max-[1100px]:col-span-3 max-[1100px]:border-r-0 max-[1100px]:border-b max-[900px]:col-span-2">
                 <div className={endpointMetricLabel}>Endpoint</div>
-                <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono">
+                <div className="mt-2 flex flex-wrap wrap-anywhere items-baseline gap-x-3 gap-y-1 font-mono">
                   <span className="text-[22px] font-semibold tracking-[-0.04em] text-fg">{req.method}</span>
                   <span className="text-[22px] font-semibold tracking-[-0.04em] text-info" translate="no">
                     {req.endpoint}
@@ -273,7 +273,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
             </section>
           ) : null}
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+          <section className="panel !rounded-none !border-l-0 !border-r border-t border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             <div className="panel-head bg-surface-1 px-4">
               <span className="panel-title">Payloads</span>
               <span className="panel-sub">request • response</span>
