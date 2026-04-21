@@ -35,10 +35,10 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
               </th>
               <th className="mono">endpoint</th>
               <th style={{ width: 80 }}>status</th>
-              <th className="num" style={{ width: 72 }}>
+              <th className="num whitespace-nowrap" style={{ width: 84 }}>
                 tok-in
               </th>
-              <th className="num" style={{ width: 72 }}>
+              <th className="num whitespace-nowrap" style={{ width: 84 }}>
                 tok-out
               </th>
               <th className="num" style={{ width: 180 }}>
