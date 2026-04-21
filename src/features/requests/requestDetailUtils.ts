@@ -154,6 +154,13 @@ export function tryPrettyJson(text: string): string | null {
   }
 }
 
+export function formatCostUsd(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(2)}`
+  if (usd >= 0.01) return `$${usd.toFixed(4)}`
+  if (usd > 0) return `<$0.01`
+  return '—'
+}
+
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   const s = ms / 1000

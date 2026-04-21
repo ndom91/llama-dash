@@ -12,6 +12,7 @@ import {
   byteSize,
   deriveClientLabel,
   deriveRewriteLabel,
+  formatCostUsd,
   formatDuration,
   parseRequestPayload,
 } from './requestDetailUtils'
@@ -314,16 +315,26 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 </div>
               </div>
             </div>
-            {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
+            {req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null ? (
               <dl className="m-0 mt-2 grid gap-1.5 font-mono text-xs">
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-fg-dim">cache write</dt>
-                  <dd className="m-0 text-fg">{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <dt className="text-fg-dim">cache read</dt>
-                  <dd className="m-0 text-fg">{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
-                </div>
+                {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
+                  <>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-fg-dim">cache write</dt>
+                      <dd className="m-0 text-fg">{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <dt className="text-fg-dim">cache read</dt>
+                      <dd className="m-0 text-fg">{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
+                    </div>
+                  </>
+                ) : null}
+                {req.costUsd != null ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-fg-dim">cost</dt>
+                    <dd className="m-0 text-fg">{formatCostUsd(req.costUsd)}</dd>
+                  </div>
+                ) : null}
               </dl>
             ) : null}
           </section>

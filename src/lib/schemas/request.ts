@@ -13,6 +13,7 @@ export const ApiRequestSchema = v.object({
   totalTokens: v.nullable(v.number()),
   cacheCreationTokens: v.nullable(v.number()),
   cacheReadTokens: v.nullable(v.number()),
+  costUsd: v.nullable(v.number()),
   streamed: v.boolean(),
   error: v.nullable(v.string()),
   keyName: v.nullable(v.string()),

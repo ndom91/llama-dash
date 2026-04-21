@@ -112,6 +112,7 @@ export function getModelRequests(
       totalTokens: r.totalTokens,
       cacheCreationTokens: r.cacheCreationTokens,
       cacheReadTokens: r.cacheReadTokens,
+      costUsd: r.costUsd,
       streamed: r.streamed,
       error: r.error,
       keyName: null,

@@ -1,6 +1,7 @@
 import { ulid } from 'ulidx'
 import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
+import { computeCostUsd } from '../pricing.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
 
 function truncateBody(body: string | null, maxBytes: number): string | null {
@@ -46,6 +47,7 @@ export function writeRequestLog(row: RequestLogInput) {
   storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
   const requestBody = truncateBody(row.requestBody, maxBytes)
   const responseBody = truncateBody(row.responseBody, maxBytes)
+  const costUsd = computeCostUsd(row.model, row)
   db.insert(schema.requests)
     .values({
       id,
@@ -60,6 +62,7 @@ export function writeRequestLog(row: RequestLogInput) {
       totalTokens: row.totalTokens,
       cacheCreationTokens: row.cacheCreationTokens,
       cacheReadTokens: row.cacheReadTokens,
+      costUsd,
       streamed: row.streamed,
       error: row.error,
       requestHeaders: row.requestHeaders,

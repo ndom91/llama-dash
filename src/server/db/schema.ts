@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const requests = sqliteTable('requests', {
   id: text('id').primaryKey(),
@@ -13,6 +13,7 @@ export const requests = sqliteTable('requests', {
   totalTokens: integer('total_tokens'),
   cacheCreationTokens: integer('cache_creation_tokens'),
   cacheReadTokens: integer('cache_read_tokens'),
+  costUsd: real('cost_usd'),
   streamed: integer('streamed', { mode: 'boolean' }).notNull().default(false),
   error: text('error'),
   requestHeaders: text('request_headers'),

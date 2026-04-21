@@ -1,0 +1,1 @@
+ALTER TABLE `requests` ADD `cost_usd` real;
