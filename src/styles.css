@@ -114,10 +114,10 @@
     @apply py-1 px-2 text-[12px];
   }
   .btn-md {
-    @apply py-2.5 px-3 text-[13px];
+    @apply py-3 px-3 text-[12px];
   }
   .btn-lg {
-    @apply py-2.5 px-3.5 text-[15px];
+    @apply py-3 px-4 text-[15px];
   }
   .btn-icon {
     @apply p-1.5;

@@ -193,9 +193,9 @@ export function PlaygroundTranscribe() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
+        <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
           {tx.recording ? (
-            <button type="button" className="btn btn-danger-ghost" onClick={tx.stopRecording}>
+            <button type="button" className="btn btn-md btn-danger-ghost" onClick={tx.stopRecording}>
               <span className="h-2 w-2 rounded-full bg-err" />
               stop recording
             </button>

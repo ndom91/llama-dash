@@ -38,7 +38,7 @@ export function PlaygroundPage({ searchTab }: Props) {
       <div className="content">
         <div className="page flex-1 min-h-0">
           <PageHeader
-            kicker="dsh · playground · compare"
+            kicker={`dsh · playground · ${tab}`}
             title="Playground"
             subtitle="Test prompts against loaded models · inspector visible · multi-model"
             variant="integrated"
