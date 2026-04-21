@@ -11,6 +11,8 @@ export const requests = sqliteTable('requests', {
   promptTokens: integer('prompt_tokens'),
   completionTokens: integer('completion_tokens'),
   totalTokens: integer('total_tokens'),
+  cacheCreationTokens: integer('cache_creation_tokens'),
+  cacheReadTokens: integer('cache_read_tokens'),
   streamed: integer('streamed', { mode: 'boolean' }).notNull().default(false),
   error: text('error'),
   requestHeaders: text('request_headers'),

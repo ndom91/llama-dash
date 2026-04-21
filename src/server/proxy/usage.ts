@@ -3,6 +3,11 @@ export type Usage = {
   promptTokens: number | null
   completionTokens: number | null
   totalTokens: number | null
+  // Anthropic prompt-caching counters. Cached prompt tokens are billed at a
+  // different rate (creation ~1.25x, read ~0.1x of input) so we track them
+  // separately rather than folding into promptTokens.
+  cacheCreationTokens: number | null
+  cacheReadTokens: number | null
 }
 
 export type UsageWithClose = Usage & {
@@ -14,6 +19,8 @@ const emptyUsage = (): Usage => ({
   promptTokens: null,
   completionTokens: null,
   totalTokens: null,
+  cacheCreationTokens: null,
+  cacheReadTokens: null,
 })
 
 type RawJson = Record<string, unknown>
@@ -34,6 +41,8 @@ const readUsageRecord = (rec: RawJson): Partial<Usage> => ({
   promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
   completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
   totalTokens: num(rec.total_tokens),
+  cacheCreationTokens: num(rec.cache_creation_input_tokens),
+  cacheReadTokens: num(rec.cache_read_input_tokens),
 })
 
 const pickUsage = (body: RawJson): Partial<Usage> => {
@@ -115,6 +124,8 @@ export class SseUsageScanner {
         if (u.promptTokens != null) this.usage.promptTokens = u.promptTokens
         if (u.completionTokens != null) this.usage.completionTokens = u.completionTokens
         if (u.totalTokens != null) this.usage.totalTokens = u.totalTokens
+        if (u.cacheCreationTokens != null) this.usage.cacheCreationTokens = u.cacheCreationTokens
+        if (u.cacheReadTokens != null) this.usage.cacheReadTokens = u.cacheReadTokens
         // Anthropic terminates streams with {type:"message_stop"}; treat it like [DONE].
         if (body.type === 'message_stop' && this.doneAtMs == null) this.doneAtMs = at
       } catch {

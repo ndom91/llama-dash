@@ -11,6 +11,8 @@ export type RequestLogInput = {
   promptTokens: number | null
   completionTokens: number | null
   totalTokens: number | null
+  cacheCreationTokens: number | null
+  cacheReadTokens: number | null
   streamed: boolean
   error: string | null
   requestHeaders: string | null
@@ -34,6 +36,8 @@ export function writeRequestLog(row: RequestLogInput) {
       promptTokens: row.promptTokens,
       completionTokens: row.completionTokens,
       totalTokens: row.totalTokens,
+      cacheCreationTokens: row.cacheCreationTokens,
+      cacheReadTokens: row.cacheReadTokens,
       streamed: row.streamed,
       error: row.error,
       requestHeaders: row.requestHeaders,

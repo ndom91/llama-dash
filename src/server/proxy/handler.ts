@@ -66,7 +66,15 @@ function headersToRecord(headers: Headers): Record<string, string> {
 }
 
 function nullUsage(model?: string | null): UsageWithClose {
-  return { model: model ?? null, promptTokens: null, completionTokens: null, totalTokens: null, streamCloseMs: null }
+  return {
+    model: model ?? null,
+    promptTokens: null,
+    completionTokens: null,
+    totalTokens: null,
+    cacheCreationTokens: null,
+    cacheReadTokens: null,
+    streamCloseMs: null,
+  }
 }
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
@@ -324,6 +332,8 @@ function writeLog(input: {
     promptTokens: input.usage.promptTokens,
     completionTokens: input.usage.completionTokens,
     totalTokens: input.usage.totalTokens,
+    cacheCreationTokens: input.usage.cacheCreationTokens,
+    cacheReadTokens: input.usage.cacheReadTokens,
     streamed: input.streamed,
     error: input.error,
     requestHeaders: input.reqHeaders,

@@ -314,6 +314,18 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 </div>
               </div>
             </div>
+            {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
+              <dl className="m-0 mt-2 grid gap-1.5 font-mono text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-fg-dim">cache write</dt>
+                  <dd className="m-0 text-fg">{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-fg-dim">cache read</dt>
+                  <dd className="m-0 text-fg">{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
+                </div>
+              </dl>
+            ) : null}
           </section>
 
           <section className={railSectionDivider}>

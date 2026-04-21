@@ -110,6 +110,8 @@ export function getModelRequests(
       promptTokens: r.promptTokens,
       completionTokens: r.completionTokens,
       totalTokens: r.totalTokens,
+      cacheCreationTokens: r.cacheCreationTokens,
+      cacheReadTokens: r.cacheReadTokens,
       streamed: r.streamed,
       error: r.error,
       keyName: null,
