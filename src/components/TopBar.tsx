@@ -6,13 +6,18 @@ import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
 
 function resolveTitle(pathname: string): string {
-  if (pathname === '/') return 'Dashboard'
-  if (pathname.startsWith('/models/')) return 'Model Detail'
-  if (pathname === '/models') return 'Models'
-  if (pathname.startsWith('/requests')) return 'Requests'
-  if (pathname === '/logs') return 'Logs'
-  if (pathname === '/playground') return 'Playground'
-  if (pathname === '/keys') return 'API Keys'
+  const normalized = pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+  if (normalized === '/') return 'Dashboard'
+  if (normalized.startsWith('/models/')) return 'Model Detail'
+  if (normalized === '/models') return 'Models'
+  if (normalized.startsWith('/requests')) return 'Requests'
+  if (normalized === '/logs') return 'Logs'
+  if (normalized === '/playground') return 'Playground'
+  if (normalized === '/keys') return 'API Keys'
+  if (normalized.startsWith('/keys/')) return 'API Key Detail'
+  if (normalized === '/config') return 'Config'
+  if (normalized === '/endpoints') return 'Endpoints'
+  if (normalized === '/policies') return 'Policies'
   return 'llama-dash'
 }
 
