@@ -1,19 +1,7 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { Download, RefreshCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
-import { Tooltip } from '../../components/Tooltip'
 import { TopBar } from '../../components/TopBar'
-import { cn } from '../../lib/cn'
-import {
-  qk,
-  useGpu,
-  useHealth,
-  useModelTimeline,
-  useModels,
-  useRecentRequests,
-  useRequestStats,
-} from '../../lib/queries'
+import { useGpu, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../../lib/queries'
 import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
 import { DashboardResidencyPanel } from './DashboardResidencyPanel'
 import { DashboardRunningModelsPanel } from './DashboardRunningModelsPanel'
@@ -22,26 +10,12 @@ import { DashboardTelemetryPanel } from './DashboardTelemetryPanel'
 import { formatLatency, formatRate } from './dashboardUtils'
 
 export function DashboardPage() {
-  const qc = useQueryClient()
   const { data: models } = useModels()
   const { data: requests } = useRecentRequests(12)
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
-  const [refreshing, setRefreshing] = useState(false)
-
-  const doRefresh = async () => {
-    setRefreshing(true)
-    await Promise.all([
-      qc.invalidateQueries({ queryKey: qk.models }),
-      qc.invalidateQueries({ queryKey: qk.requestsRecent }),
-      qc.invalidateQueries({ queryKey: qk.requestStats }),
-      qc.invalidateQueries({ queryKey: qk.modelTimeline }),
-      qc.invalidateQueries({ queryKey: qk.gpu }),
-    ])
-    setRefreshing(false)
-  }
 
   const active = useMemo(() => models?.filter((m) => m.running || m.kind === 'peer') ?? [], [models])
 

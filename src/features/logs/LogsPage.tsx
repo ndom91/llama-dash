@@ -127,13 +127,15 @@ export function LogsPage() {
           />
 
           <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] py-3 max-md:flex-wrap max-md:px-3">
-              <div className="body-tabs">
+            <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-wrap max-md:px-3">
+              <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border">
                 {(['all', 'upstream', 'proxy'] as const).map((s) => (
                   <button
                     key={s}
                     type="button"
-                    className={`body-tab${filter === s ? ' active' : ''}`}
+                    className={`inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
+                      filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg'
+                    }`}
                     onClick={() => setFilter(s)}
                   >
                     {s}
