@@ -51,7 +51,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
               {headerEntries.map(([k, v]) => (
                 <tr key={k}>
                   <td className="mono header-key">{k}</td>
-                  <td className="mono">{maskSensitive(k, v)}</td>
+                  <td className="mono header-value">{maskSensitive(k, v)}</td>
                 </tr>
               ))}
             </tbody>

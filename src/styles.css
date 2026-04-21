@@ -893,15 +893,21 @@
   justify-self: stretch;
 }
 
-/* headers table — key column auto-sizes, capped at 50% */
+/* headers table — keep the table fixed and wrap long values */
 .headers-table {
-  table-layout: auto;
+  table-layout: fixed;
 }
 .dtable tbody td.header-key {
   white-space: nowrap;
-  max-width: 50%;
+  width: 34%;
   color: var(--accent);
   font-weight: 500;
+}
+.dtable tbody td.header-value {
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* JSON syntax highlighting */
