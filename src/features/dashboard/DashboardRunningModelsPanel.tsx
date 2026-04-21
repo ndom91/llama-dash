@@ -18,23 +18,26 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
       : `${runningCount} of ${total} loaded${peerCount > 0 ? ` · ${peerCount} peer${peerCount > 1 ? 's' : ''}` : ''}`
 
   return (
-    <section className="panel dashboard-panel running-panel dashboard-running-panel">
-      <div className="panel-head dashboard-panel-head">
+    <section className="panel !rounded-none !border-x-0 !bg-surface-1">
+      <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
-        <Link to="/models" className="dashboard-panel-link" style={{ marginLeft: 'auto' }}>
+        <Link
+          to="/models"
+          className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-fg-dim hover:text-fg"
+        >
           manage
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {total == null ? (
-        <div className="empty-state dashboard-empty-state">loading…</div>
+        <div className="empty-state">loading…</div>
       ) : active.length === 0 ? (
-        <div className="empty-state dashboard-empty-state">
+        <div className="empty-state">
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
       ) : (
-        <table className="dtable dashboard-table dashboard-running-table">
+        <table className="dtable">
           <thead>
             <tr>
               <th style={{ width: 18 }} aria-label="state" />
@@ -60,7 +63,7 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
                     {m.id}
                   </td>
                   <td>{m.name}</td>
-                  <td className="dashboard-state-cell">
+                  <td>
                     <span className={`state-label state-label-${tone}`}>{label}</span>
                   </td>
                 </tr>

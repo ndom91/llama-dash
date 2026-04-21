@@ -12,9 +12,9 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
   const gpus = gpu?.available ? gpu.gpus : []
 
   return (
-    <section className="panel dashboard-panel dashboard-telemetry-panel">
-      <div className="dashboard-section-kicker">Upstream</div>
-      <dl className="dashboard-kv-list">
+    <section className="panel !rounded-none !border-x-0 !bg-surface-1 px-4 py-4 max-[1100px]:border-r max-[1100px]:border-r-[color:color-mix(in_srgb,var(--border)_86%,transparent)] max-[900px]:border-r-0">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Upstream</div>
+      <dl className="grid gap-2">
         <div>
           <dt>host</dt>
           <dd className="mono">{upstream?.reachable ? upstream.host : '—'}</dd>
@@ -25,7 +25,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
         </div>
         <div>
           <dt>/health</dt>
-          <dd className="mono dashboard-health-inline">
+          <dd className="inline-flex items-center gap-1.5 mono">
             {upstream?.reachable ? (
               <>
                 <StatusDot tone="ok" /> <span>ok · {upstream.latencyMs}ms</span>
@@ -41,9 +41,14 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
 
       {gpus.length > 0
         ? gpus.map((gpuEntry, index) => (
-            <div key={`${gpuEntry.index}-${gpuEntry.name}`} className="dashboard-gpu-block">
-              <div className="dashboard-section-kicker">{gpus.length > 1 ? `GPU ${index + 1}` : 'GPU'}</div>
-              <dl className="dashboard-kv-list">
+            <div
+              key={`${gpuEntry.index}-${gpuEntry.name}`}
+              className="mt-4 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-4"
+            >
+              <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+                {gpus.length > 1 ? `GPU ${index + 1}` : 'GPU'}
+              </div>
+              <dl className="grid gap-2">
                 <div>
                   <dt>device</dt>
                   <dd className="mono">{gpuEntry.name}</dd>
@@ -51,14 +56,17 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                 {gpuEntry.memoryTotalMiB != null ? (
                   <div>
                     <dt>vram</dt>
-                    <dd className="mono dashboard-vram-row">
+                    <dd className="mono inline-flex items-center justify-between gap-2">
                       <span>
                         {formatMiBGb(gpuEntry.memoryUsedMiB)} / {formatMiBGb(gpuEntry.memoryTotalMiB)}
                       </span>
                       <span>GB</span>
                     </dd>
-                    <div className="dashboard-vram-track">
-                      <span className="dashboard-vram-fill" style={{ width: `${gpuEntry.memoryPercent ?? 0}%` }} />
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-3">
+                      <span
+                        className="block h-full rounded-full bg-accent"
+                        style={{ width: `${gpuEntry.memoryPercent ?? 0}%` }}
+                      />
                     </div>
                   </div>
                 ) : null}

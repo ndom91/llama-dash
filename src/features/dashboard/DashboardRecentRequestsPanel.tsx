@@ -16,26 +16,29 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
   const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
-    <section className="panel dashboard-panel dashboard-recent-panel">
-      <div className="panel-head dashboard-panel-head">
+    <section className="panel !rounded-none !border-x-0 !bg-surface-1">
+      <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
           newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
         </span>
-        <Link to="/requests" className="dashboard-panel-link" style={{ marginLeft: 'auto' }}>
+        <Link
+          to="/requests"
+          className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-fg-dim hover:text-fg"
+        >
           view all
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {requests == null ? (
-        <div className="empty-state dashboard-empty-state">loading…</div>
+        <div className="empty-state">loading…</div>
       ) : requests.length === 0 ? (
-        <div className="empty-state dashboard-empty-state">
+        <div className="empty-state">
           no requests yet. point clients at{' '}
           <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> to see them here.
         </div>
       ) : (
-        <table className="dtable dashboard-table dashboard-requests-table">
+        <table className="dtable">
           <thead>
             <tr>
               <th className="mono" style={{ width: 80 }}>

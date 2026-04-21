@@ -31,34 +31,37 @@ export function DashboardResidencyPanel({ events, active }: Props) {
   }, [active, spans])
 
   return (
-    <section className="panel dashboard-panel dashboard-residency-panel">
-      <div className="panel-head dashboard-panel-head">
+    <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+      <div className="panel-head border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-transparent px-4">
         <span className="panel-title">Model residency</span>
         <span className="panel-sub">· 60 min</span>
-        <span className="panel-sub" style={{ marginLeft: 'auto' }}>
+        <span className="panel-sub ml-auto">
           {active.filter((m) => m.running && m.kind !== 'peer').length} resident · {peerIds.size} peer
         </span>
       </div>
-      <div className="dashboard-residency-body">
+      <div className="flex flex-col gap-2 p-4">
         {rows.length === 0 ? (
-          <div className="dashboard-empty-state">no active model residency in the last hour</div>
+          <div className="empty-state !p-0">no active model residency in the last hour</div>
         ) : (
           rows.map((row) => {
             const totalMs = row.spans.reduce((sum, span) => sum + (span.end - span.start), 0)
             return (
-              <div key={row.id} className="dashboard-residency-row">
-                <div className="dashboard-residency-label mono" translate="no">
+              <div
+                key={row.id}
+                className="grid grid-cols-[220px_minmax(0,1fr)_48px] items-center gap-3 max-[900px]:grid-cols-[minmax(0,1fr)_48px]"
+              >
+                <div className="truncate mono text-[11px] text-fg" translate="no">
                   {row.id}
                   <span className="dim">{row.kind === 'peer' ? ' · peer' : ''}</span>
                 </div>
-                <div className="dashboard-residency-track">
+                <div className="relative h-4 overflow-hidden rounded bg-surface-3">
                   {row.spans.map((span) => {
                     const left = ((span.start - windowStart) / DASHBOARD_WINDOW_MS) * 100
                     const width = ((span.end - span.start) / DASHBOARD_WINDOW_MS) * 100
                     return (
                       <span
                         key={`${row.id}-${span.start}`}
-                        className={`dashboard-residency-fill${row.kind === 'peer' ? ' is-peer' : ''}`}
+                        className="absolute top-0 bottom-0 rounded"
                         style={{
                           left: `${left}%`,
                           width: `${Math.max(width, 0.8)}%`,
@@ -71,12 +74,12 @@ export function DashboardResidencyPanel({ events, active }: Props) {
                     )
                   })}
                 </div>
-                <div className="dashboard-residency-duration mono dim">{formatDurationMinutes(totalMs)}</div>
+                <div className="text-right mono text-[11px] text-fg-dim">{formatDurationMinutes(totalMs)}</div>
               </div>
             )
           })
         )}
-        <div className="dashboard-residency-axis mono dim">
+        <div className="mt-2 grid grid-cols-5 mono text-[10px] text-fg-dim">
           <span>-60m</span>
           <span>-45m</span>
           <span>-30m</span>

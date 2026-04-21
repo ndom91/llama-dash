@@ -184,14 +184,14 @@ export function RequestsPage({ modelParam }: Props) {
     <div className="main-col">
       <TopBar actions={null} />
       <div className="content">
-        <div className="page requests-page">
+        <div className="page min-h-full bg-surface-0">
           <PageHeader
             kicker="req · log"
             title="Request log"
             subtitle="proxied API calls, newest first"
             variant="integrated"
             action={
-              <div className="requests-header-actions">
+              <div className="flex items-center gap-2">
                 <span className="live-badge requests-live-badge">
                   <StatusDot tone="ok" live />
                   live
@@ -220,12 +220,12 @@ export function RequestsPage({ modelParam }: Props) {
             }
           />
 
-          {error ? <div className="err-banner requests-error-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
-          <div className="requests-shell">
-            <aside className="requests-filters-panel">
-              <div className="requests-filter-section">
-                <div className="requests-filter-label">Search</div>
+          <div className="grid min-h-0 grid-cols-[240px_minmax(0,1fr)] gap-0 max-[900px]:grid-cols-1">
+            <aside className="border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-4 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+              <div className="mb-4 flex flex-col gap-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
                 <div className="search-box requests-search-box">
                   <Search className="search-icon" size={14} strokeWidth={2} aria-hidden="true" />
                   <input
@@ -250,8 +250,8 @@ export function RequestsPage({ modelParam }: Props) {
                 </div>
               </div>
 
-              <div className="requests-filter-section">
-                <div className="requests-filter-label">Status</div>
+              <div className="mb-4 flex flex-col gap-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
                 <select
                   className="filter-select requests-filter-select"
                   value={statusFilter}
@@ -263,8 +263,8 @@ export function RequestsPage({ modelParam }: Props) {
                 </select>
               </div>
 
-              <div className="requests-filter-section">
-                <div className="requests-filter-label">Model</div>
+              <div className="mb-4 flex flex-col gap-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
                 <select
                   className="filter-select requests-filter-select"
                   value={modelFilter}
@@ -279,8 +279,8 @@ export function RequestsPage({ modelParam }: Props) {
                 </select>
               </div>
 
-              <div className="requests-filter-section">
-                <div className="requests-filter-label">Key</div>
+              <div className="mb-4 flex flex-col gap-1.5">
+                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
                 <select
                   className="filter-select requests-filter-select"
                   value={keyFilter}
@@ -299,7 +299,7 @@ export function RequestsPage({ modelParam }: Props) {
               {hasFilters ? (
                 <button
                   type="button"
-                  className="btn btn-ghost btn-xs requests-clear-btn"
+                  className="btn btn-ghost btn-xs self-start"
                   onClick={() => {
                     setSearch('')
                     setStatusFilter('all')
@@ -312,10 +312,10 @@ export function RequestsPage({ modelParam }: Props) {
               ) : null}
             </aside>
 
-            <div className="requests-body">
+            <div className="flex min-w-0 flex-col gap-0 bg-surface-0">
               {histogram && histogram.length > 0 ? (
-                <section className="panel requests-panel requests-histogram-panel">
-                  <div className="histogram-header requests-panel-head">
+                <section className="panel !rounded-none !border-x-0 !bg-surface-1">
+                  <div className="histogram-header panel-head bg-transparent px-4">
                     <div>
                       <span className="panel-title">req/s</span>
                       <span className="panel-sub" style={{ marginLeft: 8 }}>
@@ -324,7 +324,7 @@ export function RequestsPage({ modelParam }: Props) {
                     </div>
                   </div>
                   <RequestsHistogram buckets={histogram} />
-                  <div className="histogram-labels requests-histogram-labels">
+                  <div className="histogram-labels px-4 pb-3">
                     <span>-60m</span>
                     <span>-40m</span>
                     <span>-20m</span>
@@ -333,18 +333,18 @@ export function RequestsPage({ modelParam }: Props) {
                 </section>
               ) : null}
 
-              <section className="panel requests-panel requests-log-panel">
-                <div className="panel-head requests-panel-head">
+              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+                <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
                     {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
                   </span>
-                  <span className="requests-panel-hint">↑↓ navigate · ⏎ open · / search</span>
+                  <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>
                 {isLoading ? (
-                  <div className="empty-state requests-empty-state">loading…</div>
+                  <div className="empty-state">loading…</div>
                 ) : rows.length === 0 ? (
-                  <div className="empty-state requests-empty-state">
+                  <div className="empty-state">
                     {hasFilters ? (
                       'no requests match filters'
                     ) : (
@@ -354,8 +354,8 @@ export function RequestsPage({ modelParam }: Props) {
                     )}
                   </div>
                 ) : (
-                  <div className="dtable-virtual-wrap requests-table-wrap">
-                    <table className="dtable dtable-virtual requests-table">
+                  <div className="dtable-virtual-wrap max-h-[min(70vh,800px)]">
+                    <table className="dtable dtable-virtual">
                       <RequestsVirtualColgroup />
                       <thead>
                         <tr>
@@ -395,7 +395,7 @@ export function RequestsPage({ modelParam }: Props) {
                         </tr>
                       </thead>
                     </table>
-                    <div ref={scrollRef} className="dtable-virtual-body requests-table-body">
+                    <div ref={scrollRef} className="dtable-virtual-body">
                       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                         {virtualizer.getVirtualItems().map((vRow) => {
                           const r = rows[vRow.index]
@@ -418,7 +418,7 @@ export function RequestsPage({ modelParam }: Props) {
                                 if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
                               }}
                             >
-                              <table className="dtable dtable-virtual requests-table">
+                              <table className="dtable dtable-virtual">
                                 <RequestsVirtualColgroup />
                                 <tbody>
                                   <tr>
@@ -451,7 +451,7 @@ export function RequestsPage({ modelParam }: Props) {
                         })}
                       </div>
                       {isFetchingNextPage ? (
-                        <div className="empty-state requests-empty-state" style={{ paddingBlock: 8 }}>
+                        <div className="empty-state" style={{ paddingBlock: 8 }}>
                           loading more…
                         </div>
                       ) : null}
