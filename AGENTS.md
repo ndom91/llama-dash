@@ -170,11 +170,25 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## Styling
 
 - **Tailwind v4** is the primary styling tool. Prefer Tailwind utility
-  classes in JSX over adding new rules to `src/styles.css`.
+  classes inline in JSX wherever practical over adding new rules to
+  `src/styles.css`.
 - Existing component classes in `styles.css` (`.btn`, `.dtable`, `.panel`,
-  `.stat-card`, etc.) are fine to use — don't duplicate them with inline
-  utilities. But for one-off layout, spacing, typography, or color, reach
-  for Tailwind first.
+  `.stat-card`, etc.) are fine to use when they are genuinely shared,
+  especially if they are defined via `@apply`. Don't add new feature-local
+  CSS classes in `styles.css` for layout/styling that can reasonably live in
+  the component.
+- Prefer this order:
+  1. Inline Tailwind utilities in JSX for page/layout/component styling
+  2. Small shared semantic classes in `@layer components` using `@apply`
+  3. Plain CSS only for things that are awkward or noisy in utilities
+     (syntax highlighting, editor overlays, markdown prose rules, complex
+     pseudo-elements, scrollbars, keyframes, visualization widgets)
+- Keep `src/styles.css` as a support layer, not the primary place for page
+  styling. It should mostly contain:
+  - theme tokens and root variables
+  - shared `@apply` primitives (`.btn`, `.panel`, `.dtable`, etc.)
+  - animations and keyframes
+  - syntax-highlighting/editor/widget rules that are better expressed in CSS
 - Theme tokens are mapped in the `@theme` block at the top of `styles.css`
   (e.g. `--color-fg`, `--color-surface-1`, `--color-accent`). Use the
   corresponding Tailwind classes (`text-fg`, `bg-surface-1`, `border-accent`)
@@ -185,6 +199,35 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
+
+## Refactor Learnings
+
+- **Thin routes, feature-local UI.** Route files should stay thin entrypoints.
+  Route-owned components and helpers belong in `src/features/<feature>/`, not
+  back in `src/routes/*` or flat shared component files.
+- **One component per file is the default.** If a file grows because it owns
+  multiple embedded subcomponents, split it. Shared helpers can stay local to
+  the feature.
+- **Be careful with full-height layouts.** The biggest regression class during
+  the Tailwind migration was losing `min-h-0` / `flex-1` / `h-full` behavior
+  in nested grid/flex containers. On dashboard, requests, logs, and detail
+  pages, always verify that the main content column actually stretches to the
+  bottom and that scrollable regions still own the overflow.
+- **Be careful with column dividers.** If a vertical border is meant to span a
+  whole column, prefer putting it on the parent column container rather than a
+  child panel whose height may not match adjacent content.
+- **Preserve mono typography intentionally.** Another regression class during
+  the styling refactor was losing the old dashboard/request sidebar feel when
+  mono/text-dim styles were removed with old CSS classes. Labels, metrics,
+  timestamps, IDs, and control chrome often intentionally use `font-mono`.
+- **Hydration stability matters.** `TopBar` previously hydrated poorly because
+  SSR rendered time/query-driven values that changed immediately on the client.
+  For clocks and live operational readouts, prefer stable SSR placeholders and
+  render live values only after mount.
+- **Use browser verification for layout changes.** After meaningful styling or
+  layout work, verify the actual rendered UI on the running dev server. Static
+  checks alone won't catch full-height regressions, divider placement issues,
+  or typography drift.
 
 ## Dependency version policy
 
