@@ -7,6 +7,7 @@ import {
   type StreamEvent,
   streamChatCompletion,
 } from './stream-chat'
+import { useModels } from './queries'
 
 const LS_MESSAGES = 'playground-messages'
 const LS_MODEL = 'playground-model'
@@ -101,7 +102,15 @@ function presetId() {
   return `pst_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
+function estimatePromptTokens(messages: Array<{ role: string; content: string }>) {
+  // `gpt-tokenizer` needs an OpenAI chat model to count structured chat
+  // messages. Our playground models are arbitrary llama.cpp / peer IDs, so
+  // fall back to counting the flattened prompt text as a stable estimate.
+  return countTokens(messages.map((message) => message.content).join('\n\n'))
+}
+
 export function usePlaygroundChat() {
+  const { data: models } = useModels()
   const [messages, setMessages] = useState<Array<ChatMessage>>(() => loadJson(LS_MESSAGES, []))
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [systemPrompt, setSystemPromptState] = useState(() => loadString(LS_SYSTEM, ''))
@@ -118,16 +127,32 @@ export function usePlaygroundChat() {
   const abortRef = useRef<AbortController | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const apiKeyRef = useRef<string | null>(null)
+  const apiKeyRequestRef = useRef<Promise<string | null> | null>(null)
   const runSeqRef = useRef(0)
 
-  useEffect(() => {
-    fetch('/api/playground-key')
+  const loadApiKey = useCallback(() => {
+    if (apiKeyRef.current) return Promise.resolve(apiKeyRef.current)
+    if (apiKeyRequestRef.current) return apiKeyRequestRef.current
+
+    const request = fetch('/api/playground-key')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d?.key) apiKeyRef.current = d.key
+        const key = typeof d?.key === 'string' ? d.key : null
+        if (key) apiKeyRef.current = key
+        return key
       })
-      .catch(() => {})
+      .catch(() => null)
+      .finally(() => {
+        apiKeyRequestRef.current = null
+      })
+
+    apiKeyRequestRef.current = request
+    return request
   }, [])
+
+  useEffect(() => {
+    void loadApiKey()
+  }, [loadApiKey])
 
   const persistMessages = useCallback((msgs: Array<ChatMessage>) => {
     clearTimeout(saveTimer.current)
@@ -208,7 +233,10 @@ export function usePlaygroundChat() {
 
       try {
         const apiMsgs = buildApiMessages(msgs)
-        const estimatedPromptTokens = countTokens(apiMsgs)
+        const estimatedPromptTokens = estimatePromptTokens(apiMsgs)
+        const activeModel = models?.find((item) => item.id === model)
+        const includeTimings = activeModel?.kind !== 'peer'
+        const apiKey = await loadApiKey()
         const applyFinalMetrics = (closeAt?: number) => {
           const ttftMs = timings.firstContentAt ? timings.firstContentAt - timings.requestAt : undefined
           const totalMs = timings.doneAt ? timings.doneAt - timings.requestAt : undefined
@@ -246,8 +274,9 @@ export function usePlaygroundChat() {
           messages: apiMsgs,
           model,
           sampling,
+          includeTimings,
           signal: abort.signal,
-          apiKey: apiKeyRef.current ?? undefined,
+          apiKey: apiKey ?? undefined,
           onEvent: (ev: StreamEvent) => {
             switch (ev.kind) {
               case 'request-sent':
@@ -351,7 +380,7 @@ export function usePlaygroundChat() {
         if (abortRef.current === abort) abortRef.current = null
       }
     },
-    [model, sampling, buildApiMessages],
+    [model, sampling, buildApiMessages, loadApiKey, models],
   )
 
   const sendMessage = useCallback(

@@ -5,7 +5,6 @@ import type { InspectorState } from '../../lib/use-playground-chat'
 import { PlaygroundActiveModelCell } from './PlaygroundActiveModelCell'
 import { PlaygroundCopyButton } from './PlaygroundCopyButton'
 import { PlaygroundInspectorSection } from './PlaygroundInspectorSection'
-import { PlaygroundObservation } from './PlaygroundObservation'
 import { PlaygroundTimingBars } from './PlaygroundTimingBars'
 import { formatContextLength } from '../models/modelUtils'
 
@@ -140,7 +139,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
       ) : null}
 
       {tab === 'timing' ? (
-        <PlaygroundInspectorSection label="request → swap → decode">
+        <PlaygroundInspectorSection label="timings">
           <PlaygroundTimingBars inspector={inspector} />
           <div className="flex flex-wrap gap-2 font-mono text-[11px] text-fg-dim">
             {inspector.lastMetrics.totalMs != null ? (
@@ -193,8 +192,6 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           )}
         </PlaygroundInspectorSection>
       ) : null}
-
-      <PlaygroundObservation inspector={inspector} />
     </aside>
   )
 }

@@ -15,6 +15,7 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit `config.yaml` in-browser with validation and auto-reload.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
+- **Playground inspector** — request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
 
 <table>
   <tr>

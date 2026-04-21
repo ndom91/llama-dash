@@ -128,10 +128,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
    known state, inserts `load`/`unload` events into SQLite.
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
    recent requests), Models (list + load/unload + per-model detail),
-   Requests (filtered/sorted log + histogram + detail), Logs, Playground,
-   Config editor, API Keys (list + per-key detail), Policies (aliases +
-   request limits), Endpoints (connection examples for curl, Python, TS,
-   Home Assistant, Claude Code, opencode, Continue, Open WebUI).
+   Requests (filtered/sorted log + histogram + detail), Logs, Playground
+   (chat plus request/response/timing/events/curl inspector tabs; timing
+   sidebar shows TTFT, prefill, decode, and stream-close when upstream
+   llama.cpp timing metadata is present), Config editor, API Keys (list +
+   per-key detail), Policies (aliases + request limits), Endpoints
+   (connection examples for curl, Python, TS, Home Assistant, Claude Code,
+   opencode, Continue, Open WebUI).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate

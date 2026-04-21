@@ -57,6 +57,7 @@ export type StreamRequestOptions = {
   messages: Array<{ role: string; content: string }>
   model: string
   sampling: SamplingParams
+  includeTimings?: boolean
   signal?: AbortSignal
   apiKey?: string
   onEvent?: (ev: StreamEvent) => void
@@ -76,6 +77,7 @@ function buildBody(opts: StreamRequestOptions): Record<string, unknown> {
     presence_penalty: s.presencePenalty,
     n: s.n,
   }
+  if (opts.includeTimings) body.timings_per_token = true
   if (s.stopSequences.length > 0) body.stop = s.stopSequences
   if (s.seed != null) body.seed = s.seed
   if (s.responseFormat === 'json') body.response_format = { type: 'json_object' }

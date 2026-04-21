@@ -8,8 +8,6 @@ export function PlaygroundTimingBars({ inspector }: Props) {
   const timing = inspector.timing
   const total = inspector.lastMetrics.totalMs ?? 0
   const rows: Array<{ label: string; ms: number | null; tone: 'neutral' | 'accent' | 'warn' }> = [
-    { label: 'queue', ms: timing.queueMs, tone: 'neutral' },
-    { label: 'model swap', ms: timing.swapMs, tone: 'neutral' },
     { label: 'prefill', ms: timing.prefillMs, tone: 'warn' },
     { label: 'decode', ms: timing.decodeMs, tone: 'accent' },
     { label: 'stream close', ms: timing.streamCloseMs, tone: 'neutral' },
