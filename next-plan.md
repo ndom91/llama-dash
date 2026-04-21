@@ -43,6 +43,7 @@ Items marked ~~strikethrough~~ are shipped. See AGENTS.md § "What's shipped" fo
 ### Integrate
 
 - ~~Endpoint directory~~ — **shipped** (priority #4)
+- ~~Anthropic `/v1/messages` passthrough~~ — **shipped.** Usage scanner handles nested `message.usage` + `input_tokens`/`output_tokens` and `message_stop` terminator. System-prompt injection supports Anthropic's top-level `system` field. Point Claude Code at llama-dash via `ANTHROPIC_BASE_URL`; configure llama-swap `peers:` with `proxy: https://api.anthropic.com` and omit `apiKey` to let client OAuth/bearer flow through.
 - Peer federation — add remote llama-swap as backend; route specific model IDs to it.
 - Webhooks — fire on model-load, OOM, error-rate spike.
 - OpenAPI browser — rendered /v1/* schema with "try it" panel.
@@ -86,15 +87,15 @@ intermediate turns), and small model tool-calling unreliability.
 
 - Playground
   - Chat
-    - Ability to "stop" sending
-    - Msg contents on single line break out of chat card
+    - Add Ability to "stop" current msg response / generation when agent gets
+      into a loop
+    - Messages with long contents on single line break out of chat card, let's
+      ensure the text contents wrap corretly
     - Add support for "reset" sampling settings back to default
-    - Can we merge all right sidebar tabs together underneath one another so
-      that in effect there's only 1 "tab"
-    - Should we drop the "save session" and "save preset" functionality?
+    - The right-sidebar items ("Request", "Response", "Timing", etc.) should be
+      tabbed elements. They currently just look like badges that the user has to
+      guess are actually buttons. Lets refactor to look nicely like tabbed
+      elements, following familiar design patterns from the rest of the app
 - Dashboard
-  - Active models swap timeline color broken for "peer" models
-- Codebase
-  - Large route files and page-local UI have been moved into `src/features/*`; continue cleanup there first before doing styling/Tailwind passes.
-- Requests
-  - "Pretty" / "Raw" selector on payload not working
+  - In the Active models swap timeline, the "peer" models don't have a color,
+    let's fix that

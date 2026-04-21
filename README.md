@@ -8,7 +8,7 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
-- **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight.
+- **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL`.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Policies** — model aliases (global name mapping), per-key model pinning, per-key system prompt injection, global request size limits.
 - **Request auditing** — per-key usage tracking across all proxied calls.
@@ -93,6 +93,42 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
+
+## Claude Code / Anthropic passthrough
+
+Route any Anthropic SDK (Claude Code included) through llama-dash for
+logging, filtering, and per-request inspection. Traffic flows:
+
+```
+Claude Code ──► llama-dash :5173 (log + filter) ──► llama-swap peer ──► api.anthropic.com
+```
+
+**1. Client config** (`~/.claude/settings.json`):
+
+```json
+{ "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:5173" } }
+```
+
+Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
+Code manages the bearer itself and llama-dash passes it through unchanged.
+
+**2. llama-swap `config.yaml`** — add a `peers:` entry pointing at
+Anthropic; omit `apiKey` so the client's OAuth/Bearer flows through:
+
+```yaml
+peers:
+  anthropic:
+    proxy: https://api.anthropic.com
+    models:
+      - claude-opus-4-7
+      - claude-sonnet-4-6
+      - claude-haiku-4-5-20251001
+```
+
+llama-dash auto-detects Anthropic traffic (path `/v1/messages*` +
+`anthropic-version` header) and skips its own API-key check so subscription
+OAuth works end-to-end. Requests still log to `/requests` with model name,
+token counts, and latency.
 
 ## Useful scripts
 

@@ -39,9 +39,14 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
   }
 
   // Step 6: System prompt injection
-  if (ctx.keyRow?.systemPrompt && ctx.endpoint === '/v1/chat/completions' && Array.isArray(parsedBody.messages)) {
-    parsedBody.messages = [{ role: 'system', content: ctx.keyRow.systemPrompt }, ...parsedBody.messages]
-    mutated = true
+  if (ctx.keyRow?.systemPrompt) {
+    if (ctx.endpoint === '/v1/chat/completions' && Array.isArray(parsedBody.messages)) {
+      parsedBody.messages = [{ role: 'system', content: ctx.keyRow.systemPrompt }, ...parsedBody.messages]
+      mutated = true
+    } else if (ctx.endpoint === '/v1/messages') {
+      parsedBody.system = injectAnthropicSystem(parsedBody.system, ctx.keyRow.systemPrompt)
+      mutated = true
+    }
   }
 
   // Step 7: Request size limits (checks run after system prompt injection)
@@ -49,6 +54,15 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
   if (limitsErr) return limitsErr
 
   return { ok: true, body: parsedBody, mutated }
+}
+
+// Anthropic's /v1/messages `system` field accepts either a string or an array of
+// content blocks. Prepend ours while preserving whatever the caller sent.
+function injectAnthropicSystem(existing: unknown, injected: string): unknown {
+  if (existing == null || existing === '') return injected
+  if (typeof existing === 'string') return `${injected}\n\n${existing}`
+  if (Array.isArray(existing)) return [{ type: 'text', text: injected }, ...existing]
+  return injected
 }
 
 function checkRequestLimits(body: Record<string, unknown>): TransformErr | null {

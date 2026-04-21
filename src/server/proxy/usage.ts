@@ -18,26 +18,37 @@ const emptyUsage = (): Usage => ({
 
 type RawJson = Record<string, unknown>
 
-const pickModel = (body: RawJson): string | null => (typeof body.model === 'string' ? body.model : null)
+// Anthropic's message_start event wraps model + usage under `message`.
+const asRecord = (v: unknown): RawJson | null => (v && typeof v === 'object' ? (v as RawJson) : null)
+
+const pickModel = (body: RawJson): string | null => {
+  if (typeof body.model === 'string') return body.model
+  const msg = asRecord(body.message)
+  if (msg && typeof msg.model === 'string') return msg.model
+  return null
+}
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
+const readUsageRecord = (rec: RawJson): Partial<Usage> => ({
+  promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
+  completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
+  totalTokens: num(rec.total_tokens),
+})
+
 const pickUsage = (body: RawJson): Partial<Usage> => {
-  const u = body.usage
-  if (u && typeof u === 'object') {
-    const rec = u as Record<string, unknown>
-    return {
-      promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
-      completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
-      totalTokens: num(rec.total_tokens),
-    }
+  const u = asRecord(body.usage)
+  if (u) return readUsageRecord(u)
+  const msg = asRecord(body.message)
+  if (msg) {
+    const mu = asRecord(msg.usage)
+    if (mu) return readUsageRecord(mu)
   }
-  const t = body.timings
-  if (t && typeof t === 'object') {
-    const rec = t as Record<string, unknown>
+  const t = asRecord(body.timings)
+  if (t) {
     return {
-      promptTokens: num(rec.prompt_n),
-      completionTokens: num(rec.predicted_n),
+      promptTokens: num(t.prompt_n),
+      completionTokens: num(t.predicted_n),
     }
   }
   return {}
@@ -104,6 +115,8 @@ export class SseUsageScanner {
         if (u.promptTokens != null) this.usage.promptTokens = u.promptTokens
         if (u.completionTokens != null) this.usage.completionTokens = u.completionTokens
         if (u.totalTokens != null) this.usage.totalTokens = u.totalTokens
+        // Anthropic terminates streams with {type:"message_stop"}; treat it like [DONE].
+        if (body.type === 'message_stop' && this.doneAtMs == null) this.doneAtMs = at
       } catch {
         // ignore malformed chunks
       }

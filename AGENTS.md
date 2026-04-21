@@ -101,7 +101,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
    mapping), `settings` (key-value config like request limits).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
-   the JSON `usage` field for non-streamed responses).
+   the JSON `usage` field for non-streamed responses). Handles both OpenAI
+   (`/v1/chat/completions`, flat `usage.prompt_tokens`/`completion_tokens`)
+   and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`, nested
+   `message.usage` with `input_tokens`/`output_tokens`, `message_stop` stream
+   terminator) shapes.
 4. Admin API:
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
@@ -132,12 +136,20 @@ paths (proxy will grow middleware; admin will grow CRUD).
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
+   **Exception**: `/v1/messages` and `/v1/messages/count_tokens` with an
+   `anthropic-version` header skip llama-dash key enforcement. The caller's
+   `Authorization` header (OAuth subscription bearer or real Anthropic key)
+   is meant for Anthropic — llama-swap's `peers:` entry handles final
+   routing. Requests still get logged; no transforms apply (no keyRow).
 9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once,
    applies transforms in order, re-serializes only if mutated:
    model pinning → allow-list check → alias resolution → system prompt
    injection → request size limits. In-memory caches for aliases and
-   settings, invalidated on admin writes.
+   settings, invalidated on admin writes. System-prompt injection branches
+   by endpoint: `/v1/chat/completions` prepends a `system` message to
+   `messages[]`; `/v1/messages` prepends to the top-level `system` field
+   (string or content-block array, preserved shape).
 10. Feature-local UI structure under `src/features/*`. Route files are thin
    entrypoints; page-specific components live with their feature instead of
    accumulating inside `src/routes/*` or flat shared component files.
@@ -322,6 +334,52 @@ sort lexicographically by creation time).
 **CLI flags**: `-config <path>`, `-listen <addr>` (default `:8080`), `-watch-config`, `-tls-cert-file`, `-tls-key-file`, `-version`.
 
 **Signals**: `SIGINT` / `SIGTERM` with graceful shutdown of child processes. No `SIGHUP`.
+
+## Claude Code / Anthropic passthrough
+
+llama-dash fronts Anthropic's Messages API end-to-end. Point any Anthropic
+SDK (including Claude Code) at llama-dash via `ANTHROPIC_BASE_URL` and the
+proxy logs + forwards the call to `api.anthropic.com` through a llama-swap
+`peers:` entry.
+
+**Client config** (`~/.claude/settings.json`):
+
+```json
+{ "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash>:5173" } }
+```
+
+Do not set `ANTHROPIC_AUTH_TOKEN` when using subscription OAuth — Claude Code
+manages the bearer itself and llama-dash passes it through.
+
+**llama-swap peer** (fragment of `config.yaml`):
+
+```yaml
+peers:
+  anthropic:
+    proxy: https://api.anthropic.com
+    models:
+      - claude-opus-4-7
+      - claude-sonnet-4-6
+      - claude-haiku-4-5-20251001
+    # no apiKey — client Authorization header must pass through unchanged
+```
+
+**Proxy-layer specifics:**
+
+- Auth bypass (`src/server/proxy/auth.ts` — `isAnthropicPassthrough`). Requests
+  to `/v1/messages` or `/v1/messages/count_tokens` with an `anthropic-version`
+  header skip llama-dash key enforcement. keyRow is null, so no transforms
+  apply; requests still log.
+- Response content-encoding strip (`src/server/proxy/handler.ts` —
+  `STRIP_RESPONSE_HEADERS`). Node's fetch auto-decompresses upstream bodies
+  when consumed as a stream, so forwarding `content-encoding: gzip|br` would
+  cause clients to double-decode (ZlibError in Claude Code). `content-length`
+  goes with it since the decoded length differs.
+- SSE usage scanner reads Anthropic's nested shapes: `message_start`'s
+  `body.message.usage` / `body.message.model`, `message_delta`'s top-level
+  `body.usage`. `message_stop` terminates the stream (no `[DONE]`).
+- System-prompt injection on `/v1/messages` mutates top-level `body.system`
+  (string or content-block array; shape preserved).
 
 ## Config contract
 

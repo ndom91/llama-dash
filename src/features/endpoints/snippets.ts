@@ -100,11 +100,10 @@ rest_command:
           filename: '~/.claude/settings.json',
           lang: 'json',
           code: `{
-  "modelProvider": {
-    "type": "openai-compatible",
-    "baseUrl": "${baseUrl}/v1",
-    "apiKey": "${apiKey}",
-    "model": "${model}"
+  "env": {
+    "ANTHROPIC_BASE_URL": "${baseUrl}",
+    "ANTHROPIC_AUTH_TOKEN": "${apiKey}",
+    "ANTHROPIC_MODEL": "${model}"
   }
 }`,
         }

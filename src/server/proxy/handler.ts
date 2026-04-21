@@ -17,6 +17,14 @@ const HOP_BY_HOP = new Set([
   'upgrade',
 ])
 
+// Node's fetch (undici) transparently decompresses upstream bodies when we read
+// response.body as a ReadableStream. Forwarding `content-encoding: gzip|br|…`
+// alongside the already-decoded bytes causes clients to double-decode (e.g.
+// Claude Code throws `Decompression error: ZlibError`). Strip these from the
+// response hop. `content-length` goes with them since the decoded length
+// differs from the compressed length the upstream header announced.
+const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
+
 function filterRequestHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {}
   headers.forEach((value, key) => {
@@ -28,7 +36,10 @@ function filterRequestHeaders(headers: Headers): Record<string, string> {
 function filterResponseHeaders(upstream: Headers): Headers {
   const out = new Headers()
   upstream.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) out.set(key, value)
+    const lower = key.toLowerCase()
+    if (HOP_BY_HOP.has(lower)) return
+    if (STRIP_RESPONSE_HEADERS.has(lower)) return
+    out.set(key, value)
   })
   return out
 }
@@ -56,7 +67,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const reqContentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
 
-  const authResult = authenticateRequest(request)
+  const authResult = authenticateRequest(request, endpoint)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
