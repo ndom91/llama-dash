@@ -51,13 +51,16 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
   }, [inspector.lastRequestBody, inspector.lastRequestUrl, apiKey])
 
   return (
-    <aside className="pg-rail pg-rail-right">
-      <div className="pg-inspector-tabs">
+    <aside className="pg-inspector-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-[color-mix(in_srgb,var(--bg-1)_58%,transparent)] px-4 pt-3.5 pb-5">
+      <div className="mb-1 flex flex-wrap gap-1">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
-            className={cn('pg-inspector-tab', tab === item.id && 'pg-inspector-tab-active')}
+            className={cn(
+              'rounded-[3px] border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg',
+              tab === item.id && 'border-accent bg-surface-3 text-fg',
+            )}
             onClick={() => setTab(item.id)}
           >
             {item.label}
@@ -66,7 +69,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
       </div>
 
       <PlaygroundInspectorSection label="active model">
-        <div className="pg-am-grid">
+        <div className="grid grid-cols-2 gap-2">
           <PlaygroundActiveModelCell
             label="model"
             value={active?.id ?? model ?? '—'}
@@ -95,8 +98,10 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}
         >
           {inspector.lastRequestUrl ? (
-            <div className="pg-inspector-endpoint">
-              <span className="pg-method-badge">POST</span>
+            <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2">
+              <span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                POST
+              </span>
               <span className="font-mono text-[11px] text-fg-muted">
                 {typeof window !== 'undefined' ? window.location.host : ''}
                 {inspector.lastRequestUrl}
@@ -104,7 +109,9 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
             </div>
           ) : null}
           {requestJson ? (
-            <pre className="pg-inspector-json">{requestJson}</pre>
+            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
+              {requestJson}
+            </pre>
           ) : (
             <EmptyNote>No request sent yet.</EmptyNote>
           )}
@@ -117,7 +124,9 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
         >
           {inspector.lastResponseText ? (
-            <pre className="pg-inspector-json">{inspector.lastResponseText}</pre>
+            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
+              {inspector.lastResponseText}
+            </pre>
           ) : (
             <EmptyNote>Run a request to capture its response.</EmptyNote>
           )}
@@ -127,7 +136,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
       {tab === 'timing' ? (
         <PlaygroundInspectorSection label="request → swap → decode">
           <PlaygroundTimingBars inspector={inspector} />
-          <div className="pg-timing-totals">
+          <div className="flex flex-wrap gap-2 font-mono text-[11px] text-fg-dim">
             {inspector.lastMetrics.totalMs != null ? (
               <>
                 <span>total {(inspector.lastMetrics.totalMs / 1000).toFixed(2)} s</span>
@@ -146,12 +155,15 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
       {tab === 'events' ? (
         <PlaygroundInspectorSection label="event tape">
           {inspector.events.length ? (
-            <div className="pg-event-tape">
+            <div className="flex flex-col gap-1.5">
               {inspector.events.map((event) => (
-                <div key={event.id} className="pg-event-row">
-                  <span className="pg-event-time">{formatClock(event.at)}</span>
+                <div
+                  key={event.id}
+                  className="grid grid-cols-[48px_52px_minmax(0,1fr)] items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-[11px]"
+                >
+                  <span className="font-mono text-fg-dim">{formatClock(event.at)}</span>
                   <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
-                  <span className="pg-event-text">{event.text}</span>
+                  <span className="min-w-0 text-fg-muted">{event.text}</span>
                 </div>
               ))}
             </div>
@@ -167,7 +179,9 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
         >
           {curlCommand ? (
-            <pre className="pg-inspector-json pg-inspector-curl">{curlCommand}</pre>
+            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
+              {curlCommand}
+            </pre>
           ) : (
             <EmptyNote>Send a request to generate a curl command.</EmptyNote>
           )}
@@ -180,7 +194,11 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 }
 
 function EmptyNote({ children }: { children: React.ReactNode }) {
-  return <p className="pg-inspector-empty">{children}</p>
+  return (
+    <p className="m-0 rounded border border-dashed border-border bg-surface-2 px-3 py-2 text-[11px] text-fg-dim">
+      {children}
+    </p>
+  )
 }
 
 function formatClock(at: number): string {

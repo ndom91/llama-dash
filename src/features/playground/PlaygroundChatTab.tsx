@@ -77,7 +77,7 @@ export function PlaygroundChatTab({ chat }: Props) {
   const lastAssistant = [...chat.messages].reverse().find((m) => m.role === 'assistant')
 
   return (
-    <div className="pg-grid">
+    <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_360px] items-stretch gap-0 max-[1200px]:grid-cols-[260px_minmax(0,1fr)] max-[1200px]:[&>.pg-inspector-shell]:hidden max-[900px]:grid-cols-1 max-[900px]:[&>.pg-session-shell]:hidden">
       <PlaygroundSession
         model={chat.model}
         setModel={chat.setModel}
@@ -93,23 +93,23 @@ export function PlaygroundChatTab({ chat }: Props) {
         onSaveRun={chat.saveRun}
       />
 
-      <section className="panel pg-chat-panel">
-        <div className="pg-model-strip">
-          <div className="pg-model-strip-l">
+      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-2 text-[11px] font-mono text-fg-dim">
+          <div className="flex min-w-0 items-center gap-1.5">
             <StatusDot tone={activeModel?.running ? 'ok' : 'idle'} live={activeModel?.running ?? false} />
-            <span className="pg-model-id" translate="no">
+            <span className="truncate text-fg" translate="no">
               {activeModel?.id ?? chat.model ?? '—'}
             </span>
             {activeModel ? (
               <>
-                <span className="pg-sep">·</span>
-                <span className="pg-model-kind">{activeModel.kind}</span>
+                <span>·</span>
+                <span className="uppercase tracking-[0.06em]">{activeModel.kind}</span>
               </>
             ) : null}
-            <span className="pg-sep">·</span>
-            <span className="pg-model-ctx">ctx 32K</span>
+            <span>·</span>
+            <span>ctx 32K</span>
           </div>
-          <div className="pg-model-strip-r">
+          <div className="flex items-center gap-1.5">
             {lastAssistant?.metrics ? (
               <>
                 {lastAssistant.metrics.ttftMs != null ? (
@@ -117,13 +117,13 @@ export function PlaygroundChatTab({ chat }: Props) {
                 ) : null}
                 {lastAssistant.metrics.tokPerSec != null ? (
                   <>
-                    <span className="pg-sep">·</span>
+                    <span>·</span>
                     <span>{lastAssistant.metrics.tokPerSec.toFixed(1)} tok/s</span>
                   </>
                 ) : null}
                 {lastAssistant.metrics.tokOut != null ? (
                   <>
-                    <span className="pg-sep">·</span>
+                    <span>·</span>
                     <span>{lastAssistant.metrics.tokOut} tok</span>
                   </>
                 ) : null}
@@ -134,10 +134,14 @@ export function PlaygroundChatTab({ chat }: Props) {
           </div>
         </div>
 
-        <div ref={scrollRef} className="pg-chat-scroll" onScroll={onScroll}>
+        <div
+          ref={scrollRef}
+          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[color-mix(in_srgb,var(--bg-1)_22%,transparent)] px-3 pt-2 pb-3"
+          onScroll={onScroll}
+        >
           {chat.messages.length === 0 ? (
-            <div className="pg-empty">
-              <MessageSquare className="pg-empty-icon" strokeWidth={1.25} />
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[13px] text-fg-faint">
+              <MessageSquare className="h-10 w-10 opacity-30" strokeWidth={1.25} />
               <span>Select a model and start chatting</span>
             </div>
           ) : (
@@ -157,11 +161,11 @@ export function PlaygroundChatTab({ chat }: Props) {
           )}
         </div>
 
-        <div className="pg-input-wrap">
-          <form className="pg-input-bar border-t-0!" onSubmit={handleSubmit}>
+        <div>
+          <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
-              className="pg-input"
+              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-1 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
               disabled={!chat.model}
               rows={1}
@@ -175,12 +179,16 @@ export function PlaygroundChatTab({ chat }: Props) {
               autoComplete="off"
             />
             <Tooltip label="Send message">
-              <button type="submit" className="pg-send-btn" disabled={!chat.model || chat.isStreaming || !draft.trim()}>
+              <button
+                type="submit"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                disabled={!chat.model || chat.isStreaming || !draft.trim()}
+              >
                 <Send className="icon-14" strokeWidth={2} />
               </button>
             </Tooltip>
           </form>
-          <div className="pg-input-hints">
+          <div className="flex gap-4 px-4 py-2 font-mono text-[10px] text-fg-faint">
             <span>
               <kbd>⏎</kbd> send
             </span>

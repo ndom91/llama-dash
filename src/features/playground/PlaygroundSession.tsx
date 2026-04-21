@@ -60,27 +60,45 @@ export function PlaygroundSession({
   }
 
   return (
-    <aside className="pg-rail pg-rail-left">
+    <aside className="pg-session-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color-mix(in_srgb,var(--bg-1)_72%,transparent)] px-4 pt-3.5 pb-5">
       <PlaygroundSessionSection label="session">
         {isStreaming ? (
-          <button type="button" className="pg-rail-btn pg-rail-btn-danger" onClick={onStop}>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-[color:color-mix(in_srgb,var(--err)_40%,var(--border))] bg-[color:color-mix(in_srgb,var(--err)_8%,var(--bg-2))] px-2.5 py-[7px] text-xs text-err transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={onStop}
+          >
             <Square className="icon-12" strokeWidth={2} />
             stop
           </button>
         ) : (
-          <button type="button" className="pg-rail-btn" onClick={onClear} disabled={!hasMessages}>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-border bg-surface-2 px-2.5 py-[7px] text-xs text-fg transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={onClear}
+            disabled={!hasMessages}
+          >
             <Plus className="icon-12" strokeWidth={2} />
             new chat
           </button>
         )}
-        <button type="button" className="pg-rail-btn" onClick={handleSaveRun} disabled={!hasMessages}>
+        <button
+          type="button"
+          className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-border bg-surface-2 px-2.5 py-[7px] text-xs text-fg transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={handleSaveRun}
+          disabled={!hasMessages}
+        >
           <Save className="icon-12" strokeWidth={2} />
           save run
         </button>
       </PlaygroundSessionSection>
 
       <PlaygroundSessionSection label="model">
-        <select className="pg-rail-select" value={model} onChange={(e) => setModel(e.target.value)}>
+        <select
+          className="w-full rounded-sm border border-border bg-surface-2 px-2 py-1.5 font-mono text-xs text-fg focus:border-accent focus:outline-none"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+        >
           <option value="">select…</option>
           {localModels.length > 0 ? (
             <optgroup label="Local">
@@ -106,7 +124,7 @@ export function PlaygroundSession({
 
       <PlaygroundSessionSection label="system prompt">
         <textarea
-          className="pg-rail-textarea"
+          className="w-full resize-y rounded-sm border border-border bg-surface-2 px-2.5 py-2 font-mono text-[11px] leading-[1.55] text-fg focus:border-accent focus:outline-none"
           placeholder="You are a terse technical assistant…"
           value={systemPrompt}
           onChange={(e) => setSystemPrompt(e.target.value)}
@@ -174,13 +192,16 @@ export function PlaygroundSession({
       </PlaygroundSessionSection>
 
       <PlaygroundSessionSection label="stop sequences">
-        <div className="pg-chip-row">
+        <div className="flex flex-wrap gap-1">
           {sampling.stopSequences.map((sequence) => (
-            <span key={sequence} className="pg-chip">
+            <span
+              key={sequence}
+              className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-[3px] text-[11px]"
+            >
               <span className="font-mono text-[11px]">{escapeSeq(sequence)}</span>
               <button
                 type="button"
-                className="pg-chip-x"
+                className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-faint transition-colors hover:bg-surface-3 hover:text-err"
                 onClick={() => setSampling({ stopSequences: sampling.stopSequences.filter((s) => s !== sequence) })}
                 aria-label={`Remove ${sequence}`}
               >
@@ -188,10 +209,10 @@ export function PlaygroundSession({
               </button>
             </span>
           ))}
-          <label className="pg-chip pg-chip-add">
+          <label className="inline-flex cursor-text items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-[3px] text-fg-dim">
             <Plus className="icon-10" strokeWidth={2.5} />
             <input
-              className="pg-chip-input"
+              className="w-12 border-none bg-transparent p-0 font-mono text-[11px] text-fg outline-none"
               placeholder="add"
               value={stopDraft}
               onChange={(e) => setStopDraft(e.target.value)}
@@ -207,7 +228,7 @@ export function PlaygroundSession({
           k="seed"
           v={
             <input
-              className="pg-kv-input pg-kv-input-num"
+              className="w-[76px] rounded-[3px] border border-border bg-surface-2 px-1.5 py-0.5 text-right font-mono text-[11px] text-fg outline-none focus:border-accent"
               type="text"
               inputMode="numeric"
               placeholder="auto"
@@ -225,7 +246,7 @@ export function PlaygroundSession({
           k="n (choices)"
           v={
             <input
-              className="pg-kv-input pg-kv-input-num"
+              className="w-[76px] rounded-[3px] border border-border bg-surface-2 px-1.5 py-0.5 text-right font-mono text-[11px] text-fg outline-none focus:border-accent"
               type="number"
               min={1}
               max={8}
@@ -270,13 +291,13 @@ export function PlaygroundSession({
       </PlaygroundSessionSection>
 
       <PlaygroundSessionSection label="tools & format">
-        <PlaygroundKVRow k="tools" v={<span className="pg-kv-val dim">0 defined</span>} />
-        <PlaygroundKVRow k="tool_choice" v={<span className="pg-kv-val">auto</span>} />
-        <PlaygroundKVRow k="json_schema" v={<span className="pg-kv-val dim">—</span>} />
+        <PlaygroundKVRow k="tools" v={<span className="text-fg dim">0 defined</span>} />
+        <PlaygroundKVRow k="tool_choice" v={<span className="text-fg">auto</span>} />
+        <PlaygroundKVRow k="json_schema" v={<span className="text-fg dim">—</span>} />
       </PlaygroundSessionSection>
 
       <PlaygroundSessionSection label="use as template">
-        <p className="pg-rail-note">
+        <p className="m-0 text-[11px] leading-[1.55] text-fg-dim">
           Save this exact configuration as a preset; apply to any request as a starting point.
         </p>
       </PlaygroundSessionSection>

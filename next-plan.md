@@ -96,3 +96,5 @@ intermediate turns), and small model tool-calling unreliability.
   - Active models swap timeline color broken for "peer" models
 - Codebase
   - Large route files and page-local UI have been moved into `src/features/*`; continue cleanup there first before doing styling/Tailwind passes.
+- Requests
+  - "Pretty" / "Raw" selector on payload not working

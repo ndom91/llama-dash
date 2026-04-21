@@ -5,9 +5,9 @@ type Props = {
 
 export function PlaygroundKVRow({ k, v }: Props) {
   return (
-    <div className="pg-kv-row">
-      <span className="pg-kv-key">{k}</span>
-      <span className="pg-kv-val-wrap">{v}</span>
+    <div className="flex items-center justify-between py-0.5 font-mono text-[11px]">
+      <span className="text-fg-muted">{k}</span>
+      <span className="inline-flex items-center gap-1.5">{v}</span>
     </div>
   )
 }

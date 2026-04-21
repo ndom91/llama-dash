@@ -15,9 +15,11 @@ export function PlaygroundObservation({ inspector }: Props) {
       : `ttft ${Math.round(ttft)}ms. Run completed.`
 
   return (
-    <div className="pg-observation">
-      <div className="pg-observation-label">observation</div>
-      <p className="pg-observation-text">{note}</p>
+    <div className="rounded border border-border bg-surface-2 px-3 py-2.5">
+      <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
+        observation
+      </div>
+      <p className="m-0 text-[11px] leading-[1.55] text-fg-dim">{note}</p>
     </div>
   )
 }

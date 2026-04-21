@@ -6,12 +6,12 @@ type Props = {
 
 export function PlaygroundInspectorSection({ label, action, children }: Props) {
   return (
-    <section className="pg-rail-section">
-      <div className="pg-rail-heading pg-rail-heading-row">
+    <section className="flex flex-col gap-1.5 border-b border-dashed border-[color:color-mix(in_srgb,var(--border)_75%,transparent)] py-2.5 last:border-b-0">
+      <div className="flex items-center justify-between gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-faint">
         <span>{label}</span>
         {action}
       </div>
-      <div className="pg-rail-body">{children}</div>
+      <div className="flex flex-col gap-2">{children}</div>
     </section>
   )
 }

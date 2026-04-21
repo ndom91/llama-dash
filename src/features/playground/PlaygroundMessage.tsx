@@ -60,11 +60,18 @@ export function PlaygroundMessage({
   const metrics = message.metrics
 
   return (
-    <div className={cn('pg-msg', `pg-msg-${message.role}`)}>
-      <div className="pg-msg-head">
-        <span className="pg-msg-role">{isAssistant ? 'assistant' : 'you'}</span>
+    <div
+      className={cn(
+        'group flex max-w-[min(100%,920px)] flex-col gap-1 animate-[msg-in_var(--duration-slow)_var(--ease-out)]',
+        isAssistant ? 'w-[min(100%,920px)] self-start' : 'w-fit self-end',
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-fg-dim">
+          {isAssistant ? 'assistant' : 'you'}
+        </span>
         {isAssistant && metrics?.ttftMs != null ? (
-          <span className="pg-msg-head-meta">
+          <span className="font-mono text-[11px] text-fg-dim">
             <span>{Math.round(metrics.ttftMs)}ms ttft</span>
             {metrics.totalMs != null ? <span>→ {(metrics.totalMs / 1000).toFixed(2)}s total</span> : null}
           </span>
@@ -72,33 +79,42 @@ export function PlaygroundMessage({
       </div>
 
       {isAssistant && message.reasoningContent ? (
-        <div className="pg-reasoning">
-          <button type="button" className="pg-reasoning-toggle" onClick={() => setReasoningOpen(!reasoningOpen)}>
+        <div className="overflow-hidden rounded-sm border border-border text-xs">
+          <button
+            type="button"
+            className="flex w-full items-center gap-1.5 bg-surface-0 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
+            onClick={() => setReasoningOpen(!reasoningOpen)}
+          >
             <ChevronRight
               className={cn('icon-12 transition-transform duration-150', reasoningOpen && 'rotate-90')}
               strokeWidth={2}
             />
             <span>reasoning</span>
-            {isReasoning && isLast ? <span className="pg-reasoning-pulse" /> : null}
+            {isReasoning && isLast ? <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pg-pulse" /> : null}
             {message.reasoningTimeMs ? (
               <span className="dim">{(message.reasoningTimeMs / 1000).toFixed(1)}s</span>
             ) : null}
           </button>
-          <pre className={cn('pg-reasoning-text', reasoningOpen && 'pg-reasoning-open')}>
+          <pre
+            className={cn(
+              'm-0 max-h-0 overflow-hidden px-3 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg-dim opacity-0 transition-[max-height,opacity,padding] duration-150 ease-out',
+              reasoningOpen && 'max-h-[300px] overflow-y-auto px-3 py-2.5 opacity-100',
+            )}
+          >
             {message.reasoningContent}
           </pre>
         </div>
       ) : null}
 
       {editing ? (
-        <form onSubmit={submitEdit} className="pg-edit-form">
+        <form onSubmit={submitEdit} className="flex flex-col gap-1.5">
           <textarea
-            className="pg-edit-textarea"
+            className="w-full resize-y rounded border border-accent bg-surface-1 px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             rows={Math.min(editValue.split('\n').length + 1, 12)}
           />
-          <div className="pg-edit-actions">
+          <div className="flex gap-1.5">
             <button type="submit" className="btn btn-ghost btn-xs">
               save & send
             </button>
@@ -108,7 +124,14 @@ export function PlaygroundMessage({
           </div>
         </form>
       ) : (
-        <div className={cn('pg-msg-content', isAssistant && 'pg-msg-markdown')}>
+        <div
+          className={cn(
+            'rounded border border-border bg-surface-1 px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg',
+            !isAssistant &&
+              'border-[color:color-mix(in_srgb,var(--accent)_20%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_8%,var(--bg-1))]',
+            isAssistant && 'pg-msg-markdown',
+          )}
+        >
           {isAssistant ? (
             <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
               {message.content || (isStreaming && isLast ? '…' : '')}
@@ -120,7 +143,7 @@ export function PlaygroundMessage({
       )}
 
       {isAssistant && metrics && showActions ? (
-        <div className="pg-msg-metrics">
+        <div className="flex flex-wrap items-center gap-1.5">
           <PlaygroundMetricChip
             label="ttft"
             value={metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}
@@ -136,9 +159,13 @@ export function PlaygroundMessage({
             label="cost"
             value={metrics.costUsd != null ? `$${metrics.costUsd.toFixed(4)}` : '~$0.0000'}
           />
-          <span className="pg-msg-metric-gap" />
+          <span className="min-w-2" />
           <Tooltip label="Copy">
-            <button type="button" className="pg-metric-action" onClick={copyContent}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
+              onClick={copyContent}
+            >
               <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
                 <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
                 <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
@@ -147,13 +174,21 @@ export function PlaygroundMessage({
             </button>
           </Tooltip>
           <Tooltip label="Regenerate">
-            <button type="button" className="pg-metric-action" onClick={() => onRegenerate(index)}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
+              onClick={() => onRegenerate(index)}
+            >
               <RefreshCw className="icon-12" strokeWidth={2} />
               re-run
             </button>
           </Tooltip>
           <Tooltip label="Fork from here">
-            <button type="button" className="pg-metric-action" onClick={() => onFork(index)}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
+              onClick={() => onFork(index)}
+            >
               <GitBranch className="icon-12" strokeWidth={2} />
               fork
             </button>
@@ -162,14 +197,22 @@ export function PlaygroundMessage({
       ) : null}
 
       {!isAssistant && showActions ? (
-        <div className="pg-msg-actions">
+        <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
           <Tooltip label="Edit">
-            <button type="button" className="pg-action-btn" onClick={startEdit}>
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+              onClick={startEdit}
+            >
               <Pencil className="icon-12" strokeWidth={2} />
             </button>
           </Tooltip>
           <Tooltip label="Copy">
-            <button type="button" className="pg-action-btn" onClick={copyContent}>
+            <button
+              type="button"
+              className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+              onClick={copyContent}
+            >
               <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
                 <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
                 <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
