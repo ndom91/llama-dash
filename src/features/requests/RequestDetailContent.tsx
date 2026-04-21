@@ -26,6 +26,14 @@ type Props = {
 
 export function RequestDetailContent({ req, prevId, nextId }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
+  const statusColor =
+    req.statusCode >= 400
+      ? '!text-err'
+      : req.statusCode >= 300
+        ? '!text-warn'
+        : req.statusCode >= 200
+          ? '!text-ok'
+          : '!text-fg-muted'
   const navigate = useNavigate()
   const [copiedCurl, setCopiedCurl] = useState(false)
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
@@ -140,7 +148,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
               </div>
               <div>
                 <dt>status</dt>
-                <dd className={ok ? 'text-ok' : 'text-err'}>
+                <dd className={statusColor}>
                   {req.statusCode} {ok ? 'OK' : ''}
                 </dd>
               </div>
@@ -241,7 +249,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
               </div>
               <div className="border-r border-border px-4 py-4 max-[1100px]:border-r-0 max-[1100px]:border-b max-[900px]:border-b">
                 <div className={endpointMetricLabel}>status</div>
-                <div className={`${endpointMetricValue} ${ok ? 'text-ok' : 'text-err'}`}>{req.statusCode}</div>
+                <div className={`${endpointMetricValue} ${statusColor}`}>{req.statusCode}</div>
               </div>
               <div className="border-r border-border px-4 py-4 max-[1100px]:border-r-0 max-[1100px]:border-b max-[900px]:border-r-0 max-[900px]:border-b">
                 <div className={endpointMetricLabel}>tok-in</div>
