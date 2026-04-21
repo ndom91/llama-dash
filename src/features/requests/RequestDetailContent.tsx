@@ -292,7 +292,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
                 body={responseAnalysis.displayBody}
                 headers={resHeaders}
-                mode={responseAnalysis.isJson ? 'pretty' : 'raw'}
+                mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
               />
             </div>
           </section>

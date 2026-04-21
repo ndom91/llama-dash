@@ -36,50 +36,59 @@ export function parseSseChunks(body: string) {
   return chunks
 }
 
-export function analyzeResponse(req: ApiRequestDetail) {
-  if (!req.responseBody) return { displayBody: '', isJson: false }
-  if (!req.streamed) {
-    return { displayBody: req.responseBody, isJson: tryPrettyJson(req.responseBody) != null }
-  }
+export type SseEvent = {
+  event: string | null
+  data: string
+  parsedData: Record<string, unknown> | null
+  isDone: boolean
+}
 
-  const chunks = parseSseChunks(req.responseBody)
-  if (chunks.length === 0) return { displayBody: req.responseBody, isJson: false }
-
-  let content = ''
-  let finishReason: string | null = null
-  let model: string | null = null
-  for (const chunk of chunks) {
-    model = typeof chunk.model === 'string' ? chunk.model : model
-    const choices = Array.isArray(chunk.choices) ? chunk.choices : []
-    for (const choice of choices) {
-      if (!choice || typeof choice !== 'object') continue
-      const finish = 'finish_reason' in choice ? choice.finish_reason : null
-      if (typeof finish === 'string') finishReason = finish
-      if ('delta' in choice && choice.delta && typeof choice.delta === 'object') {
-        const deltaContent = 'content' in choice.delta ? choice.delta.content : null
-        if (typeof deltaContent === 'string') content += deltaContent
+export function parseSseEvents(body: string): Array<SseEvent> {
+  const events: Array<SseEvent> = []
+  for (const block of body.split('\n\n')) {
+    if (!block.trim()) continue
+    let event: string | null = null
+    const dataLines: Array<string> = []
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.replace(/\r$/, '')
+      if (line.startsWith('event:')) {
+        event = line.slice(6).trim()
+      } else if (line.startsWith('data:')) {
+        dataLines.push(line.slice(line.startsWith('data: ') ? 6 : 5))
       }
     }
+    const data = dataLines.join('\n').trim()
+    if (event == null && data === '') continue
+    const isDone = data === '[DONE]'
+    let parsedData: Record<string, unknown> | null = null
+    if (!isDone && data !== '') {
+      try {
+        parsedData = JSON.parse(data) as Record<string, unknown>
+      } catch {}
+    }
+    events.push({ event, data, parsedData, isDone })
   }
+  return events
+}
 
-  return {
-    displayBody: JSON.stringify(
-      {
-        object: 'chat.completion',
-        model: model ?? req.model,
-        finish_reason: finishReason,
-        usage: {
-          prompt: req.promptTokens,
-          completion: req.completionTokens,
-          total: req.totalTokens,
-        },
-        choices: [{ message: { role: 'assistant', content } }],
-      },
-      null,
-      2,
-    ),
-    isJson: true,
+export type ResponseAnalysis = {
+  displayBody: string
+  isJson: boolean
+  isSse: boolean
+}
+
+export function analyzeResponse(req: ApiRequestDetail): ResponseAnalysis {
+  if (!req.responseBody) return { displayBody: '', isJson: false, isSse: false }
+  if (!req.streamed) {
+    return {
+      displayBody: req.responseBody,
+      isJson: tryPrettyJson(req.responseBody) != null,
+      isSse: false,
+    }
   }
+  // Streamed bodies render as a sequence of event/data blocks — the
+  // RequestSseEvents component handles parsing + per-event JSON highlight.
+  return { displayBody: req.responseBody, isJson: false, isSse: true }
 }
 
 export function analyzeTiming(req: ApiRequestDetail): RequestTiming {
