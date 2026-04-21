@@ -305,7 +305,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
               <span className="panel-sub">request • response</span>
               <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
             </div>
-            <div className="request-workspace-grid">
+            <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[900px]:grid-cols-1">
               <RequestPayloadPane
                 title="Request"
                 subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}

@@ -10,13 +10,17 @@ type Props = {
 
 export function DashboardStatCard({ label, value, unit, sparkline, color }: Props) {
   return (
-    <div className="stat-card dashboard-stat-card">
+    <div className="stat-card min-h-[68px] bg-[color:color-mix(in_srgb,var(--bg-1)_84%,var(--bg-2))] px-3.5 pt-3 pb-2.5">
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-row">
         <span className="stat-card-value">{value}</span>
         <span className="stat-card-unit">{unit}</span>
       </div>
-      {sparkline ? <Sparkline data={sparkline} height={32} color={color} /> : null}
+      {sparkline ? (
+        <div className="opacity-90">
+          <Sparkline data={sparkline} height={32} color={color} />
+        </div>
+      ) : null}
     </div>
   )
 }

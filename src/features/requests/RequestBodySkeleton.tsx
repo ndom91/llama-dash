@@ -31,7 +31,7 @@ type Props = {
 
 export function RequestBodySkeleton({ title }: Props) {
   return (
-    <section className="panel detail-body-panel">
+    <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
       <div className="panel-head">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· body</span>
