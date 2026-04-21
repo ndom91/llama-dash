@@ -1,5 +1,21 @@
 import { ulid } from 'ulidx'
+import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
+import { storeRecentBodies } from './recent-bodies.ts'
+
+function truncateBody(body: string | null, maxBytes: number): string | null {
+  if (body == null) return null
+  const fullBytes = Buffer.byteLength(body, 'utf8')
+  if (fullBytes <= maxBytes) return body
+  // Reserve room for the marker. Slice by code units (cheap) and trim any
+  // trailing partial UTF-8 sequence by re-measuring; SQLite stores UTF-8.
+  const MARKER_RESERVE = 128
+  let cut = body.slice(0, Math.max(0, maxBytes - MARKER_RESERVE))
+  while (Buffer.byteLength(cut, 'utf8') > maxBytes - MARKER_RESERVE) {
+    cut = cut.slice(0, -1)
+  }
+  return `${cut}\n...[truncated ${fullBytes - Buffer.byteLength(cut, 'utf8')} bytes]`
+}
 
 export type RequestLogInput = {
   startedAt: number
@@ -24,9 +40,15 @@ export type RequestLogInput = {
 }
 
 export function writeRequestLog(row: RequestLogInput) {
+  const id = `req_${ulid()}`
+  const { maxBytes } = getBodyLogLimits()
+  // Keep full bodies in-memory for recent-debug access; DB keeps truncated.
+  storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
+  const requestBody = truncateBody(row.requestBody, maxBytes)
+  const responseBody = truncateBody(row.responseBody, maxBytes)
   db.insert(schema.requests)
     .values({
-      id: `req_${ulid()}`,
+      id,
       startedAt: new Date(row.startedAt),
       durationMs: row.durationMs,
       method: row.method,
@@ -41,9 +63,9 @@ export function writeRequestLog(row: RequestLogInput) {
       streamed: row.streamed,
       error: row.error,
       requestHeaders: row.requestHeaders,
-      requestBody: row.requestBody,
+      requestBody,
       responseHeaders: row.responseHeaders,
-      responseBody: row.responseBody,
+      responseBody,
       streamCloseMs: row.streamCloseMs,
       keyId: row.keyId,
     })

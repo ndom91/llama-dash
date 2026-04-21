@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema } from '../db/index.ts'
+import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { listApiKeys } from './api-keys.ts'
 
 export type RequestRow = ApiRequest
@@ -48,6 +49,9 @@ export function getRequestById(id: string): RequestDetail | null {
     keyName = keys.find((k) => k.id === r.keyId)?.name ?? null
   }
 
+  // Fall back to the in-memory ring buffer for full bodies when the request
+  // is recent enough to still be cached (DB holds a truncated copy).
+  const recent = getRecentBodies(r.id)
   return {
     id: r.id,
     startedAt: r.startedAt.toISOString(),
@@ -65,9 +69,9 @@ export function getRequestById(id: string): RequestDetail | null {
     error: r.error,
     keyName,
     requestHeaders: r.requestHeaders,
-    requestBody: r.requestBody,
+    requestBody: recent?.requestBody ?? r.requestBody,
     responseHeaders: r.responseHeaders,
-    responseBody: r.responseBody,
+    responseBody: recent?.responseBody ?? r.responseBody,
     streamCloseMs: r.streamCloseMs,
   }
 }
