@@ -184,7 +184,7 @@ export function RequestsPage({ modelParam }: Props) {
     <div className="main-col">
       <TopBar actions={null} />
       <div className="content">
-        <div className="page flex min-h-full flex-1 bg-surface-0">
+        <div className="page flex min-h-full flex-1">
           <PageHeader
             kicker="req · log"
             title="Request log"

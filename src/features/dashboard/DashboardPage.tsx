@@ -49,7 +49,7 @@ export function DashboardPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page min-h-full bg-surface-0 px-0">
+        <div className="page min-h-full px-0">
           <PageHeader
             kicker="dsh · overview"
             title="Operator dashboard"
@@ -84,7 +84,7 @@ export function DashboardPage() {
           <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">
             <DashboardTelemetryPanel health={health} gpu={gpu} />
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)] max-[900px]:border-l-0">
-              <div className="grid grid-cols-4 gap-0 max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
+              <div className="dashboard-stats-row grid grid-cols-4 gap-0 max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
                 <DashboardStatCard
                   label="req/s · 1m"
                   value={stats ? formatRate(stats.reqPerSec) : '—'}

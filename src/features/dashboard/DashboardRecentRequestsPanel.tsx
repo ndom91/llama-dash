@@ -22,10 +22,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
         <span className="panel-sub">
           newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
         </span>
-        <Link
-          to="/requests"
-          className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-fg-dim hover:text-fg"
-        >
+        <Link to="/requests" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">
           view all
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>

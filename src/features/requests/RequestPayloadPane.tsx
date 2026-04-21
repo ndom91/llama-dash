@@ -27,26 +27,9 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
   return (
     <section className="flex min-h-0 h-full flex-col border-r border-border last:border-r-0">
       <div className="flex min-h-10 items-center gap-2.5 border-b border-border bg-surface-1 px-3">
-        <span className="panel-title">{title}</span>
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">{title}</span>
         <span className="panel-sub">{subtitle}</span>
-        <div className="ml-auto inline-flex gap-1">
-          <span
-            className={cn(
-              'rounded-[3px] border border-transparent px-1.5 py-0.5 font-mono text-[10px] text-fg-dim',
-              mode === 'pretty' && 'border-border-strong bg-surface-3 text-fg',
-            )}
-          >
-            pretty
-          </span>
-          <span
-            className={cn(
-              'rounded-[3px] border border-transparent px-1.5 py-0.5 font-mono text-[10px] text-fg-dim',
-              mode === 'raw' && 'border-border-strong bg-surface-3 text-fg',
-            )}
-          >
-            raw
-          </span>
-        </div>
+        <div className="ml-auto" />
         <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy}>
           <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
             <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
@@ -60,7 +43,9 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
       </pre>
       {headerEntries.length > 0 ? (
         <div className="min-h-[25%] max-h-[50%] overflow-auto border-t border-border">
-          <div className="px-3 pt-2.5 pb-0 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Headers</div>
+          <div className="sticky top-0 z-[1] border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim [background:color-mix(in_srgb,var(--bg-0)_72%,var(--bg-1))]">
+            Headers
+          </div>
           <table className="dtable headers-table">
             <tbody>
               {headerEntries.map(([k, v]) => (

@@ -17,7 +17,7 @@ export function RequestDetailPage({ id }: Props) {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page min-h-full bg-surface-0">
+        <div className="page min-h-full">
           {error ? (
             <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
           ) : req == null ? (

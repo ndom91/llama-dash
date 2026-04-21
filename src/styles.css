@@ -58,10 +58,10 @@
     grid-template-rows: auto 1fr;
   }
   .content {
-    @apply flex flex-1 min-h-0 flex-col overflow-auto bg-surface-0;
+    @apply flex flex-1 min-h-0 flex-col overflow-auto bg-surface-1;
   }
   .page {
-    @apply flex flex-col gap-0;
+    @apply flex flex-col gap-0 bg-surface-1;
   }
   .btn {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
@@ -130,17 +130,24 @@
     @apply flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
   }
   .panel-title {
-    @apply text-xs font-semibold tracking-[-0.005em] text-fg;
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim;
   }
   .panel-sub {
     @apply font-mono text-[11px] text-fg-dim;
+  }
+  .panel-link {
+    @apply text-accent;
+  }
+  .panel-link:hover {
+    @apply text-accent-strong;
   }
 
   .dtable {
     @apply w-full border-collapse text-xs;
   }
   .dtable thead th {
-    @apply bg-surface-1 text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-3.5 py-2 border-b border-border sticky top-0 z-[1];
+    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-3.5 py-2 border-b border-border sticky top-0 z-[1];
+    background: color-mix(in srgb, var(--bg-0) 72%, var(--bg-1));
   }
   .dtable thead th.num {
     @apply text-right;
@@ -191,10 +198,10 @@
   --ld-phosphor-700: #7b5ca0;
 
   /* surfaces */
-  --ld-surface-0: #070809;
-  --ld-surface-1: #0e1114;
-  --ld-surface-2: #161a1d;
-  --ld-border: #1f2327;
+  --ld-surface-0: #0b0e11;
+  --ld-surface-1: #101419;
+  --ld-surface-2: #171c21;
+  --ld-border: #22282d;
 
   /* text on dark */
   --ld-text-1: #d6dbd9;
@@ -1047,7 +1054,7 @@
 
 .page-header {
   padding: 10px 24px 12px;
-  background: color-mix(in srgb, var(--bg-1) 72%, var(--bg-2));
+  background: color-mix(in srgb, var(--bg-1) 82%, var(--bg-2));
   border-bottom: 1px solid var(--border);
 }
 
@@ -1097,6 +1104,7 @@
    below it should not add another top border. */
 .dashboard-stats-row {
   border-top: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
 }
 
 @media (max-width: 900px) {
@@ -1338,7 +1346,7 @@ a,
 }
 
 .stat-card {
-  background: var(--bg-1);
+  background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-2));
   border-right: 1px solid var(--border);
   padding: 14px 16px;
   display: flex;

@@ -22,10 +22,7 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
       <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
-        <Link
-          to="/models"
-          className="ml-auto inline-flex items-center gap-1 font-mono text-[11px] text-fg-dim hover:text-fg"
-        >
+        <Link to="/models" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">
           manage
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
