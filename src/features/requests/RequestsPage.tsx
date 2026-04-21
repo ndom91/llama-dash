@@ -12,6 +12,7 @@ import { cn } from '../../lib/cn'
 import { useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
+import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
@@ -218,258 +219,273 @@ export function RequestsPage({ modelParam }: Props) {
 
           {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
-          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
-            <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
-                <div className="relative min-w-0">
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-fg-dim"
-                    size={14}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                    placeholder="endpoint, model, status"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  {!search ? (
-                    <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
-                      /
-                    </span>
-                  ) : null}
-                  {search ? (
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
-                      onClick={() => setSearch('')}
-                      aria-label="Clear search"
-                    >
-                      <X size={12} strokeWidth={2} />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-                >
-                  <option value="all">All status</option>
-                  <option value="ok">Success</option>
-                  <option value="err">Errors</option>
-                </select>
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  value={modelFilter}
-                  onChange={(e) => setModelFilter(e.target.value)}
-                >
-                  <option value="all">All models</option>
-                  {models.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  value={keyFilter}
-                  onChange={(e) => setKeyFilter(e.target.value)}
-                >
-                  <option value="all">All keys</option>
-                  <option value="__none__">No key</option>
-                  {keyNames.map((k) => (
-                    <option key={k} value={k}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {hasFilters ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs self-start"
-                  onClick={() => {
-                    setSearch('')
-                    setStatusFilter('all')
-                    setModelFilter('all')
-                    setKeyFilter('all')
-                  }}
-                >
-                  Clear filters
-                </button>
-              ) : null}
-            </aside>
-
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
-              {histogram && histogram.length > 0 ? (
-                <section className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!">
-                  <div className="histogram-header panel-head bg-transparent px-4">
-                    <div>
-                      <span className="panel-title">req/s</span>
-                      <span className="panel-sub" style={{ marginLeft: 8 }}>
-                        last 60m · bucket 1m
+          {isLoading ? (
+            <RequestsPageSkeleton />
+          ) : (
+            <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
+              <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
+                  <div className="relative min-w-0">
+                    <Search
+                      className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-fg-dim"
+                      size={14}
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                      placeholder="endpoint, model, status"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                    {!search ? (
+                      <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
+                        /
                       </span>
-                    </div>
+                    ) : null}
+                    {search ? (
+                      <button
+                        type="button"
+                        className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
+                        onClick={() => setSearch('')}
+                        aria-label="Clear search"
+                      >
+                        <X size={12} strokeWidth={2} />
+                      </button>
+                    ) : null}
                   </div>
-                  <RequestsHistogram buckets={histogram} />
-                  <div className="histogram-labels px-4 pb-3">
-                    <span>-60m</span>
-                    <span>-40m</span>
-                    <span>-20m</span>
-                    <span>now</span>
-                  </div>
-                </section>
-              ) : null}
-
-              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-                <div className="panel-head bg-transparent px-4">
-                  <span className="panel-title">Log</span>
-                  <span className="panel-sub">
-                    {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
-                  </span>
-                  <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>
-                {isLoading ? (
-                  <div className="empty-state">loading…</div>
-                ) : rows.length === 0 ? (
-                  <div className="empty-state">
-                    {hasFilters ? (
-                      'no requests match filters'
-                    ) : (
-                      <>
-                        no requests yet. call <code translate="no">/v1/*</code> to populate.
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
-                    <table className="dtable dtable-virtual">
-                      <RequestsVirtualColgroup />
-                      <thead>
-                        <tr>
-                          <RequestsSortHeader
-                            field="startedAt"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="mono"
-                          >
-                            t
-                          </RequestsSortHeader>
-                          <th className="mono">endpoint</th>
-                          <th>model</th>
-                          <RequestsSortHeader field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
-                            status
-                          </RequestsSortHeader>
-                          <RequestsSortHeader
-                            field="totalTokens"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="num"
-                          >
-                            tok-in
-                          </RequestsSortHeader>
-                          <th className="num">tok-out</th>
-                          <th className="num">cache</th>
-                          <th className="num">cost</th>
-                          <RequestsSortHeader
-                            field="durationMs"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="num"
-                          >
-                            duration
-                          </RequestsSortHeader>
-                        </tr>
-                      </thead>
-                    </table>
-                    <div ref={scrollRef} className="dtable-virtual-body">
-                      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-                        {virtualizer.getVirtualItems().map((vRow) => {
-                          const r = rows[vRow.index]
-                          return (
-                            // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
-                            <div
-                              key={r.id}
-                              tabIndex={-1}
-                              className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: REQUESTS_ROW_HEIGHT,
-                                transform: `translateY(${vRow.start}px)`,
-                              }}
-                              onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
-                              }}
-                            >
-                              <table className="dtable dtable-virtual">
-                                <RequestsVirtualColgroup />
-                                <tbody>
-                                  <tr>
-                                    <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                                      {formatWhen(r.startedAt)}
-                                    </td>
-                                    <td className="mono" translate="no">
-                                      {r.endpoint}
-                                    </td>
-                                    <td
-                                      className="dim"
-                                      style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                      translate="no"
-                                    >
-                                      {r.model ?? '—'}
-                                    </td>
-                                    <td>
-                                      <StatusCell code={r.statusCode} streamed={r.streamed} />
-                                    </td>
-                                    <td className="num dim">{r.promptTokens ?? '—'}</td>
-                                    <td className="num">{r.completionTokens ?? '—'}</td>
-                                    <td className="num dim">{r.cacheReadTokens?.toLocaleString() ?? '—'}</td>
-                                    <td className="num">{r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}</td>
-                                    <td>
-                                      <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
-                                    </td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          )
-                        })}
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
+                  <select
+                    className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                  >
+                    <option value="all">All status</option>
+                    <option value="ok">Success</option>
+                    <option value="err">Errors</option>
+                  </select>
+                </div>
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
+                  <select
+                    className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    value={modelFilter}
+                    onChange={(e) => setModelFilter(e.target.value)}
+                  >
+                    <option value="all">All models</option>
+                    {models.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
+                  <select
+                    className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    value={keyFilter}
+                    onChange={(e) => setKeyFilter(e.target.value)}
+                  >
+                    <option value="all">All keys</option>
+                    <option value="__none__">No key</option>
+                    {keyNames.map((k) => (
+                      <option key={k} value={k}>
+                        {k}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {hasFilters ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs self-start"
+                    onClick={() => {
+                      setSearch('')
+                      setStatusFilter('all')
+                      setModelFilter('all')
+                      setKeyFilter('all')
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+              </aside>
+
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
+                {histogram && histogram.length > 0 ? (
+                  <section className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!">
+                    <div className="histogram-header panel-head bg-transparent px-4">
+                      <div>
+                        <span className="panel-title">req/s</span>
+                        <span className="panel-sub" style={{ marginLeft: 8 }}>
+                          last 60m · bucket 1m
+                        </span>
                       </div>
-                      {isFetchingNextPage ? (
-                        <div className="empty-state" style={{ paddingBlock: 8 }}>
-                          loading more…
-                        </div>
-                      ) : null}
                     </div>
+                    <RequestsHistogram buckets={histogram} />
+                    <div className="histogram-labels px-4 pb-3">
+                      <span>-60m</span>
+                      <span>-40m</span>
+                      <span>-20m</span>
+                      <span>now</span>
+                    </div>
+                  </section>
+                ) : null}
+
+                <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+                  <div className="panel-head bg-transparent px-4">
+                    <span className="panel-title">Log</span>
+                    <span className="panel-sub">
+                      {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                    </span>
+                    <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                   </div>
-                )}
-              </section>
+                  {rows.length === 0 ? (
+                    <div className="empty-state">
+                      {hasFilters ? (
+                        'no requests match filters'
+                      ) : (
+                        <>
+                          no requests yet. call <code translate="no">/v1/*</code> to populate.
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
+                      <table className="dtable dtable-virtual">
+                        <RequestsVirtualColgroup />
+                        <thead>
+                          <tr>
+                            <RequestsSortHeader
+                              field="startedAt"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="mono"
+                            >
+                              t
+                            </RequestsSortHeader>
+                            <th className="mono">endpoint</th>
+                            <th>model</th>
+                            <RequestsSortHeader
+                              field="statusCode"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                            >
+                              status
+                            </RequestsSortHeader>
+                            <RequestsSortHeader
+                              field="totalTokens"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="num"
+                            >
+                              tok-in
+                            </RequestsSortHeader>
+                            <th className="num">tok-out</th>
+                            <th className="num">cache</th>
+                            <th className="num">cost</th>
+                            <RequestsSortHeader
+                              field="durationMs"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="num"
+                            >
+                              duration
+                            </RequestsSortHeader>
+                          </tr>
+                        </thead>
+                      </table>
+                      <div ref={scrollRef} className="dtable-virtual-body">
+                        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                          {virtualizer.getVirtualItems().map((vRow) => {
+                            const r = rows[vRow.index]
+                            return (
+                              // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
+                              <div
+                                key={r.id}
+                                tabIndex={-1}
+                                className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: REQUESTS_ROW_HEIGHT,
+                                  transform: `translateY(${vRow.start}px)`,
+                                }}
+                                onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                                }}
+                              >
+                                <table className="dtable dtable-virtual">
+                                  <RequestsVirtualColgroup />
+                                  <tbody>
+                                    <tr>
+                                      <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                                        {formatWhen(r.startedAt)}
+                                      </td>
+                                      <td className="mono" translate="no">
+                                        {r.endpoint}
+                                      </td>
+                                      <td
+                                        className="dim"
+                                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                        translate="no"
+                                      >
+                                        {r.model ?? '—'}
+                                      </td>
+                                      <td>
+                                        <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      </td>
+                                      <td className="num dim">{r.promptTokens ?? '—'}</td>
+                                      <td className="num">{r.completionTokens ?? '—'}</td>
+                                      <td className="num dim">
+                                        {'cacheReadTokens' in r ? (r.cacheReadTokens?.toLocaleString() ?? '—') : '—'}
+                                      </td>
+                                      <td className="num">
+                                        {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
+                                      </td>
+                                      <td>
+                                        <DurationBar
+                                          ms={r.durationMs}
+                                          maxMs={maxDuration}
+                                          isErr={r.statusCode >= 400}
+                                        />
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {isFetchingNextPage ? (
+                          <div className="empty-state" style={{ paddingBlock: 8 }}>
+                            loading more…
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

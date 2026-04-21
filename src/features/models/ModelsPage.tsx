@@ -6,6 +6,7 @@ import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
 import { useLoadModel, useModels, useUnloadAll, useUnloadModel } from '../../lib/queries'
 import { ModelRow } from './ModelRow'
+import { ModelsPageSkeleton } from './ModelsPageSkeleton'
 
 export function ModelsPage() {
   const { data: models, error, isRefetching, refetch } = useModels()
@@ -61,7 +62,7 @@ export function ModelsPage() {
 
           <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             {models == null ? (
-              <div className="empty-state px-6 max-md:px-3">loading…</div>
+              <ModelsPageSkeleton />
             ) : models.length === 0 ? (
               <div className="empty-state px-6 max-md:px-3">no models configured in llama-swap.</div>
             ) : (

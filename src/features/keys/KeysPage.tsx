@@ -8,6 +8,7 @@ import { CreateKeyForm } from './CreateKeyForm'
 import { KeyCreatedBanner } from './KeyCreatedBanner'
 import { KeyRow } from './KeyRow'
 import { KeysEmptyState } from './KeysEmptyState'
+import { KeysPageSkeleton } from './KeysPageSkeleton'
 
 export function KeysPage() {
   const { data: keys, error, isLoading } = useApiKeys()
@@ -46,7 +47,7 @@ export function KeysPage() {
 
           <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             {isLoading ? (
-              <div className="empty-state px-6 max-md:px-3">loading…</div>
+              <KeysPageSkeleton />
             ) : !keys || keys.length === 0 ? (
               <KeysEmptyState />
             ) : (
