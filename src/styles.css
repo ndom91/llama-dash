@@ -130,7 +130,7 @@
     @apply flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
   }
   .panel-title {
-    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim;
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-muted;
   }
   .panel-sub {
     @apply font-mono text-[11px] text-fg-dim;
