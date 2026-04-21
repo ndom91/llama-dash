@@ -10,6 +10,7 @@ import { Tooltip } from '../../components/Tooltip'
 import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
 import { useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
@@ -410,6 +411,8 @@ export function RequestsPage({ modelParam }: Props) {
                             tok-in
                           </RequestsSortHeader>
                           <th className="num">tok-out</th>
+                          <th className="num">cache</th>
+                          <th className="num">cost</th>
                           <RequestsSortHeader
                             field="durationMs"
                             current={sortKey}
@@ -467,6 +470,8 @@ export function RequestsPage({ modelParam }: Props) {
                                     </td>
                                     <td className="num dim">{r.promptTokens ?? '—'}</td>
                                     <td className="num">{r.completionTokens ?? '—'}</td>
+                                    <td className="num dim">{r.cacheReadTokens?.toLocaleString() ?? '—'}</td>
+                                    <td className="num">{r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}</td>
                                     <td>
                                       <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
                                     </td>
