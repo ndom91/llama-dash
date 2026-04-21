@@ -34,7 +34,7 @@ export function KeyDetailContent({ data }: Props) {
         }
         variant="integrated"
         action={
-          <div className="detail-header-actions">
+          <div className="flex items-center gap-2">
             <button type="button" className="btn btn-ghost btn-xs" disabled>
               <RotateCw size={12} strokeWidth={2} />
               rotate
@@ -52,11 +52,11 @@ export function KeyDetailContent({ data }: Props) {
         }
       />
 
-      <div className="detail-sidecar-shell">
-        <aside className="detail-meta-rail">
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Key</div>
-            <dl className="detail-meta-list">
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)_350px] items-stretch gap-0 max-[1200px]:grid-cols-[240px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+        <aside className="border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+          <div>
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
+            <dl className="grid gap-2 m-0">
               <div>
                 <dt>status</dt>
                 <dd>
@@ -79,9 +79,9 @@ export function KeyDetailContent({ data }: Props) {
             </dl>
           </div>
 
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Limits</div>
-            <dl className="detail-meta-list">
+          <div className="mt-3.5 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-3.5">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Limits</div>
+            <dl className="grid gap-2 m-0">
               <div>
                 <dt>rpm</dt>
                 <dd>{key.rateLimitRpm?.toLocaleString() ?? '—'}</dd>
@@ -98,7 +98,7 @@ export function KeyDetailContent({ data }: Props) {
           </div>
         </aside>
 
-        <div className="detail-main-stack detail-key-main">
+        <div className="flex min-h-0 min-w-0 flex-col gap-0">
           <KeyStatsRow stats={stats} />
           <KeyDefaultModelPanel keyId={key.id} defaultModel={key.defaultModel} isRevoked={isRevoked} />
           <KeySystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
@@ -111,15 +111,17 @@ export function KeyDetailContent({ data }: Props) {
           <KeyRequestsPanel rows={requests.rows} />
         </div>
 
-        <aside className="detail-sidecar detail-sidecar-dark">
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Use this key</div>
-            <pre className="detail-sidecar-code">{buildKeySnippet(key.keyPrefix)}</pre>
+        <aside className="bg-[color:color-mix(in_srgb,var(--bg-0)_92%,black_8%)] px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+          <section>
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Use this key</div>
+            <pre className="m-0 whitespace-pre-wrap bg-[color:color-mix(in_srgb,var(--bg-1)_84%,var(--bg-2))] border border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] p-3 font-mono text-[11px] leading-[1.55] text-fg-dim">
+              {buildKeySnippet(key.keyPrefix)}
+            </pre>
           </section>
 
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Activity · 30m</div>
-            <dl className="detail-sidecar-metrics">
+          <section className="mt-4 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-4">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Activity · 30m</div>
+            <dl className="grid gap-2 m-0">
               <div>
                 <dt>requests</dt>
                 <dd>{stats.totalRequests}</dd>

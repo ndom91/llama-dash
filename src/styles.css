@@ -523,111 +523,71 @@
 }
 
 .detail-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  @apply flex items-center gap-2;
 }
 
 .detail-sidecar-shell {
-  display: grid;
+  @apply grid min-h-0 flex-1 items-stretch gap-0;
   grid-template-columns: 240px minmax(0, 1fr) 350px;
-  gap: 0;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
 }
 
 .detail-main-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-width: 0;
-  min-height: 0;
+  @apply flex min-h-0 min-w-0 flex-col gap-0;
 }
 
 .detail-fill-panel {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
+  @apply flex min-h-0 flex-1 flex-col;
 }
 
 .detail-fill-panel .empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-1 items-center justify-center;
 }
 
 .detail-meta-rail {
-  background: var(--bg-1);
+  @apply bg-surface-1 px-3.5 py-4;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-  padding: 16px 14px;
 }
 
 .detail-meta-section + .detail-meta-section {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  @apply mt-3.5 border-t pt-3.5;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
 }
 
 .detail-meta-kicker {
-  margin-bottom: 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--fg-dim);
+  @apply mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim;
 }
 
 .detail-meta-list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
+  @apply m-0 grid gap-2;
 }
 
 .detail-meta-list > div {
-  display: grid;
+  @apply grid items-center gap-2;
   grid-template-columns: 72px 1fr;
-  gap: 8px;
-  align-items: center;
 }
 
 .detail-meta-list dt {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--fg-dim);
+  @apply font-mono text-[11px] text-fg-dim;
 }
 
 .detail-meta-list dd {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 12px;
-  color: var(--fg);
+  @apply m-0 inline-flex items-center gap-1.5 text-xs text-fg;
 }
 
 .detail-meta-links {
-  display: grid;
-  gap: 6px;
+  @apply grid gap-1.5;
 }
 
 .detail-meta-link {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--fg-muted);
-  text-decoration: none;
+  @apply font-mono text-[11px] text-fg-muted no-underline;
 }
 
 .detail-meta-link:hover {
-  color: var(--fg);
+  @apply text-fg;
 }
 
 .detail-sidecar {
-  background: var(--bg-0);
-  min-height: 100%;
-  padding: 12px 14px;
+  @apply min-h-full bg-surface-0 px-3.5 py-3;
 }
 
 .detail-sidecar-dark {
@@ -641,63 +601,42 @@
 }
 
 .detail-sidecar-section + .detail-sidecar-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  @apply mt-4 border-t pt-4;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
 }
 
 .detail-sidecar-title {
-  margin-bottom: 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--fg-dim);
+  @apply mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim;
 }
 
 .detail-sidecar-code {
-  margin: 0;
-  padding: 12px;
+  @apply m-0 whitespace-pre-wrap border px-3 py-3 font-mono text-[11px] leading-[1.55] text-fg-muted;
   background: color-mix(in srgb, var(--bg-1) 84%, var(--bg-2));
-  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  color: var(--fg-muted);
+  border-color: color-mix(in srgb, var(--border) 86%, transparent);
 }
 
 .detail-sidecar-metrics {
-  display: grid;
-  gap: 10px;
-  margin: 0;
+  @apply m-0 grid gap-2.5;
 }
 
 .detail-sidecar-metrics > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 12px;
+  @apply flex justify-between gap-2.5 font-mono text-xs;
 }
 
 .detail-sidecar-metrics dt {
-  color: var(--fg-dim);
+  @apply text-fg-dim;
 }
 
 .detail-sidecar-metrics dd {
-  margin: 0;
-  color: var(--fg);
+  @apply m-0 text-fg;
 }
 
 .detail-sidecar-danger {
-  display: grid;
-  gap: 8px;
+  @apply grid gap-2;
 }
 
 .detail-sidecar-danger .btn {
-  width: 100%;
-  justify-content: center;
+  @apply w-full justify-center;
 }
 
 @media (max-width: 1200px) {
@@ -724,17 +663,11 @@
 }
 
 .detail-header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+  @apply flex shrink-0 items-center gap-2.5;
 }
 
 .detail-nav-arrows {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
+  @apply flex shrink-0 items-center gap-1.5;
 }
 
 .nav-arrow {
@@ -816,9 +749,8 @@
 }
 
 .detail-grid {
-  display: grid;
+  @apply grid gap-4;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
 }
 
 .dl-grid {
@@ -870,14 +802,7 @@
 }
 
 .detail-error {
-  margin: 0;
-  padding: 14px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--err);
-  white-space: pre-wrap;
-  word-break: break-all;
-  line-height: 1.5;
+  @apply m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err;
 }
 
 .panel-toggle {
@@ -895,46 +820,22 @@
 }
 
 .body-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 14px;
-  border-bottom: 1px solid var(--border);
+  @apply flex items-center justify-between border-b px-3.5 py-1.5;
 }
 .body-tabs {
-  display: flex;
-  gap: 2px;
+  @apply flex gap-0.5;
 }
 .body-tab {
-  border: none;
-  background: none;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--fg-dim);
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: background-color var(--duration-micro) ease, color var(--duration-micro) ease;
+  @apply rounded-sm bg-transparent px-2.5 py-[3px] font-mono text-[11px] text-fg-dim transition-colors;
 }
 .body-tab:hover {
-  color: var(--fg-muted);
-  background: var(--bg-3);
+  @apply bg-surface-3 text-fg-muted;
 }
 .body-tab.active {
-  color: var(--accent);
-  background: var(--bg-3);
+  @apply bg-surface-3 text-accent;
 }
 .body-pre {
-  margin: 0;
-  padding: 14px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
-  overflow: auto;
-  max-height: 600px;
-  color: var(--fg);
+  @apply m-0 max-h-[600px] overflow-auto whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-fg;
 }
 .body-pre::-webkit-scrollbar {
   width: 10px;

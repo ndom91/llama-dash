@@ -61,8 +61,8 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
         subtitle={<span translate="no">{req.model ? `${req.model}` : 'request detail'}</span>}
         variant="integrated"
         action={
-          <div className="detail-header-actions">
-            <div className="detail-nav-arrows">
+          <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
                   <>
@@ -74,7 +74,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 <Link
                   to="/requests/$id"
                   params={{ id: prevId ?? '' }}
-                  className={`nav-arrow${prevId ? '' : ' disabled'}`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${prevId ? '' : 'pointer-events-none opacity-30'}`}
                   disabled={!prevId}
                   aria-disabled={!prevId}
                   onClick={(e) => !prevId && e.preventDefault()}
@@ -93,7 +93,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 <Link
                   to="/requests/$id"
                   params={{ id: nextId ?? '' }}
-                  className={`nav-arrow${nextId ? '' : ' disabled'}`}
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${nextId ? '' : 'pointer-events-none opacity-30'}`}
                   disabled={!nextId}
                   aria-disabled={!nextId}
                   onClick={(e) => !nextId && e.preventDefault()}
@@ -121,93 +121,113 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
         }
       />
 
-      <div className="detail-sidecar-shell request-detail-shell">
-        <aside className="detail-meta-rail request-detail-meta-rail">
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Summary</div>
-            <dl className="detail-meta-list">
+      <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_280px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+        <aside className="border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+          <div>
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Summary</div>
+            <dl className="grid gap-2 m-0">
               <div>
-                <dt>method</dt>
-                <dd>{req.method}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">method</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">{req.method}</dd>
               </div>
               <div>
-                <dt>endpoint</dt>
-                <dd className="mono">{req.endpoint}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">endpoint</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg mono">{req.endpoint}</dd>
               </div>
               <div>
-                <dt>status</dt>
-                <dd className={ok ? 'text-ok' : 'text-err'}>
+                <dt className="font-mono text-[11px] text-fg-dim">status</dt>
+                <dd className={`m-0 inline-flex items-center gap-1.5 text-xs ${ok ? 'text-ok' : 'text-err'}`}>
                   {req.statusCode} {ok ? 'OK' : ''}
                 </dd>
               </div>
               <div>
-                <dt>stream</dt>
-                <dd>{req.streamed ? 'yes • SSE' : 'no'}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">stream</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {req.streamed ? 'yes • SSE' : 'no'}
+                </dd>
               </div>
               <div>
-                <dt>key</dt>
-                <dd>{req.keyName ?? 'system'}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">key</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">{req.keyName ?? 'system'}</dd>
               </div>
               <div>
-                <dt>client</dt>
-                <dd>{clientLabel ?? '—'}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">client</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">{clientLabel ?? '—'}</dd>
               </div>
             </dl>
           </div>
 
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Model</div>
-            <dl className="detail-meta-list">
+          <div className="mt-3.5 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-3.5">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
+            <dl className="grid gap-2 m-0">
               <div>
-                <dt>requested</dt>
-                <dd>{requestPayload.model ?? '—'}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">requested</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">{requestPayload.model ?? '—'}</dd>
               </div>
               <div>
-                <dt>served</dt>
-                <dd>{req.model ?? '—'}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">served</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">{req.model ?? '—'}</dd>
               </div>
               <div>
-                <dt>rewrite</dt>
-                <dd>{deriveRewriteLabel(requestPayload.model, req.model, resHeaders) ?? '—'}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Timing</div>
-            <dl className="detail-meta-list">
-              <div>
-                <dt>queue</dt>
-                <dd>{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>prefill</dt>
-                <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>ttft</dt>
-                <dd>{timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>total</dt>
-                <dd>{formatDuration(req.durationMs)}</dd>
+                <dt className="font-mono text-[11px] text-fg-dim">rewrite</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {deriveRewriteLabel(requestPayload.model, req.model, resHeaders) ?? '—'}
+                </dd>
               </div>
             </dl>
           </div>
 
-          <div className="detail-meta-section">
-            <div className="detail-meta-kicker">Related</div>
-            <div className="detail-meta-links">
+          <div className="mt-3.5 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-3.5">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Timing</div>
+            <dl className="grid gap-2 m-0">
+              <div>
+                <dt className="font-mono text-[11px] text-fg-dim">queue</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[11px] text-fg-dim">prefill</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[11px] text-fg-dim">ttft</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[11px] text-fg-dim">total</dt>
+                <dd className="m-0 inline-flex items-center gap-1.5 text-xs text-fg">
+                  {formatDuration(req.durationMs)}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="mt-3.5 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-3.5">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Related</div>
+            <div className="grid gap-1.5">
               {prevId ? (
-                <Link to="/requests/$id" params={{ id: prevId }} className="detail-meta-link">
+                <Link
+                  to="/requests/$id"
+                  params={{ id: prevId }}
+                  className="font-mono text-[11px] text-fg-muted hover:text-fg"
+                >
                   ↩ prev
                 </Link>
               ) : null}
-              <span className="detail-meta-link detail-meta-link-active">
+              <span className="font-mono text-[11px] text-fg-muted">
                 ↪ this · {new Date(req.startedAt).toLocaleTimeString([], { hour12: false })} · {req.statusCode}
               </span>
               {nextId ? (
-                <Link to="/requests/$id" params={{ id: nextId }} className="detail-meta-link">
+                <Link
+                  to="/requests/$id"
+                  params={{ id: nextId }}
+                  className="font-mono text-[11px] text-fg-muted hover:text-fg"
+                >
                   ↪ next
                 </Link>
               ) : null}
@@ -215,39 +235,45 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
           </div>
         </aside>
 
-        <div className="detail-main-stack request-detail-main">
-          <div className="detail-hero request-detail-hero detail-stacked-section">
-            <div className="detail-endpoint">
-              <div className="detail-endpoint-kicker">endpoint</div>
-              <div className="detail-endpoint-row">
-                <span className="detail-endpoint-method">{req.method}</span>
-                <span className="detail-endpoint-path">{req.endpoint}</span>
+        <div className="flex min-h-0 min-w-0 flex-col gap-0">
+          <div className="border-r border-border bg-[color:color-mix(in_srgb,var(--bg-1)_84%,var(--bg-2))] px-4 py-4 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
+            <div className="flex flex-wrap items-start gap-6">
+              <div className="min-w-[280px]">
+                <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">endpoint</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded bg-surface-3 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                    {req.method}
+                  </span>
+                  <span className="font-mono text-sm text-fg" translate="no">
+                    {req.endpoint}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="detail-stats-strip request-detail-hero-stats">
-              <div className="detail-stat">
-                <span className="detail-stat-label">status</span>
-                <span className={`detail-stat-value ${ok ? 'is-ok' : 'is-err'}`}>{req.statusCode}</span>
-              </div>
-              <div className="detail-stat">
-                <span className="detail-stat-label">tok-in</span>
-                <span className="detail-stat-value">{req.promptTokens?.toLocaleString() ?? '—'}</span>
-              </div>
-              <div className="detail-stat">
-                <span className="detail-stat-label">tok-out</span>
-                <span className="detail-stat-value">{req.completionTokens?.toLocaleString() ?? '—'}</span>
-              </div>
-              <div className="detail-stat">
-                <span className="detail-stat-label">total</span>
-                <span className="detail-stat-value">{req.totalTokens?.toLocaleString() ?? '—'}</span>
-              </div>
-              <div className="detail-stat">
-                <span className="detail-stat-label">duration</span>
-                <span className="detail-stat-value">{formatDuration(req.durationMs)}</span>
-              </div>
-              <div className="detail-stat">
-                <span className="detail-stat-label">tok/s</span>
-                <span className="detail-stat-value">{tokPerSec?.toLocaleString() ?? '—'}</span>
+              <div className="grid min-w-0 flex-1 grid-cols-3 gap-2 max-[700px]:grid-cols-2">
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">status</span>
+                  <span className={`text-sm font-semibold ${ok ? 'text-ok' : 'text-err'}`}>{req.statusCode}</span>
+                </div>
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">tok-in</span>
+                  <span className="text-sm font-semibold text-fg">{req.promptTokens?.toLocaleString() ?? '—'}</span>
+                </div>
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">tok-out</span>
+                  <span className="text-sm font-semibold text-fg">{req.completionTokens?.toLocaleString() ?? '—'}</span>
+                </div>
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">total</span>
+                  <span className="text-sm font-semibold text-fg">{req.totalTokens?.toLocaleString() ?? '—'}</span>
+                </div>
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">duration</span>
+                  <span className="text-sm font-semibold text-fg">{formatDuration(req.durationMs)}</span>
+                </div>
+                <div className="rounded border border-border bg-surface-1 px-3 py-2.5">
+                  <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">tok/s</span>
+                  <span className="text-sm font-semibold text-fg">{tokPerSec?.toLocaleString() ?? '—'}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -261,23 +287,23 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
           ) : null}
 
           {req.error ? (
-            <section className="panel request-detail-panel detail-stacked-section">
-              <div className="panel-head request-detail-panel-head">
+            <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
+              <div className="panel-head bg-surface-1 px-4">
                 <span className="panel-title" style={{ color: 'var(--err)' }}>
                   Error
                 </span>
               </div>
-              <pre className="detail-error">{req.error}</pre>
+              <pre className="m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err">
+                {req.error}
+              </pre>
             </section>
           ) : null}
 
-          <section className="panel request-detail-workspace detail-stacked-section detail-fill-panel">
-            <div className="panel-head request-detail-panel-head request-workspace-head">
+          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+            <div className="panel-head bg-surface-1 px-4">
               <span className="panel-title">Payloads</span>
               <span className="panel-sub">request • response</span>
-              <span className="panel-sub" style={{ marginLeft: 'auto' }}>
-                {byteSize(req.requestBody ?? '')} on the wire
-              </span>
+              <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
             </div>
             <div className="request-workspace-grid">
               <RequestPayloadPane
@@ -298,10 +324,10 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
           </section>
         </div>
 
-        <aside className="detail-sidecar detail-sidecar-dark request-detail-sidecar">
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Tokens</div>
-            <div className="request-token-pair">
+        <aside className="bg-[color:color-mix(in_srgb,var(--bg-0)_92%,black_8%)] px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+          <section>
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Tokens</div>
+            <div className="grid gap-2">
               <div>
                 <span className="label">in</span>
                 <strong>{req.promptTokens?.toLocaleString() ?? '—'}</strong>
@@ -313,9 +339,9 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
             </div>
           </section>
 
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Phases</div>
-            <dl className="detail-sidecar-metrics">
+          <section className="mt-4 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-4">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Phases</div>
+            <dl className="grid gap-2 m-0">
               <div>
                 <dt>queue</dt>
                 <dd>{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
@@ -339,13 +365,13 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
             </dl>
           </section>
 
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Request ID</div>
-            <div className="detail-sidecar-id mono">{req.id}</div>
+          <section className="mt-4 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-4">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Request ID</div>
+            <div className="mono text-xs text-fg">{req.id}</div>
           </section>
 
-          <section className="detail-sidecar-section detail-sidecar-danger">
-            <div className="detail-sidecar-title">Actions</div>
+          <section className="mt-4 grid gap-2 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-4">
+            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">Actions</div>
             <Link to="/playground" className="btn btn-sm">
               Open in Playground
             </Link>
