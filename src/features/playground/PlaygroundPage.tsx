@@ -58,15 +58,14 @@ export function PlaygroundPage({ searchTab }: Props) {
             }
           />
 
-          <div className="flex gap-0 border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color-mix(in_srgb,var(--bg-1)_52%,transparent)] px-6">
+          <div className="flex gap-0 border-b border-border bg-surface-0 px-6">
             {PLAYGROUND_TABS.map((item) => (
               <button
                 key={item.id}
                 type="button"
                 className={cn(
-                  'mb-[-1px] inline-flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg',
-                  tab === item.id &&
-                    'border-accent bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] text-accent',
+                  'mb-[-1px] inline-flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg',
+                  tab === item.id && 'border-accent bg-surface-2 text-accent',
                 )}
                 onClick={() => setTab(item.id)}
               >

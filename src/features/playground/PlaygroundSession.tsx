@@ -62,7 +62,7 @@ export function PlaygroundSession({
   }
 
   return (
-    <aside className="pg-session-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color-mix(in_srgb,var(--bg-1)_72%,transparent)] px-4 pt-3.5 pb-5">
+    <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-0 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
       <PlaygroundSessionSection label="session">
         {isStreaming ? (
           <button

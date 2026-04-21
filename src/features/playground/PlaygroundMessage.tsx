@@ -125,9 +125,9 @@ export function PlaygroundMessage({
       ) : (
         <div
           className={cn(
-            'min-w-0 overflow-hidden rounded border border-border bg-surface-1 px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg [overflow-wrap:anywhere]',
-            !isAssistant &&
-              'border-[color:color-mix(in_srgb,var(--accent)_20%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_8%,var(--bg-1))]',
+            'min-w-0 overflow-hidden rounded border px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] [overflow-wrap:anywhere]',
+            isAssistant && 'border-border bg-surface-1',
+            !isAssistant && 'border-border-strong bg-surface-2',
             isAssistant && 'pg-msg-markdown',
           )}
         >

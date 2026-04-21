@@ -95,8 +95,8 @@ export function PlaygroundChatTab({ chat }: Props) {
         onSaveRun={chat.saveRun}
       />
 
-      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
-        <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-2 text-[11px] font-mono text-fg-dim">
+      <section className="panel !rounded-none !border-t-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !border-b-0 !border-l-0 !border-r border-r-border !bg-surface-0">
+        <div className="flex items-center justify-between gap-4 border-b border-border bg-surface-1 px-4 py-2 text-[11px] font-mono text-fg-dim">
           <div className="flex min-w-0 items-center gap-1.5">
             <StatusDot tone={activeModel?.running ? 'ok' : 'idle'} live={activeModel?.running ?? false} />
             <span className="truncate text-fg" translate="no">
@@ -142,7 +142,7 @@ export function PlaygroundChatTab({ chat }: Props) {
 
         <div
           ref={scrollRef}
-          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[color-mix(in_srgb,var(--bg-1)_22%,transparent)] px-3 pt-2 pb-3"
+          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-surface-0 px-3 pt-2.5 pb-3.5"
           onScroll={onScroll}
         >
           {chat.messages.length === 0 ? (
@@ -167,11 +167,11 @@ export function PlaygroundChatTab({ chat }: Props) {
           )}
         </div>
 
-        <div className="border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color-mix(in_srgb,var(--bg-1)_72%,var(--bg-0))]">
+        <div className="border-t border-border bg-surface-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
-              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-1 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
               disabled={!chat.model}
               rows={1}

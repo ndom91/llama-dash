@@ -4,17 +4,13 @@ import { StatusDot } from './StatusDot'
 export function StatusCell({ code, streamed }: { code: number; streamed: boolean }) {
   const ok = code >= 200 && code < 300
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <span className="inline-flex items-center gap-1.5 leading-none">
       <StatusDot tone={ok ? 'ok' : 'err'} />
-      <span className="mono" style={{ color: ok ? 'var(--ok)' : 'var(--err)' }}>
+      <span className="mono tabular-nums leading-none" style={{ color: ok ? 'var(--ok)' : 'var(--err)' }}>
         {code}
       </span>
       {streamed ? (
-        <abbr
-          className="mono"
-          style={{ color: 'var(--fg-dim)', fontSize: 10, textDecoration: 'none' }}
-          title="Server-sent events"
-        >
+        <abbr className="mono text-[10px] leading-none text-fg-dim no-underline" title="Server-sent events">
           SSE
         </abbr>
       ) : null}

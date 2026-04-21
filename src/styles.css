@@ -1226,6 +1226,16 @@
   box-shadow: var(--shadow-focus);
 }
 
+input:not([type='checkbox']):not([type='radio']):not([type='range']):focus,
+input:not([type='checkbox']):not([type='radio']):not([type='range']):focus-visible,
+select:focus,
+select:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 /* Honor reduced-motion preference — instrument panels don't need to breathe */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -2158,12 +2168,12 @@ a,
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border-bottom: 1px solid var(--border);
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--fg-muted);
   gap: 12px;
-  background: color-mix(in srgb, var(--bg-1) 44%, transparent);
+  background: var(--bg-1);
 }
 .pg-model-strip-l {
   display: inline-flex;
