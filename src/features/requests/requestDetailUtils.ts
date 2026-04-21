@@ -154,6 +154,89 @@ export function tryPrettyJson(text: string): string | null {
   }
 }
 
+// Re-indent JSON-like text tokenwise so we can still pretty-print truncated
+// payloads (the tail ends with "...[truncated N bytes]" and won't parse).
+// Not a validator — whatever trailing garbage the input carries is preserved
+// verbatim at the current indent level so the highlighter still styles it.
+export function prettyPrintJsonLenient(text: string): string | null {
+  const first = text.search(/\S/)
+  if (first === -1) return null
+  const head = text[first]
+  if (head !== '{' && head !== '[') return null
+
+  let out = ''
+  let depth = 0
+  let inString = false
+  let escaped = false
+  const indent = () => `\n${'  '.repeat(depth)}`
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inString) {
+      out += ch
+      if (escaped) {
+        escaped = false
+        continue
+      }
+      if (ch === '\\') {
+        escaped = true
+        continue
+      }
+      if (ch === '"') inString = false
+      continue
+    }
+    switch (ch) {
+      case '"':
+        inString = true
+        out += ch
+        break
+      case '{':
+      case '[': {
+        const next = peekNonWs(text, i + 1)
+        out += ch
+        if (next === '}' || next === ']') break
+        depth++
+        out += indent()
+        break
+      }
+      case '}':
+      case ']': {
+        const last = out.charCodeAt(out.length - 1)
+        // compact empty container: previous char is the matching opener
+        if (last === 0x7b /* { */ || last === 0x5b /* [ */) {
+          out += ch
+          break
+        }
+        depth = Math.max(0, depth - 1)
+        out += indent() + ch
+        break
+      }
+      case ',':
+        out += ch + indent()
+        break
+      case ':':
+        out += `${ch} `
+        break
+      case ' ':
+      case '\t':
+      case '\n':
+      case '\r':
+        break
+      default:
+        out += ch
+    }
+  }
+  return out
+}
+
+function peekNonWs(text: string, from: number): string | null {
+  for (let i = from; i < text.length; i++) {
+    const ch = text[i]
+    if (ch !== ' ' && ch !== '\t' && ch !== '\n' && ch !== '\r') return ch
+  }
+  return null
+}
+
 export function formatCostUsd(usd: number): string {
   if (usd >= 1) return `$${usd.toFixed(2)}`
   if (usd >= 0.01) return `$${usd.toFixed(4)}`

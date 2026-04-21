@@ -1,7 +1,7 @@
 import { Check, Clipboard } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '../../lib/cn'
-import { maskSensitive, tryPrettyJson } from './requestDetailUtils'
+import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 
 type Props = {
@@ -14,7 +14,11 @@ type Props = {
 
 export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Props) {
   const [copied, setCopied] = useState(false)
-  const pretty = mode === 'pretty' ? tryPrettyJson(body) : null
+  // Prefer strict JSON.parse → stringify formatting. If the body won't parse
+  // (most often because the truncation marker lopped off the tail), fall back
+  // to the lenient token-by-token re-indenter so we still get pretty layout
+  // and syntax highlighting on the surviving prefix.
+  const pretty = mode === 'pretty' ? (tryPrettyJson(body) ?? prettyPrintJsonLenient(body)) : null
   const display = pretty ?? body
   const headerEntries = headers ? Object.entries(headers) : []
 
@@ -42,8 +46,8 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
         {pretty ? <RequestJsonHighlight json={display} /> : display}
       </pre>
       {headerEntries.length > 0 ? (
-        <div className="min-h-[25%] max-h-[50%] overflow-auto border-t border-border">
-          <div className="sticky top-0 z-[1] border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim [background:color-mix(in_srgb,var(--bg-0)_72%,var(--bg-1))]">
+        <div className="headers-scroll min-h-[25%] max-h-[50%] overflow-auto border-t border-border">
+          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim [background:color-mix(in_srgb,var(--bg-0)_72%,var(--bg-1))]">
             Headers
           </div>
           <table className="dtable headers-table">
