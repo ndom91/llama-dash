@@ -8,7 +8,7 @@ import { useLoadModel, useUnloadModel } from '../../lib/queries'
 import { ModelEventsPanel } from './ModelEventsPanel'
 import { ModelRequestsPanel } from './ModelRequestsPanel'
 import { ModelStatsRow } from './ModelStatsRow'
-import { formatTtl, parseModelConfigSnippet } from './modelUtils'
+import { formatContextLength, formatTtl, parseModelConfigSnippet } from './modelUtils'
 
 type Props = {
   data: ApiModelDetail
@@ -20,6 +20,7 @@ export function ModelDetailContent({ data }: Props) {
   const unloadModel = useUnloadModel()
   const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
   const configMeta = useMemo(() => parseModelConfigSnippet(configSnippet), [configSnippet])
+  const contextLabel = formatContextLength(model.contextLength) ?? configMeta.ctxSize
 
   return (
     <>
@@ -69,7 +70,7 @@ export function ModelDetailContent({ data }: Props) {
               </div>
               <div>
                 <dt>ctx</dt>
-                <dd>{configMeta.ctxSize ?? '—'}</dd>
+                <dd>{contextLabel ?? '—'}</dd>
               </div>
               <div>
                 <dt>ttl</dt>
@@ -123,7 +124,7 @@ export function ModelDetailContent({ data }: Props) {
               </div>
               <div>
                 <dt>ctx</dt>
-                <dd>{configMeta.ctxSize ?? '—'}</dd>
+                <dd>{contextLabel ?? '—'}</dd>
               </div>
               <div>
                 <dt>port</dt>

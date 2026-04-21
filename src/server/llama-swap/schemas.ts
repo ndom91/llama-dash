@@ -6,11 +6,20 @@ export const OpenAiModelSchema = v.object({
   created: v.number(),
   owned_by: v.string(),
   name: v.optional(v.string()),
+  context_length: v.optional(v.number()),
+  contextLength: v.optional(v.number()),
+  n_ctx: v.optional(v.number()),
   meta: v.optional(
     v.object({
+      context_length: v.optional(v.number()),
+      contextLength: v.optional(v.number()),
+      n_ctx: v.optional(v.number()),
       llamaswap: v.optional(
         v.object({
           peerID: v.optional(v.string()),
+          context_length: v.optional(v.number()),
+          contextLength: v.optional(v.number()),
+          n_ctx: v.optional(v.number()),
         }),
       ),
     }),

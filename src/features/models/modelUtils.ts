@@ -27,3 +27,12 @@ export function parseModelConfigSnippet(snippet: string | null) {
     port: portMatch ? portMatch[1] : null,
   }
 }
+
+export function formatContextLength(contextLength: number | null | undefined): string | null {
+  if (contextLength == null) return null
+  if (contextLength >= 1024) {
+    const whole = contextLength / 1024
+    return Number.isInteger(whole) ? `${whole}K` : `${whole.toFixed(1)}K`
+  }
+  return contextLength.toLocaleString()
+}

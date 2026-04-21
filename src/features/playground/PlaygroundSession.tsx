@@ -12,7 +12,7 @@ import { PlaygroundToggle } from './PlaygroundToggle'
 type Props = {
   model: string
   setModel: (v: string) => void
-  models: Array<{ id: string; kind: 'local' | 'peer'; running: boolean }>
+  models: Array<{ id: string; kind: 'local' | 'peer'; running: boolean; contextLength: number | null }>
   systemPrompt: string
   setSystemPrompt: (v: string) => void
   sampling: SamplingParams

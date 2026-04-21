@@ -6,6 +6,7 @@ export const ApiModelSchema = v.object({
   name: v.string(),
   kind: v.union([v.literal('local'), v.literal('peer')]),
   peerId: v.nullable(v.string()),
+  contextLength: v.nullable(v.number()),
   state: v.string(),
   running: v.boolean(),
   ttl: v.nullable(v.number()),

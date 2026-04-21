@@ -7,6 +7,7 @@ import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import { useModels } from '../../lib/queries'
 import type { usePlaygroundChat } from '../../lib/use-playground-chat'
+import { formatContextLength } from '../models/modelUtils'
 
 type Props = {
   chat: ReturnType<typeof usePlaygroundChat>
@@ -75,6 +76,7 @@ export function PlaygroundChatTab({ chat }: Props) {
 
   const activeModel = models?.find((m) => m.id === chat.model)
   const lastAssistant = [...chat.messages].reverse().find((m) => m.role === 'assistant')
+  const contextLabel = formatContextLength(activeModel?.contextLength)
 
   return (
     <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_360px] items-stretch gap-0 max-[1200px]:grid-cols-[260px_minmax(0,1fr)] max-[1200px]:[&>.pg-inspector-shell]:hidden max-[900px]:grid-cols-1 max-[900px]:[&>.pg-session-shell]:hidden">
@@ -106,8 +108,12 @@ export function PlaygroundChatTab({ chat }: Props) {
                 <span className="uppercase tracking-[0.06em]">{activeModel.kind}</span>
               </>
             ) : null}
-            <span>·</span>
-            <span>ctx 32K</span>
+            {contextLabel ? (
+              <>
+                <span>·</span>
+                <span>ctx {contextLabel}</span>
+              </>
+            ) : null}
           </div>
           <div className="flex items-center gap-1.5">
             {lastAssistant?.metrics ? (

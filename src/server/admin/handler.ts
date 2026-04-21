@@ -41,6 +41,23 @@ const json = (status: number, body: unknown) => Response.json(body, { status })
 
 const error = (status: number, message: string) => json(status, { error: { message } })
 
+function pickModelContextLength(
+  model: Awaited<ReturnType<typeof llamaSwap.listModels>>['data'][number],
+): number | null {
+  return (
+    model.context_length ??
+    model.contextLength ??
+    model.n_ctx ??
+    model.meta?.context_length ??
+    model.meta?.contextLength ??
+    model.meta?.n_ctx ??
+    model.meta?.llamaswap?.context_length ??
+    model.meta?.llamaswap?.contextLength ??
+    model.meta?.llamaswap?.n_ctx ??
+    null
+  )
+}
+
 const routes: Array<Route> = [
   {
     method: 'GET',
@@ -56,6 +73,7 @@ const routes: Array<Route> = [
           name: m.name ?? m.id,
           kind: peerId ? ('peer' as const) : ('local' as const),
           peerId: peerId ?? null,
+          contextLength: pickModelContextLength(m),
           state: run?.state ?? 'stopped',
           running: Boolean(run),
           ttl: run?.ttl ?? null,
@@ -80,6 +98,7 @@ const routes: Array<Route> = [
         name: modelData.name ?? modelData.id,
         kind: peerId ? ('peer' as const) : ('local' as const),
         peerId: peerId ?? null,
+        contextLength: pickModelContextLength(modelData),
         state: runInfo?.state ?? 'stopped',
         running: Boolean(runInfo),
         ttl: runInfo?.ttl ?? null,

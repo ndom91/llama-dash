@@ -86,7 +86,7 @@ export function PlaygroundTranscribe() {
             aria-hidden="true"
           >
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">lang</div>
-            <div className="font-mono text-xs text-fg">auto → en</div>
+            <div className="font-mono text-xs text-fg">auto-detect</div>
           </div>
 
           <div
@@ -95,14 +95,6 @@ export function PlaygroundTranscribe() {
           >
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</div>
             <div className="font-mono text-xs text-fg">verbose_json</div>
-          </div>
-
-          <div
-            className="ml-auto inline-flex items-center gap-3 px-1 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim"
-            aria-hidden="true"
-          >
-            <span>3.8 s decode</span>
-            <span>35× real-time</span>
           </div>
         </div>
       </div>

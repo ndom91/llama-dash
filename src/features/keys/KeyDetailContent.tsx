@@ -2,7 +2,7 @@ import { Power, RotateCw } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import type { ApiKeyDetail } from '../../lib/api'
-import { useRevokeApiKey } from '../../lib/queries'
+import { useModels, useRevokeApiKey } from '../../lib/queries'
 import { KeyDefaultModelPanel } from './KeyDefaultModelPanel'
 import { KeyModelAccessPanel } from './KeyModelAccessPanel'
 import { KeyRequestsPanel } from './KeyRequestsPanel'
@@ -16,10 +16,12 @@ type Props = {
 
 export function KeyDetailContent({ data }: Props) {
   const { key, stats, requests, modelBreakdown } = data
+  const { data: models } = useModels()
   const isRevoked = key.disabledAt != null
   const revokeKey = useRevokeApiKey()
   const lastUsedAt = requests.rows[0]?.startedAt ?? null
-  const scopedModels = key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of 5`
+  const scopedModels =
+    key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of ${models?.length ?? '—'}`
 
   return (
     <>

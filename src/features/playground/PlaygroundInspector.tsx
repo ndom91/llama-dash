@@ -7,6 +7,7 @@ import { PlaygroundCopyButton } from './PlaygroundCopyButton'
 import { PlaygroundInspectorSection } from './PlaygroundInspectorSection'
 import { PlaygroundObservation } from './PlaygroundObservation'
 import { PlaygroundTimingBars } from './PlaygroundTimingBars'
+import { formatContextLength } from '../models/modelUtils'
 
 type InspectorTab = 'request' | 'response' | 'timing' | 'events' | 'curl'
 
@@ -31,6 +32,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 
   const active = models?.find((m) => m.id === model)
   const residentMiB = gpu?.gpus.reduce((sum, g) => sum + (g.memoryUsedMiB ?? 0), 0) ?? null
+  const contextLabel = formatContextLength(active?.contextLength)
 
   const requestJson = useMemo(() => {
     if (!inspector.lastRequestBody) return ''
@@ -77,7 +79,11 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
             sub={active ? (active.kind === 'local' ? 'local' : 'peer') : undefined}
             mono
           />
-          <PlaygroundActiveModelCell label="context" value="32" unit="K" sub="cfg" />
+          <PlaygroundActiveModelCell
+            label="context"
+            value={contextLabel ?? '—'}
+            sub={contextLabel ? 'cfg' : undefined}
+          />
           <PlaygroundActiveModelCell
             label="resident"
             value={residentMiB != null ? (residentMiB / 1024).toFixed(1) : '—'}
