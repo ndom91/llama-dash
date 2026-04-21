@@ -1,6 +1,8 @@
-import { Plus, Save, Square, X } from 'lucide-react'
+import { Plus, RotateCcw, Save, Square, X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
+import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/stream-chat'
+import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
 import { PlaygroundSegmented } from './PlaygroundSegmented'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
@@ -133,7 +135,21 @@ export function PlaygroundSession({
         />
       </PlaygroundSessionSection>
 
-      <PlaygroundSessionSection label="sampling">
+      <PlaygroundSessionSection
+        label="sampling"
+        action={
+          <Tooltip label="Reset Sampling Settings">
+            <button
+              type="button"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+              onClick={() => setSampling(DEFAULT_SAMPLING)}
+              aria-label="Reset Sampling Settings"
+            >
+              <RotateCcw className="icon-12" strokeWidth={2} />
+            </button>
+          </Tooltip>
+        }
+      >
         <PlaygroundSlider
           label="temperature"
           value={sampling.temperature}

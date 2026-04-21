@@ -54,7 +54,12 @@ export function DashboardResidencyPanel({ events, active }: Props) {
                   {row.id}
                   <span className="dim">{row.kind === 'peer' ? ' · peer' : ''}</span>
                 </div>
-                <div className="relative h-4 overflow-hidden rounded bg-surface-3">
+                <div
+                  className="relative h-4 overflow-hidden rounded bg-surface-3"
+                  style={{
+                    background: row.kind === 'peer' ? 'color-mix(in srgb, var(--info) 16%, var(--bg-3))' : undefined,
+                  }}
+                >
                   {row.spans.map((span) => {
                     const left = ((span.start - windowStart) / DASHBOARD_WINDOW_MS) * 100
                     const width = ((span.end - span.start) / DASHBOARD_WINDOW_MS) * 100

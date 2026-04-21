@@ -6,7 +6,6 @@ import remarkGfm from 'remark-gfm'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import type { ChatMessage } from '../../lib/stream-chat'
-import { PlaygroundMetricChip } from './PlaygroundMetricChip'
 
 type Props = {
   message: ChatMessage
@@ -62,7 +61,7 @@ export function PlaygroundMessage({
   return (
     <div
       className={cn(
-        'group flex max-w-[min(100%,920px)] flex-col gap-1 animate-[msg-in_var(--duration-slow)_var(--ease-out)]',
+        'group flex max-w-[min(100%,920px)] min-w-0 flex-col gap-1 animate-[msg-in_var(--duration-slow)_var(--ease-out)]',
         isAssistant ? 'w-[min(100%,920px)] self-start' : 'w-fit self-end',
       )}
     >
@@ -126,7 +125,7 @@ export function PlaygroundMessage({
       ) : (
         <div
           className={cn(
-            'rounded border border-border bg-surface-1 px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg',
+            'min-w-0 overflow-hidden rounded border border-border bg-surface-1 px-3.5 py-2.5 text-[13px] leading-[1.55] text-fg [overflow-wrap:anywhere]',
             !isAssistant &&
               'border-[color:color-mix(in_srgb,var(--accent)_20%,var(--border))] bg-[color:color-mix(in_srgb,var(--accent)_8%,var(--bg-1))]',
             isAssistant && 'pg-msg-markdown',
@@ -137,28 +136,19 @@ export function PlaygroundMessage({
               {message.content || (isStreaming && isLast ? '…' : '')}
             </Markdown>
           ) : (
-            <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{message.content}</p>
+            <p className="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
           )}
         </div>
       )}
 
       {isAssistant && metrics && showActions ? (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <PlaygroundMetricChip
-            label="ttft"
-            value={metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}
-          />
-          <PlaygroundMetricChip
-            label="total"
-            value={metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}
-          />
-          <PlaygroundMetricChip label="tok/s" value={metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'} />
-          <PlaygroundMetricChip label="tokens" value={metrics.tokIn != null ? `${metrics.tokIn} in` : '—'} />
-          <PlaygroundMetricChip label="" value={metrics.tokOut != null ? `${metrics.tokOut} out` : '—'} />
-          <PlaygroundMetricChip
-            label="cost"
-            value={metrics.costUsd != null ? `$${metrics.costUsd.toFixed(4)}` : '~$0.0000'}
-          />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-fg-dim">
+          <span>ttft {metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}</span>
+          <span>total {metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}</span>
+          <span>tok/s {metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'}</span>
+          <span>tokens {metrics.tokIn != null ? `${metrics.tokIn} in` : '—'}</span>
+          <span>{metrics.tokOut != null ? `${metrics.tokOut} out` : '—'}</span>
+          <span>cost {metrics.costUsd != null ? `$${metrics.costUsd.toFixed(4)}` : '~$0.0000'}</span>
           <span className="min-w-2" />
           <Tooltip label="Copy">
             <button

@@ -1,4 +1,4 @@
-import { MessageSquare, Send } from 'lucide-react'
+import { MessageSquare, Send, Square } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { PlaygroundInspector } from './PlaygroundInspector'
 import { PlaygroundMessage } from './PlaygroundMessage'
@@ -178,15 +178,28 @@ export function PlaygroundChatTab({ chat }: Props) {
               spellCheck={false}
               autoComplete="off"
             />
-            <Tooltip label="Send message">
-              <button
-                type="submit"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-                disabled={!chat.model || chat.isStreaming || !draft.trim()}
-              >
-                <Send className="icon-14" strokeWidth={2} />
-              </button>
-            </Tooltip>
+            {chat.isStreaming ? (
+              <Tooltip label="Stop generation">
+                <button
+                  type="button"
+                  className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-[color:color-mix(in_srgb,var(--err)_40%,var(--border))] bg-[color:color-mix(in_srgb,var(--err)_8%,var(--bg-2))] px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-border-strong hover:bg-surface-3 active:scale-95"
+                  onClick={chat.stopStreaming}
+                >
+                  <Square className="icon-12" strokeWidth={2} />
+                  stop
+                </button>
+              </Tooltip>
+            ) : (
+              <Tooltip label="Send message">
+                <button
+                  type="submit"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!chat.model || !draft.trim()}
+                >
+                  <Send className="icon-14" strokeWidth={2} />
+                </button>
+              </Tooltip>
+            )}
           </form>
           <div className="flex gap-4 px-4 py-2 font-mono text-[10px] text-fg-faint">
             <span>

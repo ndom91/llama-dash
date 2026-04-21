@@ -1898,9 +1898,17 @@ a,
 
 .pg-msg-markdown p {
   margin: 0 0 8px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .pg-msg-markdown p:last-child {
   margin-bottom: 0;
+}
+.pg-msg-markdown li,
+.pg-msg-markdown td,
+.pg-msg-markdown blockquote {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .pg-msg-markdown pre {
   margin: 8px 0;
@@ -1917,6 +1925,8 @@ a,
   padding: 1px 4px;
   border-radius: 3px;
   background: var(--bg-0);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .pg-msg-markdown ul,
 .pg-msg-markdown ol {

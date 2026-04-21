@@ -52,14 +52,14 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 
   return (
     <aside className="pg-inspector-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-[color-mix(in_srgb,var(--bg-1)_58%,transparent)] px-4 pt-3.5 pb-5">
-      <div className="mb-1 flex flex-wrap gap-1">
+      <div className="mb-2 flex gap-0 border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
         {TABS.map((item) => (
           <button
             key={item.id}
             type="button"
             className={cn(
-              'rounded-[3px] border border-border bg-surface-2 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg',
-              tab === item.id && 'border-accent bg-surface-3 text-fg',
+              'mb-[-1px] inline-flex items-center border-b-2 border-transparent px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-dim transition-colors hover:bg-[color:color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg',
+              tab === item.id && 'border-accent text-fg',
             )}
             onClick={() => setTab(item.id)}
           >
