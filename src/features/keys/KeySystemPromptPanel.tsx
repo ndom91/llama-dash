@@ -24,7 +24,7 @@ export function KeySystemPromptPanel({ keyId, systemPrompt, isRevoked }: Props) 
   return (
     <section className="panel detail-stacked-section">
       <div className="panel-head">
-        <span className="panel-title">System prompt</span>
+        <span className="panel-title text-fg-muted">System prompt</span>
         <span className="panel-sub">· {systemPrompt ? 'active' : 'not set'}</span>
         {!isRevoked && !editing ? (
           <button

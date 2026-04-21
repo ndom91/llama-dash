@@ -25,7 +25,7 @@ export function KeyDefaultModelPanel({ keyId, defaultModel, isRevoked }: Props) 
   return (
     <section className="panel detail-stacked-section">
       <div className="panel-head">
-        <span className="panel-title">Default model</span>
+        <span className="panel-title text-fg-muted">Default model</span>
         <span className="panel-sub">· {defaultModel ? `pinned to ${defaultModel}` : 'not set'}</span>
         {!isRevoked && !editing ? (
           <button

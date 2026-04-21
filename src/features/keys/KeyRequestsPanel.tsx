@@ -16,7 +16,7 @@ export function KeyRequestsPanel({ rows }: Props) {
   return (
     <section className="panel detail-stacked-section flex min-h-0 flex-1 flex-col">
       <div className="panel-head">
-        <span className="panel-title">Recent requests</span>
+        <span className="panel-title text-fg-muted">Recent requests</span>
         <span className="panel-sub">· last 20</span>
         <Link to="/requests" className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
           view all

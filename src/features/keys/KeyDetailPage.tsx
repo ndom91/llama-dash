@@ -13,7 +13,7 @@ export function KeyDetailPage({ id }: Props) {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page min-h-full">
+        <div className="page detail-page detail-page-sidecar min-h-full">
           {error ? (
             <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
           ) : data == null ? (

@@ -49,7 +49,7 @@ export function KeyModelAccessPanel({ keyId, allowedModels, breakdown, isRevoked
   return (
     <section className="panel detail-stacked-section">
       <div className="panel-head">
-        <span className="panel-title">Model access</span>
+        <span className="panel-title text-fg-muted">Model access</span>
         <span className="panel-sub">
           · {allowAll ? 'all models' : `${allowedModels.length} of ${allModels.length}`}
         </span>
