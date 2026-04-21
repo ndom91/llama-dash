@@ -215,8 +215,8 @@ function parseSseLine(line: string): StreamChunk | null {
       reasoningContent: delta?.reasoning_content,
       done: false,
       finishReason: finishReason ?? undefined,
-      promptTokens: usage?.prompt_tokens,
-      completionTokens: usage?.completion_tokens,
+      promptTokens: usage?.prompt_tokens ?? parsed.timings?.prompt_n,
+      completionTokens: usage?.completion_tokens ?? parsed.timings?.predicted_n,
       promptMs: parsed.timings?.prompt_ms,
       predictedMs: parsed.timings?.predicted_ms,
     }

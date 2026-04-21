@@ -175,3 +175,35 @@ export function extractModelConfig(modelId: string): string | null {
     return null
   }
 }
+
+function extractCtxSize(value: unknown): number | null {
+  const snippet = stringifyYaml(value, { indent: 2 })
+  const match = snippet.match(/--ctx-size\s+(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
+export function getConfigContextLengths(): Map<string, number> {
+  if (!config.llamaSwapConfigFile) return new Map()
+  try {
+    const content = readFileSync(config.llamaSwapConfigFile, 'utf-8')
+    const parsed = parseYaml(content)
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      !('models' in parsed) ||
+      !parsed.models ||
+      typeof parsed.models !== 'object'
+    ) {
+      return new Map()
+    }
+
+    const lengths = new Map<string, number>()
+    for (const [modelId, modelConfig] of Object.entries(parsed.models as Record<string, unknown>)) {
+      const ctxSize = extractCtxSize(modelConfig)
+      if (ctxSize != null) lengths.set(modelId, ctxSize)
+    }
+    return lengths
+  } catch {
+    return new Map()
+  }
+}

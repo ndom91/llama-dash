@@ -21,6 +21,7 @@ import { createModelAlias, deleteModelAlias, listModelAliases, updateModelAlias 
 import { getRequestLimits, setRequestLimits } from './settings.ts'
 import {
   extractModelConfig,
+  getConfigContextLengths,
   getModelEvents,
   getModelKeyBreakdown,
   getModelRequestStats,
@@ -58,6 +59,14 @@ function pickModelContextLength(
   )
 }
 
+function pickRunningContextLength(
+  running: Awaited<ReturnType<typeof llamaSwap.listRunning>>['running'][number] | undefined,
+): number | null {
+  if (!running?.cmd) return null
+  const match = running.cmd.match(/--ctx-size\s+(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
 const routes: Array<Route> = [
   {
     method: 'GET',
@@ -65,6 +74,7 @@ const routes: Array<Route> = [
     handler: async () => {
       const [models, running] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
       const runningById = new Map(running.running.map((r) => [r.model, r]))
+      const configContextLengths = getConfigContextLengths()
       const rows = models.data.map((m) => {
         const run = runningById.get(m.id)
         const peerId = m.meta?.llamaswap?.peerID
@@ -73,7 +83,9 @@ const routes: Array<Route> = [
           name: m.name ?? m.id,
           kind: peerId ? ('peer' as const) : ('local' as const),
           peerId: peerId ?? null,
-          contextLength: pickModelContextLength(m),
+          contextLength:
+            pickModelContextLength(m) ??
+            (peerId ? null : (pickRunningContextLength(run) ?? configContextLengths.get(m.id) ?? null)),
           state: run?.state ?? 'stopped',
           running: Boolean(run),
           ttl: run?.ttl ?? null,
@@ -88,6 +100,7 @@ const routes: Array<Route> = [
     handler: async (_request, match) => {
       const id = decodeURIComponent(match[1])
       const [modelsRes, runningRes] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
+      const configContextLengths = getConfigContextLengths()
       const modelData = modelsRes.data.find((m) => m.id === id)
       if (!modelData) return error(404, `Model ${id} not found`)
 
@@ -98,7 +111,9 @@ const routes: Array<Route> = [
         name: modelData.name ?? modelData.id,
         kind: peerId ? ('peer' as const) : ('local' as const),
         peerId: peerId ?? null,
-        contextLength: pickModelContextLength(modelData),
+        contextLength:
+          pickModelContextLength(modelData) ??
+          (peerId ? null : (pickRunningContextLength(runInfo) ?? configContextLengths.get(id) ?? null)),
         state: runInfo?.state ?? 'stopped',
         running: Boolean(runInfo),
         ttl: runInfo?.ttl ?? null,
