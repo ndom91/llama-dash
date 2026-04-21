@@ -84,18 +84,27 @@ function checkRequestLimits(body: Record<string, unknown>): TransformErr | null 
     }
   }
 
-  if (limits.maxEstimatedTokens && Array.isArray(body.messages)) {
-    const estimated = Math.ceil(JSON.stringify(body.messages).length / 4)
-    if (estimated > limits.maxEstimatedTokens) {
-      return {
-        ok: false,
-        status: 422,
-        body: {
-          error: {
-            message: `Estimated prompt tokens (~${estimated}) exceeds the limit of ${limits.maxEstimatedTokens}`,
-            type: 'request_too_large',
+  if (limits.maxEstimatedTokens) {
+    // Count everything the model sees on input: OpenAI `messages`, Anthropic
+    // top-level `system` and `tools`. Size limits were previously bypassable
+    // with a giant system prompt or tool definition.
+    const parts: Array<unknown> = []
+    if (Array.isArray(body.messages)) parts.push(body.messages)
+    if (body.system != null) parts.push(body.system)
+    if (Array.isArray(body.tools)) parts.push(body.tools)
+    if (parts.length > 0) {
+      const estimated = Math.ceil(JSON.stringify(parts).length / 4)
+      if (estimated > limits.maxEstimatedTokens) {
+        return {
+          ok: false,
+          status: 422,
+          body: {
+            error: {
+              message: `Estimated prompt tokens (~${estimated}) exceeds the limit of ${limits.maxEstimatedTokens}`,
+              type: 'request_too_large',
+            },
           },
-        },
+        }
       }
     }
   }

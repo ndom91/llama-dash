@@ -25,6 +25,19 @@ const HOP_BY_HOP = new Set([
 // differs from the compressed length the upstream header announced.
 const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
 
+// Values for these headers are replaced with [redacted] before headers are
+// persisted to SQLite. The client-facing response and the upstream request
+// still carry the real values — redaction applies only to the logged copy.
+const SENSITIVE_HEADERS = new Set(['authorization', 'x-api-key', 'proxy-authorization', 'cookie', 'set-cookie'])
+
+function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(headers)) {
+    out[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? '[redacted]' : value
+  }
+  return out
+}
+
 function filterRequestHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {}
   headers.forEach((value, key) => {
@@ -63,6 +76,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const endpoint = url.pathname
   const upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
   const reqHeaders = filterRequestHeaders(request.headers)
+  const loggedReqHeaders = JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const reqContentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
@@ -152,7 +166,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       usage: nullUsage(reqModel),
       streamed: false,
       error: message,
-      reqHeaders: JSON.stringify(reqHeaders),
+      reqHeaders: loggedReqHeaders,
       reqBody: isMultipart ? null : reqBodyText,
       resHeaders: null,
       resBody: null,
@@ -162,7 +176,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   const resHeadersObj = filterResponseHeaders(upstreamResponse.headers)
-  const resHeadersJson = JSON.stringify(headersToRecord(upstreamResponse.headers))
+  const resHeadersJson = JSON.stringify(redactSensitiveHeaders(headersToRecord(upstreamResponse.headers)))
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
   const isSse = contentType.includes('text/event-stream')
   const isJson = contentType.includes('application/json')
@@ -177,7 +191,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       usage: nullUsage(reqModel),
       streamed: false,
       error: null,
-      reqHeaders: JSON.stringify(reqHeaders),
+      reqHeaders: loggedReqHeaders,
       reqBody: isMultipart ? null : reqBodyText,
       resHeaders: resHeadersJson,
       resBody: null,
@@ -210,6 +224,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             : isJson && resBody
               ? { ...usageFromJsonBody(resBody), streamCloseMs: null }
               : nullUsage(reqModel)
+          // /v1/messages/count_tokens returns { input_tokens: N } and no output
+          // side — treat input as the total so the UI shows a number instead of —.
+          if (endpoint === '/v1/messages/count_tokens' && usage.totalTokens == null && usage.promptTokens != null) {
+            usage.totalTokens = usage.promptTokens
+          }
 
           writeLog({
             startedAt,
@@ -219,7 +238,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             usage,
             streamed: isSse,
             error: null,
-            reqHeaders: JSON.stringify(reqHeaders),
+            reqHeaders: loggedReqHeaders,
             reqBody: isMultipart ? null : reqBodyText,
             resHeaders: resHeadersJson,
             resBody,
@@ -248,7 +267,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
           streamed: isSse,
           error: message,
-          reqHeaders: JSON.stringify(reqHeaders),
+          reqHeaders: loggedReqHeaders,
           reqBody: isMultipart ? null : reqBodyText,
           resHeaders: resHeadersJson,
           resBody: decoder ? responseChunks.join('') || null : null,
@@ -266,7 +285,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
         streamed: isSse,
         error: 'Client disconnected',
-        reqHeaders: JSON.stringify(reqHeaders),
+        reqHeaders: loggedReqHeaders,
         reqBody: isMultipart ? null : reqBodyText,
         resHeaders: resHeadersJson,
         resBody: decoder ? responseChunks.join('') || null : null,
