@@ -48,7 +48,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
       <pre className="body-pre flex-1 min-h-[50%] border-t-0">{bodyContent}</pre>
       {headerEntries.length > 0 ? (
         <div className="headers-scroll min-h-[25%] max-h-[50%] overflow-auto border-t border-border">
-          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim [background:color-mix(in_srgb,var(--bg-0)_72%,var(--bg-1))]">
+          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
             Headers
           </div>
           <table className="dtable headers-table">

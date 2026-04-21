@@ -67,7 +67,7 @@ export function PlaygroundSession({
         {isStreaming ? (
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-[color:color-mix(in_srgb,var(--err)_40%,var(--border))] bg-[color:color-mix(in_srgb,var(--err)_8%,var(--bg-2))] px-2.5 py-[7px] text-xs text-err transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-err bg-err-bg px-2.5 py-[7px] text-xs text-err transition-colors hover:border-err hover:bg-err-bg disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onStop}
           >
             <Square className="icon-12" strokeWidth={2} />

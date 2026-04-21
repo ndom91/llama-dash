@@ -127,7 +127,7 @@
     @apply overflow-hidden rounded border-border bg-surface-1;
   }
   .panel-head {
-    @apply flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
+    @apply h-10 flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
   }
   .panel-title {
     @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-muted;

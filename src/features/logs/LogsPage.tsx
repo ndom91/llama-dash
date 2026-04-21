@@ -105,7 +105,7 @@ export function LogsPage() {
             action={
               <div className="flex items-center gap-2">
                 <span
-                  className="inline-flex items-center gap-1.5 font-mono text-[11px] text-[color:color-mix(in_srgb,var(--ok)_90%,white_10%)]"
+                  className="inline-flex items-center gap-1.5 font-mono text-[11px] text-ok"
                   title={connected ? 'Connected' : 'Disconnected'}
                 >
                   <StatusDot tone={connected ? 'ok' : 'err'} live={connected} />
@@ -127,7 +127,7 @@ export function LogsPage() {
           />
 
           <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="flex shrink-0 items-center justify-between border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-[18px] py-3 max-md:flex-wrap max-md:px-3">
+            <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] py-3 max-md:flex-wrap max-md:px-3">
               <div className="body-tabs">
                 {(['all', 'upstream', 'proxy'] as const).map((s) => (
                   <button
@@ -141,7 +141,7 @@ export function LogsPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap">
-                <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-[color:color-mix(in_srgb,var(--bg-2)_80%,var(--bg-0))] px-1.5 focus-within:border-accent">
+                <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 focus-within:border-accent">
                   <Search className="h-3 w-3 shrink-0 text-fg-dim" strokeWidth={2} aria-hidden="true" />
                   <input
                     id="log-filter"

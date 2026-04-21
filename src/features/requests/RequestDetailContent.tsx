@@ -38,7 +38,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
   const navigate = useNavigate()
   const [copiedCurl, setCopiedCurl] = useState(false)
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
-  const railSectionDivider = 'mt-3.5 border-t border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pt-3.5'
+  const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
 
@@ -135,7 +135,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_280px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-        <aside className="border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+        <aside className="border-r border-border bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
           <div>
             <div className={railSectionTitle}>Summary</div>
             <dl className="detail-meta-list">
@@ -214,7 +214,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-border bg-[color:color-mix(in_srgb,var(--bg-1)_84%,var(--bg-2))] max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
+          <div className="border-r border-border bg-surface-2 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
             <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_108px_108px_108px_108px_108px_92px] max-[1300px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1100px]:grid-cols-3 max-[900px]:grid-cols-2">
               <div className="border-r border-border px-4 py-4 max-[1100px]:col-span-3 max-[1100px]:border-r-0 max-[1100px]:border-b max-[900px]:col-span-2">
                 <div className={endpointMetricLabel}>Endpoint</div>
@@ -298,17 +298,17 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
           </section>
         </div>
 
-        <aside className="bg-surface-2 px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+        <aside className="bg-surface-2 px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-border">
           <section>
             <div className={railSectionTitle}>Tokens</div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="border border-border bg-[color:color-mix(in_srgb,var(--bg-1)_88%,var(--bg-2))] px-3 py-3">
+              <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">in</div>
                 <div className="mt-2 font-mono text-[28px] font-semibold tracking-[-0.03em] text-fg">
                   {req.promptTokens?.toLocaleString() ?? '—'}
                 </div>
               </div>
-              <div className="border border-border bg-[color:color-mix(in_srgb,var(--bg-1)_88%,var(--bg-2))] px-3 py-3">
+              <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">out</div>
                 <div className="mt-2 font-mono text-[28px] font-semibold tracking-[-0.03em] text-fg">
                   {req.completionTokens?.toLocaleString() ?? '—'}

@@ -224,7 +224,7 @@ export function RequestsPage({ modelParam }: Props) {
           {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
           <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
-            <aside className="h-full border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
+            <aside className="h-full border-r border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
                 <div className="relative min-w-0">
@@ -243,7 +243,7 @@ export function RequestsPage({ modelParam }: Props) {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                   {!search ? (
-                    <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-[color:color-mix(in_srgb,var(--border)_90%,transparent)] px-[3px] py-0 font-mono text-[10px] text-fg-faint">
+                    <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
                       /
                     </span>
                   ) : null}
@@ -340,7 +340,7 @@ export function RequestsPage({ modelParam }: Props) {
               ) : null}
             </aside>
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-0 max-[900px]:border-l-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
               {histogram && histogram.length > 0 ? (
                 <section className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!">
                   <div className="histogram-header panel-head bg-transparent px-4">

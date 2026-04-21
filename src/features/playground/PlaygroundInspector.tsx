@@ -54,7 +54,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 
   return (
     <aside className="pg-inspector-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-surface-1 px-4 pt-3.5 pb-5">
-      <div className="-mx-4 -mt-3.5 mb-2 flex gap-0 border-b border-border bg-surface-1 px-0">
+      <div className="h-10 -mx-4 -mt-3.5 mb-2 flex gap-0 border-b border-border bg-surface-1 px-0">
         {TABS.map((item) => (
           <button
             key={item.id}

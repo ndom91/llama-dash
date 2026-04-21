@@ -96,7 +96,7 @@ export function PlaygroundChatTab({ chat }: Props) {
       />
 
       <section className="panel !rounded-none !border-t-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !border-b-0 !border-l-0 !border-r border-r-border !bg-surface-0">
-        <div className="flex items-center justify-between gap-4 border-b border-border bg-surface-1 px-4 py-2 text-[11px] font-mono text-fg-dim">
+        <div className="h-10 flex items-center justify-between gap-4 border-b border-border bg-surface-1 px-4 py-2 text-[11px] font-mono text-fg-dim">
           <div className="flex min-w-0 items-center gap-1.5">
             <StatusDot tone={activeModel?.running ? 'ok' : 'idle'} live={activeModel?.running ?? false} />
             <span className="truncate text-fg" translate="no">
@@ -188,7 +188,7 @@ export function PlaygroundChatTab({ chat }: Props) {
               <Tooltip label="Stop generation">
                 <button
                   type="button"
-                  className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-[color:color-mix(in_srgb,var(--err)_40%,var(--border))] bg-[color:color-mix(in_srgb,var(--err)_8%,var(--bg-2))] px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-border-strong hover:bg-surface-3 active:scale-95"
+                  className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-err bg-err-bg px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-err hover:bg-err-bg active:scale-95"
                   onClick={chat.stopStreaming}
                 >
                   <Square className="icon-12" strokeWidth={2} />

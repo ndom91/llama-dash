@@ -50,7 +50,7 @@ export function PlaygroundTranscribe() {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="border-b border-border bg-surface-1/70 px-6 py-3">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex min-w-[220px] items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4">
+          <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
               id="pg-tx-model"
@@ -81,18 +81,12 @@ export function PlaygroundTranscribe() {
             </select>
           </div>
 
-          <div
-            className="flex items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4"
-            aria-hidden="true"
-          >
+          <div className="flex items-center gap-3 border-r border-border pr-4" aria-hidden="true">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">lang</div>
             <div className="font-mono text-xs text-fg">auto-detect</div>
           </div>
 
-          <div
-            className="flex items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4"
-            aria-hidden="true"
-          >
+          <div className="flex items-center gap-3 border-r border-border pr-4" aria-hidden="true">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</div>
             <div className="font-mono text-xs text-fg">verbose_json</div>
           </div>
@@ -142,8 +136,8 @@ export function PlaygroundTranscribe() {
             <button
               type="button"
               className={cn(
-                'mx-auto mt-12 flex min-h-[240px] w-full max-w-[520px] flex-col items-center justify-center gap-2 rounded border border-dashed border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--bg-2)_92%,var(--bg-1))] px-6 py-7 text-center text-[13px] text-fg-dim shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--bg-3)_40%,transparent)] transition-colors hover:border-accent hover:bg-[color:color-mix(in_srgb,var(--accent)_4%,var(--bg-2))]',
-                dragging && 'border-accent bg-[color:color-mix(in_srgb,var(--accent)_4%,var(--bg-2))]',
+                'mx-auto mt-12 flex min-h-[240px] w-full max-w-[520px] flex-col items-center justify-center gap-2 rounded border border-dashed border-border bg-surface-2 px-6 py-7 text-center text-[13px] text-fg-dim shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] transition-colors hover:border-accent hover:bg-surface-3',
+                dragging && 'border-accent bg-surface-3',
               )}
               onDragOver={(e) => {
                 e.preventDefault()
@@ -172,18 +166,16 @@ export function PlaygroundTranscribe() {
               {transcriptRows.map((row) => (
                 <div
                   key={row.id}
-                  className="grid grid-cols-[130px_40px_minmax(0,1fr)] items-center gap-2 border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] px-3 py-1 first:border-t-0"
+                  className="grid grid-cols-[130px_40px_minmax(0,1fr)] items-center gap-2 border-t border-border px-3 py-1 first:border-t-0"
                 >
                   <div className="mono text-[11px] whitespace-nowrap text-fg-dim">
                     {row.start} → {row.end}
                   </div>
-                  <div className="mono text-[11px] text-[color:color-mix(in_srgb,var(--accent)_78%,white_10%)]">
-                    {row.confidence ?? '—'}
-                  </div>
+                  <div className="mono text-[11px] text-accent">{row.confidence ?? '—'}</div>
                   <div className="text-sm leading-[1.6] text-fg">{row.text}</div>
                 </div>
               ))}
-              <div className="flex justify-end border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] px-3 py-2.5">
+              <div className="flex justify-end border-t border-border px-3 py-2.5">
                 <Tooltip label="Copy">
                   <button
                     type="button"

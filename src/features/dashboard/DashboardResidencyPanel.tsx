@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { cn } from '../../lib/cn'
 import type { ApiModel, ApiModelEvent } from '../../lib/api'
 import { DASHBOARD_WINDOW_MS, buildResidencySpans, formatDurationMinutes } from './dashboardUtils'
 
@@ -32,7 +33,7 @@ export function DashboardResidencyPanel({ events, active }: Props) {
 
   return (
     <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
-      <div className="panel-head border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-transparent px-4">
+      <div className="panel-head border-b border-border bg-transparent px-4">
         <span className="panel-title">Model residency</span>
         <span className="panel-sub">· 60 min</span>
         <span className="panel-sub ml-auto">
@@ -55,10 +56,10 @@ export function DashboardResidencyPanel({ events, active }: Props) {
                   <span className="dim">{row.kind === 'peer' ? ' · peer' : ''}</span>
                 </div>
                 <div
-                  className="relative h-4 overflow-hidden rounded bg-surface-3"
-                  style={{
-                    background: row.kind === 'peer' ? 'color-mix(in srgb, var(--info) 16%, var(--bg-3))' : undefined,
-                  }}
+                  className={cn(
+                    'relative h-4 overflow-hidden rounded bg-surface-3',
+                    row.kind === 'peer' && 'bg-info-bg',
+                  )}
                 >
                   {row.spans.map((span) => {
                     const left = ((span.start - windowStart) / DASHBOARD_WINDOW_MS) * 100

@@ -6,7 +6,7 @@ export function RequestDetailSkeleton() {
     <>
       <PageHeader kicker="dsh · requests · detail" title="Request detail" subtitle="loading…" variant="integrated" />
 
-      <div className="border-r border-border bg-[color:color-mix(in_srgb,var(--bg-1)_84%,var(--bg-2))] max-[1200px]:border-r-0">
+      <div className="border-r border-border bg-surface-2 max-[1200px]:border-r-0">
         <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_108px_108px_108px_108px_108px_92px] max-[1300px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1100px]:grid-cols-3 max-[900px]:grid-cols-2">
           <div className="border-r border-border px-4 py-4 max-[1100px]:col-span-3 max-[1100px]:border-r-0 max-[1100px]:border-b max-[900px]:col-span-2">
             <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">endpoint</div>

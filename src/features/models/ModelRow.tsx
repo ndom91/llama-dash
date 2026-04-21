@@ -22,7 +22,10 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
         : stateTone(model.state, model.running)
 
   return (
-    <tr className="clickable-row" onClick={() => navigate({ to: '/models/$id', params: { id: model.id } })}>
+    <tr
+      className="clickable-row h-10 last:border-b last:border-border"
+      onClick={() => navigate({ to: '/models/$id', params: { id: model.id } })}
+    >
       <td>
         <StatusDot tone={tone} live={loading || model.running} />
       </td>

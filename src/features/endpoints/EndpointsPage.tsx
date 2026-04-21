@@ -45,7 +45,7 @@ export function EndpointsPage() {
             </section>
 
             {hasKeys ? (
-              <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1 md:border-l md:border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+              <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1 md:border-l md:border-l-border">
                 <div className="panel-head bg-transparent px-6 max-md:px-3">
                   <span className="panel-title">API Key</span>
                   <span className="panel-sub">· used in examples below</span>

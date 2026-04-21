@@ -15,7 +15,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
   return (
     <section className="panel !rounded-none border-t-0 !border-x-0 !bg-surface-1 h-full px-4 py-4">
       <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Upstream</div>
-      <dl className="mb-0 mt-0 grid gap-2.5 border-b border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pb-4">
+      <dl className="mb-0 mt-0 grid gap-2.5 border-b border-border pb-4">
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">host</dt>
           <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
