@@ -161,7 +161,7 @@ export function PlaygroundChatTab({ chat }: Props) {
           )}
         </div>
 
-        <div>
+        <div className="border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-[color-mix(in_srgb,var(--bg-1)_72%,var(--bg-0))]">
           <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}

@@ -65,7 +65,8 @@ export function PlaygroundPage({ searchTab }: Props) {
                 type="button"
                 className={cn(
                   'mb-[-1px] inline-flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] hover:text-fg',
-                  tab === item.id && 'border-accent text-fg',
+                  tab === item.id &&
+                    'border-accent bg-[color:color-mix(in_srgb,var(--accent)_10%,transparent)] text-accent',
                 )}
                 onClick={() => setTab(item.id)}
               >

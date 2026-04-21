@@ -3,6 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import { buildWaveformPeaks, formatSpeechClock } from './playgroundSpeechUtils'
 
+const WAVEFORM_BAR_WIDTH = 4
+const WAVEFORM_BAR_GAP = 3
+const WAVEFORM_SIDE_PADDING = 16
+
 type Props = {
   src: string
   durationHint: number | null
@@ -16,13 +20,26 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
   const [duration, setDuration] = useState(durationHint ?? 0)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [peaks, setPeaks] = useState<Array<{ id: string; index: number; value: number }>>([])
+  const [buffer, setBuffer] = useState<AudioBuffer | null>(null)
+  const [waveformWidth, setWaveformWidth] = useState(0)
 
   useEffect(() => {
     setDuration(durationHint ?? 0)
     setCurrentTime(0)
     setIsPlaying(false)
   }, [durationHint])
+
+  useEffect(() => {
+    const node = waveformRef.current
+    if (!node) return
+
+    const updateWidth = () => setWaveformWidth(node.clientWidth)
+    updateWidth()
+
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -41,11 +58,11 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
           void ctx.close()
           return
         }
-        setPeaks(buildWaveformPeaks(decoded, 72))
+        setBuffer(decoded)
         if (!durationHint && Number.isFinite(decoded.duration)) setDuration(decoded.duration)
         void ctx.close()
       } catch {
-        if (!cancelled) setPeaks([])
+        if (!cancelled) setBuffer(null)
       }
     }
 
@@ -100,6 +117,18 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
     }
   }, [isPlaying])
 
+  const barCount = useMemo(() => {
+    const usableWidth = Math.max(waveformWidth - WAVEFORM_SIDE_PADDING, 0)
+    const barSpan = WAVEFORM_BAR_WIDTH + WAVEFORM_BAR_GAP
+    if (usableWidth <= 0) return 48
+    return Math.max(1, Math.floor((usableWidth + WAVEFORM_BAR_GAP) / barSpan))
+  }, [waveformWidth])
+
+  const peaks = useMemo(() => {
+    if (!buffer) return []
+    return buildWaveformPeaks(buffer, barCount)
+  }, [buffer, barCount])
+
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0
   const activeBars = useMemo(() => Math.round(progress * peaks.length), [progress, peaks.length])
 
@@ -145,7 +174,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
       <audio ref={audioRef} src={src} preload="metadata" className="sr-only" />
       <div
         ref={waveformRef}
-        className="relative flex h-18 cursor-pointer items-end gap-[3px] overflow-hidden rounded border border-border bg-surface-1 px-2 py-2 outline-none"
+        className="relative flex h-18 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-1 px-2 py-2 outline-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         role="slider"
