@@ -54,14 +54,14 @@ export function PlaygroundSpeech() {
     durationSec != null ? formatSpeechClock(durationSec) : '--:--.-'
 
   return (
-    <div className="pg-compact-shell">
-      <div className="pg-settings pg-compact-settings">
-        <div className="pg-settings-row pg-speech-controls-row">
-          <div className="pg-speech-control-block">
-            <div className="pg-settings-label">model</div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-b border-border bg-surface-1/70 px-6 py-3">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex min-w-[220px] items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
               id="pg-speech-model"
-              className="pg-select pg-speech-toolbar-select"
+              className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
               value={speech.model}
               onChange={(e) => speech.setModel(e.target.value)}
             >
@@ -88,12 +88,12 @@ export function PlaygroundSpeech() {
             </select>
           </div>
 
-          <div className="pg-speech-control-block">
-            <div className="pg-settings-label">voice</div>
+          <div className="flex min-w-[180px] items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">voice</div>
             {speech.voices ? (
               <select
                 id="pg-speech-voice"
-                className="pg-select pg-speech-toolbar-select"
+                className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
                 value={speech.voice}
                 onChange={(e) => speech.setVoice(e.target.value)}
               >
@@ -108,7 +108,7 @@ export function PlaygroundSpeech() {
               <input
                 id="pg-speech-voice"
                 type="text"
-                className="pg-voice-input pg-speech-toolbar-input"
+                className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
                 placeholder="voice name…"
                 value={speech.voice}
                 onChange={(e) => speech.setVoice(e.target.value)}
@@ -116,25 +116,34 @@ export function PlaygroundSpeech() {
             )}
           </div>
 
-          <div className="pg-speech-control-block pg-speech-format-block" aria-hidden="true">
-            <div className="pg-settings-label">format</div>
-            <div className="pg-speech-format-value">mp3 • 24 kHz</div>
+          <div
+            className="ml-auto flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-fg-dim"
+            aria-hidden="true"
+          >
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">format</div>
+            <div className="text-xs normal-case tracking-normal text-fg">mp3 • 24 kHz</div>
           </div>
         </div>
       </div>
 
-      <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
-        <div className="pg-chat-scroll pg-speech-stage">
-          {speech.error ? <div className="pg-error">{speech.error}</div> : null}
+      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-surface-0 px-6 pt-5 pb-4">
+          {speech.error ? (
+            <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">
+              {speech.error}
+            </div>
+          ) : null}
 
           {speech.entries.length > 0 ? (
-            <div className="pg-speech-stack">
+            <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
               {speech.entries.map((entry) => (
-                <div key={entry.id} className="pg-speech-preview-card">
-                  <div className="pg-speech-preview-head">
-                    <span className="pg-settings-label">preview</span>
-                    <div className="pg-speech-preview-head-right">
-                      <div className="pg-speech-preview-meta">
+                <div key={entry.id} className="flex flex-col gap-3 rounded border border-border bg-surface-2 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">
+                      preview
+                    </span>
+                    <div className="flex items-start gap-2">
+                      <div className="text-right font-mono text-[11px] leading-[1.45] text-fg-dim">
                         <span>{entry.voice}</span> ·<span>{durationLabel(entry.audioDurationSec)}</span> ·
                         <span>{renderLabel(entry.renderMs)}</span> ·
                         <span>{ratioLabel(entry.renderMs, entry.audioDurationSec)}</span>
@@ -142,7 +151,7 @@ export function PlaygroundSpeech() {
                       <Tooltip label="Close">
                         <button
                           type="button"
-                          className="pg-action-btn pg-speech-close-btn"
+                          className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
                           onClick={() => speech.removeEntry(entry.id)}
                           aria-label="Remove speech result"
                         >
@@ -151,7 +160,7 @@ export function PlaygroundSpeech() {
                       </Tooltip>
                     </div>
                   </div>
-                  <div className="pg-speech-preview-text">{entry.input}</div>
+                  <div className="text-[13px] leading-[1.6] text-fg">{entry.input}</div>
                   <PlaygroundSpeechPreviewPlayer
                     key={entry.audioUrl}
                     src={entry.audioUrl}
@@ -162,16 +171,16 @@ export function PlaygroundSpeech() {
               ))}
             </div>
           ) : !speech.loading && !speech.error ? (
-            <div className="pg-empty">
-              <Volume2 className="pg-empty-icon" strokeWidth={1.25} />
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[13px] text-fg-faint">
+              <Volume2 className="h-10 w-10 opacity-30" strokeWidth={1.25} />
               <span>Convert text to speech</span>
             </div>
           ) : null}
         </div>
 
-        <form className="pg-input-bar pg-speech-prompt-bar" onSubmit={handleSubmit}>
+        <form className="flex items-end gap-2 border-t border-border px-4 py-3" onSubmit={handleSubmit}>
           <textarea
-            className="pg-input rounded!"
+            className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-1 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             placeholder={speech.model ? 'Enter text to speak…' : 'Select a model first…'}
             value={speech.text}
             onChange={(e) => speech.setText(e.target.value)}

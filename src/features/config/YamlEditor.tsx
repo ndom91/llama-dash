@@ -40,14 +40,19 @@ export function YamlEditor({ value, onChange }: Props) {
   }
 
   return (
-    <div className="config-editor-wrap">
-      <div className="config-line-numbers" aria-hidden="true">
+    <div className="flex min-h-0 flex-1 font-mono text-[13px] leading-[1.6]">
+      <div
+        className="flex min-w-11 flex-col overflow-hidden border-r border-border bg-surface-3 py-3 text-right text-fg-faint select-none"
+        aria-hidden="true"
+      >
         {Array.from({ length: lineCount }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: line numbers are sequential and never reorder
-          <span key={i}>{i + 1}</span>
+          <span key={i} className="px-2.5 pl-2 text-[11px] leading-[1.6]">
+            {i + 1}
+          </span>
         ))}
       </div>
-      <div className="config-editor-inner">
+      <div className="relative flex-1 overflow-hidden">
         {/* biome-ignore format: whitespace inside <pre> shifts the highlight overlay */}
         <pre ref={preRef} className="config-highlight" aria-hidden="true">{highlightedToJsx(highlighted)}{'\n'}</pre>
         <textarea

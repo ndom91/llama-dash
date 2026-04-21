@@ -140,12 +140,12 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
   }, [])
 
   return (
-    <div className="pg-speech-preview-player-shell">
+    <div className="flex flex-col gap-3">
       {/* biome-ignore lint/a11y/useMediaCaption: generated speech preview has no caption source */}
       <audio ref={audioRef} src={src} preload="metadata" className="sr-only" />
       <div
         ref={waveformRef}
-        className="pg-speech-waveform"
+        className="relative flex h-18 cursor-pointer items-end gap-[3px] overflow-hidden rounded border border-border bg-surface-1 px-2 py-2 outline-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         role="slider"
@@ -172,32 +172,47 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
         {peaks.map((peak) => (
           <span
             key={peak.id}
-            className={peak.index < activeBars ? 'is-active' : ''}
-            style={{ height: `${Math.max(8, peak.value * 60)}px` }}
+            className={peak.index < activeBars ? 'bg-accent' : 'bg-fg-faint/40'}
+            style={{ height: `${Math.max(8, peak.value * 60)}px`, width: '4px', borderRadius: '9999px' }}
           />
         ))}
-        <span className="pg-speech-playhead" style={{ left: `${progress * 100}%` }} />
+        <span
+          className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/80"
+          style={{ left: `${progress * 100}%` }}
+        />
       </div>
 
-      <div className="pg-speech-preview-player">
+      <div className="flex items-center gap-3 rounded border border-border bg-surface-1 px-3 py-2">
         <button
           type="button"
-          className="pg-speech-play-btn"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-on transition-opacity hover:opacity-90"
           onClick={togglePlayback}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
           {isPlaying ? <Pause className="icon-14" strokeWidth={2.5} /> : <Play className="icon-14" strokeWidth={2.5} />}
         </button>
-        <span className="pg-speech-time mono">{formatSpeechClock(currentTime)}</span>
-        <div className="pg-speech-progress" onPointerDown={onPointerDown} onPointerMove={onPointerMove}>
-          <span className="pg-speech-progress-track" />
-          <span className="pg-speech-progress-fill" style={{ width: `${progress * 100}%` }} />
-          <span className="pg-speech-progress-thumb" style={{ left: `${progress * 100}%` }} />
+        <span className="mono text-[11px] text-fg-dim">{formatSpeechClock(currentTime)}</span>
+        <div
+          className="relative h-2 flex-1 cursor-pointer rounded bg-surface-3"
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+        >
+          <span className="absolute inset-y-0 left-0 rounded bg-accent" style={{ width: `${progress * 100}%` }} />
+          <span
+            className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-surface-1 bg-fg"
+            style={{ left: `calc(${progress * 100}% - 6px)` }}
+          />
         </div>
-        <span className="pg-speech-time mono pg-speech-time-end">{formatSpeechClock(duration || 0)}</span>
-        <span className="pg-speech-format-chip">mp3</span>
+        <span className="mono text-[11px] text-fg-dim">{formatSpeechClock(duration || 0)}</span>
+        <span className="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">
+          mp3
+        </span>
         <Tooltip label="Download">
-          <button type="button" className="pg-action-btn" onClick={onDownload}>
+          <button
+            type="button"
+            className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-90"
+            onClick={onDownload}
+          >
             <Download className="icon-14" strokeWidth={2} />
           </button>
         </Tooltip>

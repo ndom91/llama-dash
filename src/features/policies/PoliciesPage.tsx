@@ -8,7 +8,7 @@ export function PoliciesPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page policies-page">
+        <div className="page min-h-full bg-surface-1">
           <PageHeader
             kicker="dsh · policies"
             title="Policies"

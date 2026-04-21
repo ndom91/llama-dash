@@ -25,8 +25,8 @@ export function RequestLimitsPanel() {
   }
 
   return (
-    <section className="panel policies-panel">
-      <div className="panel-head policies-panel-head">
+    <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+      <div className="panel-head bg-transparent px-6 max-md:px-3">
         <span className="panel-title">Request Limits</span>
         <span className="panel-sub">· global size limits on proxied requests</span>
         {!editing ? (

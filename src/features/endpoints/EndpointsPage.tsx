@@ -22,7 +22,7 @@ export function EndpointsPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page endpoints-page">
+        <div className="page flex-1 bg-surface-1">
           <PageHeader
             kicker="dsh · endpoints"
             title="Endpoints"
@@ -30,9 +30,9 @@ export function EndpointsPage() {
             variant="integrated"
           />
 
-          <div className={`grid endpoints-grid ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
-            <section className="panel endpoints-panel">
-              <div className="panel-head endpoints-panel-head">
+          <div className={`grid gap-0 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
+            <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1">
+              <div className="panel-head bg-transparent px-6 max-md:px-3">
                 <span className="panel-title">Base URL</span>
               </div>
               <div className="p-4 flex flex-col gap-3">
@@ -45,8 +45,8 @@ export function EndpointsPage() {
             </section>
 
             {hasKeys ? (
-              <section className="panel endpoints-panel">
-                <div className="panel-head endpoints-panel-head">
+              <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1 md:border-l md:border-l-[color:color-mix(in_srgb,var(--border)_86%,transparent)]">
+                <div className="panel-head bg-transparent px-6 max-md:px-3">
                   <span className="panel-title">API Key</span>
                   <span className="panel-sub">· used in examples below</span>
                 </div>
@@ -70,8 +70,8 @@ export function EndpointsPage() {
             ) : null}
           </div>
 
-          <section className="panel endpoints-panel endpoints-code-panel">
-            <div className="panel-head endpoints-panel-head">
+          <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+            <div className="panel-head bg-transparent px-6 max-md:px-3">
               <span className="panel-title">Code examples</span>
               <span className="panel-sub">· {ENDPOINT_TABS.find((t) => t.id === tab)?.label}</span>
             </div>

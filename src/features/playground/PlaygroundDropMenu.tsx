@@ -26,17 +26,17 @@ export function PlaygroundDropMenu({ label, icon, items, onSelect, onDelete, onA
   }, [open])
 
   return (
-    <div className="pg-dropmenu" ref={wrapRef}>
+    <div className="relative" ref={wrapRef}>
       <button type="button" className="btn btn-ghost btn-xs" onClick={() => setOpen(!open)}>
         {icon}
         {label}
         <ChevronDown className="icon-10" strokeWidth={2} />
       </button>
       {open ? (
-        <div className="pg-dropmenu-panel">
+        <div className="absolute top-[calc(100%+4px)] right-0 z-20 min-w-[260px] rounded border border-border bg-surface-1 p-1.5 shadow-[0_6px_20px_-6px_rgba(0,0,0,0.4)]">
           <button
             type="button"
-            className="pg-dropmenu-add"
+            className="w-full rounded-sm border border-border bg-surface-2 px-2 py-1.5 text-left text-[11px] text-fg hover:bg-surface-3"
             onClick={() => {
               setOpen(false)
               onAdd()
@@ -44,26 +44,26 @@ export function PlaygroundDropMenu({ label, icon, items, onSelect, onDelete, onA
           >
             + {addLabel}
           </button>
-          <div className="pg-dropmenu-list">
+          <div className="mt-1.5 flex max-h-[260px] flex-col gap-0.5 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="pg-dropmenu-empty">{emptyLabel}</p>
+              <p className="m-0 px-2 py-1.5 text-[11px] text-fg-faint">{emptyLabel}</p>
             ) : (
               items.map((it) => (
-                <div key={it.id} className="pg-dropmenu-item">
+                <div key={it.id} className="flex items-center gap-1 rounded-sm hover:bg-surface-2">
                   <button
                     type="button"
-                    className="pg-dropmenu-item-main"
+                    className="flex min-w-0 flex-1 flex-col gap-px bg-transparent px-2 py-1.5 text-left text-fg"
                     onClick={() => {
                       setOpen(false)
                       onSelect(it.id)
                     }}
                   >
-                    <span className="pg-dropmenu-item-label">{it.label}</span>
-                    {it.sub ? <span className="pg-dropmenu-item-sub">{it.sub}</span> : null}
+                    <span className="text-xs">{it.label}</span>
+                    {it.sub ? <span className="font-mono text-[10px] text-fg-faint">{it.sub}</span> : null}
                   </button>
                   <button
                     type="button"
-                    className="pg-dropmenu-item-del"
+                    className="mr-1 inline-flex h-[22px] w-[22px] items-center justify-center rounded-[3px] bg-transparent text-fg-faint hover:bg-surface-3 hover:text-err"
                     onClick={() => onDelete(it.id)}
                     aria-label={`Delete ${it.label}`}
                   >

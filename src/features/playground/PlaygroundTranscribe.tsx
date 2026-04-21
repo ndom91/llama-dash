@@ -47,14 +47,14 @@ export function PlaygroundTranscribe() {
   }, [tx.transcript])
 
   return (
-    <div className="pg-compact-shell">
-      <div className="pg-settings pg-compact-settings">
-        <div className="pg-settings-row pg-tx-controls-row">
-          <div className="pg-tx-control-block">
-            <div className="pg-settings-label">model</div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="border-b border-border bg-surface-1/70 px-6 py-3">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex min-w-[220px] items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
               id="pg-tx-model"
-              className="pg-select pg-tx-toolbar-select"
+              className="min-w-0 border-0 bg-transparent font-mono text-xs text-fg outline-none"
               value={tx.model}
               onChange={(e) => tx.setModel(e.target.value)}
             >
@@ -81,26 +81,39 @@ export function PlaygroundTranscribe() {
             </select>
           </div>
 
-          <div className="pg-tx-control-block pg-tx-lang-block" aria-hidden="true">
-            <div className="pg-settings-label">lang</div>
-            <div className="pg-tx-inline-value">auto → en</div>
+          <div
+            className="flex items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4"
+            aria-hidden="true"
+          >
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">lang</div>
+            <div className="font-mono text-xs text-fg">auto → en</div>
           </div>
 
-          <div className="pg-tx-control-block pg-tx-output-block" aria-hidden="true">
-            <div className="pg-settings-label">output</div>
-            <div className="pg-tx-inline-value">verbose_json</div>
+          <div
+            className="flex items-center gap-3 border-r border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] pr-4"
+            aria-hidden="true"
+          >
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</div>
+            <div className="font-mono text-xs text-fg">verbose_json</div>
           </div>
 
-          <div className="pg-tx-controls-meta" aria-hidden="true">
+          <div
+            className="ml-auto inline-flex items-center gap-3 px-1 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim"
+            aria-hidden="true"
+          >
             <span>3.8 s decode</span>
             <span>35× real-time</span>
           </div>
         </div>
       </div>
 
-      <section className="panel pg-chat-panel pg-compact-panel pg-compact-surface">
-        <div className="pg-chat-scroll pg-tx-stage">
-          {tx.error ? <div className="pg-error">{tx.error}</div> : null}
+      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-surface-0 px-6 pt-5 pb-4">
+          {tx.error ? (
+            <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">
+              {tx.error}
+            </div>
+          ) : null}
 
           <input
             ref={fileInputRef}
@@ -111,18 +124,18 @@ export function PlaygroundTranscribe() {
           />
 
           {tx.file ? (
-            <div className="pg-tx-file-shell">
-              <div className="pg-file-info pg-tx-file-card">
-                <div className="pg-tx-file-card-main">
+            <div className="mx-auto w-full max-w-[686px]">
+              <div className="flex items-center justify-between gap-4 rounded border border-border bg-surface-2 px-4 py-3.5">
+                <div className="flex min-w-0 items-center gap-3">
                   <FileAudio className="icon-16" strokeWidth={1.75} />
-                  <div className="pg-file-meta">
-                    <div className="pg-file-name">{tx.file.name}</div>
-                    <div className="pg-file-size">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-medium text-fg">{tx.file.name}</div>
+                    <div className="font-mono text-[11px] text-fg-dim">
                       {formatSegmentTime(tx.transcriptData?.duration ?? 0)} · {fmtSize(tx.file.size)}
                     </div>
                   </div>
                 </div>
-                <div className="pg-tx-file-card-actions">
+                <div className="inline-flex gap-2">
                   <button type="button" className="btn btn-ghost btn-xs" onClick={() => fileInputRef.current?.click()}>
                     <Replace className="icon-12" strokeWidth={2} />
                     replace
@@ -136,7 +149,10 @@ export function PlaygroundTranscribe() {
           ) : (
             <button
               type="button"
-              className={cn('pg-dropzone pg-tx-dropzone', dragging && 'pg-dropzone-active')}
+              className={cn(
+                'mx-auto mt-12 flex min-h-[240px] w-full max-w-[520px] flex-col items-center justify-center gap-2 rounded border border-dashed border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] bg-[color:color-mix(in_srgb,var(--bg-2)_92%,var(--bg-1))] px-6 py-7 text-center text-[13px] text-fg-dim shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--bg-3)_40%,transparent)] transition-colors hover:border-accent hover:bg-[color:color-mix(in_srgb,var(--accent)_4%,var(--bg-2))]',
+                dragging && 'border-accent bg-[color:color-mix(in_srgb,var(--accent)_4%,var(--bg-2))]',
+              )}
               onDragOver={(e) => {
                 e.preventDefault()
                 setDragging(true)
@@ -151,26 +167,37 @@ export function PlaygroundTranscribe() {
                 }
               }}
             >
-              <Upload className="pg-dropzone-icon" strokeWidth={1.25} />
+              <Upload className="h-[34px] w-[34px] opacity-30" strokeWidth={1.25} />
               <span>Drop an audio file here or click to browse</span>
-              <span className="pg-file-hint">MP3, OGG, WAV, FLAC, M4A, WebM — max 20 MB</span>
+              <span className="max-w-[320px] text-[11px] leading-[1.5] text-fg-faint">
+                MP3, OGG, WAV, FLAC, M4A, WebM — max 20 MB
+              </span>
             </button>
           )}
 
           {transcriptRows.length > 0 ? (
-            <div className="pg-tx-transcript-shell">
+            <div className="mx-auto mb-6 w-full max-w-[686px] overflow-hidden rounded border border-border bg-surface-2">
               {transcriptRows.map((row) => (
-                <div key={row.id} className="pg-tx-segment">
-                  <div className="pg-tx-segment-time mono">
+                <div
+                  key={row.id}
+                  className="grid grid-cols-[130px_40px_minmax(0,1fr)] items-center gap-2 border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] px-3 py-1 first:border-t-0"
+                >
+                  <div className="mono text-[11px] whitespace-nowrap text-fg-dim">
                     {row.start} → {row.end}
                   </div>
-                  <div className="pg-tx-segment-confidence mono">{row.confidence ?? '—'}</div>
-                  <div className="pg-tx-segment-text">{row.text}</div>
+                  <div className="mono text-[11px] text-[color:color-mix(in_srgb,var(--accent)_78%,white_10%)]">
+                    {row.confidence ?? '—'}
+                  </div>
+                  <div className="text-sm leading-[1.6] text-fg">{row.text}</div>
                 </div>
               ))}
-              <div className="pg-tx-transcript-actions">
+              <div className="flex justify-end border-t border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] px-3 py-2.5">
                 <Tooltip label="Copy">
-                  <button type="button" className="pg-action-btn" onClick={copyTranscript}>
+                  <button
+                    type="button"
+                    className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+                    onClick={copyTranscript}
+                  >
                     <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
                       <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
                       <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
@@ -182,10 +209,10 @@ export function PlaygroundTranscribe() {
           ) : null}
         </div>
 
-        <div className="pg-input-bar pg-tx-bar">
+        <div className="flex items-center gap-2 border-t border-border px-4 py-3">
           {tx.recording ? (
             <button type="button" className="btn btn-danger-ghost" onClick={tx.stopRecording}>
-              <span className="pg-rec-dot" />
+              <span className="h-2 w-2 rounded-full bg-err" />
               stop recording
             </button>
           ) : (

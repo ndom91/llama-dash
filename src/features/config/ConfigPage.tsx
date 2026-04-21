@@ -91,7 +91,7 @@ export function ConfigPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page config-page">
+        <div className="page min-h-full flex-1">
           <PageHeader
             kicker="dsh · config"
             title="Configuration"
@@ -99,10 +99,14 @@ export function ConfigPage() {
             variant="integrated"
             action={
               loadState.status === 'ready' ? (
-                <div className="config-header-actions">
-                  {isDirty ? <span className="config-dirty-badge">unsaved</span> : null}
+                <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap">
+                  {isDirty ? (
+                    <span className="inline-flex items-center rounded-sm border border-warn bg-warn-bg px-2 py-0.5 font-mono text-[11px] font-medium text-warn animate-[badge-in_var(--duration-normal)_var(--ease-out)]">
+                      unsaved
+                    </span>
+                  ) : null}
                   {saveResult && 'saved' in saveResult && saveResult.saved ? (
-                    <span className="config-saved-badge">
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-ok bg-ok-bg px-2 py-0.5 font-mono text-[11px] font-medium text-ok animate-[badge-in_var(--duration-normal)_var(--ease-out)]">
                       <Check size={14} strokeWidth={2} /> saved
                     </span>
                   ) : null}
@@ -133,18 +137,18 @@ export function ConfigPage() {
           />
 
           {loadState.status === 'loading' ? (
-            <div className="empty-state config-empty-state">loading config…</div>
+            <div className="empty-state px-6 max-md:px-3">loading config…</div>
           ) : loadState.status === 'unavailable' ? (
-            <div className="empty-state config-empty-state">
+            <div className="empty-state px-6 max-md:px-3">
               <code>LLAMASWAP_CONFIG_FILE</code> is not set. Set it to the path of your llama-swap config.yaml to enable
               editing.
             </div>
           ) : loadState.status === 'error' ? (
-            <div className="err-banner config-error-banner">{loadState.message}</div>
+            <div className="err-banner mx-6 mt-3 max-md:mx-3">{loadState.message}</div>
           ) : (
             <>
               {saveResult && 'conflict' in saveResult && saveResult.conflict ? (
-                <div className="err-banner config-error-banner">
+                <div className="err-banner mx-6 mt-3 max-md:mx-3">
                   <AlertTriangle size={14} strokeWidth={2} /> Config was modified externally. Reload to get latest
                   version.
                   <button type="button" className="btn btn-ghost btn-xs" style={{ marginLeft: 8 }} onClick={load}>
@@ -154,19 +158,21 @@ export function ConfigPage() {
               ) : null}
 
               {validation && !validation.valid && validation.errors ? (
-                <div className="config-errors config-validation-errors">
+                <div className="mx-6 mt-3 mb-3 rounded-sm border border-err bg-err-bg px-3.5 py-2.5 text-[13px] text-err animate-[badge-in_var(--duration-slow)_var(--ease-out)] max-md:mx-3">
                   <strong>Validation errors:</strong>
-                  <ul>
+                  <ul className="mt-1.5 pl-[18px]">
                     {validation.errors.map((e) => (
-                      <li key={e}>{e}</li>
+                      <li key={e} className="font-mono text-xs">
+                        {e}
+                      </li>
                     ))}
                   </ul>
                 </div>
               ) : null}
 
-              <div className="config-editor-panel panel config-shell-panel">
+              <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
                 <YamlEditor value={content} onChange={setContent} />
-                <div className="config-footer-hint">
+                <div className="border-t border-border bg-surface-3 px-3.5 py-2 text-xs text-fg-dim">
                   <kbd>Cmd+S</kbd> to save · Tab inserts 2 spaces · llama-swap auto-reloads on file change
                 </div>
               </div>

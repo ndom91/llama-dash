@@ -63,7 +63,7 @@ export function PlaygroundHeaderActions({
         emptyLabel="No saved runs."
       />
       <Tooltip label="Compare mode coming soon">
-        <button type="button" className="btn btn-ghost btn-xs pg-run-all" disabled>
+        <button type="button" className="btn btn-ghost btn-xs text-accent" disabled>
           <Play className="icon-12" strokeWidth={2} />
           Run all
         </button>

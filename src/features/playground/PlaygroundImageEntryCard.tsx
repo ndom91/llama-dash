@@ -9,14 +9,22 @@ type Props = {
 
 export function PlaygroundImageEntryCard({ entry, onDownload }: Props) {
   return (
-    <div className="pg-img-entry">
-      <div className="pg-img-entry-prompt">{entry.prompt}</div>
-      <div className="pg-img-grid">
+    <div className="flex flex-col gap-3 rounded border border-border bg-surface-2 p-3">
+      <div className="font-mono text-[11px] leading-[1.5] text-fg-dim">{entry.prompt}</div>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
         {entry.images.map((image, index) => (
-          <div key={image.url} className="pg-img-card">
-            <img src={image.url} alt={image.revisedPrompt ?? 'Generated image'} className="pg-img-result" />
+          <div key={image.url} className="group relative overflow-hidden rounded border border-border bg-surface-1">
+            <img
+              src={image.url}
+              alt={image.revisedPrompt ?? 'Generated image'}
+              className="block aspect-square h-auto w-full object-cover"
+            />
             <Tooltip label="Download">
-              <button type="button" className="pg-img-download" onClick={() => onDownload(image.url, index)}>
+              <button
+                type="button"
+                className="absolute top-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded bg-surface-0/85 text-fg opacity-0 transition-opacity group-hover:opacity-100 hover:bg-surface-0"
+                onClick={() => onDownload(image.url, index)}
+              >
                 <Download className="icon-14" strokeWidth={2} />
               </button>
             </Tooltip>
