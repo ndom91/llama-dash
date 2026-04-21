@@ -5,6 +5,7 @@ export type RequestTiming = {
   prefillMs: number | null
   ttftMs: number | null
   decodeMs: number | null
+  streamCloseMs: number | null
 }
 
 export function parseRequestPayload(body: string | null) {
@@ -86,6 +87,7 @@ export function analyzeTiming(req: ApiRequestDetail): RequestTiming {
     prefillMs: null,
     ttftMs: null,
     decodeMs: null,
+    streamCloseMs: req.streamCloseMs,
   }
   if (!req.responseBody) return result
   const chunks = parseSseChunks(req.responseBody)

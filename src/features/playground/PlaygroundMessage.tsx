@@ -148,7 +148,6 @@ export function PlaygroundMessage({
           <span>tok/s {metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'}</span>
           <span>tokens {metrics.tokIn != null ? `${metrics.tokIn} in` : '—'}</span>
           <span>{metrics.tokOut != null ? `${metrics.tokOut} out` : '—'}</span>
-          <span>cost {metrics.costUsd != null ? `$${metrics.costUsd.toFixed(4)}` : '~$0.0000'}</span>
           <span className="min-w-2" />
           <Tooltip label="Copy">
             <button

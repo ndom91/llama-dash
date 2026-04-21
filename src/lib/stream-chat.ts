@@ -13,7 +13,6 @@ export type MessageMetrics = {
   tokIn?: number
   tokOut?: number
   tokPerSec?: number
-  costUsd?: number
 }
 
 export type SamplingParams = {
@@ -36,9 +35,11 @@ export type StreamEvent =
   | { kind: 'first-byte'; at: number }
   | { kind: 'reasoning-start'; at: number }
   | { kind: 'content-start'; at: number }
+  | { kind: 'timings'; promptMs?: number; predictedMs?: number; at: number }
   | { kind: 'chunk'; content: string; reasoningContent?: string; at: number }
   | { kind: 'usage'; promptTokens?: number; completionTokens?: number; at: number }
   | { kind: 'done'; finishReason?: string; at: number }
+  | { kind: 'closed'; at: number }
   | { kind: 'error'; message: string; at: number }
 
 export type StreamChunk = {
@@ -48,6 +49,8 @@ export type StreamChunk = {
   finishReason?: string
   promptTokens?: number
   completionTokens?: number
+  promptMs?: number
+  predictedMs?: number
 }
 
 export type StreamRequestOptions = {
@@ -114,6 +117,46 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
   let sawFirstByte = false
   let sawFirstContent = false
   let sawFirstReasoning = false
+  let sawDone = false
+
+  const emitChunkEvents = (chunk: StreamChunk) => {
+    if (chunk.reasoningContent && !sawFirstReasoning) {
+      sawFirstReasoning = true
+      opts.onEvent?.({ kind: 'reasoning-start', at: Date.now() })
+    }
+    if (chunk.content && !sawFirstContent) {
+      sawFirstContent = true
+      opts.onEvent?.({ kind: 'content-start', at: Date.now() })
+    }
+    if (chunk.content || chunk.reasoningContent) {
+      opts.onEvent?.({
+        kind: 'chunk',
+        content: chunk.content,
+        reasoningContent: chunk.reasoningContent,
+        at: Date.now(),
+      })
+    }
+    if (chunk.promptTokens != null || chunk.completionTokens != null) {
+      opts.onEvent?.({
+        kind: 'usage',
+        promptTokens: chunk.promptTokens,
+        completionTokens: chunk.completionTokens,
+        at: Date.now(),
+      })
+    }
+    if (chunk.promptMs != null || chunk.predictedMs != null) {
+      opts.onEvent?.({
+        kind: 'timings',
+        promptMs: chunk.promptMs,
+        predictedMs: chunk.predictedMs,
+        at: Date.now(),
+      })
+    }
+    if (chunk.done && !sawDone) {
+      sawDone = true
+      opts.onEvent?.({ kind: 'done', finishReason: chunk.finishReason, at: Date.now() })
+    }
+  }
 
   try {
     for (;;) {
@@ -132,37 +175,8 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
       for (const line of lines) {
         const chunk = parseSseLine(line)
         if (!chunk) continue
-
-        if (chunk.reasoningContent && !sawFirstReasoning) {
-          sawFirstReasoning = true
-          opts.onEvent?.({ kind: 'reasoning-start', at: Date.now() })
-        }
-        if (chunk.content && !sawFirstContent) {
-          sawFirstContent = true
-          opts.onEvent?.({ kind: 'content-start', at: Date.now() })
-        }
-        if (chunk.content || chunk.reasoningContent) {
-          opts.onEvent?.({
-            kind: 'chunk',
-            content: chunk.content,
-            reasoningContent: chunk.reasoningContent,
-            at: Date.now(),
-          })
-        }
-        if (chunk.promptTokens != null || chunk.completionTokens != null) {
-          opts.onEvent?.({
-            kind: 'usage',
-            promptTokens: chunk.promptTokens,
-            completionTokens: chunk.completionTokens,
-            at: Date.now(),
-          })
-        }
-
+        emitChunkEvents(chunk)
         yield chunk
-        if (chunk.done) {
-          opts.onEvent?.({ kind: 'done', finishReason: chunk.finishReason, at: Date.now() })
-          return
-        }
       }
     }
 
@@ -170,8 +184,12 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
     if (tail) buffer += tail
     if (buffer.trim()) {
       const chunk = parseSseLine(buffer)
-      if (chunk) yield chunk
+      if (chunk) {
+        emitChunkEvents(chunk)
+        yield chunk
+      }
     }
+    opts.onEvent?.({ kind: 'closed', at: Date.now() })
   } finally {
     reader.releaseLock()
   }
@@ -197,6 +215,8 @@ function parseSseLine(line: string): StreamChunk | null {
       finishReason: finishReason ?? undefined,
       promptTokens: usage?.prompt_tokens,
       completionTokens: usage?.completion_tokens,
+      promptMs: parsed.timings?.prompt_ms,
+      predictedMs: parsed.timings?.predicted_ms,
     }
   } catch {
     return null

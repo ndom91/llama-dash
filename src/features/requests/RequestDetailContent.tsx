@@ -204,6 +204,10 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 <dt>total</dt>
                 <dd>{formatDuration(req.durationMs)}</dd>
               </div>
+              <div>
+                <dt>stream close</dt>
+                <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
+              </div>
             </dl>
           </div>
         </aside>
@@ -334,6 +338,12 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-fg-dim">total</dt>
                 <dd className="m-0 text-fg">{formatDuration(req.durationMs)}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-fg-dim">stream close</dt>
+                <dd className="m-0 text-fg">
+                  {timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}
+                </dd>
               </div>
             </dl>
           </section>

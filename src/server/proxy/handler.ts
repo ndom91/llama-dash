@@ -3,7 +3,7 @@ import { authenticateRequest } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import { applyTransforms, checkModelAllowed } from './transforms.ts'
-import { SseUsageScanner, type Usage, usageFromJsonBody } from './usage.ts'
+import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
   'host',
@@ -41,8 +41,8 @@ function headersToRecord(headers: Headers): Record<string, string> {
   return out
 }
 
-function nullUsage(model?: string | null): Usage {
-  return { model: model ?? null, promptTokens: null, completionTokens: null, totalTokens: null }
+function nullUsage(model?: string | null): UsageWithClose {
+  return { model: model ?? null, promptTokens: null, completionTokens: null, totalTokens: null, streamCloseMs: null }
 }
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
@@ -190,14 +190,14 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             const tail = decoder.decode()
             if (tail) {
               responseChunks.push(tail)
-              if (sseScanner) sseScanner.feed(tail)
+              if (sseScanner) sseScanner.feed(tail, Date.now())
             }
           }
           const resBody = decoder ? responseChunks.join('') : null
-          const usage: Usage = sseScanner
-            ? sseScanner.done()
+          const usage: UsageWithClose = sseScanner
+            ? sseScanner.done(Date.now())
             : isJson && resBody
-              ? usageFromJsonBody(resBody)
+              ? { ...usageFromJsonBody(resBody), streamCloseMs: null }
               : nullUsage(reqModel)
 
           writeLog({
@@ -224,7 +224,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         if (decoder) {
           const text = decoder.decode(value, { stream: true })
           responseChunks.push(text)
-          if (sseScanner) sseScanner.feed(text)
+          if (sseScanner) sseScanner.feed(text, Date.now())
         }
       } catch (err) {
         controller.error(err)
@@ -234,7 +234,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           status: upstreamResponse.status,
           method,
           endpoint,
-          usage: sseScanner ? sseScanner.done() : nullUsage(reqModel),
+          usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
           streamed: isSse,
           error: message,
           reqHeaders: JSON.stringify(reqHeaders),
@@ -252,7 +252,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         status: upstreamResponse.status,
         method,
         endpoint,
-        usage: sseScanner ? sseScanner.done() : nullUsage(reqModel),
+        usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
         streamed: isSse,
         error: 'Client disconnected',
         reqHeaders: JSON.stringify(reqHeaders),
@@ -275,7 +275,7 @@ function writeLog(input: {
   status: number
   method: string
   endpoint: string
-  usage: Usage
+  usage: UsageWithClose
   streamed: boolean
   error: string | null
   reqHeaders: string | null
@@ -300,6 +300,7 @@ function writeLog(input: {
     requestBody: input.reqBody,
     responseHeaders: input.resHeaders,
     responseBody: input.resBody,
+    streamCloseMs: input.usage.streamCloseMs,
     keyId: input.keyId,
   })
 }

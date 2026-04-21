@@ -24,6 +24,7 @@ export const ApiRequestDetailSchema = v.object({
   requestBody: v.nullable(v.string()),
   responseHeaders: v.nullable(v.string()),
   responseBody: v.nullable(v.string()),
+  streamCloseMs: v.nullable(v.number()),
 })
 
 export type ApiRequestDetail = v.InferOutput<typeof ApiRequestDetailSchema>

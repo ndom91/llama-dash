@@ -17,6 +17,7 @@ export const requests = sqliteTable('requests', {
   requestBody: text('request_body'),
   responseHeaders: text('response_headers'),
   responseBody: text('response_body'),
+  streamCloseMs: integer('stream_close_ms'),
   keyId: text('key_id'),
 })
 

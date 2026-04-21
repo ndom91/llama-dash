@@ -64,6 +64,7 @@ export function getRequestById(id: string): RequestDetail | null {
     requestBody: r.requestBody,
     responseHeaders: r.responseHeaders,
     responseBody: r.responseBody,
+    streamCloseMs: r.streamCloseMs,
   }
 }
 

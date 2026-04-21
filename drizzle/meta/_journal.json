@@ -64,6 +64,13 @@
       "when": 1776614324550,
       "tag": "0008_narrow_proemial_gods",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1776780250650,
+      "tag": "0009_quick_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

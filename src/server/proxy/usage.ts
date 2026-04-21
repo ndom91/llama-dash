@@ -5,6 +5,10 @@ export type Usage = {
   totalTokens: number | null
 }
 
+export type UsageWithClose = Usage & {
+  streamCloseMs: number | null
+}
+
 const emptyUsage = (): Usage => ({
   model: null,
   promptTokens: null,
@@ -58,8 +62,9 @@ export function usageFromJsonBody(text: string): Usage {
 export class SseUsageScanner {
   private buf = ''
   private usage: Usage = emptyUsage()
+  private doneAtMs: number | null = null
 
-  feed(chunk: string) {
+  feed(chunk: string, at: number) {
     this.buf += chunk
     // SSE events are separated by blank lines (\n\n)
     for (;;) {
@@ -67,23 +72,30 @@ export class SseUsageScanner {
       if (idx === -1) break
       const event = this.buf.slice(0, idx)
       this.buf = this.buf.slice(idx + 2)
-      this.processEvent(event)
+      this.processEvent(event, at)
     }
   }
 
-  done(): Usage {
+  done(closeAtMs?: number): UsageWithClose {
     if (this.buf.length > 0) {
-      this.processEvent(this.buf)
+      this.processEvent(this.buf, closeAtMs ?? Date.now())
       this.buf = ''
     }
-    return this.usage
+    return {
+      ...this.usage,
+      streamCloseMs: this.doneAtMs != null && closeAtMs != null ? Math.max(0, closeAtMs - this.doneAtMs) : null,
+    }
   }
 
-  private processEvent(event: string) {
+  private processEvent(event: string, at: number) {
     for (const line of event.split('\n')) {
       if (!line.startsWith('data:')) continue
       const payload = line.slice(5).trim()
-      if (!payload || payload === '[DONE]') continue
+      if (!payload) continue
+      if (payload === '[DONE]') {
+        if (this.doneAtMs == null) this.doneAtMs = at
+        continue
+      }
       try {
         const body = JSON.parse(payload) as RawJson
         const model = pickModel(body)
