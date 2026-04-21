@@ -281,7 +281,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
             <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[900px]:grid-cols-1">
               <RequestPayloadPane
                 title="Request"
-                subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
+                subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
                 body={req.requestBody ?? ''}
                 headers={reqHeaders}
                 mode="pretty"

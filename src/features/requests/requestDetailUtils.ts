@@ -9,15 +9,16 @@ export type RequestTiming = {
 }
 
 export function parseRequestPayload(body: string | null) {
-  if (!body) return { model: null as string | null, messagesCount: 0 }
+  if (!body) return { model: null as string | null, messagesCount: 0, toolsCount: 0 }
   try {
-    const parsed = JSON.parse(body) as { model?: string; messages?: Array<unknown> }
+    const parsed = JSON.parse(body) as { model?: string; messages?: Array<unknown>; tools?: Array<unknown> }
     return {
       model: typeof parsed.model === 'string' ? parsed.model : null,
       messagesCount: Array.isArray(parsed.messages) ? parsed.messages.length : 0,
+      toolsCount: Array.isArray(parsed.tools) ? parsed.tools.length : 0,
     }
   } catch {
-    return { model: null, messagesCount: 0 }
+    return { model: null, messagesCount: 0, toolsCount: 0 }
   }
 }
 

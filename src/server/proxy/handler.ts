@@ -38,6 +38,19 @@ function redactSensitiveHeaders(headers: Record<string, string>): Record<string,
   return out
 }
 
+// Anthropic's SDKs expect `{type:"error", error:{type,message}}`; the OpenAI
+// SDKs expect `{error:{message,type}}`. Reshape llama-dash-originated errors
+// (auth, allow-list, transforms, upstream reachability) so the client renders
+// them natively instead of showing a generic parse failure.
+function isAnthropicEndpoint(endpoint: string): boolean {
+  return endpoint === '/v1/messages' || endpoint === '/v1/messages/count_tokens'
+}
+
+function toErrorBody(endpoint: string, body: { error: { message: string; type: string } }): unknown {
+  if (!isAnthropicEndpoint(endpoint)) return body
+  return { type: 'error', error: { type: body.error.type, message: body.error.message } }
+}
+
 function filterRequestHeaders(headers: Headers): Record<string, string> {
   const out: Record<string, string> = {}
   headers.forEach((value, key) => {
@@ -95,7 +108,10 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (authResult.retryAfterMs) {
       headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
     }
-    return new Response(JSON.stringify(authResult.body), { status: authResult.status, headers })
+    return new Response(JSON.stringify(toErrorBody(endpoint, authResult.body)), {
+      status: authResult.status,
+      headers,
+    })
   }
 
   const keyId = authResult.keyId
@@ -119,7 +135,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
     if (parsedBody) {
       const allowErr = checkModelAllowed(keyRow, parsedBody)
-      if (allowErr) return Response.json(allowErr.body, { status: allowErr.status })
+      if (allowErr) return Response.json(toErrorBody(endpoint, allowErr.body), { status: allowErr.status })
     }
 
     fetchBody = request.body ?? undefined
@@ -135,7 +151,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (parsedBody) {
       const transformResult = applyTransforms(parsedBody, { keyRow, endpoint, method })
       if (!transformResult.ok) {
-        return Response.json(transformResult.body, { status: transformResult.status })
+        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
       }
       if (transformResult.mutated) {
         reqBodyText = JSON.stringify(transformResult.body)
@@ -180,7 +196,10 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resBody: null,
       keyId,
     })
-    return Response.json({ error: { message: `Upstream unreachable: ${message}` } }, { status: 502 })
+    return Response.json(
+      toErrorBody(endpoint, { error: { message: `Upstream unreachable: ${message}`, type: 'upstream_unreachable' } }),
+      { status: 502 },
+    )
   }
 
   const resHeadersObj = filterResponseHeaders(upstreamResponse.headers)
