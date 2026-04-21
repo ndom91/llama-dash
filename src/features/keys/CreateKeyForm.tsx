@@ -41,17 +41,17 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
   }
 
   return (
-    <form className="key-create-form panel keys-panel" onSubmit={submit}>
-      <div className="key-create-form-header">
+    <form className="panel !rounded-none !border-x-0 !bg-surface-1 px-6 py-4 max-md:px-3" onSubmit={submit}>
+      <div className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-sm">
         <KeyRound size={16} strokeWidth={2} />
         <strong>New API key</strong>
       </div>
 
-      <div className="key-create-fields">
-        <label className="key-field">
-          <span className="key-field-label">Name</span>
+      <div className="flex flex-col gap-3.5">
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="text-xs font-medium text-fg-dim">Name</span>
           <input
-            className="key-field-input"
+            className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -59,15 +59,18 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           />
         </label>
 
-        <div className="key-field">
-          <span className="key-field-label">Allowed models</span>
-          <span className="key-field-hint">empty = all models</span>
-          <div className="key-model-chips">
+        <div className="flex flex-1 flex-col gap-1">
+          <span className="text-xs font-medium text-fg-dim">Allowed models</span>
+          <span className="text-[11px] text-fg-faint">empty = all models</span>
+          <div className="flex flex-wrap gap-1.5">
             {models?.map((m) => (
               <button
                 key={m.id}
                 type="button"
-                className={cn('key-model-chip', allowedModels.includes(m.id) && 'is-active')}
+                className={cn(
+                  'rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors',
+                  allowedModels.includes(m.id) && 'border-accent bg-accent-bg text-accent',
+                )}
                 onClick={() => toggleModel(m.id)}
               >
                 {m.id}
@@ -76,11 +79,11 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           </div>
         </div>
 
-        <div className="key-field-row">
-          <label className="key-field">
-            <span className="key-field-label">RPM limit</span>
+        <div className="flex gap-3 max-md:flex-col">
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-xs font-medium text-fg-dim">RPM limit</span>
             <input
-              className="key-field-input"
+              className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
               type="number"
               min={1}
               value={rpm}
@@ -88,10 +91,10 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
               placeholder="unlimited"
             />
           </label>
-          <label className="key-field">
-            <span className="key-field-label">TPM limit</span>
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-xs font-medium text-fg-dim">TPM limit</span>
             <input
-              className="key-field-input"
+              className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
               type="number"
               min={1}
               value={tpm}
@@ -111,11 +114,11 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
 
         {showAdvanced ? (
           <>
-            <label className="key-field">
-              <span className="key-field-label">Default model</span>
-              <span className="key-field-hint">overrides the model in all requests using this key</span>
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs font-medium text-fg-dim">Default model</span>
+              <span className="text-[11px] text-fg-faint">overrides the model in all requests using this key</span>
               <select
-                className="key-field-input cursor-pointer"
+                className="cursor-pointer rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
                 value={defaultModel}
                 onChange={(e) => setDefaultModel(e.target.value)}
               >
@@ -127,11 +130,11 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
                 ))}
               </select>
             </label>
-            <label className="key-field">
-              <span className="key-field-label">System prompt</span>
-              <span className="key-field-hint">prepended to all chat completion requests</span>
+            <label className="flex flex-1 flex-col gap-1">
+              <span className="text-xs font-medium text-fg-dim">System prompt</span>
+              <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
               <textarea
-                className="key-field-input resize-y min-h-[60px]"
+                className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 placeholder="Enter a system prompt..."
@@ -142,7 +145,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         ) : null}
       </div>
 
-      <div className="key-create-actions">
+      <div className="mt-4 flex justify-end gap-2 border-t border-border pt-3">
         <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
           Cancel
         </button>

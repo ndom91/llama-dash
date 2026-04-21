@@ -18,7 +18,7 @@ export function KeysPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page keys-page">
+        <div className="page min-h-full flex-1 bg-surface-1">
           <PageHeader
             kicker="dsh · keys"
             title="API Keys"
@@ -32,7 +32,7 @@ export function KeysPage() {
             }
           />
 
-          {error ? <div className="err-banner keys-error-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
           {created ? <KeyCreatedBanner created={created} onDismiss={() => setCreated(null)} /> : null}
           {showCreate ? (
             <CreateKeyForm
@@ -44,13 +44,13 @@ export function KeysPage() {
             />
           ) : null}
 
-          <section className="panel keys-panel">
+          <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             {isLoading ? (
-              <div className="empty-state keys-empty-state">loading…</div>
+              <div className="empty-state px-6 max-md:px-3">loading…</div>
             ) : !keys || keys.length === 0 ? (
               <KeysEmptyState />
             ) : (
-              <table className="dtable keys-table">
+              <table className="dtable">
                 <thead>
                   <tr>
                     <th style={{ width: 18 }} aria-label="status" />

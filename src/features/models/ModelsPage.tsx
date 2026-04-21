@@ -27,7 +27,7 @@ export function ModelsPage() {
         }
       />
       <div className="content">
-        <div className="page models-page">
+        <div className="page min-h-full flex-1 bg-surface-1">
           <PageHeader
             kicker="dsh · models"
             title="Models"
@@ -41,15 +41,15 @@ export function ModelsPage() {
             }
           />
 
-          {error ? <div className="err-banner models-error-banner">{error.message}</div> : null}
+          {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
-          <section className="panel models-panel">
+          <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             {models == null ? (
-              <div className="empty-state models-empty-state">loading…</div>
+              <div className="empty-state px-6 max-md:px-3">loading…</div>
             ) : models.length === 0 ? (
-              <div className="empty-state models-empty-state">no models configured in llama-swap.</div>
+              <div className="empty-state px-6 max-md:px-3">no models configured in llama-swap.</div>
             ) : (
-              <table className="dtable models-table">
+              <table className="dtable">
                 <thead>
                   <tr>
                     <th style={{ width: 18 }} aria-label="state" />

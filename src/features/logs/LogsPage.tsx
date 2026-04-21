@@ -96,21 +96,24 @@ export function LogsPage() {
     <div className="main-col">
       <TopBar />
       <div className="content">
-        <div className="page logs-page">
+        <div className="page min-h-full flex-1 bg-surface-1">
           <PageHeader
             kicker="log · stream"
             title="Logs"
             subtitle="live output from llama-swap"
             variant="integrated"
             action={
-              <div className="logs-header-actions">
-                <span className="logs-connection-badge" title={connected ? 'Connected' : 'Disconnected'}>
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-1.5 font-mono text-[11px] text-[color:color-mix(in_srgb,var(--ok)_90%,white_10%)]"
+                  title={connected ? 'Connected' : 'Disconnected'}
+                >
                   <StatusDot tone={connected ? 'ok' : 'err'} live={connected} />
                   <span>{connected ? 'connected' : 'disconnected'}</span>
                 </span>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-xs logs-clear-btn"
+                  className="btn btn-ghost btn-xs min-w-[52px] justify-center"
                   onClick={() => {
                     clear()
                     resetWidth()
@@ -123,8 +126,8 @@ export function LogsPage() {
             }
           />
 
-          <section className="panel log-panel logs-panel">
-            <div className="log-toolbar">
+          <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+            <div className="flex shrink-0 items-center justify-between border-b border-[color:color-mix(in_srgb,var(--border)_86%,transparent)] bg-surface-1 px-[18px] py-3 max-md:flex-wrap max-md:px-3">
               <div className="body-tabs">
                 {(['all', 'upstream', 'proxy'] as const).map((s) => (
                   <button
@@ -137,13 +140,13 @@ export function LogsPage() {
                   </button>
                 ))}
               </div>
-              <div className="logs-toolbar-actions">
-                <div className="log-search">
-                  <Search className="log-search-icon" strokeWidth={2} aria-hidden="true" />
+              <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap">
+                <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-[color:color-mix(in_srgb,var(--bg-2)_80%,var(--bg-0))] px-1.5 focus-within:border-accent">
+                  <Search className="h-3 w-3 shrink-0 text-fg-dim" strokeWidth={2} aria-hidden="true" />
                   <input
                     id="log-filter"
                     type="text"
-                    className="log-search-input"
+                    className="w-[180px] border-none bg-transparent p-0 font-mono text-[11px] text-fg outline-none focus:outline-none focus-visible:outline-none"
                     placeholder="filter…"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -152,7 +155,11 @@ export function LogsPage() {
                   />
                   <button
                     type="button"
-                    className={`log-search-regex${useRegex ? ' active' : ''}`}
+                    className={
+                      useRegex
+                        ? 'rounded-sm bg-surface-4 px-1.5 py-px font-mono text-[10px] font-semibold text-accent'
+                        : 'rounded-sm bg-transparent px-1.5 py-px font-mono text-[10px] font-semibold text-fg-dim hover:bg-surface-4 hover:text-fg-muted'
+                    }
                     onClick={() => setUseRegex(!useRegex)}
                     title={useRegex ? 'Switch to substring' : 'Switch to regex'}
                   >
@@ -161,27 +168,41 @@ export function LogsPage() {
                 </div>
                 <button
                   type="button"
-                  className={`btn btn-ghost btn-xs log-wrap-btn${wrap ? ' btn-active' : ''}`}
+                  className={
+                    wrap
+                      ? 'btn btn-ghost btn-xs min-w-[64px] justify-center btn-active'
+                      : 'btn btn-ghost btn-xs min-w-[64px] justify-center'
+                  }
                   onClick={() => setWrap(!wrap)}
                   title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
                 >
                   <WrapText className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                   wrap
                 </button>
-                <span className="log-count mono">{filtered.length} lines</span>
+                <span className="mono text-[11px] text-fg-dim">{filtered.length} lines</span>
               </div>
             </div>
-            <div ref={scrollRef} className="log-scroll" onScroll={onScroll}>
+            <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-surface-1" onScroll={onScroll}>
               {filtered.length === 0 ? (
-                <div className="log-empty dim">{search ? 'no matches' : 'waiting for log data…'}</div>
+                <div className="px-6 py-2.5 font-mono text-[11.5px] text-fg-dim max-md:px-3">
+                  {search ? 'no matches' : 'waiting for log data…'}
+                </div>
               ) : (
-                <div ref={virtualContainerRef} className="log-virtual" style={{ height: virtualizer.getTotalSize() }}>
+                <div
+                  ref={virtualContainerRef}
+                  className="relative min-w-full"
+                  style={{ height: virtualizer.getTotalSize() }}
+                >
                   {virtualizer.getVirtualItems().map((vi) => {
                     const line = filtered[vi.index]
                     return (
                       <div
                         key={line.id}
-                        className={`log-line${wrap ? ' log-line-wrap' : ''}`}
+                        className={
+                          wrap
+                            ? 'px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted whitespace-pre-wrap break-all hover:bg-surface-3 max-md:px-3'
+                            : 'px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted whitespace-pre hover:bg-surface-3 max-md:px-3'
+                        }
                         data-index={vi.index}
                         ref={measureRow}
                         style={{
@@ -192,7 +213,13 @@ export function LogsPage() {
                           transform: `translateY(${vi.start}px)`,
                         }}
                       >
-                        <span className={`log-source log-source-${line.source}`}>
+                        <span
+                          className={
+                            line.source === 'upstream'
+                              ? 'mr-2 inline-block w-[22px] shrink-0 text-right text-[10px] font-semibold uppercase tracking-[0.04em] text-info'
+                              : 'mr-2 inline-block w-[22px] shrink-0 text-right text-[10px] font-semibold uppercase tracking-[0.04em] text-accent'
+                          }
+                        >
                           {line.source === 'upstream' ? 'up' : 'px'}
                         </span>
                         <HighlightedText text={line.text} pattern={searchRe} />
