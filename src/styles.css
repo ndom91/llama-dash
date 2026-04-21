@@ -124,7 +124,7 @@
   }
 
   .panel {
-    @apply overflow-hidden rounded border-t border-border bg-surface-1;
+    @apply overflow-hidden rounded border-border bg-surface-1;
   }
   .panel-head {
     @apply flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
@@ -2216,6 +2216,17 @@ a,
   gap: 6px;
   font-size: 10px;
   color: var(--fg-faint);
+}
+
+.pg-msg-bubble {
+  border-color: var(--border);
+  background: var(--bg-1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.pg-msg-user {
+  border-color: color-mix(in srgb, var(--accent) 20%, var(--border));
+  background: var(--bg-2);
 }
 
 .pg-msg-metrics {

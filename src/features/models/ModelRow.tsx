@@ -36,7 +36,9 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
         </span>
       </td>
       <td className="hide-mobile">
-        <span className={`state-label state-label-${tone}`}>{loading ? 'loading' : unloading ? 'stopping' : model.kind === 'peer' ? 'peer' : model.state}</span>
+        <span className={`state-label state-label-${tone}`}>
+          {loading ? 'loading' : unloading ? 'stopping' : model.kind === 'peer' ? 'peer' : model.state}
+        </span>
       </td>
       <td className="num hide-mobile">
         {model.kind === 'local' ? (

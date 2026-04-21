@@ -20,8 +20,18 @@ export function ModelsPage() {
       <TopBar
         actions={
           <Tooltip label="Refresh">
-            <button type="button" className="btn btn-ghost btn-icon" onClick={() => refetch()} disabled={isRefetching} aria-label="Refresh models">
-              <RefreshCw className={cn('icon-14', isRefetching && 'animate-spin')} strokeWidth={1.75} aria-hidden="true" />
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon"
+              onClick={() => refetch()}
+              disabled={isRefetching}
+              aria-label="Refresh models"
+            >
+              <RefreshCw
+                className={cn('icon-14', isRefetching && 'animate-spin')}
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
             </button>
           </Tooltip>
         }
@@ -34,7 +44,13 @@ export function ModelsPage() {
             subtitle="available models and their current state"
             variant="integrated"
             action={
-              <button type="button" className="btn btn-danger-ghost btn-xs" onClick={() => unloadAll.mutate()} disabled={!hasRunning || unloadAll.isPending} title="Unload every running model">
+              <button
+                type="button"
+                className="btn btn-danger-ghost btn-xs"
+                onClick={() => unloadAll.mutate()}
+                disabled={!hasRunning || unloadAll.isPending}
+                title="Unload every running model"
+              >
                 <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                 {unloadAll.isPending ? 'unloading…' : 'unload all'}
               </button>

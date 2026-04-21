@@ -37,12 +37,22 @@ export function ModelDetailContent({ data }: Props) {
           <div className="flex items-center gap-2">
             {model.kind === 'local' ? (
               model.running ? (
-                <button type="button" className="btn btn-danger-ghost btn-xs" onClick={() => unloadModel.mutate(model.id)} disabled={unloadModel.isPending}>
+                <button
+                  type="button"
+                  className="btn btn-danger-ghost btn-xs"
+                  onClick={() => unloadModel.mutate(model.id)}
+                  disabled={unloadModel.isPending}
+                >
                   <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                   {unloadModel.isPending ? 'unloading…' : 'unload'}
                 </button>
               ) : (
-                <button type="button" className="btn btn-xs" onClick={() => loadModel.mutate(model.id)} disabled={loadModel.isPending}>
+                <button
+                  type="button"
+                  className="btn btn-xs"
+                  onClick={() => loadModel.mutate(model.id)}
+                  disabled={loadModel.isPending}
+                >
                   <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                   {loadModel.isPending ? 'loading…' : 'load'}
                 </button>

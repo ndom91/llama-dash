@@ -19,7 +19,12 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
       <div className="panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">· last 20</span>
-        <Link to="/requests" search={{ model: modelId }} className="btn btn-ghost btn-xs" style={{ marginLeft: 'auto' }}>
+        <Link
+          to="/requests"
+          search={{ model: modelId }}
+          className="btn btn-ghost btn-xs"
+          style={{ marginLeft: 'auto' }}
+        >
           view all
           <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
         </Link>
@@ -48,7 +53,11 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="clickable-row" onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}>
+              <tr
+                key={r.id}
+                className="clickable-row"
+                onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+              >
                 <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                 <td className="mono" translate="no">
                   {r.endpoint}
