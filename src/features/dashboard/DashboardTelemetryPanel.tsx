@@ -13,7 +13,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
   const metaGrid = 'grid items-center gap-2 [grid-template-columns:70px_minmax(0,1fr)]'
 
   return (
-    <section className="panel !rounded-none !border-x-0 !bg-surface-1 h-full px-4 py-4">
+    <section className="panel !rounded-none border-t-0 !border-x-0 !bg-surface-1 h-full px-4 py-4">
       <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Upstream</div>
       <dl className="mb-0 mt-0 grid gap-2.5 border-b border-[color:color-mix(in_srgb,var(--border)_72%,transparent)] pb-4">
         <div className={metaGrid}>
