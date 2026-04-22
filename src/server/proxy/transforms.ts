@@ -35,13 +35,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
 
   let mutated = false
 
-  // Step 3: Model pinning
-  if (ctx.keyRow?.defaultModel) {
-    parsedBody.model = ctx.keyRow.defaultModel
-    mutated = true
-  }
-
-  // Step 4: Model allow-list check before routing rewrites.
+  // Step 3: Model allow-list check before routing rewrites.
   const allowErrBeforeRouting = checkModelAllowed(ctx.keyRow, parsedBody, emptyRoutingOutcome())
   if (allowErrBeforeRouting) return allowErrBeforeRouting
 
@@ -84,11 +78,11 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     mutated = true
   }
 
-  // Step 5: Model allow-list check again after routing rewrites.
+  // Step 4: Model allow-list check again after routing rewrites.
   const allowErr = checkModelAllowed(ctx.keyRow, parsedBody, routing)
   if (allowErr) return allowErr
 
-  // Step 6: Alias resolution
+  // Step 5: Alias resolution
   if (typeof parsedBody.model === 'string') {
     const resolved = resolveAlias(parsedBody.model)
     if (resolved !== parsedBody.model) {
@@ -97,7 +91,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     }
   }
 
-  // Step 7: System prompt injection
+  // Step 6: System prompt injection
   if (ctx.keyRow?.systemPrompt) {
     if (ctx.endpoint === '/v1/chat/completions' && Array.isArray(parsedBody.messages)) {
       parsedBody.messages = [{ role: 'system', content: ctx.keyRow.systemPrompt }, ...parsedBody.messages]
@@ -108,7 +102,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     }
   }
 
-  // Step 8: Request size limits (checks run after system prompt injection)
+  // Step 7: Request size limits (checks run after system prompt injection)
   const limitsErr = checkRequestLimits(parsedBody, routing)
   if (limitsErr) return limitsErr
 

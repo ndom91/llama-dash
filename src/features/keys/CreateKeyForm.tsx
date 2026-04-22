@@ -16,7 +16,6 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
   const [allowedModels, setAllowedModels] = useState<Array<string>>([])
   const [rpm, setRpm] = useState('')
   const [tpm, setTpm] = useState('')
-  const [defaultModel, setDefaultModel] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
 
@@ -29,7 +28,6 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         allowedModels,
         rateLimitRpm: rpm ? Number(rpm) : null,
         rateLimitTpm: tpm ? Number(tpm) : null,
-        defaultModel: defaultModel || null,
         systemPrompt: systemPrompt.trim() || null,
       },
       { onSuccess: (data) => onCreated(data) },
@@ -113,35 +111,17 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         </button>
 
         {showAdvanced ? (
-          <>
-            <label className="flex flex-1 flex-col gap-1">
-              <span className="text-xs font-medium text-fg-dim">Default model</span>
-              <span className="text-[11px] text-fg-faint">overrides the model in all requests using this key</span>
-              <select
-                className="select-native cursor-pointer rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
-                value={defaultModel}
-                onChange={(e) => setDefaultModel(e.target.value)}
-              >
-                <option value="">none (use client's model)</option>
-                {models?.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.id}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-1 flex-col gap-1">
-              <span className="text-xs font-medium text-fg-dim">System prompt</span>
-              <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
-              <textarea
-                className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
-                value={systemPrompt}
-                onChange={(e) => setSystemPrompt(e.target.value)}
-                placeholder="Enter a system prompt..."
-                maxLength={10000}
-              />
-            </label>
-          </>
+          <label className="flex flex-1 flex-col gap-1">
+            <span className="text-xs font-medium text-fg-dim">System prompt</span>
+            <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
+            <textarea
+              className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
+              placeholder="Enter a system prompt..."
+              maxLength={10000}
+            />
+          </label>
         ) : null}
       </div>
 

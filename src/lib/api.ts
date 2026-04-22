@@ -122,8 +122,6 @@ export const api = {
   renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
   updateKeyModels: (id: string, allowedModels: Array<string>) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedModels } }),
-  updateKeyDefaultModel: (id: string, defaultModel: string | null) =>
-    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { defaultModel } }),
   updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { systemPrompt } }),
   revokeKey: (id: string) => sendEmpty(`/api/keys/${id}/revoke`, OkSchema, 'POST'),

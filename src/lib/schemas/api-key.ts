@@ -11,7 +11,6 @@ export const ApiKeySchema = v.object({
   rateLimitRpm: v.nullable(v.number()),
   rateLimitTpm: v.nullable(v.number()),
   monthlyTokenQuota: v.nullable(v.number()),
-  defaultModel: v.nullable(v.string()),
   systemPrompt: v.nullable(v.string()),
 })
 
@@ -34,7 +33,6 @@ export const CreateApiKeyBodySchema = v.object({
   rateLimitRpm: v.optional(v.nullable(v.number())),
   rateLimitTpm: v.optional(v.nullable(v.number())),
   monthlyTokenQuota: v.optional(v.nullable(v.number())),
-  defaultModel: v.optional(v.nullable(v.string())),
   systemPrompt: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(10000)))),
 })
 
@@ -43,7 +41,6 @@ export type CreateApiKeyBody = v.InferOutput<typeof CreateApiKeyBodySchema>
 export const UpdateApiKeyBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(100))),
   allowedModels: v.optional(v.array(v.string())),
-  defaultModel: v.optional(v.nullable(v.string())),
   systemPrompt: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(10000)))),
 })
 

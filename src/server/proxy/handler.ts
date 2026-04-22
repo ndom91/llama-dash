@@ -3,7 +3,7 @@ import { authenticateRequest, isAnthropicPassthrough } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import type { RoutingOutcome } from './transforms.ts'
-import { applyTransforms, checkModelAllowed } from './transforms.ts'
+import { applyTransforms } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
@@ -122,6 +122,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   let parsedBody: Record<string, unknown> | null = null
   let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
   let reqModel: string | null = null
+  let multipartFormData: FormData | null = null
   let routingOutcome: RoutingOutcome = {
     ruleId: null,
     ruleName: null,
@@ -134,22 +135,51 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   if (isMultipart) {
     try {
       const clone = request.clone()
-      const formData = await clone.formData()
-      const modelField = formData.get('model')
-      if (typeof modelField === 'string') {
-        parsedBody = { model: modelField }
+      multipartFormData = await clone.formData()
+      const modelField = multipartFormData.get('model')
+      const streamField = multipartFormData.get('stream')
+      parsedBody = {
+        ...(typeof modelField === 'string' ? { model: modelField } : {}),
+        ...(typeof streamField === 'string' ? { stream: streamField === 'true' } : {}),
       }
     } catch {
       // Can't parse form data — still forward the request
     }
 
-    if (parsedBody) {
+    if (parsedBody && Object.keys(parsedBody).length > 0) {
       reqModel = (parsedBody.model as string) ?? null
-      const allowErr = checkModelAllowed(keyRow, parsedBody, routingOutcome)
-      if (allowErr) return Response.json(toErrorBody(endpoint, allowErr.body), { status: allowErr.status })
+      const transformResult = applyTransforms(parsedBody, {
+        keyRow,
+        endpoint,
+        method,
+        skipRouting: isAnthropicPassthrough(endpoint, request.headers),
+      })
+      routingOutcome = transformResult.routing
+      if (!transformResult.ok) {
+        writeLog({
+          startedAt,
+          status: transformResult.status,
+          method,
+          endpoint,
+          usage: nullUsage(reqModel),
+          streamed: false,
+          error: transformResult.body.error.message,
+          reqHeaders: loggedReqHeaders,
+          reqBody: null,
+          resHeaders: null,
+          resBody: JSON.stringify(transformResult.body),
+          keyId,
+          routing: routingOutcome,
+        })
+        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
+      }
+      reqModel = (transformResult.body?.model as string) ?? reqModel
+      if (multipartFormData && typeof transformResult.body?.model === 'string') {
+        multipartFormData.set('model', transformResult.body.model)
+      }
     }
 
-    fetchBody = request.body ?? undefined
+    fetchBody = multipartFormData ?? request.body ?? undefined
   } else if (hasBody) {
     reqBodyText = await request.text()
 

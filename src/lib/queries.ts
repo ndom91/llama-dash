@@ -326,24 +326,6 @@ export function useUpdateKeyModels(): UseMutationResult<
   })
 }
 
-export function useUpdateKeyDefaultModel(): UseMutationResult<
-  { ok: true },
-  Error,
-  { id: string; defaultModel: string | null }
-> {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, defaultModel }: { id: string; defaultModel: string | null }) =>
-      api.updateKeyDefaultModel(id, defaultModel),
-    onSuccess: (_data, { id }) => {
-      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
-    },
-    onError: (e) => {
-      toastMutationError('Failed to update default model', e)
-    },
-  })
-}
-
 export function useUpdateKeySystemPrompt(): UseMutationResult<
   { ok: true },
   Error,

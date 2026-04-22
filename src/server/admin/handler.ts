@@ -508,13 +508,12 @@ const routes: Array<Route> = [
         return error(400, 'Body must have "name" (string) and/or "allowedModels" (string[])')
       }
       const body = result.output
-      if (!body.name && !body.allowedModels && body.defaultModel === undefined && body.systemPrompt === undefined) {
+      if (!body.name && !body.allowedModels && body.systemPrompt === undefined) {
         return error(400, 'At least one field to update is required')
       }
       const ok = updateApiKey(id, {
         name: body.name?.trim(),
         allowedModels: body.allowedModels,
-        defaultModel: body.defaultModel,
         systemPrompt: body.systemPrompt,
       })
       if (!ok) return error(404, `Key ${id} not found`)

@@ -3,7 +3,6 @@ import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import type { ApiKeyDetail } from '../../lib/api'
 import { useModels, useRevokeApiKey } from '../../lib/queries'
-import { KeyDefaultModelPanel } from './KeyDefaultModelPanel'
 import { KeyModelAccessPanel } from './KeyModelAccessPanel'
 import { KeyRequestsPanel } from './KeyRequestsPanel'
 import { KeyStatsRow } from './KeyStatsRow'
@@ -104,7 +103,6 @@ export function KeyDetailContent({ data }: Props) {
 
         <div className="detail-main-stack">
           <KeyStatsRow stats={stats} />
-          <KeyDefaultModelPanel keyId={key.id} defaultModel={key.defaultModel} isRevoked={isRevoked} />
           <KeySystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
           <KeyModelAccessPanel
             keyId={key.id}
