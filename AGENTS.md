@@ -421,7 +421,10 @@ files before calling the work done:
 
 1. **`AGENTS.md`** — repo layout, "What's shipped" section, admin API list.
 2. **`README.md`** — feature list, routes list, any user-facing changes.
-3. **`next-plan.md`** — mark shipped items, re-prioritize if needed.
+3. Plans and documentation can be saved as markdown in the `docs/` directory
+
+Notes saved under `docs/*.md` should use a date-prefixed filename in the
+format `YYYY_MM_DD_descriptive_name.md`.
 
 ## Scope discipline
 
