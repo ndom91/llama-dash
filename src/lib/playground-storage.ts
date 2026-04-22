@@ -1,3 +1,4 @@
+import * as v from 'valibot'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage, SamplingParams } from './stream-chat'
 
@@ -42,11 +43,65 @@ export type SavedRun = {
   messages: Array<ChatMessage>
 }
 
-function loadJson<T>(key: string, fallback: T): T {
+const MessageMetricsSchema = v.object({
+  ttftMs: v.optional(v.number()),
+  totalMs: v.optional(v.number()),
+  tokIn: v.optional(v.number()),
+  tokOut: v.optional(v.number()),
+  tokPerSec: v.optional(v.number()),
+})
+
+const ChatMessageSchema = v.object({
+  id: v.string(),
+  role: v.picklist(['system', 'user', 'assistant']),
+  content: v.string(),
+  reasoningContent: v.optional(v.string()),
+  reasoningTimeMs: v.optional(v.number()),
+  metrics: v.optional(MessageMetricsSchema),
+})
+
+const SamplingParamsSchema = v.object({
+  temperature: v.number(),
+  topP: v.number(),
+  topK: v.number(),
+  maxTokens: v.number(),
+  frequencyPenalty: v.number(),
+  presencePenalty: v.number(),
+  stopSequences: v.array(v.string()),
+  seed: v.nullable(v.number()),
+  n: v.number(),
+  stream: v.boolean(),
+  responseFormat: v.picklist(['text', 'json']),
+  logprobs: v.boolean(),
+})
+
+const PartialSamplingParamsSchema = v.partial(SamplingParamsSchema)
+
+const PresetSchema = v.object({
+  id: v.string(),
+  name: v.string(),
+  createdAt: v.number(),
+  model: v.string(),
+  systemPrompt: v.string(),
+  sampling: SamplingParamsSchema,
+})
+
+const SavedRunSchema = v.object({
+  id: v.string(),
+  name: v.string(),
+  createdAt: v.number(),
+  model: v.string(),
+  systemPrompt: v.string(),
+  sampling: SamplingParamsSchema,
+  messages: v.array(ChatMessageSchema),
+})
+
+function loadJson<T>(key: string, schema: v.GenericSchema<T>, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   try {
     const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : fallback
+    if (!raw) return fallback
+    return v.parse(schema, JSON.parse(raw))
   } catch {
     return fallback
   }
@@ -62,15 +117,17 @@ function presetId() {
 }
 
 export function usePlaygroundStorage() {
-  const [messages, setMessages] = useState<Array<ChatMessage>>(() => loadJson(LS_MESSAGES, []))
+  const [messages, setMessages] = useState<Array<ChatMessage>>(() =>
+    loadJson(LS_MESSAGES, v.array(ChatMessageSchema), []),
+  )
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [systemPrompt, setSystemPromptState] = useState(() => loadString(LS_SYSTEM, ''))
   const [sampling, setSamplingState] = useState<SamplingParams>(() => ({
     ...DEFAULT_SAMPLING,
-    ...loadJson<Partial<SamplingParams>>(LS_SAMPLING, {}),
+    ...loadJson(LS_SAMPLING, PartialSamplingParamsSchema, {}),
   }))
-  const [presets, setPresets] = useState<Array<Preset>>(() => loadJson(LS_PRESETS, []))
-  const [savedRuns, setSavedRuns] = useState<Array<SavedRun>>(() => loadJson(LS_RUNS, []))
+  const [presets, setPresets] = useState<Array<Preset>>(() => loadJson(LS_PRESETS, v.array(PresetSchema), []))
+  const [savedRuns, setSavedRuns] = useState<Array<SavedRun>>(() => loadJson(LS_RUNS, v.array(SavedRunSchema), []))
 
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
