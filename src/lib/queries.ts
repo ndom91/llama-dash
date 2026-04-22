@@ -31,6 +31,14 @@ import type { UpdateRequestLimitsBody } from './schemas/settings'
 
 const POLL_MS = 5_000
 
+function invalidateKeys(qc: ReturnType<typeof useQueryClient>, keys: ReadonlyArray<readonly unknown[]>) {
+  for (const queryKey of keys) qc.invalidateQueries({ queryKey })
+}
+
+function toastMutationError(title: string, error: Error) {
+  toast.error(title, { description: error.message })
+}
+
 export const qk = {
   health: ['health'] as const,
   models: ['models'] as const,
@@ -197,12 +205,12 @@ export function useLoadModel(): UseMutationResult<{ ok: true }, Error, string> {
     onSuccess: (_data, id) => {
       toast.success(`Loaded ${id}`)
       pendingLoads.delete(id)
-      qc.invalidateQueries({ queryKey: qk.models })
+      invalidateKeys(qc, [qk.models])
     },
     onError: (e, id) => {
       pendingLoads.delete(id)
-      qc.invalidateQueries({ queryKey: qk.models })
-      toast.error('Load failed', { description: e.message })
+      invalidateKeys(qc, [qk.models])
+      toastMutationError('Load failed', e)
     },
   })
 }
@@ -218,12 +226,12 @@ export function useUnloadModel(): UseMutationResult<{ ok: true }, Error, string>
     onSuccess: (_data, id) => {
       toast.success(`Unloaded ${id}`)
       pendingUnloads.delete(id)
-      qc.invalidateQueries({ queryKey: qk.models })
+      invalidateKeys(qc, [qk.models])
     },
     onError: (e, id) => {
       pendingUnloads.delete(id)
-      qc.invalidateQueries({ queryKey: qk.models })
-      toast.error('Unload failed', { description: e.message })
+      invalidateKeys(qc, [qk.models])
+      toastMutationError('Unload failed', e)
     },
   })
 }
@@ -242,12 +250,12 @@ export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
     onSuccess: () => {
       toast.success('Unloaded all models')
       pendingUnloads.clear()
-      qc.invalidateQueries({ queryKey: qk.models })
+      invalidateKeys(qc, [qk.models])
     },
     onError: (e) => {
       pendingUnloads.clear()
-      qc.invalidateQueries({ queryKey: qk.models })
-      toast.error('Unload-all failed', { description: e.message })
+      invalidateKeys(qc, [qk.models])
+      toastMutationError('Unload-all failed', e)
     },
   })
 }
@@ -274,10 +282,10 @@ export function useCreateApiKey(): UseMutationResult<ApiKeyCreated, Error, Creat
   return useMutation({
     mutationFn: (body: CreateApiKeyBody) => api.createKey(body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.keys })
+      invalidateKeys(qc, [qk.keys])
     },
     onError: (e) => {
-      toast.error('Failed to create key', { description: e.message })
+      toastMutationError('Failed to create key', e)
     },
   })
 }
@@ -287,10 +295,10 @@ export function useRenameApiKey(): UseMutationResult<{ ok: true }, Error, { id: 
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => api.renameKey(id, name),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: qk.keys })
+      invalidateKeys(qc, [qk.keys])
     },
     onError: (e) => {
-      toast.error('Rename failed', { description: e.message })
+      toastMutationError('Rename failed', e)
     },
   })
 }
@@ -305,11 +313,10 @@ export function useUpdateKeyModels(): UseMutationResult<
     mutationFn: ({ id, allowedModels }: { id: string; allowedModels: Array<string> }) =>
       api.updateKeyModels(id, allowedModels),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: qk.keys })
-      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
     },
     onError: (e) => {
-      toast.error('Failed to update models', { description: e.message })
+      toastMutationError('Failed to update models', e)
     },
   })
 }
@@ -324,11 +331,10 @@ export function useUpdateKeyDefaultModel(): UseMutationResult<
     mutationFn: ({ id, defaultModel }: { id: string; defaultModel: string | null }) =>
       api.updateKeyDefaultModel(id, defaultModel),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: qk.keys })
-      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
     },
     onError: (e) => {
-      toast.error('Failed to update default model', { description: e.message })
+      toastMutationError('Failed to update default model', e)
     },
   })
 }
@@ -343,11 +349,10 @@ export function useUpdateKeySystemPrompt(): UseMutationResult<
     mutationFn: ({ id, systemPrompt }: { id: string; systemPrompt: string | null }) =>
       api.updateKeySystemPrompt(id, systemPrompt),
     onSuccess: (_data, { id }) => {
-      qc.invalidateQueries({ queryKey: qk.keys })
-      qc.invalidateQueries({ queryKey: qk.keyDetail(id) })
+      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
     },
     onError: (e) => {
-      toast.error('Failed to update system prompt', { description: e.message })
+      toastMutationError('Failed to update system prompt', e)
     },
   })
 }
@@ -358,10 +363,10 @@ export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string
     mutationFn: (id: string) => api.revokeKey(id),
     onSuccess: () => {
       toast.success('API key revoked')
-      qc.invalidateQueries({ queryKey: qk.keys })
+      invalidateKeys(qc, [qk.keys])
     },
     onError: (e) => {
-      toast.error('Revoke failed', { description: e.message })
+      toastMutationError('Revoke failed', e)
     },
   })
 }
@@ -372,10 +377,10 @@ export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string
     mutationFn: (id: string) => api.deleteKey(id),
     onSuccess: () => {
       toast.success('API key deleted')
-      qc.invalidateQueries({ queryKey: qk.keys })
+      invalidateKeys(qc, [qk.keys])
     },
     onError: (e) => {
-      toast.error('Delete failed', { description: e.message })
+      toastMutationError('Delete failed', e)
     },
   })
 }
@@ -395,10 +400,10 @@ export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, Creat
     mutationFn: (body: CreateModelAliasBody) => api.createAlias(body),
     onSuccess: () => {
       toast.success('Alias created')
-      qc.invalidateQueries({ queryKey: qk.aliases })
+      invalidateKeys(qc, [qk.aliases])
     },
     onError: (e) => {
-      toast.error('Failed to create alias', { description: e.message })
+      toastMutationError('Failed to create alias', e)
     },
   })
 }
@@ -409,10 +414,10 @@ export function useUpdateAlias(): UseMutationResult<ModelAliasItem, Error, { id:
     mutationFn: ({ id, ...body }: { id: string } & UpdateModelAliasBody) => api.updateAlias(id, body),
     onSuccess: () => {
       toast.success('Alias updated')
-      qc.invalidateQueries({ queryKey: qk.aliases })
+      invalidateKeys(qc, [qk.aliases])
     },
     onError: (e) => {
-      toast.error('Failed to update alias', { description: e.message })
+      toastMutationError('Failed to update alias', e)
     },
   })
 }
@@ -423,10 +428,10 @@ export function useDeleteAlias(): UseMutationResult<{ ok: true }, Error, string>
     mutationFn: (id: string) => api.deleteAlias(id),
     onSuccess: () => {
       toast.success('Alias deleted')
-      qc.invalidateQueries({ queryKey: qk.aliases })
+      invalidateKeys(qc, [qk.aliases])
     },
     onError: (e) => {
-      toast.error('Failed to delete alias', { description: e.message })
+      toastMutationError('Failed to delete alias', e)
     },
   })
 }
@@ -446,10 +451,10 @@ export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error
     mutationFn: (body: UpdateRequestLimitsBody) => api.updateRequestLimits(body),
     onSuccess: () => {
       toast.success('Request limits updated')
-      qc.invalidateQueries({ queryKey: qk.requestLimits })
+      invalidateKeys(qc, [qk.requestLimits])
     },
     onError: (e) => {
-      toast.error('Failed to update limits', { description: e.message })
+      toastMutationError('Failed to update limits', e)
     },
   })
 }
