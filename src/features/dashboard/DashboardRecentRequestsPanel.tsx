@@ -28,7 +28,58 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
         </Link>
       </div>
       {requests == null ? (
-        <div className="empty-state">loading…</div>
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="dtable">
+            <thead>
+              <tr>
+                <th className="mono" style={{ width: 80 }}>
+                  t
+                </th>
+                <th className="mono">endpoint</th>
+                <th>model</th>
+                <th style={{ width: 80 }}>status</th>
+                <th className="num" style={{ width: 80 }}>
+                  tok-in
+                </th>
+                <th className="num" style={{ width: 80, whiteSpace: 'nowrap' }}>
+                  tok-out
+                </th>
+                <th className="num" style={{ width: 90 }}>
+                  duration
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 6 }, (_, index) => `req-skel-${index}`).map((row) => (
+                <tr key={row}>
+                  <td className="mono dim">
+                    <span className="skel skel-text" style={{ width: 54 }} />
+                  </td>
+                  <td className="mono">
+                    <span className="skel skel-text" style={{ width: '72%' }} />
+                  </td>
+                  <td className="dim">
+                    <span className="skel skel-text" style={{ width: '58%' }} />
+                  </td>
+                  <td>
+                    <span className="skel skel-text" style={{ width: 44 }} />
+                  </td>
+                  <td className="num dim">
+                    <span className="skel skel-text" style={{ width: 32 }} />
+                  </td>
+                  <td className="num">
+                    <span className="skel skel-text" style={{ width: 32 }} />
+                  </td>
+                  <td>
+                    <div className="h-3 rounded-full bg-surface-2">
+                      <span className="skel skel-block h-full rounded-full" style={{ width: '52%' }} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : requests.length === 0 ? (
         <div className="empty-state">
           no requests yet. point clients at{' '}
@@ -65,14 +116,14 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
                 >
                   <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                   <td className="mono" translate="no">
-                    {r.endpoint}
+                    <span className="block overflow-hidden text-ellipsis whitespace-nowrap" title={r.endpoint}>
+                      {r.endpoint}
+                    </span>
                   </td>
-                  <td
-                    className="dim"
-                    style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    translate="no"
-                  >
-                    {r.model ?? '—'}
+                  <td className="dim" translate="no">
+                    <span className="block overflow-hidden text-ellipsis whitespace-nowrap" title={r.model ?? '—'}>
+                      {r.model ?? '—'}
+                    </span>
                   </td>
                   <td>
                     <StatusCell code={r.statusCode} streamed={r.streamed} />

@@ -28,7 +28,34 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
         </Link>
       </div>
       {total == null ? (
-        <div className="empty-state">loading…</div>
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th style={{ width: 18 }} aria-label="state" />
+              <th className="mono">id</th>
+              <th>name</th>
+              <th style={{ width: 80 }}>state</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: 4 }, (_, index) => `run-skel-${index}`).map((row) => (
+              <tr key={row}>
+                <td>
+                  <span className="skel skel-text" style={{ width: 8, height: 8, borderRadius: 999 }} />
+                </td>
+                <td className="mono">
+                  <span className="skel skel-text" style={{ width: 118 }} />
+                </td>
+                <td>
+                  <span className="skel skel-text" style={{ width: '56%' }} />
+                </td>
+                <td>
+                  <span className="skel skel-text" style={{ width: 42 }} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       ) : active.length === 0 ? (
         <div className="empty-state">
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
