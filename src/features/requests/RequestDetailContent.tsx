@@ -10,10 +10,12 @@ import {
   analyzeTiming,
   buildCurlCommand,
   byteSize,
+  calculateTokPerSec,
   deriveClientLabel,
   deriveRewriteLabel,
   formatCostUsd,
   formatDuration,
+  parseHeaderMap,
   parseRequestPayload,
   parseSseStream,
 } from './requestDetailUtils'
@@ -55,22 +57,8 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
     navigate({ to: '/requests/$id', params: { id: nextId } })
   })
 
-  const reqHeaders = useMemo<Record<string, string> | null>(() => {
-    if (!req.requestHeaders) return null
-    try {
-      return JSON.parse(req.requestHeaders) as Record<string, string>
-    } catch {
-      return null
-    }
-  }, [req.requestHeaders])
-  const resHeaders = useMemo<Record<string, string> | null>(() => {
-    if (!req.responseHeaders) return null
-    try {
-      return JSON.parse(req.responseHeaders) as Record<string, string>
-    } catch {
-      return null
-    }
-  }, [req.responseHeaders])
+  const reqHeaders = useMemo(() => parseHeaderMap(req.requestHeaders), [req.requestHeaders])
+  const resHeaders = useMemo(() => parseHeaderMap(req.responseHeaders), [req.responseHeaders])
   const requestPayload = useMemo(() => parseRequestPayload(req.requestBody), [req.requestBody])
   const responseAnalysis = useMemo(
     () => analyzeResponse(req.responseBody, req.streamed),
@@ -86,10 +74,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
     () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
     [req.endpoint, req.requestBody, reqHeaders],
   )
-  const tokPerSec =
-    req.completionTokens != null && req.durationMs > 0
-      ? Math.round((req.completionTokens / req.durationMs) * 1000)
-      : null
+  const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
 
   return (
     <>

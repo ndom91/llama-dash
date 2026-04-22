@@ -123,6 +123,20 @@ export function deriveClientLabel(headers: Record<string, string> | null) {
   return headers['x-forwarded-for'] ?? null
 }
 
+export function parseHeaderMap(headers: string | null): Record<string, string> | null {
+  if (!headers) return null
+  try {
+    return JSON.parse(headers) as Record<string, string>
+  } catch {
+    return null
+  }
+}
+
+export function calculateTokPerSec(completionTokens: number | null, durationMs: number): number | null {
+  if (completionTokens == null || durationMs <= 0) return null
+  return Math.round((completionTokens / durationMs) * 1000)
+}
+
 export function deriveRewriteLabel(
   requestedModel: string | null,
   servedModel: string | null,
