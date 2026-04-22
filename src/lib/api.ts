@@ -55,109 +55,84 @@ const validated =
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
+function getJson<T extends AnySchema>(url: string, schema: T): Promise<InferOutput<T>> {
+  return fetch(url).then(validated(schema))
+}
+
+function sendJson<T extends AnySchema>(
+  url: string,
+  schema: T,
+  options: { method: string; body?: unknown },
+): Promise<InferOutput<T>> {
+  return fetch(url, {
+    method: options.method,
+    headers: { 'content-type': 'application/json' },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  }).then(validated(schema))
+}
+
+function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string): Promise<InferOutput<T>> {
+  return fetch(url, { method }).then(validated(schema))
+}
+
 export const api = {
-  listModels: () => fetch('/api/models').then(validated(ModelsResponseSchema)),
-  getModelDetail: (id: string) =>
-    fetch(`/api/models/${encodeURIComponent(id)}`).then(validated(ModelDetailResponseSchema)),
+  listModels: () => getJson('/api/models', ModelsResponseSchema),
+  getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
   listRequests: (params: { limit?: number; cursor?: string } = {}) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return fetch(`/api/requests${suffix}`).then(validated(RequestsListResponseSchema))
+    return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
   },
-  getRequest: (id: string) => fetch(`/api/requests/${id}`).then(validated(RequestDetailResponseSchema)),
-  loadModel: (id: string) =>
-    fetch(`/api/models/${encodeURIComponent(id)}/load`, { method: 'POST' }).then(validated(OkSchema)),
-  unloadModel: (id: string) =>
-    fetch(`/api/models/${encodeURIComponent(id)}/unload`, { method: 'POST' }).then(validated(OkSchema)),
-  unloadAll: () => fetch('/api/models/unload', { method: 'POST' }).then(validated(OkSchema)),
-  getConfig: () => fetch('/api/config').then(validated(ApiConfigReadSchema)),
+  getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
+  loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
+  unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
+  unloadAll: () => sendEmpty('/api/models/unload', OkSchema, 'POST'),
+  getConfig: () => getJson('/api/config', ApiConfigReadSchema),
   saveConfig: (content: string, modifiedAt: number) =>
-    fetch('/api/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ content, modifiedAt }),
-    }).then(validated(ApiConfigSaveResultSchema)),
+    sendJson('/api/config', ApiConfigSaveResultSchema, { method: 'PUT', body: { content, modifiedAt } }),
   validateConfig: (content: string) =>
-    fetch('/api/config/validate', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ content }),
-    }).then(validated(ApiConfigValidationSchema)),
-  health: () => fetch('/api/health').then(validated(ApiHealthSchema)),
-  requestStats: () => fetch('/api/requests/stats').then(validated(ApiRequestStatsSchema)),
+    sendJson('/api/config/validate', ApiConfigValidationSchema, { method: 'POST', body: { content } }),
+  health: () => getJson('/api/health', ApiHealthSchema),
+  requestStats: () => getJson('/api/requests/stats', ApiRequestStatsSchema),
   modelTimeline: (windowMs?: number) => {
     const q = windowMs != null ? `?window=${windowMs}` : ''
-    return fetch(`/api/model-timeline${q}`).then(validated(ModelTimelineResponseSchema))
+    return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema)
   },
-  gpu: () => fetch('/api/gpu').then(validated(GpuSnapshotSchema)),
+  gpu: () => getJson('/api/gpu', GpuSnapshotSchema),
   requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))
     if (params.bucket != null) q.set('bucket', String(params.bucket))
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return fetch(`/api/requests/histogram${suffix}`).then(validated(HistogramResponseSchema))
+    return getJson(`/api/requests/histogram${suffix}`, HistogramResponseSchema)
   },
-  getKeyDetail: (id: string) => fetch(`/api/keys/${id}`).then(validated(KeyDetailResponseSchema)),
-  listKeys: () => fetch('/api/keys').then(validated(ApiKeyListResponseSchema)),
+  getKeyDetail: (id: string) => getJson(`/api/keys/${id}`, KeyDetailResponseSchema),
+  listKeys: () => getJson('/api/keys', ApiKeyListResponseSchema),
   createKey: (body: {
     name: string
     allowedModels?: Array<string>
     rateLimitRpm?: number | null
     rateLimitTpm?: number | null
     monthlyTokenQuota?: number | null
-  }) =>
-    fetch('/api/keys', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then(validated(ApiKeyCreatedSchema)),
-  renameKey: (id: string, name: string) =>
-    fetch(`/api/keys/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name }),
-    }).then(validated(OkSchema)),
+  }) => sendJson('/api/keys', ApiKeyCreatedSchema, { method: 'POST', body }),
+  renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
   updateKeyModels: (id: string, allowedModels: Array<string>) =>
-    fetch(`/api/keys/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ allowedModels }),
-    }).then(validated(OkSchema)),
+    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedModels } }),
   updateKeyDefaultModel: (id: string, defaultModel: string | null) =>
-    fetch(`/api/keys/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ defaultModel }),
-    }).then(validated(OkSchema)),
+    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { defaultModel } }),
   updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>
-    fetch(`/api/keys/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ systemPrompt }),
-    }).then(validated(OkSchema)),
-  revokeKey: (id: string) => fetch(`/api/keys/${id}/revoke`, { method: 'POST' }).then(validated(OkSchema)),
-  deleteKey: (id: string) => fetch(`/api/keys/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
-  listAliases: () => fetch('/api/aliases').then(validated(ModelAliasListResponseSchema)),
+    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { systemPrompt } }),
+  revokeKey: (id: string) => sendEmpty(`/api/keys/${id}/revoke`, OkSchema, 'POST'),
+  deleteKey: (id: string) => sendEmpty(`/api/keys/${id}`, OkSchema, 'DELETE'),
+  listAliases: () => getJson('/api/aliases', ModelAliasListResponseSchema),
   createAlias: (body: { alias: string; model: string }) =>
-    fetch('/api/aliases', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then(validated(ModelAliasSchema)),
+    sendJson('/api/aliases', ModelAliasSchema, { method: 'POST', body }),
   updateAlias: (id: string, body: { alias?: string; model?: string }) =>
-    fetch(`/api/aliases/${id}`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then(validated(ModelAliasSchema)),
-  deleteAlias: (id: string) => fetch(`/api/aliases/${id}`, { method: 'DELETE' }).then(validated(OkSchema)),
-  getRequestLimits: () => fetch('/api/settings/request-limits').then(validated(RequestLimitsSchema)),
+    sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
+  deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
+  getRequestLimits: () => getJson('/api/settings/request-limits', RequestLimitsSchema),
   updateRequestLimits: (body: { maxMessages?: number | null; maxEstimatedTokens?: number | null }) =>
-    fetch('/api/settings/request-limits', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then(validated(RequestLimitsSchema)),
+    sendJson('/api/settings/request-limits', RequestLimitsSchema, { method: 'PATCH', body }),
 }
