@@ -3,19 +3,19 @@
   &nbsp;llama-dash
 </h1>
 
-Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). It requires a running llama-swap instance — llama-dash does not run inference itself. Clients point at llama-dash instead of llama-swap directly. We provide a Docker Compose which includes llama-swap and llama-dash and will get you up and running with both quickly.
+Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Point your clients at llama-dash instead of llama-swap — it proxies requests to a llama-swap instance rather than running inference itself. A Docker Compose bundling both is included to get started quickly.
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
-- **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL`.
+- **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Policies** — model aliases (global name mapping), per-key model pinning, per-key system prompt injection, global request size limits.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
-- **Config editor** — edit `config.yaml` in-browser with validation and auto-reload.
+- **Config editor** — edit llama-swap `config.yaml` in-browser with validation and auto-reload.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
-- **Playground inspector** — request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
+- **Playground** — Supports chat, image, speech and transcribe. See request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
 
 <table>
   <tr>
@@ -98,7 +98,7 @@ Copy `.env.example` to `.env` and fill in the values.
 ## Claude Code / Anthropic passthrough
 
 Route any Anthropic SDK (Claude Code included) through llama-dash for
-logging, filtering, and per-request inspection. Traffic flows:
+logging, filtering, and per-request inspection. Supports Anthropic subscriptions. Traffic flows:
 
 ```
 Claude Code ──► llama-dash :5173 (log + filter) ──► llama-swap peer ──► api.anthropic.com
@@ -125,30 +125,6 @@ peers:
       - claude-sonnet-4-6
       - claude-haiku-4-5-20251001
 ```
-
-llama-dash auto-detects Anthropic traffic (path `/v1/messages*` +
-`anthropic-version` header) and skips its own API-key check so subscription
-OAuth works end-to-end. Requests still log to `/requests` with model name,
-token counts, and latency.
-
-## Useful scripts
-
-```bash
-pnpm dev           # dev server (:5173)
-pnpm db:generate   # emit a new drizzle migration from the schema
-pnpm db:migrate    # apply pending migrations
-pnpm db:studio     # drizzle-kit studio
-
-pnpm lint          # biome lint .
-pnpm lint:fix      # biome lint --write .
-pnpm format        # biome format .
-pnpm format:fix    # biome format --write .
-pnpm check         # biome check --write . (lint + format + import sort)
-pnpm typecheck     # tsgo --noEmit
-```
-
-Run `lint:fix`, `format:fix`, and `typecheck` before calling any change
-done — see `AGENTS.md`.
 
 ## Acknowledgements
 
