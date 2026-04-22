@@ -1,5 +1,8 @@
+import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { TopBar } from '../../components/TopBar'
-import { useRequest } from '../../lib/queries'
+import { api } from '../../lib/api'
+import { qk, useRequest } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
 import { RequestDetailSkeleton } from './RequestDetailSkeleton'
 
@@ -8,10 +11,30 @@ type Props = {
 }
 
 export function RequestDetailPage({ id }: Props) {
-  const { data, error } = useRequest(id)
+  const qc = useQueryClient()
+  const { data, error, isFetching, isPlaceholderData } = useRequest(id)
   const req = data?.request
   const prevId = data?.prevId ?? null
   const nextId = data?.nextId ?? null
+  const isTransitioning = isPlaceholderData && req?.id !== id
+  const isPrevPending = isTransitioning && id === prevId
+  const isNextPending = isTransitioning && id === nextId
+
+  useEffect(() => {
+    if (!prevId && !nextId) return
+
+    const prefetch = (requestId: string | null) => {
+      if (!requestId) return
+      qc.prefetchQuery({
+        queryKey: qk.request(requestId),
+        queryFn: () => api.getRequest(requestId),
+        staleTime: Number.POSITIVE_INFINITY,
+      })
+    }
+
+    prefetch(prevId)
+    prefetch(nextId)
+  }, [nextId, prevId, qc])
 
   return (
     <div className="main-col">
@@ -23,7 +46,20 @@ export function RequestDetailPage({ id }: Props) {
           ) : req == null ? (
             <RequestDetailSkeleton />
           ) : (
-            <RequestDetailContent req={req} prevId={prevId} nextId={nextId} />
+            <>
+              <RequestDetailContent
+                req={req}
+                prevId={prevId}
+                nextId={nextId}
+                isPrevPending={isPrevPending}
+                isNextPending={isNextPending}
+              />
+              {isFetching && !isTransitioning ? (
+                <div className="mx-6 mt-3 font-mono text-[11px] text-fg-dim max-md:mx-3">
+                  refreshing request detail…
+                </div>
+              ) : null}
+            </>
           )}
         </div>
       </div>

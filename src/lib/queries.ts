@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -164,6 +165,7 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     queryKey: qk.request(id),
     queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
+    placeholderData: keepPreviousData,
   })
 }
 

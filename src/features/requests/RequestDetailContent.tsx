@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LoaderCircle, RotateCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
@@ -26,9 +26,11 @@ type Props = {
   req: ApiRequestDetail
   prevId: string | null
   nextId: string | null
+  isPrevPending: boolean
+  isNextPending: boolean
 }
 
-export function RequestDetailContent({ req, prevId, nextId }: Props) {
+export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
     req.statusCode >= 400
@@ -98,11 +100,15 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                   to="/requests/$id"
                   params={{ id: prevId ?? '' }}
                   className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${prevId ? '' : 'pointer-events-none opacity-30'}`}
-                  disabled={!prevId}
-                  aria-disabled={!prevId}
+                  disabled={!prevId || isPrevPending}
+                  aria-disabled={!prevId || isPrevPending}
                   onClick={(e) => !prevId && e.preventDefault()}
                 >
-                  <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+                  {isPrevPending ? (
+                    <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+                  )}
                 </Link>
               </Tooltip>
               <Tooltip
@@ -117,11 +123,15 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                   to="/requests/$id"
                   params={{ id: nextId ?? '' }}
                   className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${nextId ? '' : 'pointer-events-none opacity-30'}`}
-                  disabled={!nextId}
-                  aria-disabled={!nextId}
+                  disabled={!nextId || isNextPending}
+                  aria-disabled={!nextId || isNextPending}
                   onClick={(e) => !nextId && e.preventDefault()}
                 >
-                  <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                  {isNextPending ? (
+                    <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                  )}
                 </Link>
               </Tooltip>
             </div>
