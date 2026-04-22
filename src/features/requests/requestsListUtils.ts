@@ -6,6 +6,7 @@ export const REQUESTS_COL_WIDTHS = [100, '22%', '24%', 70, 80, 80, 80, 80, 110] 
 export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
 export type SortDir = 'asc' | 'desc'
 export type StatusFilter = 'all' | 'ok' | 'err'
+export type RoutingFilter = 'all' | 'routed' | 'unrouted'
 
 export function sortVal(r: ApiRequest, key: SortKey): number | string {
   switch (key) {

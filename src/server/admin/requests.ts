@@ -37,6 +37,9 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     streamed: r.streamed,
     error: r.error,
     keyName: r.keyId ? (keyMap.get(r.keyId) ?? null) : null,
+    routingRuleName: r.routingRuleName,
+    routingActionType: r.routingActionType,
+    routingRoutedModel: r.routingRoutedModel,
   }))
 }
 

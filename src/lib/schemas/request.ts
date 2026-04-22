@@ -17,6 +17,9 @@ export const ApiRequestSchema = v.object({
   streamed: v.boolean(),
   error: v.nullable(v.string()),
   keyName: v.nullable(v.string()),
+  routingRuleName: v.nullable(v.string()),
+  routingActionType: v.nullable(v.string()),
+  routingRoutedModel: v.nullable(v.string()),
 })
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>

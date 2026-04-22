@@ -120,6 +120,9 @@ export function getModelRequests(
       streamed: r.streamed,
       error: r.error,
       keyName: null,
+      routingRuleName: r.routingRuleName,
+      routingActionType: r.routingActionType,
+      routingRoutedModel: r.routingRoutedModel,
     }))
 
   return {

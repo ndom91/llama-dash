@@ -109,4 +109,15 @@ describe('evaluateRoutingRules', () => {
     expect(decision.matchedRule?.id).toBe('rrl_reject')
     expect(decision.action).toEqual({ type: 'reject', reason: 'Prompt blocked by routing policy' })
   })
+
+  it('skips disabled rules and uses the next matching rule', () => {
+    const rules = [
+      makeRule({ id: 'rrl_disabled', order: 1, enabled: false, action: { type: 'reject', reason: 'disabled' } }),
+      makeRule({ id: 'rrl_enabled', order: 2, action: { type: 'rewrite_model', model: 'model-b' } }),
+    ]
+
+    const decision = evaluateRoutingRules(rules, makeContext())
+    expect(decision.matchedRule?.id).toBe('rrl_enabled')
+    expect(decision.action).toEqual({ type: 'rewrite_model', model: 'model-b' })
+  })
 })

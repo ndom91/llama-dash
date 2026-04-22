@@ -18,6 +18,7 @@ import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
   REQUESTS_ROW_HEIGHT,
   formatWhen,
+  type RoutingFilter,
   sortVal,
   type SortDir,
   type SortKey,
@@ -40,6 +41,7 @@ export function RequestsPage({ modelParam }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('startedAt')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [keyFilter, setKeyFilter] = useState<string>('all')
+  const [routingFilter, setRoutingFilter] = useState<RoutingFilter>('all')
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -78,6 +80,9 @@ export function RequestsPage({ modelParam }: Props) {
       else out = out.filter((r) => r.keyName === keyFilter)
     }
 
+    if (routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
+    else if (routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
+
     if (search) {
       const q = search.toLowerCase()
       out = out.filter(
@@ -90,7 +95,7 @@ export function RequestsPage({ modelParam }: Props) {
     }
 
     return out
-  }, [allRows, statusFilter, modelFilter, keyFilter, search])
+  }, [allRows, statusFilter, modelFilter, keyFilter, routingFilter, search])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -180,7 +185,8 @@ export function RequestsPage({ modelParam }: Props) {
     }
   }
 
-  const hasFilters = search !== '' || statusFilter !== 'all' || modelFilter !== 'all' || keyFilter !== 'all'
+  const hasFilters =
+    search !== '' || statusFilter !== 'all' || modelFilter !== 'all' || keyFilter !== 'all' || routingFilter !== 'all'
 
   return (
     <div className="main-col">
@@ -305,6 +311,19 @@ export function RequestsPage({ modelParam }: Props) {
                   </select>
                 </div>
 
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Routing</div>
+                  <select
+                    className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    value={routingFilter}
+                    onChange={(e) => setRoutingFilter(e.target.value as RoutingFilter)}
+                  >
+                    <option value="all">All requests</option>
+                    <option value="routed">Routed only</option>
+                    <option value="unrouted">Unrouted only</option>
+                  </select>
+                </div>
+
                 {hasFilters ? (
                   <button
                     type="button"
@@ -314,6 +333,7 @@ export function RequestsPage({ modelParam }: Props) {
                       setStatusFilter('all')
                       setModelFilter('all')
                       setKeyFilter('all')
+                      setRoutingFilter('all')
                     }}
                   >
                     Clear filters
@@ -448,12 +468,22 @@ export function RequestsPage({ modelParam }: Props) {
                                         </span>
                                       </td>
                                       <td className="dim" translate="no">
-                                        <span
-                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                                          title={r.model ?? '—'}
-                                        >
-                                          {r.model ?? '—'}
-                                        </span>
+                                        <div className="flex min-w-0 items-center gap-2">
+                                          <span
+                                            className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+                                            title={r.model ?? '—'}
+                                          >
+                                            {r.model ?? '—'}
+                                          </span>
+                                          {r.routingActionType ? (
+                                            <span
+                                              className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info"
+                                              title={`${r.routingRuleName ?? 'routing rule'} · ${r.routingActionType}${r.routingRoutedModel ? ` · ${r.routingRoutedModel}` : ''}`}
+                                            >
+                                              {r.routingActionType === 'rewrite_model' ? 'rewrite' : 'reject'}
+                                            </span>
+                                          ) : null}
+                                        </div>
                                       </td>
                                       <td>
                                         <StatusCell code={r.statusCode} streamed={r.streamed} />
