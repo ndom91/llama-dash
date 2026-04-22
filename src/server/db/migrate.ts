@@ -7,5 +7,7 @@ let ran = false
 export function runMigrations() {
   if (ran) return
   ran = true
+  console.log('[db] applying migrations')
   drizzleMigrate(db, { migrationsFolder: resolve(process.cwd(), 'drizzle') })
+  console.log('[db] migrations complete')
 }
