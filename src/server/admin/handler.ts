@@ -2,6 +2,11 @@ import * as v from 'valibot'
 import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../lib/schemas/api-key.ts'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schemas/config'
 import { CreateModelAliasBodySchema, UpdateModelAliasBodySchema } from '../../lib/schemas/model-alias.ts'
+import {
+  CreateRoutingRuleBodySchema,
+  ReorderRoutingRulesBodySchema,
+  UpdateRoutingRuleBodySchema,
+} from '../../lib/schemas/routing-rule.ts'
 import { UpdateRequestLimitsBodySchema } from '../../lib/schemas/settings.ts'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
@@ -18,6 +23,13 @@ import {
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from './key-detail.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import { createModelAlias, deleteModelAlias, listModelAliases, updateModelAlias } from './model-aliases.ts'
+import {
+  createRoutingRule,
+  deleteRoutingRule,
+  listRoutingRules,
+  reorderRoutingRules,
+  updateRoutingRule,
+} from './routing-rules.ts'
 import { getRequestLimits, setRequestLimits } from './settings.ts'
 import {
   buildApiModel,
@@ -260,6 +272,83 @@ const routes: Array<Route> = [
       }
       const validation = await validateAgainstSchema(result.output.content)
       return json(200, validation)
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/routing-rules$/,
+    handler: async () => {
+      return json(200, { rules: listRoutingRules() })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/routing-rules$/,
+    handler: async (request) => {
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(CreateRoutingRuleBodySchema, parsed)
+      if (!result.success) return error(400, 'Invalid routing rule body')
+      return json(201, createRoutingRule(result.output))
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/routing-rules\/([a-zA-Z0-9_]+)$/,
+    handler: async (request, match) => {
+      const id = match[1]
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(UpdateRoutingRuleBodySchema, parsed)
+      if (!result.success) return error(400, 'Invalid routing rule body')
+      if (
+        result.output.name === undefined &&
+        result.output.enabled === undefined &&
+        result.output.match === undefined &&
+        result.output.action === undefined
+      ) {
+        return error(400, 'At least one field to update is required')
+      }
+      const updated = updateRoutingRule(id, result.output)
+      if (!updated) return error(404, `Routing rule ${id} not found`)
+      return json(200, updated)
+    },
+  },
+  {
+    method: 'DELETE',
+    pattern: /^\/api\/routing-rules\/([a-zA-Z0-9_]+)$/,
+    handler: async (_request, match) => {
+      const id = match[1]
+      const ok = deleteRoutingRule(id)
+      if (!ok) return error(404, `Routing rule ${id} not found`)
+      return json(200, { ok: true })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/routing-rules\/reorder$/,
+    handler: async (request) => {
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(ReorderRoutingRulesBodySchema, parsed)
+      if (!result.success) return error(400, 'Invalid reorder body')
+      try {
+        return json(200, { rules: reorderRoutingRules(result.output.ids) })
+      } catch (err) {
+        return error(400, err instanceof Error ? err.message : String(err))
+      }
     },
   },
   {

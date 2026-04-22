@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
+import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
 import { RequestLimitsSchema } from './schemas/settings'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
@@ -39,6 +40,7 @@ export type {
 } from './schemas/config'
 export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
 export type { ModelAliasItem } from './schemas/model-alias'
+export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
 export type { RequestLimits } from './schemas/settings'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
@@ -132,6 +134,14 @@ export const api = {
   updateAlias: (id: string, body: { alias?: string; model?: string }) =>
     sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
+  listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
+  createRoutingRule: (body: { name: string; enabled: boolean; match: object; action: object }) =>
+    sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
+  updateRoutingRule: (id: string, body: { name?: string; enabled?: boolean; match?: object; action?: object }) =>
+    sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
+  deleteRoutingRule: (id: string) => sendEmpty(`/api/routing-rules/${id}`, OkSchema, 'DELETE'),
+  reorderRoutingRules: (ids: string[]) =>
+    sendJson('/api/routing-rules/reorder', RoutingRuleListResponseSchema, { method: 'POST', body: { ids } }),
   getRequestLimits: () => getJson('/api/settings/request-limits', RequestLimitsSchema),
   updateRequestLimits: (body: { maxMessages?: number | null; maxEstimatedTokens?: number | null }) =>
     sendJson('/api/settings/request-limits', RequestLimitsSchema, { method: 'PATCH', body }),

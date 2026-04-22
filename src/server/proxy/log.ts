@@ -38,6 +38,12 @@ export type RequestLogInput = {
   responseBody: string | null
   streamCloseMs: number | null
   keyId: string | null
+  routingRuleId: string | null
+  routingRuleName: string | null
+  routingActionType: string | null
+  routingRequestedModel: string | null
+  routingRoutedModel: string | null
+  routingRejectReason: string | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -71,6 +77,12 @@ export function writeRequestLog(row: RequestLogInput) {
       responseBody,
       streamCloseMs: row.streamCloseMs,
       keyId: row.keyId,
+      routingRuleId: row.routingRuleId,
+      routingRuleName: row.routingRuleName,
+      routingActionType: row.routingActionType,
+      routingRequestedModel: row.routingRequestedModel,
+      routingRoutedModel: row.routingRoutedModel,
+      routingRejectReason: row.routingRejectReason,
     })
     .run()
 }

@@ -85,6 +85,20 @@
       "when": 1776790024414,
       "tag": "0011_warm_toro",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1776870000000,
+      "tag": "0012_rich_routing_rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1776873600000,
+      "tag": "0013_mighty_talisman",
+      "breakpoints": true
     }
   ]
 }

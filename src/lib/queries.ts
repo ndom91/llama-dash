@@ -24,10 +24,12 @@ import {
   type ApiRequestDetail,
   type ApiRequestStats,
   type ModelAliasItem,
+  type RoutingRule,
   type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
+import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
 import type { UpdateRequestLimitsBody } from './schemas/settings'
 
 const POLL_MS = 5_000
@@ -55,6 +57,7 @@ export const qk = {
   keys: ['keys'] as const,
   keyDetail: (id: string) => ['keys', id] as const,
   aliases: ['aliases'] as const,
+  routingRules: ['routing-rules'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
 }
 
@@ -396,6 +399,13 @@ export function useAliases(): UseQueryResult<Array<ModelAliasItem>> {
   })
 }
 
+export function useRoutingRules(): UseQueryResult<Array<RoutingRule>> {
+  return useQuery({
+    queryKey: qk.routingRules,
+    queryFn: () => api.listRoutingRules().then((r) => r.rules),
+  })
+}
+
 export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, CreateModelAliasBody> {
   const qc = useQueryClient()
   return useMutation({
@@ -434,6 +444,63 @@ export function useDeleteAlias(): UseMutationResult<{ ok: true }, Error, string>
     },
     onError: (e) => {
       toastMutationError('Failed to delete alias', e)
+    },
+  })
+}
+
+export function useCreateRoutingRule(): UseMutationResult<RoutingRule, Error, CreateRoutingRuleBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.createRoutingRule(body),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to create routing rule', e)
+    },
+  })
+}
+
+export function useUpdateRoutingRule(): UseMutationResult<
+  RoutingRule,
+  Error,
+  { id: string; body: UpdateRoutingRuleBody }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }) => api.updateRoutingRule(id, body),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update routing rule', e)
+    },
+  })
+}
+
+export function useDeleteRoutingRule(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => api.deleteRoutingRule(id),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to delete routing rule', e)
+    },
+  })
+}
+
+export function useReorderRoutingRules(): UseMutationResult<Array<RoutingRule>, Error, string[]> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids) => api.reorderRoutingRules(ids).then((r) => r.rules),
+    onSuccess: (rules) => {
+      qc.setQueryData<Array<RoutingRule>>(qk.routingRules, rules)
+      invalidateKeys(qc, [qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to reorder routing rules', e)
     },
   })
 }

@@ -207,6 +207,32 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           </div>
 
           <div className={railSectionDivider}>
+            <div className={railSectionTitle}>Routing</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>rule</dt>
+                <dd>{req.routingRuleName ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>action</dt>
+                <dd>{req.routingActionType ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>requested</dt>
+                <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>routed</dt>
+                <dd>{req.routingRoutedModel ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>reject</dt>
+                <dd>{req.routingRejectReason ?? '—'}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className={railSectionDivider}>
             <div className={railSectionTitle}>Timing</div>
             <dl className="detail-meta-list">
               <div>

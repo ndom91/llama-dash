@@ -75,6 +75,12 @@ export function getRequestById(id: string): RequestDetail | null {
     responseHeaders: r.responseHeaders,
     responseBody: recent?.responseBody ?? r.responseBody,
     streamCloseMs: r.streamCloseMs,
+    routingRuleId: r.routingRuleId,
+    routingRuleName: r.routingRuleName,
+    routingActionType: r.routingActionType,
+    routingRequestedModel: r.routingRequestedModel,
+    routingRoutedModel: r.routingRoutedModel,
+    routingRejectReason: r.routingRejectReason,
   }
 }
 

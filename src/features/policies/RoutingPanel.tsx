@@ -1,38 +1,19 @@
 import { ArrowDown, ArrowUp, Circle, PenLine, Plus, X } from 'lucide-react'
 import { type ReactElement, useMemo, useState } from 'react'
+import type { RoutingAction, RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useApiKeys, useModels } from '../../lib/queries'
+import {
+  useApiKeys,
+  useCreateRoutingRule,
+  useDeleteRoutingRule,
+  useModels,
+  useReorderRoutingRules,
+  useRoutingRules,
+  useUpdateRoutingRule,
+} from '../../lib/queries'
 
 type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
-type RoutingActionType = 'rewrite_model' | 'route_preference' | 'fallback_chain' | 'reject'
-type RoutePreference = 'local_first' | 'peer_first' | 'peer_only'
-
-type RoutingMatch = {
-  endpoints: string[]
-  requestedModels: string[]
-  apiKeyIds: string[]
-  stream: RoutingStreamMode
-  minEstimatedPromptTokens: string
-  maxEstimatedPromptTokens: string
-}
-
-type RoutingAction =
-  | { type: 'rewrite_model'; model: string }
-  | { type: 'route_preference'; preference: RoutePreference; peerId: string }
-  | { type: 'fallback_chain'; models: string[] }
-  | { type: 'reject'; reason: string }
-
-type RoutingRule = {
-  id: string
-  name: string
-  enabled: boolean
-  order: number
-  match: RoutingMatch
-  action: RoutingAction
-  lastMatchText: string
-  hitsToday: number
-  stageLabel?: string
-}
+type RoutingActionType = 'rewrite_model' | 'reject'
 
 const INITIAL_RULES: RoutingRule[] = []
 
@@ -51,13 +32,9 @@ function emptyRule(order: number): RoutingRule {
       maxEstimatedPromptTokens: '',
     },
     action: { type: 'rewrite_model', model: '' },
-    lastMatchText: 'never matched',
-    hitsToday: 0,
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
   }
-}
-
-function reorderRules(rules: RoutingRule[]) {
-  return rules.map((rule, index) => ({ ...rule, order: index + 1 }))
 }
 
 function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>) {
@@ -77,11 +54,7 @@ function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>) {
   const then =
     rule.action.type === 'rewrite_model'
       ? `rewrite model to ${rule.action.model || '—'}`
-      : rule.action.type === 'route_preference'
-        ? `route preference ${rule.action.preference}${rule.action.peerId ? ` on peer ${rule.action.peerId}` : ''}`
-        : rule.action.type === 'fallback_chain'
-          ? `fallback chain ${rule.action.models.join(' -> ') || '—'}`
-          : `reject with reason "${rule.action.reason || '—'}"`
+      : `reject with reason "${rule.action.reason || '—'}"`
 
   return {
     when: whenBits.length > 0 ? whenBits : ['matches any request'],
@@ -96,15 +69,16 @@ function cloneRule(rule: RoutingRule): RoutingRule {
 export function RoutingPanel() {
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
-  const [rules, setRules] = useState<RoutingRule[]>(INITIAL_RULES)
+  const { data: rules = INITIAL_RULES } = useRoutingRules()
+  const createRuleMutation = useCreateRoutingRule()
+  const updateRuleMutation = useUpdateRoutingRule()
+  const deleteRuleMutation = useDeleteRoutingRule()
+  const reorderRulesMutation = useReorderRoutingRules()
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   const [draft, setDraft] = useState<RoutingRule | null>(null)
 
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
   const modelOptions = models.map((model) => model.id)
-  const peerOptions = Array.from(
-    new Set(models.map((model) => model.peerId).filter((peerId): peerId is string => Boolean(peerId))),
-  )
 
   const editingRule = useMemo(() => rules.find((rule) => rule.id === editingRuleId) ?? null, [editingRuleId, rules])
   const enabledCount = rules.filter((rule) => rule.enabled).length
@@ -127,37 +101,51 @@ export function RoutingPanel() {
 
   const saveDraft = () => {
     if (!draft) return
-    setRules((current) => {
-      const existingIndex = current.findIndex((rule) => rule.id === draft.id)
-      if (existingIndex >= 0) {
-        const next = [...current]
-        next[existingIndex] = draft
-        return reorderRules(next)
-      }
-      return reorderRules([...current, draft])
+    const body = {
+      name: draft.name,
+      enabled: draft.enabled,
+      match: draft.match,
+      action: draft.action,
+    }
+    const existing = rules.some((rule) => rule.id === draft.id)
+    if (existing) {
+      updateRuleMutation.mutate(
+        { id: draft.id, body },
+        {
+          onSuccess: () => {
+            setEditingRuleId(null)
+            setDraft(null)
+          },
+        },
+      )
+      return
+    }
+    createRuleMutation.mutate(body, {
+      onSuccess: () => {
+        setEditingRuleId(null)
+        setDraft(null)
+      },
     })
-    setEditingRuleId(null)
-    setDraft(null)
   }
 
   const toggleRule = (id: string) => {
-    setRules((current) => current.map((rule) => (rule.id === id ? { ...rule, enabled: !rule.enabled } : rule)))
+    const rule = rules.find((item) => item.id === id)
+    if (!rule) return
+    updateRuleMutation.mutate({ id, body: { enabled: !rule.enabled } })
     if (draft?.id === id) setDraft({ ...draft, enabled: !draft.enabled })
   }
 
   const moveRule = (id: string, direction: -1 | 1) => {
-    setRules((current) => {
-      const index = current.findIndex((rule) => rule.id === id)
-      const nextIndex = index + direction
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current
-      const next = [...current]
-      ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
-      return reorderRules(next)
-    })
+    const index = rules.findIndex((rule) => rule.id === id)
+    const nextIndex = index + direction
+    if (index < 0 || nextIndex < 0 || nextIndex >= rules.length) return
+    const next = [...rules]
+    ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
+    reorderRulesMutation.mutate(next.map((rule) => rule.id))
   }
 
   const deleteRule = (id: string) => {
-    setRules((current) => reorderRules(current.filter((rule) => rule.id !== id)))
+    deleteRuleMutation.mutate(id)
     if (editingRuleId === id) discardDraft()
   }
 
@@ -229,13 +217,8 @@ export function RoutingPanel() {
                     <div className="min-w-0 flex-1 space-y-3">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <h3 className="m-0 text-base font-semibold text-fg">{rule.name}</h3>
-                        {rule.stageLabel ? (
-                          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-warn">
-                            {rule.stageLabel}
-                          </span>
-                        ) : null}
                         <span className="font-mono text-[11px] text-fg-dim">
-                          {rule.lastMatchText} · {rule.hitsToday.toLocaleString()} hits today
+                          updated {new Date(rule.updatedAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
 
@@ -488,8 +471,6 @@ export function RoutingPanel() {
                     <div className="flex border-b border-border font-mono text-xs text-fg-dim">
                       {[
                         ['rewrite_model', 'rewrite model'],
-                        ['route_preference', 'route preference'],
-                        ['fallback_chain', 'fallback chain'],
                         ['reject', 'reject'],
                       ].map(([value, label]) => (
                         <button
@@ -533,96 +514,6 @@ export function RoutingPanel() {
                       </span>
                     </label>
                   ) : null}
-
-                  {draft.action.type === 'route_preference'
-                    ? (() => {
-                        const action = draft.action as Extract<RoutingAction, { type: 'route_preference' }>
-                        return (
-                          <div className="space-y-4">
-                            <label className="flex flex-col gap-1.5">
-                              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
-                                Route preference
-                              </span>
-                              <select
-                                className="select-native h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
-                                value={action.preference}
-                                onChange={(event) =>
-                                  setDraft({
-                                    ...draft,
-                                    action: {
-                                      type: 'route_preference',
-                                      preference: event.target.value as RoutePreference,
-                                      peerId: action.peerId,
-                                    },
-                                  })
-                                }
-                              >
-                                <option value="local_first">local_first</option>
-                                <option value="peer_first">peer_first</option>
-                                <option value="peer_only">peer_only</option>
-                              </select>
-                            </label>
-
-                            <label className="flex flex-col gap-1.5">
-                              <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
-                                Specific peer
-                              </span>
-                              <select
-                                className="select-native h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
-                                value={action.peerId}
-                                onChange={(event) =>
-                                  setDraft({
-                                    ...draft,
-                                    action: {
-                                      type: 'route_preference',
-                                      preference: action.preference,
-                                      peerId: event.target.value,
-                                    },
-                                  })
-                                }
-                              >
-                                <option value="">any peer</option>
-                                {peerOptions.map((peerId) => (
-                                  <option key={peerId} value={peerId}>
-                                    {peerId}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          </div>
-                        )
-                      })()
-                    : null}
-
-                  {draft.action.type === 'fallback_chain'
-                    ? (() => {
-                        const action = draft.action as Extract<RoutingAction, { type: 'fallback_chain' }>
-                        return (
-                          <TokenInput
-                            label="Fallback chain"
-                            helper="phase 2 candidate · ordered top to bottom"
-                            placeholder="add fallback model…"
-                            values={action.models}
-                            suggestions={modelOptions}
-                            onAdd={(value) =>
-                              setDraft({
-                                ...draft,
-                                action: { type: 'fallback_chain', models: [...action.models, value] },
-                              })
-                            }
-                            onRemove={(value) =>
-                              setDraft({
-                                ...draft,
-                                action: {
-                                  type: 'fallback_chain',
-                                  models: action.models.filter((item: string) => item !== value),
-                                },
-                              })
-                            }
-                          />
-                        )
-                      })()
-                    : null}
 
                   {draft.action.type === 'reject' ? (
                     <label className="flex flex-col gap-1.5">
@@ -802,8 +693,6 @@ function TokenInput({
 function coerceAction(type: RoutingActionType, current: RoutingAction): RoutingAction {
   if (type === current.type) return current
   if (type === 'rewrite_model') return { type, model: '' }
-  if (type === 'route_preference') return { type, preference: 'local_first', peerId: '' }
-  if (type === 'fallback_chain') return { type, models: [] }
   return { type, reason: '' }
 }
 
@@ -818,12 +707,7 @@ function ObservabilityPreview({
 }) {
   const keyLabel = rule.match.apiKeyIds[0] ? (keyMap.get(rule.match.apiKeyIds[0]) ?? rule.match.apiKeyIds[0]) : '—'
   const requestedModel = rule.match.requestedModels[0] ?? '—'
-  const routedModel =
-    rule.action.type === 'rewrite_model'
-      ? rule.action.model || '—'
-      : rule.action.type === 'fallback_chain'
-        ? (rule.action.models[0] ?? '—')
-        : '—'
+  const routedModel = rule.action.type === 'rewrite_model' ? rule.action.model || '—' : '—'
 
   const rows = [
     ['matched rule', `${String(rule.order).padStart(2, '0')} · ${rule.name}`],

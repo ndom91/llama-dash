@@ -22,6 +22,12 @@ export const requests = sqliteTable('requests', {
   responseBody: text('response_body'),
   streamCloseMs: integer('stream_close_ms'),
   keyId: text('key_id'),
+  routingRuleId: text('routing_rule_id'),
+  routingRuleName: text('routing_rule_name'),
+  routingActionType: text('routing_action_type'),
+  routingRequestedModel: text('routing_requested_model'),
+  routingRoutedModel: text('routing_routed_model'),
+  routingRejectReason: text('routing_reject_reason'),
 })
 
 export type Request = typeof requests.$inferSelect
@@ -65,6 +71,20 @@ export const modelAliases = sqliteTable('model_aliases', {
 
 export type ModelAlias = typeof modelAliases.$inferSelect
 export type NewModelAlias = typeof modelAliases.$inferInsert
+
+export const routingRules = sqliteTable('routing_rules', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  order: integer('order').notNull(),
+  matchJson: text('match_json').notNull(),
+  actionJson: text('action_json').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type RoutingRule = typeof routingRules.$inferSelect
+export type NewRoutingRule = typeof routingRules.$inferInsert
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),

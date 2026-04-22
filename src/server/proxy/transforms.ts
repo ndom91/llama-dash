@@ -1,4 +1,5 @@
 import { resolveAlias } from '../admin/model-aliases.ts'
+import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
 
@@ -6,15 +7,30 @@ export type TransformContext = {
   keyRow: ApiKey | null
   endpoint: string
   method: string
+  skipRouting: boolean
 }
 
-type TransformOk = { ok: true; body: Record<string, unknown> | null; mutated: boolean }
-type TransformErr = { ok: false; status: number; body: { error: { message: string; type: string } } }
+export type RoutingOutcome = {
+  ruleId: string | null
+  ruleName: string | null
+  actionType: 'rewrite_model' | 'reject' | null
+  requestedModel: string | null
+  routedModel: string | null
+  rejectReason: string | null
+}
+
+type TransformOk = { ok: true; body: Record<string, unknown> | null; mutated: boolean; routing: RoutingOutcome }
+type TransformErr = {
+  ok: false
+  status: number
+  body: { error: { message: string; type: string } }
+  routing: RoutingOutcome
+}
 export type TransformResult = TransformOk | TransformErr
 
 export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx: TransformContext): TransformResult {
   if (!parsedBody) {
-    return { ok: true, body: parsedBody, mutated: false }
+    return { ok: true, body: parsedBody, mutated: false, routing: emptyRoutingOutcome() }
   }
 
   let mutated = false
@@ -25,11 +41,54 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     mutated = true
   }
 
-  // Step 4: Model allow-list check (post-pin, pre-alias)
-  const allowErr = checkModelAllowed(ctx.keyRow, parsedBody)
+  // Step 4: Model allow-list check before routing rewrites.
+  const allowErrBeforeRouting = checkModelAllowed(ctx.keyRow, parsedBody, emptyRoutingOutcome())
+  if (allowErrBeforeRouting) return allowErrBeforeRouting
+
+  const routingDecision = ctx.skipRouting
+    ? { matchedRule: null, action: null }
+    : evaluateRoutingRules(listRoutingRules(), {
+        endpoint: ctx.endpoint,
+        requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
+        apiKeyId: ctx.keyRow?.id ?? null,
+        stream: parsedBody.stream === true,
+        estimatedPromptTokens: estimatePromptTokens(parsedBody),
+      })
+  const routing = routingDecision.matchedRule
+    ? {
+        ruleId: routingDecision.matchedRule.id,
+        ruleName: routingDecision.matchedRule.name,
+        actionType: routingDecision.action?.type ?? null,
+        requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
+        routedModel: routingDecision.action?.type === 'rewrite_model' ? routingDecision.action.model : null,
+        rejectReason: routingDecision.action?.type === 'reject' ? routingDecision.action.reason : null,
+      }
+    : emptyRoutingOutcome()
+
+  if (routingDecision.action?.type === 'reject') {
+    return {
+      ok: false,
+      status: 422,
+      body: {
+        error: {
+          message: routingDecision.action.reason,
+          type: 'routing_rule_rejected',
+        },
+      },
+      routing,
+    }
+  }
+
+  if (routingDecision.action?.type === 'rewrite_model') {
+    parsedBody.model = routingDecision.action.model
+    mutated = true
+  }
+
+  // Step 5: Model allow-list check again after routing rewrites.
+  const allowErr = checkModelAllowed(ctx.keyRow, parsedBody, routing)
   if (allowErr) return allowErr
 
-  // Step 5: Alias resolution
+  // Step 6: Alias resolution
   if (typeof parsedBody.model === 'string') {
     const resolved = resolveAlias(parsedBody.model)
     if (resolved !== parsedBody.model) {
@@ -38,7 +97,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     }
   }
 
-  // Step 6: System prompt injection
+  // Step 7: System prompt injection
   if (ctx.keyRow?.systemPrompt) {
     if (ctx.endpoint === '/v1/chat/completions' && Array.isArray(parsedBody.messages)) {
       parsedBody.messages = [{ role: 'system', content: ctx.keyRow.systemPrompt }, ...parsedBody.messages]
@@ -49,11 +108,31 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     }
   }
 
-  // Step 7: Request size limits (checks run after system prompt injection)
-  const limitsErr = checkRequestLimits(parsedBody)
+  // Step 8: Request size limits (checks run after system prompt injection)
+  const limitsErr = checkRequestLimits(parsedBody, routing)
   if (limitsErr) return limitsErr
 
-  return { ok: true, body: parsedBody, mutated }
+  return { ok: true, body: parsedBody, mutated, routing }
+}
+
+function emptyRoutingOutcome(): RoutingOutcome {
+  return {
+    ruleId: null,
+    ruleName: null,
+    actionType: null,
+    requestedModel: null,
+    routedModel: null,
+    rejectReason: null,
+  }
+}
+
+function estimatePromptTokens(body: Record<string, unknown>): number | null {
+  const parts: Array<unknown> = []
+  if (Array.isArray(body.messages)) parts.push(body.messages)
+  if (body.system != null) parts.push(body.system)
+  if (Array.isArray(body.tools)) parts.push(body.tools)
+  if (parts.length === 0) return null
+  return Math.ceil(JSON.stringify(parts).length / 4)
 }
 
 // Anthropic's /v1/messages `system` field accepts either a string or an array of
@@ -65,7 +144,7 @@ function injectAnthropicSystem(existing: unknown, injected: string): unknown {
   return injected
 }
 
-function checkRequestLimits(body: Record<string, unknown>): TransformErr | null {
+function checkRequestLimits(body: Record<string, unknown>, routing: RoutingOutcome): TransformErr | null {
   const limits = getRequestLimits()
   if (!limits.maxMessages && !limits.maxEstimatedTokens) return null
 
@@ -80,6 +159,7 @@ function checkRequestLimits(body: Record<string, unknown>): TransformErr | null 
             type: 'request_too_large',
           },
         },
+        routing,
       }
     }
   }
@@ -104,6 +184,7 @@ function checkRequestLimits(body: Record<string, unknown>): TransformErr | null 
               type: 'request_too_large',
             },
           },
+          routing,
         }
       }
     }
@@ -112,7 +193,11 @@ function checkRequestLimits(body: Record<string, unknown>): TransformErr | null 
   return null
 }
 
-export function checkModelAllowed(keyRow: ApiKey | null, body: Record<string, unknown>): TransformErr | null {
+export function checkModelAllowed(
+  keyRow: ApiKey | null,
+  body: Record<string, unknown>,
+  routing: RoutingOutcome,
+): TransformErr | null {
   if (!keyRow) return null
 
   const allowedModels: Array<string> = JSON.parse(keyRow.allowedModels)
@@ -131,5 +216,6 @@ export function checkModelAllowed(keyRow: ApiKey | null, body: Record<string, un
         type: 'model_not_allowed',
       },
     },
+    routing,
   }
 }

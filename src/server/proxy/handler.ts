@@ -1,7 +1,8 @@
 import { config } from '../config.ts'
-import { authenticateRequest } from './auth.ts'
+import { authenticateRequest, isAnthropicPassthrough } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
+import type { RoutingOutcome } from './transforms.ts'
 import { applyTransforms, checkModelAllowed } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
@@ -120,6 +121,15 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   let reqBodyText: string | null = null
   let parsedBody: Record<string, unknown> | null = null
   let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
+  let reqModel: string | null = null
+  let routingOutcome: RoutingOutcome = {
+    ruleId: null,
+    ruleName: null,
+    actionType: null,
+    requestedModel: null,
+    routedModel: null,
+    rejectReason: null,
+  }
 
   if (isMultipart) {
     try {
@@ -134,7 +144,8 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
 
     if (parsedBody) {
-      const allowErr = checkModelAllowed(keyRow, parsedBody)
+      reqModel = (parsedBody.model as string) ?? null
+      const allowErr = checkModelAllowed(keyRow, parsedBody, routingOutcome)
       if (allowErr) return Response.json(toErrorBody(endpoint, allowErr.body), { status: allowErr.status })
     }
 
@@ -149,13 +160,36 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
 
     if (parsedBody) {
-      const transformResult = applyTransforms(parsedBody, { keyRow, endpoint, method })
+      reqModel = (parsedBody.model as string) ?? null
+      const transformResult = applyTransforms(parsedBody, {
+        keyRow,
+        endpoint,
+        method,
+        skipRouting: isAnthropicPassthrough(endpoint, request.headers),
+      })
+      routingOutcome = transformResult.routing
       if (!transformResult.ok) {
+        writeLog({
+          startedAt,
+          status: transformResult.status,
+          method,
+          endpoint,
+          usage: nullUsage(reqModel),
+          streamed: false,
+          error: transformResult.body.error.message,
+          reqHeaders: loggedReqHeaders,
+          reqBody: isMultipart ? null : reqBodyText,
+          resHeaders: null,
+          resBody: JSON.stringify(transformResult.body),
+          keyId,
+          routing: routingOutcome,
+        })
         return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
       }
       if (transformResult.mutated) {
         reqBodyText = JSON.stringify(transformResult.body)
       }
+      reqModel = (transformResult.body?.model as string) ?? reqModel
     }
 
     fetchBody = reqBodyText
@@ -167,8 +201,6 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         })
       : undefined
   }
-
-  const reqModel = (parsedBody?.model as string) ?? null
 
   let upstreamResponse: Response
   try {
@@ -195,6 +227,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: null,
       resBody: null,
       keyId,
+      routing: routingOutcome,
     })
     return Response.json(
       toErrorBody(endpoint, { error: { message: `Upstream unreachable: ${message}`, type: 'upstream_unreachable' } }),
@@ -223,6 +256,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: resHeadersJson,
       resBody: null,
       keyId,
+      routing: routingOutcome,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
@@ -270,6 +304,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             resHeaders: resHeadersJson,
             resBody,
             keyId,
+            routing: routingOutcome,
           })
 
           if (keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
@@ -299,6 +334,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           resHeaders: resHeadersJson,
           resBody: decoder ? responseChunks.join('') || null : null,
           keyId,
+          routing: routingOutcome,
         })
       }
     },
@@ -317,6 +353,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         resHeaders: resHeadersJson,
         resBody: decoder ? responseChunks.join('') || null : null,
         keyId,
+        routing: routingOutcome,
       })
     },
   })
@@ -340,6 +377,14 @@ function writeLog(input: {
   resHeaders: string | null
   resBody: string | null
   keyId: string | null
+  routing: {
+    ruleId: string | null
+    ruleName: string | null
+    actionType: string | null
+    requestedModel: string | null
+    routedModel: string | null
+    rejectReason: string | null
+  }
 }) {
   writeRequestLog({
     startedAt: input.startedAt,
@@ -361,5 +406,11 @@ function writeLog(input: {
     responseBody: input.resBody,
     streamCloseMs: input.usage.streamCloseMs,
     keyId: input.keyId,
+    routingRuleId: input.routing.ruleId,
+    routingRuleName: input.routing.ruleName,
+    routingActionType: input.routing.actionType,
+    routingRequestedModel: input.routing.requestedModel,
+    routingRoutedModel: input.routing.routedModel,
+    routingRejectReason: input.routing.rejectReason,
   })
 }

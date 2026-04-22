@@ -1,0 +1,161 @@
+import { asc, eq, inArray, sql } from 'drizzle-orm'
+import { ulid } from 'ulidx'
+import * as v from 'valibot'
+import type { CreateRoutingRuleBody, RoutingRule, UpdateRoutingRuleBody } from '../../lib/schemas/routing-rule.ts'
+import { RoutingActionSchema, RoutingMatchSchema } from '../../lib/schemas/routing-rule.ts'
+import { db, schema } from '../db/index.ts'
+
+let _cache: RoutingRule[] | null = null
+
+function invalidateCache() {
+  _cache = null
+}
+
+function parseJson<T>(raw: string, schemaType: v.GenericSchema<T>): T {
+  return v.parse(schemaType, JSON.parse(raw))
+}
+
+function toApiShape(row: schema.RoutingRule): RoutingRule {
+  return {
+    id: row.id,
+    name: row.name,
+    enabled: row.enabled,
+    order: row.order,
+    match: parseJson(row.matchJson, RoutingMatchSchema),
+    action: parseJson(row.actionJson, RoutingActionSchema),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }
+}
+
+export function listRoutingRules(): RoutingRule[] {
+  if (_cache) return _cache
+  _cache = db.select().from(schema.routingRules).orderBy(asc(schema.routingRules.order)).all().map(toApiShape)
+  return _cache
+}
+
+export function createRoutingRule(input: CreateRoutingRuleBody): RoutingRule {
+  const id = `rrl_${ulid()}`
+  const now = new Date()
+  const currentMax = db
+    .select({ value: sql<number>`coalesce(max(${schema.routingRules.order}), 0)` })
+    .from(schema.routingRules)
+    .get()
+  const order = (currentMax?.value ?? 0) + 1
+  db.insert(schema.routingRules)
+    .values({
+      id,
+      name: input.name,
+      enabled: input.enabled,
+      order,
+      matchJson: JSON.stringify(input.match),
+      actionJson: JSON.stringify(input.action),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
+  invalidateCache()
+  return toApiShape(db.select().from(schema.routingRules).where(eq(schema.routingRules.id, id)).get()!)
+}
+
+export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): RoutingRule | null {
+  const set: Record<string, unknown> = { updatedAt: new Date() }
+  if (fields.name !== undefined) set.name = fields.name
+  if (fields.enabled !== undefined) set.enabled = fields.enabled
+  if (fields.match !== undefined) set.matchJson = JSON.stringify(fields.match)
+  if (fields.action !== undefined) set.actionJson = JSON.stringify(fields.action)
+  const result = db.update(schema.routingRules).set(set).where(eq(schema.routingRules.id, id)).run()
+  if (result.changes === 0) return null
+  invalidateCache()
+  const row = db.select().from(schema.routingRules).where(eq(schema.routingRules.id, id)).get()
+  return row ? toApiShape(row) : null
+}
+
+export function deleteRoutingRule(id: string): boolean {
+  const row = db.select().from(schema.routingRules).where(eq(schema.routingRules.id, id)).get()
+  if (!row) return false
+  db.delete(schema.routingRules).where(eq(schema.routingRules.id, id)).run()
+  const remaining = db.select().from(schema.routingRules).orderBy(asc(schema.routingRules.order)).all()
+  remaining.forEach((item, index) => {
+    db.update(schema.routingRules)
+      .set({ order: index + 1, updatedAt: new Date() })
+      .where(eq(schema.routingRules.id, item.id))
+      .run()
+  })
+  invalidateCache()
+  return true
+}
+
+export function reorderRoutingRules(ids: string[]): RoutingRule[] {
+  const allRows = db.select().from(schema.routingRules).all()
+  const rows = db.select().from(schema.routingRules).where(inArray(schema.routingRules.id, ids)).all()
+  if (rows.length !== ids.length) throw new Error('All routing rules must exist to reorder')
+  if (allRows.length !== ids.length) throw new Error('Reorder payload must include every routing rule exactly once')
+  ids.forEach((id, index) => {
+    db.update(schema.routingRules)
+      .set({ order: index + 1, updatedAt: new Date() })
+      .where(eq(schema.routingRules.id, id))
+      .run()
+  })
+  invalidateCache()
+  return listRoutingRules()
+}
+
+export type RoutingContext = {
+  endpoint: string
+  requestedModel: string | null
+  apiKeyId: string | null
+  stream: boolean
+  estimatedPromptTokens: number | null
+}
+
+export type RoutingDecision =
+  | { matchedRule: RoutingRule | null; action: null }
+  | { matchedRule: RoutingRule; action: { type: 'rewrite_model'; model: string } }
+  | { matchedRule: RoutingRule; action: { type: 'reject'; reason: string } }
+
+function matchesStringList(values: string[], current: string | null): boolean {
+  if (values.length === 0) return true
+  if (!current) return false
+  return values.includes(current)
+}
+
+function matchesNumberBounds(minRaw: string, maxRaw: string, value: number | null): boolean {
+  const min = minRaw ? Number(minRaw) : null
+  const max = maxRaw ? Number(maxRaw) : null
+  if (min == null && max == null) return true
+  if (value == null) return false
+  if (min != null && value < min) return false
+  if (max != null && value > max) return false
+  return true
+}
+
+export function matchesRoutingRule(rule: RoutingRule, ctx: RoutingContext): boolean {
+  if (!rule.enabled) return false
+  if (!matchesStringList(rule.match.endpoints, ctx.endpoint)) return false
+  if (!matchesStringList(rule.match.requestedModels, ctx.requestedModel)) return false
+  if (!matchesStringList(rule.match.apiKeyIds, ctx.apiKeyId)) return false
+  if (rule.match.stream === 'stream' && !ctx.stream) return false
+  if (rule.match.stream === 'non_stream' && ctx.stream) return false
+  if (
+    !matchesNumberBounds(
+      rule.match.minEstimatedPromptTokens,
+      rule.match.maxEstimatedPromptTokens,
+      ctx.estimatedPromptTokens,
+    )
+  ) {
+    return false
+  }
+  return true
+}
+
+export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext): RoutingDecision {
+  for (const rule of rules) {
+    if (!matchesRoutingRule(rule, ctx)) continue
+    if (rule.action.type === 'rewrite_model') {
+      return { matchedRule: rule, action: { type: 'rewrite_model', model: rule.action.model } }
+    }
+    return { matchedRule: rule, action: { type: 'reject', reason: rule.action.reason } }
+  }
+  return { matchedRule: null, action: null }
+}

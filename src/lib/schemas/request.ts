@@ -28,6 +28,12 @@ export const ApiRequestDetailSchema = v.object({
   responseHeaders: v.nullable(v.string()),
   responseBody: v.nullable(v.string()),
   streamCloseMs: v.nullable(v.number()),
+  routingRuleId: v.nullable(v.string()),
+  routingRuleName: v.nullable(v.string()),
+  routingActionType: v.nullable(v.string()),
+  routingRequestedModel: v.nullable(v.string()),
+  routingRoutedModel: v.nullable(v.string()),
+  routingRejectReason: v.nullable(v.string()),
 })
 
 export type ApiRequestDetail = v.InferOutput<typeof ApiRequestDetailSchema>
