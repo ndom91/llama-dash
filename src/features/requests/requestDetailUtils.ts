@@ -20,20 +20,6 @@ export function parseRequestPayload(body: string | null) {
   }
 }
 
-export function parseSseChunks(body: string) {
-  const chunks: Array<Record<string, unknown>> = []
-  for (const raw of body.split('\n\n')) {
-    const line = raw.trim()
-    if (!line.startsWith('data: ')) continue
-    const payload = line.slice(6)
-    if (payload === '[DONE]') continue
-    try {
-      chunks.push(JSON.parse(payload) as Record<string, unknown>)
-    } catch {}
-  }
-  return chunks
-}
-
 export type SseEvent = {
   event: string | null
   data: string
@@ -41,8 +27,14 @@ export type SseEvent = {
   isDone: boolean
 }
 
-export function parseSseEvents(body: string): Array<SseEvent> {
+export type ParsedSseStream = {
+  events: Array<SseEvent>
+  lastParsedData: Record<string, unknown> | null
+}
+
+export function parseSseStream(body: string): ParsedSseStream {
   const events: Array<SseEvent> = []
+  let lastParsedData: Record<string, unknown> | null = null
   for (const block of body.split('\n\n')) {
     if (!block.trim()) continue
     let event: string | null = null
@@ -62,11 +54,12 @@ export function parseSseEvents(body: string): Array<SseEvent> {
     if (!isDone && data !== '') {
       try {
         parsedData = JSON.parse(data) as Record<string, unknown>
+        lastParsedData = parsedData
       } catch {}
     }
     events.push({ event, data, parsedData, isDone })
   }
-  return events
+  return { events, lastParsedData }
 }
 
 export type ResponseAnalysis = {
@@ -90,7 +83,7 @@ export function analyzeResponse(responseBody: string | null, streamed: boolean):
   return { displayBody: responseBody, isJson: false, isSse: true }
 }
 
-export function analyzeTiming(responseBody: string | null, streamCloseMs: number | null): RequestTiming {
+export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number | null): RequestTiming {
   const result: RequestTiming = {
     queueMs: null,
     prefillMs: null,
@@ -98,9 +91,7 @@ export function analyzeTiming(responseBody: string | null, streamCloseMs: number
     decodeMs: null,
     streamCloseMs,
   }
-  if (!responseBody) return result
-  const chunks = parseSseChunks(responseBody)
-  const lastChunk = chunks[chunks.length - 1]
+  const lastChunk = sse?.lastParsedData
   if (
     !lastChunk ||
     typeof lastChunk !== 'object' ||

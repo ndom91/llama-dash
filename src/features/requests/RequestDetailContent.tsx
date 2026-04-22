@@ -15,6 +15,7 @@ import {
   formatCostUsd,
   formatDuration,
   parseRequestPayload,
+  parseSseStream,
 } from './requestDetailUtils'
 import { RequestPayloadPane } from './RequestPayloadPane'
 import { RequestTokenTrace } from './RequestTokenTrace'
@@ -75,10 +76,11 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
     () => analyzeResponse(req.responseBody, req.streamed),
     [req.responseBody, req.streamed],
   )
-  const timing = useMemo(
-    () => analyzeTiming(req.responseBody, req.streamCloseMs),
-    [req.responseBody, req.streamCloseMs],
+  const parsedSse = useMemo(
+    () => (req.streamed && req.responseBody ? parseSseStream(req.responseBody) : null),
+    [req.responseBody, req.streamed],
   )
+  const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
   const clientLabel = deriveClientLabel(reqHeaders)
   const curlCommand = useMemo(
     () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
@@ -318,6 +320,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 body={responseAnalysis.displayBody}
                 headers={resHeaders}
                 mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
+                sseStream={parsedSse}
               />
             </div>
           </section>

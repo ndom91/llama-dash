@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
-import { parseSseEvents } from './requestDetailUtils'
+import { parseSseStream, type ParsedSseStream } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 
 type Props = {
   body: string
+  stream?: ParsedSseStream | null
 }
 
-export function RequestSseEvents({ body }: Props) {
-  const events = useMemo(() => parseSseEvents(body), [body])
+export function RequestSseEvents({ body, stream }: Props) {
+  const events = useMemo(() => stream?.events ?? parseSseStream(body).events, [body, stream])
   if (events.length === 0) return <>{body}</>
   return (
     <div className="sse-events">

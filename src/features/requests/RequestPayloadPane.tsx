@@ -1,6 +1,7 @@
 import { Check, Clipboard } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { cn } from '../../lib/cn'
+import type { ParsedSseStream } from './requestDetailUtils'
 import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 import { RequestSseEvents } from './RequestSseEvents'
@@ -11,9 +12,10 @@ type Props = {
   body: string
   headers: Record<string, string> | null
   mode: 'pretty' | 'raw' | 'sse'
+  sseStream?: ParsedSseStream | null
 }
 
-export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Props) {
+export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseStream = null }: Props) {
   const [copied, setCopied] = useState(false)
   const deferredBody = useDeferredValue(body)
   const deferredHeaders = useDeferredValue(headers)
@@ -27,10 +29,10 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Pro
   )
   const display = pretty ?? deferredBody
   const bodyContent = useMemo(() => {
-    if (mode === 'sse') return <RequestSseEvents body={deferredBody} />
+    if (mode === 'sse') return <RequestSseEvents body={deferredBody} stream={sseStream} />
     if (pretty) return <RequestJsonHighlight json={display} />
     return display
-  }, [deferredBody, display, mode, pretty])
+  }, [deferredBody, display, mode, pretty, sseStream])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
 
   const onCopy = () => {
