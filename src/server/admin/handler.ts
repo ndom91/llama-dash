@@ -20,6 +20,7 @@ import { readConfig, validateAgainstSchema, writeConfig } from './config.ts'
 import { createModelAlias, deleteModelAlias, listModelAliases, updateModelAlias } from './model-aliases.ts'
 import { getRequestLimits, setRequestLimits } from './settings.ts'
 import {
+  buildApiModel,
   extractModelConfig,
   getConfigContextLengths,
   getModelEvents,
@@ -42,31 +43,6 @@ const json = (status: number, body: unknown) => Response.json(body, { status })
 
 const error = (status: number, message: string) => json(status, { error: { message } })
 
-function pickModelContextLength(
-  model: Awaited<ReturnType<typeof llamaSwap.listModels>>['data'][number],
-): number | null {
-  return (
-    model.context_length ??
-    model.contextLength ??
-    model.n_ctx ??
-    model.meta?.context_length ??
-    model.meta?.contextLength ??
-    model.meta?.n_ctx ??
-    model.meta?.llamaswap?.context_length ??
-    model.meta?.llamaswap?.contextLength ??
-    model.meta?.llamaswap?.n_ctx ??
-    null
-  )
-}
-
-function pickRunningContextLength(
-  running: Awaited<ReturnType<typeof llamaSwap.listRunning>>['running'][number] | undefined,
-): number | null {
-  if (!running?.cmd) return null
-  const match = running.cmd.match(/--ctx-size\s+(\d+)/)
-  return match ? Number(match[1]) : null
-}
-
 const routes: Array<Route> = [
   {
     method: 'GET',
@@ -75,22 +51,7 @@ const routes: Array<Route> = [
       const [models, running] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
       const runningById = new Map(running.running.map((r) => [r.model, r]))
       const configContextLengths = getConfigContextLengths()
-      const rows = models.data.map((m) => {
-        const run = runningById.get(m.id)
-        const peerId = m.meta?.llamaswap?.peerID
-        return {
-          id: m.id,
-          name: m.name ?? m.id,
-          kind: peerId ? ('peer' as const) : ('local' as const),
-          peerId: peerId ?? null,
-          contextLength:
-            pickModelContextLength(m) ??
-            (peerId ? null : (pickRunningContextLength(run) ?? configContextLengths.get(m.id) ?? null)),
-          state: run?.state ?? 'stopped',
-          running: Boolean(run),
-          ttl: run?.ttl ?? null,
-        }
-      })
+      const rows = models.data.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths))
       return json(200, { models: rows })
     },
   },
@@ -105,19 +66,7 @@ const routes: Array<Route> = [
       if (!modelData) return error(404, `Model ${id} not found`)
 
       const runInfo = runningRes.running.find((r) => r.model === id)
-      const peerId = modelData.meta?.llamaswap?.peerID
-      const model = {
-        id: modelData.id,
-        name: modelData.name ?? modelData.id,
-        kind: peerId ? ('peer' as const) : ('local' as const),
-        peerId: peerId ?? null,
-        contextLength:
-          pickModelContextLength(modelData) ??
-          (peerId ? null : (pickRunningContextLength(runInfo) ?? configContextLengths.get(id) ?? null)),
-        state: runInfo?.state ?? 'stopped',
-        running: Boolean(runInfo),
-        ttl: runInfo?.ttl ?? null,
-      }
+      const model = buildApiModel(modelData, runInfo, configContextLengths)
 
       const [events, stats, requests, keyBreakdown] = await Promise.all([
         getModelEvents(id),

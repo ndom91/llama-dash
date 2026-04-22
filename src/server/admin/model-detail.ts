@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { and, asc, desc, eq, gte, like, lt, or } from 'drizzle-orm'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
-import type { ApiModelKeyBreakdown, ApiModelStats } from '../../lib/schemas/model'
+import type { ApiModel, ApiModelKeyBreakdown, ApiModelStats } from '../../lib/schemas/model'
 import type { ApiRequest } from '../../lib/schemas/request'
 import { config } from '../config.ts'
 import { db, schema } from '../db/index.ts'
+import type { llamaSwap } from '../llama-swap/client.ts'
+
+type LlamaSwapModel = Awaited<ReturnType<typeof llamaSwap.listModels>>['data'][number]
+type LlamaSwapRunningModel = Awaited<ReturnType<typeof llamaSwap.listRunning>>['running'][number]
 
 function modelMatch(modelId: string) {
   return or(eq(schema.requests.model, modelId), like(schema.requests.model, `%/${modelId}`))
@@ -173,6 +177,48 @@ export function extractModelConfig(modelId: string): string | null {
     return stringifyYaml({ [modelId]: parsed.models[modelId] }, { indent: 2 })
   } catch {
     return null
+  }
+}
+
+function pickModelContextLength(model: LlamaSwapModel): number | null {
+  return (
+    model.context_length ??
+    model.contextLength ??
+    model.n_ctx ??
+    model.meta?.context_length ??
+    model.meta?.contextLength ??
+    model.meta?.n_ctx ??
+    model.meta?.llamaswap?.context_length ??
+    model.meta?.llamaswap?.contextLength ??
+    model.meta?.llamaswap?.n_ctx ??
+    null
+  )
+}
+
+function pickRunningContextLength(running: LlamaSwapRunningModel | undefined): number | null {
+  if (!running?.cmd) return null
+  const match = running.cmd.match(/--ctx-size\s+(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
+export function buildApiModel(
+  model: LlamaSwapModel,
+  running: LlamaSwapRunningModel | undefined,
+  configContextLengths: Map<string, number>,
+): ApiModel {
+  const peerId = model.meta?.llamaswap?.peerID
+
+  return {
+    id: model.id,
+    name: model.name ?? model.id,
+    kind: peerId ? 'peer' : 'local',
+    peerId: peerId ?? null,
+    contextLength:
+      pickModelContextLength(model) ??
+      (peerId ? null : (pickRunningContextLength(running) ?? configContextLengths.get(model.id) ?? null)),
+    state: running?.state ?? 'stopped',
+    running: Boolean(running),
+    ttl: running?.ttl ?? null,
   }
 }
 
