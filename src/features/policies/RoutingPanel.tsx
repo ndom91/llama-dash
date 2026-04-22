@@ -82,6 +82,11 @@ export function RoutingPanel() {
 
   const editingRule = useMemo(() => rules.find((rule) => rule.id === editingRuleId) ?? null, [editingRuleId, rules])
   const enabledCount = rules.filter((rule) => rule.enabled).length
+  const isMutating =
+    createRuleMutation.isPending ||
+    updateRuleMutation.isPending ||
+    deleteRuleMutation.isPending ||
+    reorderRulesMutation.isPending
 
   const startEdit = (rule: RoutingRule) => {
     setEditingRuleId(rule.id)
@@ -156,7 +161,7 @@ export function RoutingPanel() {
         <span className="panel-sub">
           · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
         </span>
-        <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule}>
+        <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
           <Plus className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
           new rule
         </button>
@@ -171,11 +176,11 @@ export function RoutingPanel() {
                   No routing rules yet
                 </div>
                 <div className="mt-2 max-w-3xl font-mono text-xs leading-6 text-fg-dim">
-                  Ordered rules will evaluate before forwarding. Use them to rewrite models, prefer peers or local
-                  backends, reject requests with a policy reason, and eventually configure fallback chains.
+                  Ordered rules will evaluate before forwarding. Use them to rewrite requested models or reject requests
+                  with a clear policy reason.
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <button type="button" className="btn btn-primary btn-xs" onClick={createRule}>
+                  <button type="button" className="btn btn-primary btn-xs" onClick={createRule} disabled={isMutating}>
                     <Plus className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
                     create first rule
                   </button>
@@ -218,7 +223,8 @@ export function RoutingPanel() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <h3 className="m-0 text-base font-semibold text-fg">{rule.name}</h3>
                         <span className="font-mono text-[11px] text-fg-dim">
-                          updated {new Date(rule.updatedAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                          {rule.enabled ? 'enabled' : 'disabled'} · updated{' '}
+                          {new Date(rule.updatedAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
 
@@ -243,19 +249,23 @@ export function RoutingPanel() {
                       <IconButton
                         icon={<ArrowUp className="icon-btn-12" strokeWidth={2} />}
                         disabled={index === 0}
+                        busy={reorderRulesMutation.isPending}
                         onClick={() => moveRule(rule.id, -1)}
                       />
                       <IconButton
                         icon={<ArrowDown className="icon-btn-12" strokeWidth={2} />}
                         disabled={index === rules.length - 1}
+                        busy={reorderRulesMutation.isPending}
                         onClick={() => moveRule(rule.id, 1)}
                       />
                       <IconButton
                         icon={<PenLine className="icon-btn-12" strokeWidth={2} />}
+                        busy={updateRuleMutation.isPending && editingRuleId === rule.id}
                         onClick={() => startEdit(rule)}
                       />
                       <IconButton
                         icon={<X className="icon-btn-12" strokeWidth={2} />}
+                        busy={deleteRuleMutation.isPending}
                         onClick={() => deleteRule(rule.id)}
                       />
                     </div>
@@ -267,9 +277,21 @@ export function RoutingPanel() {
 
           <div className="border border-dashed border-border bg-surface-0 px-4 py-3 font-mono text-xs text-fg-dim">
             <div>· rules are ordered. they run top-to-bottom and the first match wins.</div>
-            <div>· one action per rule: rewrite model · route preference · fallback chain · reject.</div>
+            <div>· one action per rule in MVP: rewrite model · reject.</div>
             <div>· no match = default behavior, unchanged. routing outcomes should surface on request detail.</div>
           </div>
+
+          {createRuleMutation.error ||
+          updateRuleMutation.error ||
+          deleteRuleMutation.error ||
+          reorderRulesMutation.error ? (
+            <div className="border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
+              {createRuleMutation.error?.message ??
+                updateRuleMutation.error?.message ??
+                deleteRuleMutation.error?.message ??
+                reorderRulesMutation.error?.message}
+            </div>
+          ) : null}
 
           {draft ? (
             <section className="border border-accent/70 bg-surface-0/80 px-5 py-5">
@@ -277,14 +299,6 @@ export function RoutingPanel() {
                 <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
                   <Circle className="mr-2 inline-block icon-btn-12 fill-current" strokeWidth={0} aria-hidden="true" />
                   editing · rule {String(draft.order).padStart(2, '0')} · {draft.action.type.replace(/_/g, ' ')}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button type="button" className="btn btn-ghost btn-xs" onClick={discardDraft}>
-                    discard
-                  </button>
-                  <button type="button" className="btn btn-primary btn-xs" onClick={saveDraft}>
-                    save
-                  </button>
                 </div>
               </div>
 
@@ -509,9 +523,7 @@ export function RoutingPanel() {
                           </option>
                         ))}
                       </select>
-                      <span className="text-[11px] font-mono text-fg-dim">
-                        applied before upstream selection · distinct from global aliases
-                      </span>
+                      <span className="text-[11px] font-mono text-fg-dim">applied before upstream selection</span>
                     </label>
                   ) : null}
 
@@ -553,10 +565,30 @@ export function RoutingPanel() {
 
                   <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">
                     <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Note</div>
-                    This rule takes precedence over global aliases and request limits once it matches. Keep rules
-                    ordered so more specific matches sit above broad default behavior.
+                    This rule applies as soon as it matches. Keep more specific rules above broad default behavior.
                   </div>
                 </div>
+              </div>
+
+              {createRuleMutation.error ||
+              updateRuleMutation.error ||
+              deleteRuleMutation.error ||
+              reorderRulesMutation.error ? (
+                <div className="mt-4 border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
+                  {createRuleMutation.error?.message ??
+                    updateRuleMutation.error?.message ??
+                    deleteRuleMutation.error?.message ??
+                    reorderRulesMutation.error?.message}
+                </div>
+              ) : null}
+
+              <div className="mt-5 flex justify-end gap-2 border-t border-border pt-4">
+                <button type="button" className="btn btn-ghost btn-xs" onClick={discardDraft}>
+                  discard
+                </button>
+                <button type="button" className="btn btn-primary btn-xs" onClick={saveDraft} disabled={isMutating}>
+                  {isMutating ? 'saving rule…' : 'save rule'}
+                </button>
               </div>
             </section>
           ) : null}
@@ -585,16 +617,18 @@ function IconButton({
   icon,
   onClick,
   disabled = false,
+  busy = false,
 }: {
   icon: ReactElement
   onClick: () => void
   disabled?: boolean
+  busy?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || busy}
       className="inline-flex h-8 w-8 items-center justify-center border border-border bg-surface-1 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg disabled:cursor-not-allowed disabled:opacity-35"
     >
       {icon}
