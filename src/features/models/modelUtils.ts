@@ -18,7 +18,7 @@ export function parseModelConfigSnippet(snippet: string | null) {
   if (!snippet) return { aliases: [] as Array<string>, ctxSize: null as string | null, port: null as string | null }
 
   const aliasesMatch = snippet.match(/aliases:\s*\[([^\]]+)\]/)
-  const ctxMatch = snippet.match(/--ctx-size\s+(\d+)/)
+  const ctxMatch = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)
   const portMatch = snippet.match(/--port\s+(\$\{PORT\}|\d+)/)
 
   return {

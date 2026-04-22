@@ -196,9 +196,7 @@ function pickModelContextLength(model: LlamaSwapModel): number | null {
 }
 
 function pickRunningContextLength(running: LlamaSwapRunningModel | undefined): number | null {
-  if (!running?.cmd) return null
-  const match = running.cmd.match(/--ctx-size\s+(\d+)/)
-  return match ? Number(match[1]) : null
+  return extractCtxSize(running?.cmd)
 }
 
 export function buildApiModel(
@@ -223,8 +221,8 @@ export function buildApiModel(
 }
 
 function extractCtxSize(value: unknown): number | null {
-  const snippet = stringifyYaml(value, { indent: 2 })
-  const match = snippet.match(/--ctx-size\s+(\d+)/)
+  const snippet = typeof value === 'string' ? value : stringifyYaml(value, { indent: 2 })
+  const match = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)
   return match ? Number(match[1]) : null
 }
 

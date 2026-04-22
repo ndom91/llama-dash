@@ -29,13 +29,13 @@ export type SseEvent = {
 
 export type ParsedSseStream = {
   events: Array<SseEvent>
-  lastParsedData: Record<string, unknown> | null
+  latestTimingData: Record<string, unknown> | null
 }
 
 export function parseSseStream(body: string): ParsedSseStream {
   const events: Array<SseEvent> = []
-  let lastParsedData: Record<string, unknown> | null = null
-  for (const block of body.split('\n\n')) {
+  let latestTimingData: Record<string, unknown> | null = null
+  for (const block of body.split(/\r?\n\r?\n/)) {
     if (!block.trim()) continue
     let event: string | null = null
     const dataLines: Array<string> = []
@@ -54,12 +54,14 @@ export function parseSseStream(body: string): ParsedSseStream {
     if (!isDone && data !== '') {
       try {
         parsedData = JSON.parse(data) as Record<string, unknown>
-        lastParsedData = parsedData
+        if ('timings' in parsedData && parsedData.timings && typeof parsedData.timings === 'object') {
+          latestTimingData = parsedData
+        }
       } catch {}
     }
     events.push({ event, data, parsedData, isDone })
   }
-  return { events, lastParsedData }
+  return { events, latestTimingData }
 }
 
 export type ResponseAnalysis = {
@@ -91,7 +93,7 @@ export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number
     decodeMs: null,
     streamCloseMs,
   }
-  const lastChunk = sse?.lastParsedData
+  const lastChunk = sse?.latestTimingData
   if (
     !lastChunk ||
     typeof lastChunk !== 'object' ||
