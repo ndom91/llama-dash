@@ -1,5 +1,3 @@
-import type { ApiRequestDetail } from '../../lib/api'
-
 export type RequestTiming = {
   queueMs: number | null
   prefillMs: number | null
@@ -77,30 +75,31 @@ export type ResponseAnalysis = {
   isSse: boolean
 }
 
-export function analyzeResponse(req: ApiRequestDetail): ResponseAnalysis {
-  if (!req.responseBody) return { displayBody: '', isJson: false, isSse: false }
-  if (!req.streamed) {
+export function analyzeResponse(responseBody: string | null, streamed: boolean): ResponseAnalysis {
+  if (!responseBody) return { displayBody: '', isJson: false, isSse: false }
+  if (!streamed) {
+    const trimmed = responseBody.trimStart()
     return {
-      displayBody: req.responseBody,
-      isJson: tryPrettyJson(req.responseBody) != null,
+      displayBody: responseBody,
+      isJson: trimmed.startsWith('{') || trimmed.startsWith('['),
       isSse: false,
     }
   }
   // Streamed bodies render as a sequence of event/data blocks — the
   // RequestSseEvents component handles parsing + per-event JSON highlight.
-  return { displayBody: req.responseBody, isJson: false, isSse: true }
+  return { displayBody: responseBody, isJson: false, isSse: true }
 }
 
-export function analyzeTiming(req: ApiRequestDetail): RequestTiming {
+export function analyzeTiming(responseBody: string | null, streamCloseMs: number | null): RequestTiming {
   const result: RequestTiming = {
     queueMs: null,
     prefillMs: null,
     ttftMs: null,
     decodeMs: null,
-    streamCloseMs: req.streamCloseMs,
+    streamCloseMs,
   }
-  if (!req.responseBody) return result
-  const chunks = parseSseChunks(req.responseBody)
+  if (!responseBody) return result
+  const chunks = parseSseChunks(responseBody)
   const lastChunk = chunks[chunks.length - 1]
   if (
     !lastChunk ||
@@ -142,14 +141,18 @@ export function deriveRewriteLabel(
   return null
 }
 
-export function buildCurlCommand(req: ApiRequestDetail, requestHeaders: Record<string, string> | null) {
+export function buildCurlCommand(
+  endpoint: string,
+  requestBody: string | null,
+  requestHeaders: Record<string, string> | null,
+) {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llama-dash.example'
   const auth = requestHeaders?.authorization
     ? maskSensitive('authorization', requestHeaders.authorization)
     : 'Bearer sk-…'
   const contentType = requestHeaders?.['content-type'] ?? 'application/json'
-  const body = req.requestBody ?? '{}'
-  return `curl ${origin}${req.endpoint} \\
+  const body = requestBody ?? '{}'
+  return `curl ${origin}${endpoint} \\
   -H "Authorization: ${auth}" \\
   -H "Content-Type: ${contentType}" \\
   -d '${body.replace(/'/g, "'\\''")}'`

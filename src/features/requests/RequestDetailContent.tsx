@@ -1,7 +1,7 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, RotateCw } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
@@ -54,13 +54,36 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
     navigate({ to: '/requests/$id', params: { id: nextId } })
   })
 
-  const reqHeaders: Record<string, string> | null = req.requestHeaders ? JSON.parse(req.requestHeaders) : null
-  const resHeaders: Record<string, string> | null = req.responseHeaders ? JSON.parse(req.responseHeaders) : null
-  const requestPayload = parseRequestPayload(req.requestBody)
-  const responseAnalysis = analyzeResponse(req)
-  const timing = analyzeTiming(req)
+  const reqHeaders = useMemo<Record<string, string> | null>(() => {
+    if (!req.requestHeaders) return null
+    try {
+      return JSON.parse(req.requestHeaders) as Record<string, string>
+    } catch {
+      return null
+    }
+  }, [req.requestHeaders])
+  const resHeaders = useMemo<Record<string, string> | null>(() => {
+    if (!req.responseHeaders) return null
+    try {
+      return JSON.parse(req.responseHeaders) as Record<string, string>
+    } catch {
+      return null
+    }
+  }, [req.responseHeaders])
+  const requestPayload = useMemo(() => parseRequestPayload(req.requestBody), [req.requestBody])
+  const responseAnalysis = useMemo(
+    () => analyzeResponse(req.responseBody, req.streamed),
+    [req.responseBody, req.streamed],
+  )
+  const timing = useMemo(
+    () => analyzeTiming(req.responseBody, req.streamCloseMs),
+    [req.responseBody, req.streamCloseMs],
+  )
   const clientLabel = deriveClientLabel(reqHeaders)
-  const curlCommand = buildCurlCommand(req, reqHeaders)
+  const curlCommand = useMemo(
+    () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
+    [req.endpoint, req.requestBody, reqHeaders],
+  )
   const tokPerSec =
     req.completionTokens != null && req.durationMs > 0
       ? Math.round((req.completionTokens / req.durationMs) * 1000)
@@ -281,6 +304,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
             </div>
             <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[900px]:grid-cols-1">
               <RequestPayloadPane
+                key={`${req.id}-request`}
                 title="Request"
                 subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
                 body={req.requestBody ?? ''}
@@ -288,6 +312,7 @@ export function RequestDetailContent({ req, prevId, nextId }: Props) {
                 mode="pretty"
               />
               <RequestPayloadPane
+                key={`${req.id}-response`}
                 title="Response"
                 subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
                 body={responseAnalysis.displayBody}

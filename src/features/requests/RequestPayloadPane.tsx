@@ -1,5 +1,5 @@
 import { Check, Clipboard } from 'lucide-react'
-import { useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { cn } from '../../lib/cn'
 import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
@@ -15,15 +15,23 @@ type Props = {
 
 export function RequestPayloadPane({ title, subtitle, body, headers, mode }: Props) {
   const [copied, setCopied] = useState(false)
+  const deferredBody = useDeferredValue(body)
+  const deferredHeaders = useDeferredValue(headers)
   // Prefer strict JSON.parse → stringify formatting. If the body won't parse
   // (most often because the truncation marker lopped off the tail), fall back
   // to the lenient token-by-token re-indenter so we still get pretty layout
   // and syntax highlighting on the surviving prefix.
-  const pretty = mode === 'pretty' ? (tryPrettyJson(body) ?? prettyPrintJsonLenient(body)) : null
-  const display = pretty ?? body
-  const bodyContent =
-    mode === 'sse' ? <RequestSseEvents body={body} /> : pretty ? <RequestJsonHighlight json={display} /> : display
-  const headerEntries = headers ? Object.entries(headers) : []
+  const pretty = useMemo(
+    () => (mode === 'pretty' ? (tryPrettyJson(deferredBody) ?? prettyPrintJsonLenient(deferredBody)) : null),
+    [deferredBody, mode],
+  )
+  const display = pretty ?? deferredBody
+  const bodyContent = useMemo(() => {
+    if (mode === 'sse') return <RequestSseEvents body={deferredBody} />
+    if (pretty) return <RequestJsonHighlight json={display} />
+    return display
+  }, [deferredBody, display, mode, pretty])
+  const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
 
   const onCopy = () => {
     navigator.clipboard.writeText(body)

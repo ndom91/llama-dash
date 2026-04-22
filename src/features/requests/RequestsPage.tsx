@@ -440,14 +440,20 @@ export function RequestsPage({ modelParam }: Props) {
                                         {formatWhen(r.startedAt)}
                                       </td>
                                       <td className="mono" translate="no">
-                                        {r.endpoint}
+                                        <span
+                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={r.endpoint}
+                                        >
+                                          {r.endpoint}
+                                        </span>
                                       </td>
-                                      <td
-                                        className="dim"
-                                        style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                        translate="no"
-                                      >
-                                        {r.model ?? '—'}
+                                      <td className="dim" translate="no">
+                                        <span
+                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={r.model ?? '—'}
+                                        >
+                                          {r.model ?? '—'}
+                                        </span>
                                       </td>
                                       <td>
                                         <StatusCell code={r.statusCode} streamed={r.streamed} />
