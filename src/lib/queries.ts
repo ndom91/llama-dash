@@ -36,7 +36,7 @@ export const qk = {
   models: ['models'] as const,
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
-  requestsRecent: ['requests', 'recent'] as const,
+  requestsRecent: (limit: number) => ['requests', 'recent', limit] as const,
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
   gpu: ['gpu'] as const,
@@ -125,7 +125,7 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
 
 export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
-    queryKey: qk.requestsRecent,
+    queryKey: qk.requestsRecent(limit),
     queryFn: () => api.listRequests({ limit }).then((r) => r.requests),
     refetchInterval: POLL_MS,
   })
@@ -159,8 +159,10 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     staleTime: Number.POSITIVE_INFINITY,
     placeholderData: (prev) => {
       const lists = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
-      const recent = qc.getQueryData<Array<ApiRequest>>(qk.requestsRecent)
-      const all = [...(lists?.pages.flatMap((p) => p.requests) ?? []), ...(recent ?? [])]
+      const recents = qc.getQueriesData<Array<ApiRequest>>({ queryKey: qk.requests }).flatMap(([queryKey, data]) => {
+        return Array.isArray(queryKey) && queryKey[1] === 'recent' ? (data ?? []) : []
+      })
+      const all = [...(lists?.pages.flatMap((p) => p.requests) ?? []), ...recents]
       const match = all.find((r) => r.id === id)
       if (match) return { request: match as ApiRequestDetail, prevId: null, nextId: null }
       return prev
