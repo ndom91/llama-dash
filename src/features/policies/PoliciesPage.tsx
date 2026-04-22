@@ -1,7 +1,6 @@
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import { RoutingPanel } from './RoutingPanel'
-import { RequestLimitsPanel } from './RequestLimitsPanel'
 
 export function PoliciesPage() {
   return (
@@ -16,7 +15,6 @@ export function PoliciesPage() {
             variant="integrated"
           />
           <div className="flex min-h-0 flex-1 flex-col">
-            <RequestLimitsPanel />
             <RoutingPanel />
           </div>
         </div>

@@ -162,13 +162,13 @@ export function RoutingPanel() {
   }
 
   return (
-    <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 border-t-1 border-border !bg-surface-1">
+    <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 border-t-0 !bg-surface-1">
       <div className="panel-head shrink-0 bg-transparent px-6 max-md:px-3">
         <span className="panel-title">Routing</span>
         <span className="panel-sub">
           · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
         </span>
-        <button type="button" className="btn btn-primary ml-auto" onClick={createRule}>
+        <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule}>
           <Plus className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
           new rule
         </button>
