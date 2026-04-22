@@ -221,7 +221,8 @@ export function buildApiModel(
 }
 
 function extractCtxSize(value: unknown): number | null {
-  const snippet = typeof value === 'string' ? value : stringifyYaml(value, { indent: 2 })
+  const snippet = typeof value === 'string' ? value : value == null ? null : stringifyYaml(value, { indent: 2 })
+  if (typeof snippet !== 'string') return null
   const match = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)
   return match ? Number(match[1]) : null
 }

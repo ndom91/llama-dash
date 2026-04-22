@@ -234,11 +234,10 @@ const routes: Array<Route> = [
         return error(400, 'Body must have "content" (string) and "modifiedAt" (number)')
       }
       const body = result.output
-      const validation = await validateAgainstSchema(body.content)
-      if (!validation.valid) {
-        return json(422, { saved: false, errors: validation.errors })
+      const writeResult = await writeConfig(body.content, body.modifiedAt)
+      if ('errors' in writeResult) {
+        return json(200, { saved: false, errors: writeResult.errors })
       }
-      const writeResult = writeConfig(body.content, body.modifiedAt)
       if (writeResult.conflict) {
         return json(409, { saved: false, conflict: true, message: 'File was modified externally' })
       }

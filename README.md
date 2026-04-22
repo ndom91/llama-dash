@@ -13,7 +13,7 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 - **Policies** — model aliases (global name mapping), per-key model pinning, per-key system prompt injection, global request size limits.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
-- **Config editor** — edit llama-swap `config.yaml` in-browser with validation and auto-reload.
+- **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
 - **Playground** — Supports chat, image, speech and transcribe. See request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
 

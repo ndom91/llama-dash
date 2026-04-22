@@ -22,6 +22,11 @@ export function readConfig(): { content: string; modifiedAt: number } {
 
 export type ValidationResult = { valid: true } | { valid: false; errors: Array<string> }
 
+type WriteConfigResult =
+  | { written: true; conflict: false; modifiedAt: number }
+  | { written: false; conflict: true }
+  | { written: false; conflict: false; errors: Array<string> }
+
 async function getValidator(): Promise<ValidateFunction> {
   if (cachedValidator) return cachedValidator
   const res = await fetch(SCHEMA_URL)
@@ -55,10 +60,12 @@ export async function validateAgainstSchema(content: string): Promise<Validation
   }
 }
 
-export function writeConfig(
-  content: string,
-  expectedModifiedAt: number,
-): { written: boolean; conflict: boolean; modifiedAt?: number } {
+export async function writeConfig(content: string, expectedModifiedAt: number): Promise<WriteConfigResult> {
+  const validation = await validateAgainstSchema(content)
+  if (!validation.valid) {
+    return { written: false, conflict: false, errors: validation.errors }
+  }
+
   const p = configPath()
   const stat = statSync(p)
   if (Math.abs(stat.mtimeMs - expectedModifiedAt) > 50) {

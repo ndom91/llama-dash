@@ -117,6 +117,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/health` — upstream reachability, version, latency
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
+   - `/api/config` — read/save llama-swap config with schema validation enforced before writes
+   - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
    - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `defaultModel`, `systemPrompt`
    - `/api/aliases` — CRUD for model aliases (global model name mapping)
@@ -127,12 +129,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
 6. Model watcher: polls llama-swap `/running` every 15s, diffs against
    known state, inserts `load`/`unload` events into SQLite.
 7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
-   recent requests), Models (list + load/unload + per-model detail),
-   Requests (filtered/sorted log + histogram + detail), Logs, Playground
-   (chat plus request/response/timing/events/curl inspector tabs; timing
-   sidebar shows TTFT, prefill, decode, and stream-close when upstream
-   llama.cpp timing metadata is present), Config editor, API Keys (list +
-   per-key detail), Policies (aliases + request limits), Endpoints
+    recent requests), Models (list + load/unload + per-model detail),
+    Requests (filtered/sorted log + histogram + detail), Logs, Playground
+    (chat plus request/response/timing/events/curl inspector tabs; timing
+    sidebar shows TTFT, prefill, decode, and stream-close when upstream
+    llama.cpp timing metadata is present), Config editor with explicit
+    validate action plus pre-save schema validation, API Keys (list +
+    per-key detail), Policies (aliases + request limits), Endpoints
    (connection examples for curl, Python, TS, Home Assistant, Claude Code,
    opencode, Continue, Open WebUI).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,

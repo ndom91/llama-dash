@@ -1,5 +1,5 @@
 import { AlertTriangle, AlignLeft, Check, Loader2, RefreshCw, Save } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { parseDocument } from 'yaml'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
@@ -16,8 +16,14 @@ export function ConfigPage() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const [validating, setValidating] = useState(false)
   const [validation, setValidation] = useState<{ valid: boolean; errors?: Array<string> } | null>(null)
   const [saveResult, setSaveResult] = useState<ApiConfigSaveResult | null>(null)
+  const latestContentRef = useRef(content)
+
+  useEffect(() => {
+    latestContentRef.current = content
+  }, [content])
 
   const isDirty = loadState.status === 'ready' && content !== loadState.original
 
@@ -40,27 +46,51 @@ export function ConfigPage() {
     load()
   }, [load])
 
+  const handleContentChange = useCallback((next: string) => {
+    setContent(next)
+    setValidation(null)
+    setSaveResult(null)
+  }, [])
+
+  const doValidate = useCallback(async () => {
+    if (loadState.status !== 'ready' || saving || validating) return
+    const snapshot = content
+    setValidating(true)
+    setSaveResult(null)
+    try {
+      const result = await api.validateConfig(snapshot)
+      if (latestContentRef.current !== snapshot) return
+      setValidation(result)
+    } finally {
+      setValidating(false)
+    }
+  }, [content, loadState.status, saving, validating])
+
   const doSave = useCallback(async () => {
-    if (loadState.status !== 'ready' || saving) return
+    if (loadState.status !== 'ready' || saving || validating) return
+    const snapshot = content
     setSaving(true)
     setSaveResult(null)
 
-    const v = await api.validateConfig(content)
-    setValidation(v)
-    if (!v.valid) {
+    try {
+      const v = await api.validateConfig(snapshot)
+      if (latestContentRef.current !== snapshot) return
+      setValidation(v)
+      if (!v.valid) return
+
+      const result = await api.saveConfig(snapshot, loadState.modifiedAt)
+      if (latestContentRef.current !== snapshot) return
+      setSaveResult(result)
+      if (result.saved) {
+        setLoadState({ status: 'ready', original: snapshot, modifiedAt: result.modifiedAt })
+        setValidation(null)
+      } else if (result.errors) {
+        setValidation({ valid: false, errors: result.errors })
+      }
+    } finally {
       setSaving(false)
-      return
     }
-
-    const result = await api.saveConfig(content, loadState.modifiedAt)
-    setSaveResult(result)
-    setSaving(false)
-
-    if (result.saved) {
-      setLoadState({ status: 'ready', original: content, modifiedAt: result.modifiedAt })
-      setValidation(null)
-    }
-  }, [content, loadState, saving])
+  }, [content, loadState, saving, validating])
 
   const doFormat = useCallback(() => {
     try {
@@ -71,6 +101,7 @@ export function ConfigPage() {
       }
       setContent(doc.toString({ indent: 2, lineWidth: 0 }))
       setValidation(null)
+      setSaveResult(null)
     } catch (err) {
       console.warn('Format failed:', err)
     }
@@ -110,9 +141,27 @@ export function ConfigPage() {
                       <Check size={14} strokeWidth={2} /> saved
                     </span>
                   ) : null}
+                  {validation?.valid ? (
+                    <span className="inline-flex items-center gap-1 rounded-sm border border-ok bg-ok-bg px-2 py-0.5 font-mono text-[11px] font-medium text-ok animate-[badge-in_var(--duration-normal)_var(--ease-out)]">
+                      <Check size={14} strokeWidth={2} /> valid
+                    </span>
+                  ) : null}
                   <button type="button" className="btn btn-ghost btn-sm" onClick={doFormat}>
                     <AlignLeft size={14} strokeWidth={2} />
                     Format
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    disabled={saving || validating}
+                    onClick={doValidate}
+                  >
+                    {validating ? (
+                      <Loader2 size={14} className="spin" strokeWidth={2} />
+                    ) : (
+                      <Check size={14} strokeWidth={2} />
+                    )}
+                    Validate
                   </button>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={load}>
                     <RefreshCw size={14} strokeWidth={2} />
@@ -121,7 +170,7 @@ export function ConfigPage() {
                   <button
                     type="button"
                     className="btn btn-primary btn-sm"
-                    disabled={!isDirty || saving}
+                    disabled={!isDirty || saving || validating}
                     onClick={doSave}
                   >
                     {saving ? (
@@ -171,7 +220,7 @@ export function ConfigPage() {
               ) : null}
 
               <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
-                <YamlEditor value={content} onChange={setContent} />
+                <YamlEditor value={content} onChange={handleContentChange} />
                 <div className="border-t border-border bg-surface-3 px-3.5 py-2 text-xs text-fg-dim">
                   <kbd>Cmd+S</kbd> to save · Tab inserts 2 spaces · llama-swap auto-reloads on file change
                 </div>
