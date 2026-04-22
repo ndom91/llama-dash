@@ -152,21 +152,10 @@ type RequestDetailResult = {
 }
 
 export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
-  const qc = useQueryClient()
   return useQuery({
     queryKey: qk.request(id),
     queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
-    placeholderData: (prev) => {
-      const lists = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
-      const recents = qc.getQueriesData<Array<ApiRequest>>({ queryKey: qk.requests }).flatMap(([queryKey, data]) => {
-        return Array.isArray(queryKey) && queryKey[1] === 'recent' ? (data ?? []) : []
-      })
-      const all = [...(lists?.pages.flatMap((p) => p.requests) ?? []), ...recents]
-      const match = all.find((r) => r.id === id)
-      if (match) return { request: match as ApiRequestDetail, prevId: null, nextId: null }
-      return prev
-    },
   })
 }
 
