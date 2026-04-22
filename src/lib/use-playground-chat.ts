@@ -1,54 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { countTokens } from 'gpt-tokenizer'
-import {
-  type ChatMessage,
-  type MessageMetrics,
-  type SamplingParams,
-  type StreamEvent,
-  streamChatCompletion,
-} from './stream-chat'
+import { type ChatMessage, type MessageMetrics, type StreamEvent, streamChatCompletion } from './stream-chat'
+import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
+import { usePlaygroundApiKey } from './use-playground-api-key'
 
-const LS_MESSAGES = 'playground-messages'
-const LS_MODEL = 'playground-model'
-const LS_SYSTEM = 'playground-system-prompt'
-const LS_SAMPLING = 'playground-sampling'
-const LS_PRESETS = 'playground-presets'
-const LS_RUNS = 'playground-saved-runs'
-
-export const DEFAULT_SAMPLING: SamplingParams = {
-  temperature: 0.7,
-  topP: 0.95,
-  topK: 40,
-  maxTokens: 2048,
-  frequencyPenalty: 0,
-  presencePenalty: 0,
-  stopSequences: [],
-  seed: null,
-  n: 1,
-  stream: true,
-  responseFormat: 'text',
-  logprobs: false,
-}
-
-export type Preset = {
-  id: string
-  name: string
-  createdAt: number
-  model: string
-  systemPrompt: string
-  sampling: SamplingParams
-}
-
-export type SavedRun = {
-  id: string
-  name: string
-  createdAt: number
-  model: string
-  systemPrompt: string
-  sampling: SamplingParams
-  messages: Array<ChatMessage>
-}
+export { DEFAULT_SAMPLING, type Preset, type SavedRun } from './playground-storage'
 
 export type InspectorState = {
   lastRequestBody: Record<string, unknown> | null
@@ -78,28 +35,9 @@ const EMPTY_INSPECTOR: InspectorState = {
   timing: { queueMs: null, swapMs: null, prefillMs: null, decodeMs: null, streamCloseMs: null },
 }
 
-function loadJson<T>(key: string, fallback: T): T {
-  if (typeof window === 'undefined') return fallback
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? (JSON.parse(raw) as T) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function loadString(key: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback
-  return localStorage.getItem(key) ?? fallback
-}
-
 let nextId = 0
 function msgId() {
   return `msg_${Date.now()}_${nextId++}`
-}
-
-function presetId() {
-  return `pst_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 }
 
 function estimatePromptTokens(messages: Array<{ role: string; content: string }>) {
@@ -111,77 +49,32 @@ function estimatePromptTokens(messages: Array<{ role: string; content: string }>
 
 export function usePlaygroundChat() {
   const { data: models } = useModels()
-  const [messages, setMessages] = useState<Array<ChatMessage>>(() => loadJson(LS_MESSAGES, []))
-  const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
-  const [systemPrompt, setSystemPromptState] = useState(() => loadString(LS_SYSTEM, ''))
-  const [sampling, setSamplingState] = useState<SamplingParams>(() => ({
-    ...DEFAULT_SAMPLING,
-    ...loadJson<Partial<SamplingParams>>(LS_SAMPLING, {}),
-  }))
+  const {
+    messages,
+    setMessages,
+    clearMessages,
+    model,
+    setModel,
+    systemPrompt,
+    setSystemPrompt,
+    sampling,
+    setSampling,
+    presets,
+    savePreset,
+    applyPreset,
+    deletePreset,
+    savedRuns,
+    saveRun,
+    loadRun,
+    deleteRun,
+  } = usePlaygroundStorage()
   const [isStreaming, setIsStreaming] = useState(false)
   const [isReasoning, setIsReasoning] = useState(false)
   const [inspector, setInspector] = useState<InspectorState>(EMPTY_INSPECTOR)
-  const [presets, setPresets] = useState<Array<Preset>>(() => loadJson(LS_PRESETS, []))
-  const [savedRuns, setSavedRuns] = useState<Array<SavedRun>>(() => loadJson(LS_RUNS, []))
 
   const abortRef = useRef<AbortController | null>(null)
-  const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const apiKeyRef = useRef<string | null>(null)
-  const apiKeyRequestRef = useRef<Promise<string | null> | null>(null)
   const runSeqRef = useRef(0)
-
-  const loadApiKey = useCallback(() => {
-    if (apiKeyRef.current) return Promise.resolve(apiKeyRef.current)
-    if (apiKeyRequestRef.current) return apiKeyRequestRef.current
-
-    const request = fetch('/api/playground-key')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const key = typeof d?.key === 'string' ? d.key : null
-        if (key) apiKeyRef.current = key
-        return key
-      })
-      .catch(() => null)
-      .finally(() => {
-        apiKeyRequestRef.current = null
-      })
-
-    apiKeyRequestRef.current = request
-    return request
-  }, [])
-
-  useEffect(() => {
-    void loadApiKey()
-  }, [loadApiKey])
-
-  const persistMessages = useCallback((msgs: Array<ChatMessage>) => {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      localStorage.setItem(LS_MESSAGES, JSON.stringify(msgs))
-    }, 500)
-  }, [])
-
-  useEffect(() => {
-    persistMessages(messages)
-  }, [messages, persistMessages])
-
-  const setModel = useCallback((v: string) => {
-    setModelState(v)
-    localStorage.setItem(LS_MODEL, v)
-  }, [])
-
-  const setSystemPrompt = useCallback((v: string) => {
-    setSystemPromptState(v)
-    localStorage.setItem(LS_SYSTEM, v)
-  }, [])
-
-  const setSampling = useCallback((updater: Partial<SamplingParams> | ((s: SamplingParams) => SamplingParams)) => {
-    setSamplingState((prev) => {
-      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }
-      localStorage.setItem(LS_SAMPLING, JSON.stringify(next))
-      return next
-    })
-  }, [])
+  const { loadApiKey } = usePlaygroundApiKey()
 
   const buildApiMessages = useCallback(
     (msgs: Array<ChatMessage>) => {
@@ -380,7 +273,7 @@ export function usePlaygroundChat() {
         if (abortRef.current === abort) abortRef.current = null
       }
     },
-    [model, sampling, buildApiMessages, loadApiKey, models],
+    [model, sampling, buildApiMessages, loadApiKey, models, setMessages],
   )
 
   const sendMessage = useCallback(
@@ -390,7 +283,7 @@ export function usePlaygroundChat() {
       setMessages(updated)
       runStream(updated)
     },
-    [messages, runStream],
+    [messages, runStream, setMessages],
   )
 
   const regenerate = useCallback(
@@ -399,7 +292,7 @@ export function usePlaygroundChat() {
       setMessages(preceding)
       runStream(preceding)
     },
-    [messages, runStream],
+    [messages, runStream, setMessages],
   )
 
   const editMessage = useCallback(
@@ -410,7 +303,7 @@ export function usePlaygroundChat() {
       setMessages(updated)
       runStream(updated)
     },
-    [messages, runStream],
+    [messages, runStream, setMessages],
   )
 
   const forkMessage = useCallback(
@@ -419,7 +312,7 @@ export function usePlaygroundChat() {
       const forked = messages.slice(0, index + 1).map((m) => ({ ...m, id: msgId() }))
       setMessages(forked)
     },
-    [messages],
+    [messages, setMessages],
   )
 
   const stopStreaming = useCallback(() => {
@@ -428,86 +321,9 @@ export function usePlaygroundChat() {
 
   const clearChat = useCallback(() => {
     abortRef.current?.abort()
-    setMessages([])
-    localStorage.removeItem(LS_MESSAGES)
+    clearMessages()
     setInspector(EMPTY_INSPECTOR)
-  }, [])
-
-  const savePreset = useCallback(
-    (name: string) => {
-      const preset: Preset = {
-        id: presetId(),
-        name,
-        createdAt: Date.now(),
-        model,
-        systemPrompt,
-        sampling,
-      }
-      const next = [preset, ...presets]
-      setPresets(next)
-      localStorage.setItem(LS_PRESETS, JSON.stringify(next))
-    },
-    [model, systemPrompt, sampling, presets],
-  )
-
-  const applyPreset = useCallback(
-    (id: string) => {
-      const p = presets.find((x) => x.id === id)
-      if (!p) return
-      setModel(p.model)
-      setSystemPrompt(p.systemPrompt)
-      setSampling(p.sampling)
-    },
-    [presets, setModel, setSystemPrompt, setSampling],
-  )
-
-  const deletePreset = useCallback(
-    (id: string) => {
-      const next = presets.filter((x) => x.id !== id)
-      setPresets(next)
-      localStorage.setItem(LS_PRESETS, JSON.stringify(next))
-    },
-    [presets],
-  )
-
-  const saveRun = useCallback(
-    (name: string) => {
-      const run: SavedRun = {
-        id: presetId(),
-        name,
-        createdAt: Date.now(),
-        model,
-        systemPrompt,
-        sampling,
-        messages,
-      }
-      const next = [run, ...savedRuns]
-      setSavedRuns(next)
-      localStorage.setItem(LS_RUNS, JSON.stringify(next))
-    },
-    [model, systemPrompt, sampling, messages, savedRuns],
-  )
-
-  const loadRun = useCallback(
-    (id: string) => {
-      const r = savedRuns.find((x) => x.id === id)
-      if (!r) return
-      setModel(r.model)
-      setSystemPrompt(r.systemPrompt)
-      setSampling(r.sampling)
-      setMessages(r.messages)
-    },
-    [savedRuns, setModel, setSystemPrompt, setSampling],
-  )
-
-  const deleteRun = useCallback(
-    (id: string) => {
-      const next = savedRuns.filter((x) => x.id !== id)
-      setSavedRuns(next)
-      localStorage.setItem(LS_RUNS, JSON.stringify(next))
-    },
-    [savedRuns],
-  )
+  }, [clearMessages])
 
   return {
     messages,
