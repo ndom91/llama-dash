@@ -1,8 +1,22 @@
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import json from 'highlight.js/lib/languages/json'
+import python from 'highlight.js/lib/languages/python'
+import yaml from 'highlight.js/lib/languages/yaml'
 import { Check, Save } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
+
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('jsonc', json)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('yaml', yaml)
+
+type HighlightLanguage = 'bash' | 'json' | 'jsonc' | 'python' | 'yaml'
+type ExampleTab = (typeof EXAMPLE_TABS)[number]['id']
 
 export function AttributionPage() {
   const { data, isLoading } = useAttributionSettings()
@@ -10,6 +24,7 @@ export function AttributionPage() {
   const [clientNameHeader, setClientNameHeader] = useState('')
   const [endUserIdHeader, setEndUserIdHeader] = useState('')
   const [sessionIdHeader, setSessionIdHeader] = useState('')
+  const [exampleTab, setExampleTab] = useState<ExampleTab>(EXAMPLE_TABS[0].id)
 
   useEffect(() => {
     if (!data) return
@@ -22,6 +37,7 @@ export function AttributionPage() {
     (data?.clientNameHeader ?? '') !== clientNameHeader ||
     (data?.endUserIdHeader ?? '') !== endUserIdHeader ||
     (data?.sessionIdHeader ?? '') !== sessionIdHeader
+  const activeExample = EXAMPLE_TABS.find((tab) => tab.id === exampleTab) ?? EXAMPLE_TABS[0]
 
   return (
     <div className="main-col">
@@ -130,44 +146,30 @@ export function AttributionPage() {
                     · add custom headers if your client does not already send suitable metadata
                   </span>
                 </div>
-                <div className="grid gap-4 px-6 py-4 max-md:px-3 lg:grid-cols-2">
-                  <ExampleCard
-                    title="curl"
-                    code={`curl "$LLAMA_DASH/v1/chat/completions" \\
-  -H "Authorization: Bearer sk-..." \\
-  -H "Content-Type: application/json" \\
-  -H "x-client-name: cli" \\
-  -H "x-end-user-id: alice" \\
-  -H "x-session-id: sess_123" \\
-  -d '{"model":"gemma-4-26B-A4B-it","messages":[{"role":"user","content":"hello"}]}'`}
-                  />
-                  <ExampleCard
-                    title="OpenCode"
-                    code={`# configure custom headers in the client or wrapper
-x-client-name: opencode
-x-end-user-id: alice
-x-session-id: run_456`}
-                  />
-                  <ExampleCard
-                    title="Python / requests"
-                    code={`requests.post(
-  f"{base_url}/v1/chat/completions",
-  headers={
-    "Authorization": "Bearer sk-...",
-    "x-client-name": "my-app",
-    "x-end-user-id": user_id,
-    "x-session-id": session_id,
-  },
-  json=payload,
-)`}
-                  />
-                  <ExampleCard
-                    title="Home Assistant / custom integration"
-                    code={`# if using a custom component or proxy wrapper, add:
-x-client-name: home-assistant
-x-end-user-id: household_main
-x-session-id: automation_abc`}
-                  />
+                <div className="border-border">
+                  <div className="flex overflow-x-auto border-b border-border">
+                    {EXAMPLE_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        className={`cursor-pointer border-b-2 bg-transparent px-4 py-2 font-mono text-xs transition-colors ${
+                          exampleTab === tab.id
+                            ? 'border-accent text-fg'
+                            : 'border-transparent text-fg-muted hover:bg-surface-2 hover:text-fg'
+                        }`}
+                        onClick={() => setExampleTab(tab.id)}
+                      >
+                        {tab.title}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="px-6 py-4 max-md:px-3">
+                    <ExampleCard
+                      title={activeExample.title}
+                      code={activeExample.code}
+                      language={activeExample.language}
+                    />
+                  </div>
                 </div>
               </section>
             </div>
@@ -177,6 +179,99 @@ x-session-id: automation_abc`}
     </div>
   )
 }
+
+const EXAMPLE_TABS = [
+  {
+    id: 'curl',
+    title: 'curl',
+    language: 'bash',
+    code: `curl "$LLAMA_DASH/v1/chat/completions" \\
+  -H "Authorization: Bearer sk-..." \\
+  -H "Content-Type: application/json" \\
+  -H "x-client-name: cli" \\
+  -H "x-end-user-id: alice" \\
+  -H "x-session-id: sess_123" \\
+  -d '{"model":"gemma-4-26B-A4B-it","messages":[{"role":"user","content":"hello"}]}'`,
+  },
+  {
+    id: 'claude-code',
+    title: 'Claude Code',
+    language: 'json',
+    code: `{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://llama-dash.local:5173"
+  }
+}`,
+  },
+  {
+    id: 'opencode',
+    title: 'OpenCode',
+    language: 'jsonc',
+    code: `// ~/.config/opencode/opencode.jsonc
+// Add headers under provider.<id>.options.headers.
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "llama-dash": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama-dash",
+      "options": {
+        "baseURL": "http://llama-dash.local:5173/v1",
+        "headers": {
+          "x-client-name": "opencode",
+          "x-end-user-id": "alice",
+          "x-session-id": "opencode-workstation"
+        }
+      },
+      "models": {
+        "gemma-4-26B-A4B-it": { "name": "Gemma 4 26B" }
+      }
+    }
+  },
+  "model": "llama-dash/gemma-4-26B-A4B-it"
+}`,
+  },
+  {
+    id: 'python',
+    title: 'Python / requests',
+    language: 'python',
+    code: `requests.post(
+  f"{base_url}/v1/chat/completions",
+  headers={
+    "Authorization": "Bearer sk-...",
+    "x-client-name": "my-app",
+    "x-end-user-id": user_id,
+    "x-session-id": session_id,
+  },
+  json=payload,
+)`,
+  },
+  {
+    id: 'home-assistant',
+    title: 'Home Assistant',
+    language: 'yaml',
+    code: `# configuration.yaml
+# Built-in OpenAI/OpenRouter conversation integrations do not expose
+# arbitrary headers. For YAML automations that call llama-dash directly,
+# put attribution headers under rest_command.<name>.headers.
+rest_command:
+  llama_dash_chat:
+    url: "http://llama-dash.local:5173/v1/chat/completions"
+    method: POST
+    content_type: "application/json"
+    headers:
+      authorization: "Bearer sk-..."
+      x-client-name: "home-assistant"
+      x-end-user-id: "household_main"
+      x-session-id: "{{ context.id }}"
+    payload: >-
+      {
+        "model": "gemma-4-26B-A4B-it",
+        "messages": [{"role":"user","content":"{{ prompt }}"}]
+      }`,
+  },
+] as const
 
 function HeaderField({
   label,
@@ -199,7 +294,6 @@ function HeaderField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={helper}
       />
-      <span className="text-[11px] font-mono text-fg-dim">{helper}</span>
     </label>
   )
 }
@@ -207,19 +301,40 @@ function HeaderField({
 function HeaderConvention({ name, description }: { name: string; description: string }) {
   return (
     <div className="border border-border bg-surface-0 px-4 py-3">
-      <div className="text-info">{name}</div>
+      <div className="text-accent">{name}</div>
       <div className="mt-2 text-fg-dim">{description}</div>
     </div>
   )
 }
 
-function ExampleCard({ title, code }: { title: string; code: string }) {
+function ExampleCard({ title, code, language }: { title: string; code: string; language: HighlightLanguage }) {
+  const highlighted = useMemo(() => highlightExample(code, language), [code, language])
+
   return (
     <section className="border border-border bg-surface-0">
       <div className="border-b border-border px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         {title}
       </div>
-      <pre className="overflow-x-auto px-4 py-4 font-mono text-xs text-fg">{code}</pre>
+      <pre className="overflow-x-auto px-4 py-4 font-mono text-xs text-fg">
+        <code
+          className={`language-${language}`}
+          translate="no"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js output from static example templates
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      </pre>
     </section>
   )
+}
+
+function highlightExample(code: string, language: HighlightLanguage) {
+  try {
+    return hljs.highlight(code, { language, ignoreIllegals: true }).value
+  } catch {
+    return escapeHtml(code)
+  }
+}
+
+function escapeHtml(text: string) {
+  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }

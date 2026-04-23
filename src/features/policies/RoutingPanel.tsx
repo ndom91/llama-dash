@@ -230,7 +230,7 @@ export function RoutingPanel() {
 
                       <div className="space-y-2 font-mono text-xs leading-6 text-fg-dim">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-ok">WHEN</span>
+                          <span className="text-accent">WHEN</span>
                           {summary.when.map((item) => (
                             <div key={`${rule.id}-when-${item}`} className="contents">
                               <Chip tone="info">{item}</Chip>
@@ -239,7 +239,7 @@ export function RoutingPanel() {
                           ))}
                         </div>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-ok">THEN</span>
+                          <span className="text-accent">THEN</span>
                           <Chip tone={rule.action.type === 'reject' ? 'err' : 'ok'}>{summary.then}</Chip>
                         </div>
                       </div>
@@ -547,7 +547,7 @@ export function RoutingPanel() {
                     return (
                       <div className="border border-border bg-[#0b0d10] px-4 py-4 font-mono text-xs leading-6 text-fg-dim">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-ok">WHEN</span>
+                          <span className="text-accent">WHEN</span>
                           {preview.when.map((item) => (
                             <div key={`preview-when-${item}`} className="contents">
                               <Chip tone="info">{item}</Chip>
@@ -556,7 +556,7 @@ export function RoutingPanel() {
                           ))}
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-ok">THEN</span>
+                          <span className="text-accent">THEN</span>
                           <Chip tone={draft.action.type === 'reject' ? 'err' : 'ok'}>{preview.then}</Chip>
                         </div>
                       </div>
