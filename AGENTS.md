@@ -47,6 +47,7 @@ src/
     requests.$id.tsx        · /requests/:id detail view
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
+    attribution.tsx         · /attribution header mapping + client setup examples
     policies.tsx            · /policies model aliases + request limits
     endpoints.tsx           · /endpoints client connection examples
     logs.tsx                · /logs raw log viewer
@@ -56,7 +57,8 @@ src/
     keys/                  · keys list/detail panels and forms
     models/                · models list/detail panels and helpers
     playground/            · playground tabs, rails, and media tools
-    policies/              · alias and request-limit editing panels
+    attribution/           · attribution settings page + setup examples
+    policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
@@ -94,11 +96,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Five tables: `requests` (per-call
+2. SQLite (`data/dash.db`) + Drizzle. Six tables: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
-   default model + system prompt), `model_aliases` (global model name
-   mapping), `settings` (key-value config like request limits).
+   system prompt), `model_aliases` (global model name mapping),
+   `routing_rules` (ordered request routing rules), `settings` (key-value
+   config like request limits and attribution header mapping).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). Handles both OpenAI
@@ -120,8 +123,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
-   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `defaultModel`, `systemPrompt`
+   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `systemPrompt`
    - `/api/aliases` — CRUD for model aliases (global model name mapping)
+   - `/api/routing-rules` — CRUD + reorder for ordered routing rules
+   - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
@@ -135,9 +140,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
     sidebar shows TTFT, prefill, decode, and stream-close when upstream
     llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, API Keys (list +
-    per-key detail), Policies (aliases + request limits), Endpoints
-   (connection examples for curl, Python, TS, Home Assistant, Claude Code,
-   opencode, Continue, Open WebUI).
+    per-key detail), Attribution (header mapping + client setup examples),
+    Policies (request limits + persisted routing rule editor with rewrite and
+    reject actions), Endpoints (connection examples for curl, Python, TS,
+    Home Assistant, Claude Code, opencode, Continue, Open WebUI).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
@@ -150,15 +156,21 @@ paths (proxy will grow middleware; admin will grow CRUD).
 9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once,
    applies transforms in order, re-serializes only if mutated:
-   model pinning → allow-list check → alias resolution → system prompt
-   injection → request size limits. In-memory caches for aliases and
-   settings, invalidated on admin writes. System-prompt injection branches
+   allow-list check → routing rule evaluation → alias resolution → system
+   prompt injection → request size limits. Routing rules are ordered,
+   first-match-wins, and currently support `rewrite_model` and `reject`.
+   In-memory caches for aliases and settings, invalidated on admin writes.
+   System-prompt injection branches
    by endpoint: `/v1/chat/completions` prepends a `system` message to
    `messages[]`; `/v1/messages` prepends to the top-level `system` field
    (string or content-block array, preserved shape).
-10. Feature-local UI structure under `src/features/*`. Route files are thin
-   entrypoints; page-specific components live with their feature instead of
-   accumulating inside `src/routes/*` or flat shared component files.
+10. Request logs persist routing and attribution context. Request detail shows
+    matched routing rule/action plus client, end-user, and session metadata.
+    Request list supports routing and attribution filters, and session IDs
+    deep-link back into the filtered request log.
+11. Feature-local UI structure under `src/features/*`. Route files are thin
+    entrypoints; page-specific components live with their feature instead of
+    accumulating inside `src/routes/*` or flat shared component files.
 
 ## Tooling
 
