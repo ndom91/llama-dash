@@ -10,6 +10,8 @@ type Props = {
   id: string
 }
 
+const PREFETCH_BODY_THRESHOLD = 64 * 1024
+
 export function RequestDetailPage({ id }: Props) {
   const qc = useQueryClient()
   const { data, error, isFetching, isPlaceholderData } = useRequest(id)
@@ -21,7 +23,10 @@ export function RequestDetailPage({ id }: Props) {
   const isNextPending = isTransitioning && id === nextId
 
   useEffect(() => {
-    if (!prevId && !nextId) return
+    if (!req) return
+
+    const bodySize = (req.requestBody?.length ?? 0) + (req.responseBody?.length ?? 0)
+    if (bodySize > PREFETCH_BODY_THRESHOLD) return
 
     const prefetch = (requestId: string | null) => {
       if (!requestId) return
@@ -34,7 +39,7 @@ export function RequestDetailPage({ id }: Props) {
 
     prefetch(prevId)
     prefetch(nextId)
-  }, [nextId, prevId, qc])
+  }, [nextId, prevId, qc, req])
 
   return (
     <div className="main-col">

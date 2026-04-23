@@ -20,6 +20,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
   const hasBody = body.trim().length > 0
   const deferredBody = useDeferredValue(body)
   const deferredHeaders = useDeferredValue(headers)
+
   // Prefer strict JSON.parse → stringify formatting. If the body won't parse
   // (most often because the truncation marker lopped off the tail), fall back
   // to the lenient token-by-token re-indenter so we still get pretty layout
@@ -28,13 +29,13 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
     () => (mode === 'pretty' ? (tryPrettyJson(deferredBody) ?? prettyPrintJsonLenient(deferredBody)) : null),
     [deferredBody, mode],
   )
-  const display = pretty ?? deferredBody
   const bodyContent = useMemo(() => {
     if (mode === 'sse') return <RequestSseEvents body={deferredBody} stream={sseStream} />
-    if (pretty) return <RequestJsonHighlight json={display} />
-    return display
-  }, [deferredBody, display, mode, pretty, sseStream])
+    if (pretty) return <RequestJsonHighlight json={pretty} className="flex-1" />
+    return deferredBody
+  }, [deferredBody, mode, pretty, sseStream])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
+  const usesCustomPrettyBody = pretty != null
 
   const onCopy = () => {
     navigator.clipboard.writeText(body)
@@ -56,11 +57,17 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
           {copied ? 'copied' : 'copy'}
         </button>
       </div>
-      <pre
-        className={cn('body-pre border-t-0', hasBody ? 'flex-1 min-h-[50%]' : 'h-14 flex-none overflow-hidden py-4')}
-      >
-        {hasBody ? bodyContent : <span className="text-fg-faint">No body payload</span>}
-      </pre>
+      {hasBody ? (
+        usesCustomPrettyBody ? (
+          <div className="flex flex-1 min-h-[50%] min-w-0">{bodyContent}</div>
+        ) : (
+          <pre className={cn('body-pre border-t-0', 'flex-1 min-h-[50%]')}>{bodyContent}</pre>
+        )
+      ) : (
+        <pre className={cn('body-pre border-t-0', 'h-14 flex-none overflow-hidden py-4')}>
+          <span className="text-fg-faint">No body payload</span>
+        </pre>
+      )}
       {headerEntries.length > 0 ? (
         <div
           className={cn(
