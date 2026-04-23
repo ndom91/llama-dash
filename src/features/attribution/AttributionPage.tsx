@@ -97,7 +97,7 @@ export function AttributionPage() {
                 </div>
               </section>
 
-              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+              <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
                 <div className="panel-head bg-transparent px-6 max-md:px-3">
                   <span className="panel-title">Recommended conventions</span>
                   <span className="panel-sub">· suggested header names for new client setups</span>
@@ -123,7 +123,7 @@ export function AttributionPage() {
                 </div>
               </section>
 
-              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+              <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
                 <div className="panel-head bg-transparent px-6 max-md:px-3">
                   <span className="panel-title">Setup examples</span>
                   <span className="panel-sub">

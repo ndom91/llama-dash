@@ -8,7 +8,7 @@ type Props = {
 
 export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec }: Props) {
   return (
-    <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
+    <section className="panel !rounded-none !border-l-0 !border-r border-r-border border-b-1 !bg-surface-1">
       <div className="panel-head bg-surface-1 px-4">
         <span className="panel-title">Stream</span>
         <span className="panel-sub">· token trace</span>
