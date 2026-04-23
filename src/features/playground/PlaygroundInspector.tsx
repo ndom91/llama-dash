@@ -59,8 +59,8 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
             key={item.id}
             type="button"
             className={cn(
-              'mb-[-1px] inline-flex flex-1 items-center justify-center border-b-2 border-transparent px-3 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-dim transition-colors hover:bg-surface-2 hover:text-fg',
-              tab === item.id && 'border-accent bg-surface-2 text-accent',
+              'relative inline-flex flex-1 items-center justify-center border-b-2 border-transparent px-3 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-dim transition-colors hover:bg-surface-2 hover:text-fg',
+              tab === item.id && 'z-10 border-accent bg-surface-2 text-accent mb-px shadow-[0_2px_0_var(--accent)]',
             )}
             onClick={() => setTab(item.id)}
           >

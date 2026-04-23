@@ -364,7 +364,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                   Error
                 </span>
               </div>
-              <pre className="m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err">
+              <pre className="m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err border-b-1 border-border">
                 {req.error}
               </pre>
             </section>
