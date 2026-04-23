@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../lib/schemas/api-key.ts'
+import { isSensitiveAttributionHeaderName, normalizeAttributionHeaderName } from '../../lib/schemas/attribution.ts'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../lib/schemas/config'
 import { CreateModelAliasBodySchema, UpdateModelAliasBodySchema } from '../../lib/schemas/model-alias.ts'
 import {
@@ -7,7 +8,7 @@ import {
   ReorderRoutingRulesBodySchema,
   UpdateRoutingRuleBodySchema,
 } from '../../lib/schemas/routing-rule.ts'
-import { UpdateRequestLimitsBodySchema } from '../../lib/schemas/settings.ts'
+import { UpdateAttributionSettingsBodySchema, UpdateRequestLimitsBodySchema } from '../../lib/schemas/settings.ts'
 import { config } from '../config.ts'
 import { getGpuSnapshot } from '../gpu-poller.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
@@ -30,7 +31,7 @@ import {
   reorderRoutingRules,
   updateRoutingRule,
 } from './routing-rules.ts'
-import { getRequestLimits, setRequestLimits } from './settings.ts'
+import { getAttributionSettings, getRequestLimits, setAttributionSettings, setRequestLimits } from './settings.ts'
 import {
   buildApiModel,
   extractModelConfig,
@@ -423,6 +424,42 @@ const routes: Array<Route> = [
       const ok = deleteModelAlias(id)
       if (!ok) return error(404, `Alias ${id} not found`)
       return json(200, { ok: true })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/settings\/attribution$/,
+    handler: async () => {
+      return json(200, getAttributionSettings())
+    },
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/settings\/attribution$/,
+    handler: async (request) => {
+      let parsed: unknown
+      try {
+        parsed = await request.json()
+      } catch {
+        return error(400, 'Invalid JSON body')
+      }
+      const result = v.safeParse(UpdateAttributionSettingsBodySchema, parsed)
+      if (!result.success) return error(400, 'Invalid attribution settings body')
+      for (const value of [
+        result.output.clientNameHeader,
+        result.output.endUserIdHeader,
+        result.output.sessionIdHeader,
+      ]) {
+        if (value == null) continue
+        if (!normalizeAttributionHeaderName(value)) {
+          return error(400, `Invalid attribution header name: ${value}`)
+        }
+        if (isSensitiveAttributionHeaderName(value)) {
+          return error(400, `Sensitive headers cannot be used for attribution: ${value}`)
+        }
+      }
+      setAttributionSettings(result.output)
+      return json(200, getAttributionSettings())
     },
   },
   {

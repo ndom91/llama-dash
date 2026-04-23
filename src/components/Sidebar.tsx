@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import {
   Boxes,
+  Fingerprint,
   KeyRound,
   LayoutDashboard,
   Link2,
@@ -21,7 +22,17 @@ import { Tooltip } from './Tooltip'
 import { Logo } from './Logo'
 
 type NavItem = {
-  to: '/' | '/models' | '/requests' | '/logs' | '/playground' | '/config' | '/keys' | '/endpoints' | '/policies'
+  to:
+    | '/'
+    | '/models'
+    | '/requests'
+    | '/logs'
+    | '/playground'
+    | '/config'
+    | '/keys'
+    | '/attribution'
+    | '/endpoints'
+    | '/policies'
   label: string
   shortcut: string
   Icon: typeof LayoutDashboard
@@ -56,6 +67,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
     items: [
       { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
       { to: '/keys', label: 'API Keys', shortcut: 'K07', Icon: KeyRound },
+      { to: '/attribution', label: 'Attribution', shortcut: 'A08', Icon: Fingerprint },
       { to: '/policies', label: 'Policies', shortcut: 'P09', Icon: Shield },
       { to: '/endpoints', label: 'Endpoints', shortcut: 'E10', Icon: Link2 },
     ],

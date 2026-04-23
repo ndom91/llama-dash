@@ -23,6 +23,7 @@ import {
   type ApiRequest,
   type ApiRequestDetail,
   type ApiRequestStats,
+  type AttributionSettings,
   type ModelAliasItem,
   type RoutingRule,
   type RequestLimits,
@@ -30,7 +31,7 @@ import {
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
-import type { UpdateRequestLimitsBody } from './schemas/settings'
+import type { UpdateAttributionSettingsBody, UpdateRequestLimitsBody } from './schemas/settings'
 
 const POLL_MS = 5_000
 
@@ -58,6 +59,7 @@ export const qk = {
   keyDetail: (id: string) => ['keys', id] as const,
   aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
+  attributionSettings: ['settings', 'attribution'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
 }
 
@@ -496,6 +498,13 @@ export function useRequestLimits(): UseQueryResult<RequestLimits> {
   })
 }
 
+export function useAttributionSettings(): UseQueryResult<AttributionSettings> {
+  return useQuery({
+    queryKey: qk.attributionSettings,
+    queryFn: () => api.getAttributionSettings(),
+  })
+}
+
 export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error, UpdateRequestLimitsBody> {
   const qc = useQueryClient()
   return useMutation({
@@ -506,6 +515,25 @@ export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error
     },
     onError: (e) => {
       toastMutationError('Failed to update limits', e)
+    },
+  })
+}
+
+export function useUpdateAttributionSettings(): UseMutationResult<
+  AttributionSettings,
+  Error,
+  UpdateAttributionSettingsBody
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.updateAttributionSettings(body),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.attributionSettings, settings)
+      invalidateKeys(qc, [qk.attributionSettings])
+      toast.success('Attribution settings updated')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update attribution settings', e)
     },
   })
 }

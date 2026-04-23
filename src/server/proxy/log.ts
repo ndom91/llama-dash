@@ -38,6 +38,9 @@ export type RequestLogInput = {
   responseBody: string | null
   streamCloseMs: number | null
   keyId: string | null
+  clientName: string | null
+  endUserId: string | null
+  sessionId: string | null
   routingRuleId: string | null
   routingRuleName: string | null
   routingActionType: string | null
@@ -77,6 +80,9 @@ export function writeRequestLog(row: RequestLogInput) {
       responseBody,
       streamCloseMs: row.streamCloseMs,
       keyId: row.keyId,
+      clientName: row.clientName,
+      endUserId: row.endUserId,
+      sessionId: row.sessionId,
       routingRuleId: row.routingRuleId,
       routingRuleName: row.routingRuleName,
       routingActionType: row.routingActionType,

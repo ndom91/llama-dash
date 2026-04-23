@@ -1,4 +1,6 @@
 import * as v from 'valibot'
+export { AttributionSettingsSchema, UpdateAttributionSettingsBodySchema } from './attribution'
+export type { AttributionSettings, UpdateAttributionSettingsBody } from './attribution'
 
 export const RequestLimitsSchema = v.object({
   maxMessages: v.nullable(v.number()),

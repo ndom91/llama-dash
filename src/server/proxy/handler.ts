@@ -1,4 +1,6 @@
 import { config } from '../config.ts'
+import { getAttributionSettings } from '../admin/settings.ts'
+import { extractAttribution } from './attribution.ts'
 import { authenticateRequest, isAnthropicPassthrough } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -99,6 +101,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
   const reqHeaders = filterRequestHeaders(request.headers)
   const loggedReqHeaders = JSON.stringify(redactSensitiveHeaders(reqHeaders))
+  const attribution = extractAttribution(request.headers, getAttributionSettings())
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const reqContentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
@@ -169,6 +172,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
           keyId,
+          attribution,
           routing: routingOutcome,
         })
         return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
@@ -212,6 +216,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
           keyId,
+          attribution,
           routing: routingOutcome,
         })
         return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
@@ -257,6 +262,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: null,
       resBody: null,
       keyId,
+      attribution,
       routing: routingOutcome,
     })
     return Response.json(
@@ -286,6 +292,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: resHeadersJson,
       resBody: null,
       keyId,
+      attribution,
       routing: routingOutcome,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
@@ -334,6 +341,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             resHeaders: resHeadersJson,
             resBody,
             keyId,
+            attribution,
             routing: routingOutcome,
           })
 
@@ -364,6 +372,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           resHeaders: resHeadersJson,
           resBody: decoder ? responseChunks.join('') || null : null,
           keyId,
+          attribution,
           routing: routingOutcome,
         })
       }
@@ -383,6 +392,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         resHeaders: resHeadersJson,
         resBody: decoder ? responseChunks.join('') || null : null,
         keyId,
+        attribution,
         routing: routingOutcome,
       })
     },
@@ -407,6 +417,11 @@ function writeLog(input: {
   resHeaders: string | null
   resBody: string | null
   keyId: string | null
+  attribution: {
+    clientName: string | null
+    endUserId: string | null
+    sessionId: string | null
+  }
   routing: {
     ruleId: string | null
     ruleName: string | null
@@ -436,6 +451,9 @@ function writeLog(input: {
     responseBody: input.resBody,
     streamCloseMs: input.usage.streamCloseMs,
     keyId: input.keyId,
+    clientName: input.attribution.clientName,
+    endUserId: input.attribution.endUserId,
+    sessionId: input.attribution.sessionId,
     routingRuleId: input.routing.ruleId,
     routingRuleName: input.routing.ruleName,
     routingActionType: input.routing.actionType,

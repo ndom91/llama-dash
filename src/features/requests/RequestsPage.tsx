@@ -27,9 +27,10 @@ import {
 
 type Props = {
   modelParam?: string
+  sessionParam?: string
 }
 
-export function RequestsPage({ modelParam }: Props) {
+export function RequestsPage({ modelParam, sessionParam }: Props) {
   const navigate = useNavigate()
   const { data, error, isLoading, isRefetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useRequestsList()
@@ -42,6 +43,9 @@ export function RequestsPage({ modelParam }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [keyFilter, setKeyFilter] = useState<string>('all')
   const [routingFilter, setRoutingFilter] = useState<RoutingFilter>('all')
+  const [clientFilter, setClientFilter] = useState('')
+  const [endUserFilter, setEndUserFilter] = useState('')
+  const [sessionFilter, setSessionFilter] = useState(sessionParam ?? '')
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -67,6 +71,10 @@ export function RequestsPage({ modelParam }: Props) {
     if (match) setModelFilter(match)
   }, [models, modelFilter, modelParam])
 
+  useEffect(() => {
+    setSessionFilter(sessionParam ?? '')
+  }, [sessionParam])
+
   const filtered = useMemo(() => {
     let out = allRows
 
@@ -83,6 +91,10 @@ export function RequestsPage({ modelParam }: Props) {
     if (routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
     else if (routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
 
+    if (clientFilter) out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(clientFilter.toLowerCase()))
+    if (endUserFilter) out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUserFilter.toLowerCase()))
+    if (sessionFilter) out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(sessionFilter.toLowerCase()))
+
     if (search) {
       const q = search.toLowerCase()
       out = out.filter(
@@ -90,12 +102,15 @@ export function RequestsPage({ modelParam }: Props) {
           r.endpoint.toLowerCase().includes(q) ||
           r.method.toLowerCase().includes(q) ||
           (r.model?.toLowerCase().includes(q) ?? false) ||
+          (r.clientName?.toLowerCase().includes(q) ?? false) ||
+          (r.endUserId?.toLowerCase().includes(q) ?? false) ||
+          (r.sessionId?.toLowerCase().includes(q) ?? false) ||
           String(r.statusCode).includes(q),
       )
     }
 
     return out
-  }, [allRows, statusFilter, modelFilter, keyFilter, routingFilter, search])
+  }, [allRows, statusFilter, modelFilter, keyFilter, routingFilter, clientFilter, endUserFilter, sessionFilter, search])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -186,7 +201,14 @@ export function RequestsPage({ modelParam }: Props) {
   }
 
   const hasFilters =
-    search !== '' || statusFilter !== 'all' || modelFilter !== 'all' || keyFilter !== 'all' || routingFilter !== 'all'
+    search !== '' ||
+    statusFilter !== 'all' ||
+    modelFilter !== 'all' ||
+    keyFilter !== 'all' ||
+    routingFilter !== 'all' ||
+    clientFilter !== '' ||
+    endUserFilter !== '' ||
+    sessionFilter !== ''
 
   return (
     <div className="main-col">
@@ -324,6 +346,39 @@ export function RequestsPage({ modelParam }: Props) {
                   </select>
                 </div>
 
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Client</div>
+                  <input
+                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    type="text"
+                    value={clientFilter}
+                    onChange={(e) => setClientFilter(e.target.value)}
+                    placeholder="claude-code"
+                  />
+                </div>
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">End user</div>
+                  <input
+                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    type="text"
+                    value={endUserFilter}
+                    onChange={(e) => setEndUserFilter(e.target.value)}
+                    placeholder="alice"
+                  />
+                </div>
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Session</div>
+                  <input
+                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    type="text"
+                    value={sessionFilter}
+                    onChange={(e) => setSessionFilter(e.target.value)}
+                    placeholder="sess_123"
+                  />
+                </div>
+
                 {hasFilters ? (
                   <button
                     type="button"
@@ -334,6 +389,9 @@ export function RequestsPage({ modelParam }: Props) {
                       setModelFilter('all')
                       setKeyFilter('all')
                       setRoutingFilter('all')
+                      setClientFilter('')
+                      setEndUserFilter('')
+                      setSessionFilter('')
                     }}
                   >
                     Clear filters

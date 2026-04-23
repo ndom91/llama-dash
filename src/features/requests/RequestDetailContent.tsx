@@ -189,6 +189,52 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           </div>
 
           <div className={railSectionDivider}>
+            <div className={railSectionTitle}>Attribution</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>client</dt>
+                <dd>{req.clientName ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>end user</dt>
+                <dd>{req.endUserId ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>session</dt>
+                <dd>
+                  {req.sessionId ? (
+                    <Link
+                      to="/requests"
+                      search={{ session: req.sessionId }}
+                      className="font-mono text-info no-underline hover:text-fg"
+                    >
+                      {req.sessionId}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>related</dt>
+                <dd>
+                  {req.sessionId ? (
+                    <Link
+                      to="/requests"
+                      search={{ session: req.sessionId }}
+                      className="font-mono text-info no-underline hover:text-fg"
+                    >
+                      other requests in this session
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className={railSectionDivider}>
             <div className={railSectionTitle}>Model</div>
             <dl className="detail-meta-list">
               <div>
