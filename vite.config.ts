@@ -7,7 +7,17 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-const gitCommit = execFileSync('git', ['rev-parse', '--short', 'HEAD']).toString().trim()
+const gitCommit = (() => {
+  try {
+    return execFileSync('git', ['rev-parse', '--short', 'HEAD'], {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim()
+  } catch {
+    return 'unknown'
+  }
+})()
 
 const config = defineConfig({
   define: {

@@ -3,7 +3,7 @@
   &nbsp;llama-dash
 </h1>
 
-Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Point your clients at llama-dash instead of llama-swap — it proxies requests to a llama-swap instance rather than running inference itself. A Docker Compose bundling both is included to get started quickly.
+Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Point your clients at llama-dash instead of llama-swap — it proxies requests to a llama-swap instance rather than running inference itself. Hardware-specific Docker Compose files bundling both are included to get started quickly.
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
@@ -46,21 +46,31 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 
 ## Quick start (Docker Compose)
 
+Choose the compose file that matches your GPU vendor. Both setups use `./config/config.yaml` for llama-swap config, `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
+
+### AMD / ROCm
+
 ```bash
 cp config/config.example.yaml config/config.yaml  # edit models
-docker compose up -d
-# open http://localhost:5173
+docker compose -f docker-compose.amd.yaml up -d
 ```
 
-The compose file runs llama-swap (with `-watch-config` for hot reload) and llama-dash together. GPU models are stored in `./models/`, config in `./config/config.yaml`.
+`docker-compose.amd.yaml` runs `ghcr.io/mostlygeek/llama-swap:rocm`, passes through `/dev/kfd` and `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard.
 
-By default the compose file is set up for AMD GPUs (`/dev/kfd`, `/dev/dri`). For NVIDIA, swap the image tag to `:cuda` and uncomment the `deploy.resources` block — see comments in `docker-compose.yaml`.
+### NVIDIA / CUDA
+
+```bash
+cp config/config.example.yaml config/config.yaml  # edit models
+docker compose -f docker-compose.nvidia.yaml up -d
+```
+
+`docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host.
 
 ## Manual setup
 
 ### Requirements
 
-- Node 22+
+- Node 24+
 - pnpm
 - A reachable [llama-swap](https://github.com/mostlygeek/llama-swap) instance
 
@@ -91,7 +101,8 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory. AMD APUs use GTT (not VRAM) for actual usable memory.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
-- `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware. Production packaging (Nitro / Docker) is not part of this first pass.
+- `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware for local development.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.

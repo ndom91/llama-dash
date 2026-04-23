@@ -1,0 +1,44 @@
+services:
+  llama-swap:
+    image: ghcr.io/mostlygeek/llama-swap:rocm
+    command: ['-config', '/config/config.yaml', '-watch-config']
+    volumes:
+      - ./config:/config
+      - ./models:/models
+    networks:
+      - internal
+    restart: unless-stopped
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8080/ || wget -qO- http://localhost:8080/ || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  llama-dash:
+    build: .
+    ports:
+      - '3000:3000'
+    environment:
+      LLAMASWAP_URL: http://llama-swap:8080
+      LLAMASWAP_CONFIG_FILE: /config/config.yaml
+      DATABASE_PATH: /data/dash.db
+    volumes:
+      - ./config:/config
+      - llama-dash-data:/data
+    networks:
+      - internal
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+    depends_on:
+      llama-swap:
+        condition: service_healthy
+
+volumes:
+  llama-dash-data:
+
+networks:
+  internal:
