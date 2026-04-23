@@ -20,6 +20,20 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 
 <table>
   <tr>
+    <td align="center">
+      Dashboard
+    </td>
+    <td align="center">
+      Playground - Chat
+    </td>
+    <td align="center">
+      Request Details
+    </td>
+    <td align="center">
+      Logs
+    </td>
+  </tr>
+  <tr>
     <td>
       <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
     </td>
@@ -31,6 +45,20 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
     </td>
     <td>
       <img alt="Light - Logs" src="./.github/assets/logs.png" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      Model Details
+    </td>
+    <td align="center">
+      Playground - Speech
+    </td>
+    <td align="center">
+      Policies
+    </td>
+    <td align="center">
+      Requests
     </td>
   </tr>
   <tr>
