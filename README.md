@@ -20,25 +20,31 @@ Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/l
 
 <table>
   <tr>
-    <td align="center">
-      Dashboard
+    <td>
+      <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
     </td>
-    <td align="center">
-      Playground
+    <td>
+      <img alt="Dark - Playground" src="./.github/assets/playground-chat.png" />
     </td>
-    <td align="center">
-      Request Details
+    <td>
+      <img alt="Dark - Request Details" src="./.github/assets/request-details.png" />
+    </td>
+    <td>
+      <img alt="Light - Logs" src="./.github/assets/logs.png" />
     </td>
   </tr>
   <tr>
     <td>
-      <img alt="Dark - Dashboard" src="./.github/assets/SCR-20260418-ruby.png" />
+      <img alt="Dark - Model Details" src="./.github/assets/model-details.png" />
     </td>
     <td>
-      <img alt="Light - Playground" src="./.github/assets/SCR-20260418-nfrw.png" />
+      <img alt="Dark - Speech" src="./.github/assets/playground-speech.png" />
     </td>
     <td>
-      <img alt="Dark - Request Details" src="./.github/assets/SCR-20260418-nfny.png" />
+      <img alt="Dark - Policies" src="./.github/assets/policies.png" />
+    </td>
+    <td>
+      <img alt="Dark - Requests" src="./.github/assets/requests.png" />
     </td>
   </tr>
 </table>
