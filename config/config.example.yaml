@@ -11,6 +11,29 @@ models:
     cmd: llama-server --port ${PORT} --model /models/llama-3.gguf
     ttl: 300
 
-  qwen:
-    cmd: llama-server --port ${PORT} --model /models/qwen.gguf
-    ttl: 300
+  # More full featured usage example
+  # "gemma-4-26B-A4B-it":
+  #   name: Gemma-4 26B-A4B Instruct
+  #   cmd: |
+  #     llama-server
+  #       --model /models/unsloth/gemma4/26B-A4B-it/gemma-4-26B-A4B-it-UD-Q8_K_XL.gguf
+  #       --mmproj /models/unsloth/gemma4/26B-A4B-it/mmproj-BF16.gguf
+  #       -ngl 99
+  #       --temp 1.0
+  #       --top-p 0.95
+  #       --top-k 64
+  #       --ctx-size 16384
+  #       --reasoning off
+  #       --parallel 1
+  #       --host 0.0.0.0
+  #       --port ${PORT}
+
+# Proxy Anthropic
+# peers:
+#   anthropic:
+#     proxy: https://api.anthropic.com
+#     models:
+#       - claude-sonnet-4-6
+#       - claude-opus-4-6
+#       - claude-opus-4-7
+#       - claude-haiku-4-5-20251001
