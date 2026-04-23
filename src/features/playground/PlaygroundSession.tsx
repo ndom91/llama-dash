@@ -1,5 +1,4 @@
-import { Plus, RotateCcw, Square, X } from 'lucide-react'
-import { type KeyboardEvent, useState } from 'react'
+import { Plus, RotateCcw, Square } from 'lucide-react'
 import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/stream-chat'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
@@ -37,21 +36,6 @@ export function PlaygroundSession({
 }: Props) {
   const localModels = models.filter((m) => m.kind === 'local')
   const peerModels = models.filter((m) => m.kind === 'peer')
-  const [stopDraft, setStopDraft] = useState('')
-
-  const addStop = () => {
-    const value = stopDraft.trim()
-    if (!value || sampling.stopSequences.includes(value)) return
-    setSampling({ stopSequences: [...sampling.stopSequences, value] })
-    setStopDraft('')
-  }
-
-  const onStopKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addStop()
-    }
-  }
 
   return (
     <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-1 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
@@ -190,38 +174,6 @@ export function PlaygroundSession({
         />
       </PlaygroundSessionSection>
 
-      <PlaygroundSessionSection label="stop sequences">
-        <div className="flex flex-wrap gap-1">
-          {sampling.stopSequences.map((sequence) => (
-            <span
-              key={sequence}
-              className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-[3px] text-[11px]"
-            >
-              <span className="font-mono text-[11px]">{escapeSeq(sequence)}</span>
-              <button
-                type="button"
-                className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-faint transition-colors hover:bg-surface-3 hover:text-err"
-                onClick={() => setSampling({ stopSequences: sampling.stopSequences.filter((s) => s !== sequence) })}
-                aria-label={`Remove ${sequence}`}
-              >
-                <X className="icon-10" strokeWidth={2.5} />
-              </button>
-            </span>
-          ))}
-          <label className="inline-flex cursor-text items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 py-[3px] text-fg-dim">
-            <Plus className="icon-10" strokeWidth={2.5} />
-            <input
-              className="w-12 border-none bg-transparent p-0 font-mono text-[11px] text-fg outline-none"
-              placeholder="add"
-              value={stopDraft}
-              onChange={(e) => setStopDraft(e.target.value)}
-              onKeyDown={onStopKey}
-              onBlur={addStop}
-            />
-          </label>
-        </div>
-      </PlaygroundSessionSection>
-
       <PlaygroundSessionSection label="seed & output">
         <PlaygroundKVRow
           k="seed"
@@ -275,16 +227,6 @@ export function PlaygroundSession({
           }
         />
       </PlaygroundSessionSection>
-
-      <PlaygroundSessionSection label="tools & format">
-        <PlaygroundKVRow k="tools" v={<span className="text-fg dim">0 defined</span>} />
-        <PlaygroundKVRow k="tool_choice" v={<span className="text-fg">auto</span>} />
-        <PlaygroundKVRow k="json_schema" v={<span className="text-fg dim">—</span>} />
-      </PlaygroundSessionSection>
     </aside>
   )
-}
-
-function escapeSeq(value: string): string {
-  return value.replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t')
 }

@@ -81,6 +81,7 @@ export function usePlaygroundStorage() {
   const [sampling, setSamplingState] = useState<SamplingParams>(() => ({
     ...DEFAULT_SAMPLING,
     ...loadJson(LS_SAMPLING, PartialSamplingParamsSchema, {}),
+    stopSequences: [],
   }))
 
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
