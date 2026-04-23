@@ -83,7 +83,12 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
       <PageHeader
         kicker={`req · ${req.id.slice(4, 10)}… · a · split`}
         title={`${req.method} ${req.endpoint}`}
-        subtitle={<span translate="no">{req.model ? `${req.model}` : 'request detail'}</span>}
+        subtitle={
+          <span translate="no">
+            <span>{req.model ? `${req.model}` : 'request detail'}</span>
+            <span className="text-fg-muted"> · {req.keyName ?? 'system'}</span>
+          </span>
+        }
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
