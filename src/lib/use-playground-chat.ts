@@ -5,7 +5,7 @@ import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
 import { usePlaygroundApiKey } from './use-playground-api-key'
 
-export { DEFAULT_SAMPLING, type Preset, type SavedRun } from './playground-storage'
+export { DEFAULT_SAMPLING } from './playground-storage'
 
 export type InspectorState = {
   lastRequestBody: Record<string, unknown> | null
@@ -59,14 +59,6 @@ export function usePlaygroundChat() {
     setSystemPrompt,
     sampling,
     setSampling,
-    presets,
-    savePreset,
-    applyPreset,
-    deletePreset,
-    savedRuns,
-    saveRun,
-    loadRun,
-    deleteRun,
   } = usePlaygroundStorage()
   const [isStreaming, setIsStreaming] = useState(false)
   const [isReasoning, setIsReasoning] = useState(false)
@@ -336,19 +328,11 @@ export function usePlaygroundChat() {
     isStreaming,
     isReasoning,
     inspector,
-    presets,
-    savedRuns,
     sendMessage,
     regenerate,
     editMessage,
     forkMessage,
     stopStreaming,
     clearChat,
-    savePreset,
-    applyPreset,
-    deletePreset,
-    saveRun,
-    loadRun,
-    deleteRun,
   }
 }

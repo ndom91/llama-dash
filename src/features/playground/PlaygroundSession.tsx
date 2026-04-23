@@ -1,4 +1,4 @@
-import { Plus, RotateCcw, Save, Square, X } from 'lucide-react'
+import { Plus, RotateCcw, Square, X } from 'lucide-react'
 import { type KeyboardEvent, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/stream-chat'
@@ -20,7 +20,6 @@ type Props = {
   hasMessages: boolean
   onStop: () => void
   onClear: () => void
-  onSaveRun: (name: string) => void
 }
 
 export function PlaygroundSession({
@@ -35,7 +34,6 @@ export function PlaygroundSession({
   hasMessages,
   onStop,
   onClear,
-  onSaveRun,
 }: Props) {
   const localModels = models.filter((m) => m.kind === 'local')
   const peerModels = models.filter((m) => m.kind === 'peer')
@@ -46,11 +44,6 @@ export function PlaygroundSession({
     if (!value || sampling.stopSequences.includes(value)) return
     setSampling({ stopSequences: [...sampling.stopSequences, value] })
     setStopDraft('')
-  }
-
-  const handleSaveRun = () => {
-    const name = window.prompt('Save run as:', `run-${new Date().toISOString().slice(11, 19)}`)
-    if (name) onSaveRun(name)
   }
 
   const onStopKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -83,15 +76,6 @@ export function PlaygroundSession({
             new chat
           </button>
         )}
-        <button
-          type="button"
-          className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-border bg-surface-2 px-2.5 py-[7px] text-xs text-fg transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
-          onClick={handleSaveRun}
-          disabled={!hasMessages}
-        >
-          <Save className="icon-12" strokeWidth={2} />
-          save run
-        </button>
       </PlaygroundSessionSection>
 
       <PlaygroundSessionSection label="model">
@@ -296,12 +280,6 @@ export function PlaygroundSession({
         <PlaygroundKVRow k="tools" v={<span className="text-fg dim">0 defined</span>} />
         <PlaygroundKVRow k="tool_choice" v={<span className="text-fg">auto</span>} />
         <PlaygroundKVRow k="json_schema" v={<span className="text-fg dim">—</span>} />
-      </PlaygroundSessionSection>
-
-      <PlaygroundSessionSection label="use as template">
-        <p className="m-0 text-[11px] leading-[1.55] text-fg-dim">
-          Save this exact configuration as a preset; apply to any request as a starting point.
-        </p>
       </PlaygroundSessionSection>
     </aside>
   )

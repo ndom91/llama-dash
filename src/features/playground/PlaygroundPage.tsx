@@ -5,7 +5,6 @@ import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
 import { usePlaygroundChat } from '../../lib/use-playground-chat'
 import { PlaygroundChatTab } from './PlaygroundChatTab'
-import { PlaygroundHeaderActions } from './PlaygroundHeaderActions'
 import { PlaygroundImage } from './PlaygroundImage'
 import { PlaygroundSpeech } from './PlaygroundSpeech'
 import { PLAYGROUND_TABS, type PlaygroundTab, isPlaygroundTab } from './playground-tabs'
@@ -42,20 +41,6 @@ export function PlaygroundPage({ searchTab }: Props) {
             title="Playground"
             subtitle="Test prompts against loaded models · inspector visible · multi-model"
             variant="integrated"
-            action={
-              tab === 'chat' ? (
-                <PlaygroundHeaderActions
-                  presets={chat.presets}
-                  savedRuns={chat.savedRuns}
-                  onSavePreset={chat.savePreset}
-                  onApplyPreset={chat.applyPreset}
-                  onDeletePreset={chat.deletePreset}
-                  onSaveRun={chat.saveRun}
-                  onLoadRun={chat.loadRun}
-                  onDeleteRun={chat.deleteRun}
-                />
-              ) : undefined
-            }
           />
 
           <div className="flex gap-0 border-b border-border bg-surface-0 px-6">

@@ -92,7 +92,6 @@ export function PlaygroundChatTab({ chat }: Props) {
         hasMessages={chat.messages.length > 0}
         onStop={chat.stopStreaming}
         onClear={chat.clearChat}
-        onSaveRun={chat.saveRun}
       />
 
       <section className="panel !rounded-none !border-t-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !border-b-0 !border-l-0 !border-r border-r-border !bg-surface-0">
