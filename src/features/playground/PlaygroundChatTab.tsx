@@ -171,7 +171,7 @@ export function PlaygroundChatTab({ chat }: Props) {
           <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
-              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 px-3 py-1.5 text-[13px] leading-5 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
               disabled={!chat.model}
               rows={1}
@@ -199,7 +199,7 @@ export function PlaygroundChatTab({ chat }: Props) {
               <Tooltip label="Send message">
                 <button
                   type="submit"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex size-8.5 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!chat.model || !draft.trim()}
                 >
                   <Send className="icon-14" strokeWidth={2} />
