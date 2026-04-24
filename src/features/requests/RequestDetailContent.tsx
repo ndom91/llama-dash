@@ -160,7 +160,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         }
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_280px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[275px_minmax(0,1fr)_260px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
         <aside className="border-r border-border bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
           <div>
             <div className={railSectionTitle}>Summary</div>

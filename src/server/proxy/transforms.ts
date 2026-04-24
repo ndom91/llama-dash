@@ -8,6 +8,7 @@ export type TransformContext = {
   endpoint: string
   method: string
   skipRouting: boolean
+  headers?: Headers
 }
 
 export type RoutingOutcome = {
@@ -57,6 +58,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
         apiKeyId: ctx.keyRow?.id ?? null,
         stream: parsedBody.stream === true,
         estimatedPromptTokens: estimatePromptTokens(parsedBody),
+        headers: ctx.headers,
       })
   const routing = routingDecision.matchedRule
     ? {

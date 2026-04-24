@@ -155,11 +155,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    client's `Authorization` header for upstream OAuth/API-key validation.
    Routing rules can also target a configured direct HTTPS `/v1` upstream,
    bypassing llama-swap for that matched request while keeping proxy logging.
-   **Exception**: `/v1/messages` and `/v1/messages/count_tokens` with an
-   `anthropic-version` header skip llama-dash key enforcement. The caller's
-   `Authorization` header (OAuth subscription bearer or real Anthropic key)
-   is meant for Anthropic — llama-swap's `peers:` entry handles final
-   routing. Requests still get logged; no transforms apply (no keyRow).
+   Built-in system routing handles `/v1/messages` and `/v1/messages/count_tokens`
+   with an `anthropic-version` header as `passthrough` auth, preserving the
+   caller's `Authorization` header for Anthropic while keeping request logging.
 9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once,
    applies transforms in order, re-serializes only if mutated:
@@ -392,10 +390,10 @@ peers:
 
 **Proxy-layer specifics:**
 
-- Auth bypass (`src/server/proxy/auth.ts` — `isAnthropicPassthrough`). Requests
-  to `/v1/messages` or `/v1/messages/count_tokens` with an `anthropic-version`
-  header skip llama-dash key enforcement. keyRow is null, so no transforms
-  apply; requests still log.
+- Built-in system routing rule (`src/server/admin/routing-rules.ts` —
+  `rrl_system_anthropic_passthrough`). Requests to `/v1/messages` or
+  `/v1/messages/count_tokens` with an `anthropic-version` header use
+  `noop` + `passthrough` auth and preserve the client `Authorization` header.
 - Response content-encoding strip (`src/server/proxy/handler.ts` —
   `STRIP_RESPONSE_HEADERS`). Node's fetch auto-decompresses upstream bodies
   when consumed as a stream, so forwarding `content-encoding: gzip|br` would

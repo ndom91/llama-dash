@@ -14,35 +14,18 @@ type AuthOk = {
 type AuthErr = { ok: false; status: number; retryAfterMs?: number; body: { error: { message: string; type: string } } }
 export type AuthResult = AuthOk | AuthErr
 
-// Anthropic's Messages API endpoints. When Claude Code (or any Anthropic SDK)
-// hits these with its own auth (OAuth subscription bearer or real Anthropic
-// key), the caller's Authorization header is meant for Anthropic itself —
-// llama-dash is only in the path for logging and filtering. llama-swap's
-// `peers:` entry handles final routing; we don't know the peer's auth model
-// from here. Skip llama-dash key enforcement on these paths so subscription
-// OAuth flows through unchanged.
-const ANTHROPIC_PASSTHROUGH_PATHS = new Set(['/v1/messages', '/v1/messages/count_tokens'])
-
-export function isAnthropicPassthrough(endpoint: string, headers: Headers): boolean {
-  if (!ANTHROPIC_PASSTHROUGH_PATHS.has(endpoint)) return false
-  return headers.get('anthropic-version') != null
-}
-
 export function authenticateRequest(
   request: Request,
   endpoint: string,
   parsedBody: Record<string, unknown> | null,
 ): AuthResult {
-  if (isAnthropicPassthrough(endpoint, request.headers)) {
-    return { ok: true, keyId: null, keyRow: null, preserveAuthorization: true, passthrough: true }
-  }
-
   const decision = evaluateRoutingRules(listRoutingRules(), {
     endpoint,
     requestedModel: parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
     apiKeyId: null,
     stream: parsedBody?.stream === true,
     estimatedPromptTokens: parsedBody ? estimatePromptTokens(parsedBody) : null,
+    headers: request.headers,
   })
   if (decision.matchedRule && decision.authMode === 'passthrough') {
     return {

@@ -625,7 +625,7 @@
 
 .detail-meta-list > div {
   @apply grid items-center gap-2;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: 85px 1fr;
 }
 
 .detail-meta-list dt {
@@ -962,7 +962,7 @@
   table-layout: fixed;
 }
 .headers-scroll {
-  --headers-scroll-gutter: 10px;
+  --headers-scroll-gutter: 4px;
   background: var(--bg-1);
   padding-right: var(--headers-scroll-gutter);
 }
@@ -981,7 +981,7 @@
   font-weight: 500;
 }
 .dtable tbody td.header-value {
-  padding-right: calc(0.875rem + var(--headers-scroll-gutter, 10px));
+  padding-right: calc(0.25rem + var(--headers-scroll-gutter, 10px));
   text-align: right;
   white-space: normal;
   overflow-wrap: anywhere;

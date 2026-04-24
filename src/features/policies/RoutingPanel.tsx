@@ -239,7 +239,10 @@ export function RoutingPanel() {
                         <h3 className="m-0 text-base font-semibold text-fg">{rule.name}</h3>
                         <span className="font-mono text-[11px] text-fg-dim">
                           {rule.enabled ? 'enabled' : 'disabled'} · updated{' '}
-                          {new Date(rule.updatedAt).toLocaleString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(rule.updatedAt).toLocaleDateString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </span>
                       </div>
 
@@ -300,12 +303,6 @@ export function RoutingPanel() {
                 </article>
               )
             })}
-          </div>
-
-          <div className="border border-dashed border-border bg-surface-0 px-4 py-3 font-mono text-xs text-fg-dim">
-            <div>· rules are ordered. they run top-to-bottom and the first match wins.</div>
-            <div>· one action per rule in MVP: rewrite model · reject.</div>
-            <div>· no match = default behavior, unchanged. routing outcomes should surface on request detail.</div>
           </div>
 
           {createRuleMutation.error ||
