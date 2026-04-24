@@ -893,7 +893,7 @@
   @apply bg-surface-3 text-accent;
 }
 .body-pre {
-  @apply m-0 max-h-[600px] overflow-auto whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-fg;
+  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-3.5 py-3.5 pr-1 font-mono text-xs leading-[1.5] text-fg;
 }
 .body-pre::-webkit-scrollbar {
   width: 10px;

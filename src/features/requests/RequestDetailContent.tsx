@@ -73,6 +73,12 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   )
   const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
   const clientLabel = deriveClientLabel(reqHeaders)
+  const kickerParts = ['req', `${req.id.slice(4, 10)}...`]
+  if (clientLabel) kickerParts.push(clientLabel)
+  if (req.routingRuleName) kickerParts.push(req.routingRuleName)
+  const modelLabel = req.routingRoutedModel
+    ? `${req.model ?? 'request detail'} -> ${req.routingRoutedModel}`
+    : req.model
   const curlCommand = useMemo(
     () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
     [req.endpoint, req.requestBody, reqHeaders],
@@ -82,12 +88,12 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   return (
     <>
       <PageHeader
-        kicker={`req · ${req.id.slice(4, 10)}… · a · split`}
+        kicker={kickerParts.join(' · ')}
         title={`${req.method} ${req.endpoint}`}
         subtitle={
           <span translate="no">
-            <span>{req.model ? `${req.model}` : 'request detail'}</span>
-            <span className="text-fg-muted"> · {req.keyName ?? 'system'}</span>
+            <span>{modelLabel ?? 'request detail'}</span>
+            {req.keyName ? <span className="text-fg-muted"> · {req.keyName}</span> : null}
           </span>
         }
         variant="integrated"
