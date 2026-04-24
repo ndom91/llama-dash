@@ -21,6 +21,7 @@ import {
 } from './requestDetailUtils'
 import { RequestPayloadPane } from './RequestPayloadPane'
 import { RequestTokenTrace } from './RequestTokenTrace'
+import { formatWhen } from './requestsListUtils'
 
 type Props = {
   req: ApiRequestDetail
@@ -189,6 +190,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               <div>
                 <dt>client</dt>
                 <dd>{clientLabel ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>date</dt>
+                <dd className="mono">{formatWhen(req.startedAt)}</dd>
               </div>
             </dl>
           </div>
