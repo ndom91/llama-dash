@@ -171,35 +171,6 @@ export function matchesRoutingRule(rule: RoutingRule, ctx: RoutingContext): bool
   return true
 }
 
-const ANTHROPIC_PASSTHROUGH_PATHS = new Set(['/v1/messages', '/v1/messages/count_tokens'])
-
-const ANTHROPIC_SYSTEM_RULE: RoutingRule = {
-  id: 'rrl_system_anthropic_passthrough',
-  name: 'System · Anthropic passthrough',
-  enabled: true,
-  order: 0,
-  match: {
-    endpoints: [...ANTHROPIC_PASSTHROUGH_PATHS],
-    requestedModels: [],
-    apiKeyIds: [],
-    stream: 'any',
-    minEstimatedPromptTokens: '',
-    maxEstimatedPromptTokens: '',
-  },
-  action: { type: 'noop' },
-  target: { type: 'llama_swap' },
-  authMode: 'passthrough',
-  preserveAuthorization: true,
-  createdAt: new Date(0).toISOString(),
-  updatedAt: new Date(0).toISOString(),
-}
-
-function getSystemRoutingRule(ctx: RoutingContext): RoutingRule | null {
-  if (!ANTHROPIC_PASSTHROUGH_PATHS.has(ctx.endpoint)) return null
-  if (!ctx.headers?.has('anthropic-version')) return null
-  return ANTHROPIC_SYSTEM_RULE
-}
-
 export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext): RoutingDecision {
   for (const rule of rules) {
     if (!matchesRoutingRule(rule, ctx)) continue
@@ -212,17 +183,6 @@ export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext):
     }
     return { matchedRule: rule, action: { type: 'reject', reason: rule.action.reason }, ...meta }
   }
-
-  const systemRule = getSystemRoutingRule(ctx)
-  if (systemRule) {
-    const meta = {
-      target: systemRule.target,
-      authMode: systemRule.authMode,
-      preserveAuthorization: systemRule.preserveAuthorization,
-    }
-    return { matchedRule: systemRule, action: { type: 'noop' }, ...meta }
-  }
-
   return {
     matchedRule: null,
     action: null,

@@ -138,20 +138,4 @@ describe('evaluateRoutingRules', () => {
     expect(decision.matchedRule?.id).toBe('rrl_enabled')
     expect(decision.action).toEqual({ type: 'rewrite_model', model: 'model-b' })
   })
-
-  it('returns the system Anthropic passthrough rule before user rules', () => {
-    const decision = evaluateRoutingRules(
-      [makeRule({ id: 'rrl_user', action: { type: 'reject', reason: 'blocked' } })],
-      makeContext({
-        endpoint: '/v1/messages',
-        requestedModel: null,
-        headers: new Headers({ 'anthropic-version': '2023-06-01' }),
-      }),
-    )
-
-    expect(decision.matchedRule?.id).toBe('rrl_system_anthropic_passthrough')
-    expect(decision.action).toEqual({ type: 'noop' })
-    expect(decision.authMode).toBe('passthrough')
-    expect(decision.preserveAuthorization).toBe(true)
-  })
 })
