@@ -1,4 +1,5 @@
 import { config } from '../config.ts'
+import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { getAttributionSettings } from '../admin/settings.ts'
 import { extractAttribution } from './attribution.ts'
 import { authenticateRequest, isAnthropicPassthrough } from './auth.ts'
@@ -32,6 +33,21 @@ const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
 // persisted to SQLite. The client-facing response and the upstream request
 // still carry the real values — redaction applies only to the logged copy.
 const SENSITIVE_HEADERS = new Set(['authorization', 'x-api-key', 'proxy-authorization', 'cookie', 'set-cookie'])
+const PRE_AUTH_JSON_LIMIT_BYTES = 256 * 1024
+const PRE_AUTH_PREFIX_BYTES = 16 * 1024
+
+const EMPTY_ROUTING_OUTCOME: RoutingOutcome = {
+  ruleId: null,
+  ruleName: null,
+  actionType: null,
+  authMode: null,
+  preserveAuthorization: false,
+  targetType: null,
+  targetBaseUrl: null,
+  requestedModel: null,
+  routedModel: null,
+  rejectReason: null,
+}
 
 function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
@@ -81,6 +97,122 @@ function headersToRecord(headers: Headers): Record<string, string> {
   return out
 }
 
+function buildDirectUpstream(baseUrl: string, endpoint: string, search: string): string {
+  const base = new URL(baseUrl)
+  const suffix = endpoint === '/v1' ? '' : endpoint.slice('/v1'.length)
+  base.pathname = `${base.pathname.replace(/\/$/, '')}${suffix}`
+  base.search = search
+  return base.toString()
+}
+
+function evaluateBodylessRouting(endpoint: string): RoutingOutcome {
+  const decision = evaluateRoutingRules(listRoutingRules(), {
+    endpoint,
+    requestedModel: null,
+    apiKeyId: null,
+    stream: false,
+    estimatedPromptTokens: null,
+  })
+  return routingOutcomeFromDecision(decision, null)
+}
+
+function evaluateParsedRouting(endpoint: string, parsedBody: Record<string, unknown>): RoutingOutcome {
+  const decision = evaluateRoutingRules(listRoutingRules(), {
+    endpoint,
+    requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
+    apiKeyId: null,
+    stream: parsedBody.stream === true,
+    estimatedPromptTokens: null,
+  })
+  return routingOutcomeFromDecision(decision, typeof parsedBody.model === 'string' ? parsedBody.model : null)
+}
+
+function routingOutcomeFromDecision(
+  decision: ReturnType<typeof evaluateRoutingRules>,
+  requestedModel: string | null,
+): RoutingOutcome {
+  if (!decision.matchedRule) return { ...EMPTY_ROUTING_OUTCOME }
+  return {
+    ruleId: decision.matchedRule.id,
+    ruleName: decision.matchedRule.name,
+    actionType: decision.action?.type ?? null,
+    authMode: decision.authMode,
+    preserveAuthorization: decision.authMode === 'passthrough' && decision.preserveAuthorization,
+    targetType: decision.target.type,
+    targetBaseUrl: decision.target.type === 'direct' ? decision.target.baseUrl : null,
+    requestedModel,
+    routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
+    rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,
+  }
+}
+
+async function readTextWithLimit(request: Request, maxBytes: number): Promise<string> {
+  const contentLength = request.headers.get('content-length')
+  if (contentLength && Number(contentLength) > maxBytes) {
+    throw new Error(`Request body exceeds pre-auth parse limit of ${maxBytes} bytes`)
+  }
+
+  const reader = request.body?.getReader()
+  if (!reader) return ''
+
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {})
+      throw new Error(`Request body exceeds pre-auth parse limit of ${maxBytes} bytes`)
+    }
+    chunks.push(value)
+  }
+
+  const combined = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    combined.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(combined)
+}
+
+async function readPrefix(request: Request, maxBytes: number): Promise<string> {
+  const reader = request.body?.getReader()
+  if (!reader) return ''
+
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (total < maxBytes) {
+    const { value, done } = await reader.read()
+    if (done) break
+    const remaining = maxBytes - total
+    const chunk = value.byteLength > remaining ? value.slice(0, remaining) : value
+    chunks.push(chunk)
+    total += chunk.byteLength
+    if (value.byteLength > remaining) break
+  }
+  await reader.cancel().catch(() => {})
+
+  const combined = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    combined.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(combined)
+}
+
+function parseRoutingPrefix(prefix: string): Record<string, unknown> | null {
+  const model = prefix.match(/"model"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)
+  const stream = prefix.match(/"stream"\s*:\s*(true|false)/)
+  if (!model && !stream) return null
+  return {
+    ...(model ? { model: JSON.parse(`"${model[1]}"`) } : {}),
+    ...(stream ? { stream: stream[1] === 'true' } : {}),
+  }
+}
+
 function nullUsage(model?: string | null): UsageWithClose {
   return {
     model: model ?? null,
@@ -98,42 +230,21 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const method = request.method.toUpperCase()
   const url = new URL(request.url)
   const endpoint = url.pathname
-  const upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
+  let upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
   const reqHeaders = filterRequestHeaders(request.headers)
-  const loggedReqHeaders = JSON.stringify(redactSensitiveHeaders(reqHeaders))
+  const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const attribution = extractAttribution(request.headers, getAttributionSettings())
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const reqContentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
 
-  const authResult = authenticateRequest(request, endpoint)
-  if (!authResult.ok) {
-    const headers = new Headers({ 'content-type': 'application/json' })
-    if (authResult.retryAfterMs) {
-      headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
-    }
-    return new Response(JSON.stringify(toErrorBody(endpoint, authResult.body)), {
-      status: authResult.status,
-      headers,
-    })
-  }
-
-  const keyId = authResult.keyId
-  const keyRow = authResult.keyRow
-
   let reqBodyText: string | null = null
+  let preAuthBodyText: string | null = null
   let parsedBody: Record<string, unknown> | null = null
   let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
   let reqModel: string | null = null
   let multipartFormData: FormData | null = null
-  let routingOutcome: RoutingOutcome = {
-    ruleId: null,
-    ruleName: null,
-    actionType: null,
-    requestedModel: null,
-    routedModel: null,
-    rejectReason: null,
-  }
+  let routingOutcome: RoutingOutcome = { ...EMPTY_ROUTING_OUTCOME }
 
   if (isMultipart) {
     try {
@@ -148,7 +259,60 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     } catch {
       // Can't parse form data — still forward the request
     }
+  } else if (hasBody) {
+    const clone = request.clone()
 
+    try {
+      preAuthBodyText = await readTextWithLimit(clone, PRE_AUTH_JSON_LIMIT_BYTES)
+      parsedBody = JSON.parse(preAuthBodyText)
+    } catch {
+      const prefix = await readPrefix(request.clone(), PRE_AUTH_PREFIX_BYTES)
+      parsedBody = parseRoutingPrefix(prefix)
+    }
+  }
+
+  const authResult = authenticateRequest(request, endpoint, parsedBody)
+  if (!authResult.ok) {
+    const headers = new Headers({ 'content-type': 'application/json' })
+    if (authResult.retryAfterMs) {
+      headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
+    }
+    writeLog({
+      startedAt,
+      status: authResult.status,
+      method,
+      endpoint,
+      usage: nullUsage(reqModel),
+      streamed: false,
+      error: authResult.body.error.message,
+      reqHeaders: loggedReqHeaders(),
+      reqBody: null,
+      resHeaders: null,
+      resBody: JSON.stringify(toErrorBody(endpoint, authResult.body)),
+      keyId: null,
+      attribution,
+      routing: routingOutcome,
+    })
+    return new Response(JSON.stringify(toErrorBody(endpoint, authResult.body)), {
+      status: authResult.status,
+      headers,
+    })
+  }
+
+  const keyId = authResult.keyId
+  const keyRow = authResult.keyRow
+
+  if (isAnthropicPassthrough(endpoint, request.headers)) {
+    routingOutcome = { ...EMPTY_ROUTING_OUTCOME, authMode: 'passthrough', preserveAuthorization: true }
+  } else if (!hasBody) {
+    routingOutcome = evaluateBodylessRouting(endpoint)
+  }
+
+  if (!hasBody && routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
+    upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+  }
+
+  if (isMultipart) {
     if (parsedBody && Object.keys(parsedBody).length > 0) {
       reqModel = (parsedBody.model as string) ?? null
       const transformResult = applyTransforms(parsedBody, {
@@ -167,7 +331,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           usage: nullUsage(reqModel),
           streamed: false,
           error: transformResult.body.error.message,
-          reqHeaders: loggedReqHeaders,
+          reqHeaders: loggedReqHeaders(),
           reqBody: null,
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
@@ -183,58 +347,86 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       }
     }
 
+    if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
+      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+    }
+
     fetchBody = multipartFormData ?? request.body ?? undefined
   } else if (hasBody) {
-    reqBodyText = await request.text()
-
-    try {
-      parsedBody = JSON.parse(reqBodyText)
-    } catch {
-      // non-JSON body — skip transforms
+    if (authResult.passthrough && parsedBody) {
+      routingOutcome = evaluateParsedRouting(endpoint, parsedBody)
     }
 
-    if (parsedBody) {
-      reqModel = (parsedBody.model as string) ?? null
-      const transformResult = applyTransforms(parsedBody, {
-        keyRow,
-        endpoint,
-        method,
-        skipRouting: isAnthropicPassthrough(endpoint, request.headers),
-      })
-      routingOutcome = transformResult.routing
-      if (!transformResult.ok) {
-        writeLog({
-          startedAt,
-          status: transformResult.status,
-          method,
+    if (
+      authResult.passthrough &&
+      routingOutcome.actionType === 'noop' &&
+      routingOutcome.targetType === 'direct' &&
+      routingOutcome.targetBaseUrl &&
+      preAuthBodyText == null
+    ) {
+      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+      fetchBody = request.body ?? undefined
+    } else {
+      reqBodyText = preAuthBodyText ?? (await request.text())
+      if (!parsedBody) {
+        try {
+          parsedBody = JSON.parse(reqBodyText)
+        } catch {
+          // non-JSON body — skip transforms
+        }
+      }
+
+      if (parsedBody) {
+        reqModel = (parsedBody.model as string) ?? null
+        const transformResult = applyTransforms(parsedBody, {
+          keyRow,
           endpoint,
-          usage: nullUsage(reqModel),
-          streamed: false,
-          error: transformResult.body.error.message,
-          reqHeaders: loggedReqHeaders,
-          reqBody: isMultipart ? null : reqBodyText,
-          resHeaders: null,
-          resBody: JSON.stringify(transformResult.body),
-          keyId,
-          attribution,
-          routing: routingOutcome,
+          method,
+          skipRouting: isAnthropicPassthrough(endpoint, request.headers),
         })
-        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
+        routingOutcome = transformResult.routing
+        if (!transformResult.ok) {
+          writeLog({
+            startedAt,
+            status: transformResult.status,
+            method,
+            endpoint,
+            usage: nullUsage(reqModel),
+            streamed: false,
+            error: transformResult.body.error.message,
+            reqHeaders: loggedReqHeaders(),
+            reqBody: isMultipart ? null : reqBodyText,
+            resHeaders: null,
+            resBody: JSON.stringify(transformResult.body),
+            keyId,
+            attribution,
+            routing: routingOutcome,
+          })
+          return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
+        }
+        if (transformResult.mutated) {
+          reqBodyText = JSON.stringify(transformResult.body)
+        }
+        reqModel = (transformResult.body?.model as string) ?? reqModel
       }
-      if (transformResult.mutated) {
-        reqBodyText = JSON.stringify(transformResult.body)
-      }
-      reqModel = (transformResult.body?.model as string) ?? reqModel
-    }
 
-    fetchBody = reqBodyText
-      ? new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode(reqBodyText!))
-            controller.close()
-          },
-        })
-      : undefined
+      if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
+        upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+      }
+
+      fetchBody = reqBodyText
+        ? new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode(reqBodyText!))
+              controller.close()
+            },
+          })
+        : undefined
+    }
+  }
+
+  if (routingOutcome.authMode !== 'passthrough' || !routingOutcome.preserveAuthorization) {
+    delete reqHeaders.authorization
   }
 
   let upstreamResponse: Response
@@ -257,7 +449,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       usage: nullUsage(reqModel),
       streamed: false,
       error: message,
-      reqHeaders: loggedReqHeaders,
+      reqHeaders: loggedReqHeaders(),
       reqBody: isMultipart ? null : reqBodyText,
       resHeaders: null,
       resBody: null,
@@ -287,7 +479,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       usage: nullUsage(reqModel),
       streamed: false,
       error: null,
-      reqHeaders: loggedReqHeaders,
+      reqHeaders: loggedReqHeaders(),
       reqBody: isMultipart ? null : reqBodyText,
       resHeaders: resHeadersJson,
       resBody: null,
@@ -336,7 +528,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             usage,
             streamed: isSse,
             error: null,
-            reqHeaders: loggedReqHeaders,
+            reqHeaders: loggedReqHeaders(),
             reqBody: isMultipart ? null : reqBodyText,
             resHeaders: resHeadersJson,
             resBody,
@@ -367,7 +559,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
           streamed: isSse,
           error: message,
-          reqHeaders: loggedReqHeaders,
+          reqHeaders: loggedReqHeaders(),
           reqBody: isMultipart ? null : reqBodyText,
           resHeaders: resHeadersJson,
           resBody: decoder ? responseChunks.join('') || null : null,
@@ -387,7 +579,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(reqModel),
         streamed: isSse,
         error: 'Client disconnected',
-        reqHeaders: loggedReqHeaders,
+        reqHeaders: loggedReqHeaders(),
         reqBody: isMultipart ? null : reqBodyText,
         resHeaders: resHeadersJson,
         resBody: decoder ? responseChunks.join('') || null : null,
@@ -426,6 +618,10 @@ function writeLog(input: {
     ruleId: string | null
     ruleName: string | null
     actionType: string | null
+    authMode: string | null
+    preserveAuthorization: boolean
+    targetType: string | null
+    targetBaseUrl: string | null
     requestedModel: string | null
     routedModel: string | null
     rejectReason: string | null
@@ -457,6 +653,10 @@ function writeLog(input: {
     routingRuleId: input.routing.ruleId,
     routingRuleName: input.routing.ruleName,
     routingActionType: input.routing.actionType,
+    routingAuthMode: input.routing.authMode,
+    routingPreserveAuthorization: input.routing.preserveAuthorization,
+    routingTargetType: input.routing.targetType,
+    routingTargetBaseUrl: input.routing.targetBaseUrl,
     routingRequestedModel: input.routing.requestedModel,
     routingRoutedModel: input.routing.routedModel,
     routingRejectReason: input.routing.rejectReason,

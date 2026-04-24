@@ -12,7 +12,7 @@ Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostly
 - **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
 - **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
-- **Policies** — ordered routing rules with real proxy enforcement for model rewrites and policy rejects, plus per-key system prompt injection and global request size limits.
+- **Policies** — ordered routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.

@@ -274,6 +274,24 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <dd>{req.routingActionType ?? '—'}</dd>
               </div>
               <div>
+                <dt>auth</dt>
+                <dd>{req.routingAuthMode ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>authorization</dt>
+                <dd>
+                  {req.routingAuthMode === 'passthrough' && req.routingPreserveAuthorization ? 'preserved' : 'default'}
+                </dd>
+              </div>
+              <div>
+                <dt>target</dt>
+                <dd>{req.routingTargetType ?? 'llama_swap'}</dd>
+              </div>
+              <div>
+                <dt>upstream</dt>
+                <dd>{req.routingTargetBaseUrl ?? '—'}</dd>
+              </div>
+              <div>
                 <dt>requested</dt>
                 <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
               </div>

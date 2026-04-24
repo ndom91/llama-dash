@@ -2,7 +2,7 @@ import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import * as v from 'valibot'
 import type { CreateRoutingRuleBody, RoutingRule, UpdateRoutingRuleBody } from '../../lib/schemas/routing-rule.ts'
-import { RoutingActionSchema, RoutingMatchSchema } from '../../lib/schemas/routing-rule.ts'
+import { RoutingActionSchema, RoutingMatchSchema, RoutingTargetSchema } from '../../lib/schemas/routing-rule.ts'
 import { db, schema } from '../db/index.ts'
 
 let _cache: RoutingRule[] | null = null
@@ -23,6 +23,9 @@ function toApiShape(row: schema.RoutingRule): RoutingRule {
     order: row.order,
     match: parseJson(row.matchJson, RoutingMatchSchema),
     action: parseJson(row.actionJson, RoutingActionSchema),
+    target: parseJson(row.targetJson, RoutingTargetSchema),
+    authMode: row.authMode,
+    preserveAuthorization: row.preserveAuthorization,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -50,6 +53,9 @@ export function createRoutingRule(input: CreateRoutingRuleBody): RoutingRule {
       order,
       matchJson: JSON.stringify(input.match),
       actionJson: JSON.stringify(input.action),
+      targetJson: JSON.stringify(input.target ?? { type: 'llama_swap' }),
+      authMode: input.authMode ?? 'require_key',
+      preserveAuthorization: input.authMode === 'passthrough' ? (input.preserveAuthorization ?? false) : false,
       createdAt: now,
       updatedAt: now,
     })
@@ -64,6 +70,10 @@ export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): Ro
   if (fields.enabled !== undefined) set.enabled = fields.enabled
   if (fields.match !== undefined) set.matchJson = JSON.stringify(fields.match)
   if (fields.action !== undefined) set.actionJson = JSON.stringify(fields.action)
+  if (fields.target !== undefined) set.targetJson = JSON.stringify(fields.target)
+  if (fields.authMode !== undefined) set.authMode = fields.authMode
+  if (fields.preserveAuthorization !== undefined) set.preserveAuthorization = fields.preserveAuthorization
+  if (fields.authMode === 'require_key') set.preserveAuthorization = false
   const result = db.update(schema.routingRules).set(set).where(eq(schema.routingRules.id, id)).run()
   if (result.changes === 0) return null
   invalidateCache()
@@ -110,9 +120,20 @@ export type RoutingContext = {
 }
 
 export type RoutingDecision =
-  | { matchedRule: RoutingRule | null; action: null }
-  | { matchedRule: RoutingRule; action: { type: 'rewrite_model'; model: string } }
-  | { matchedRule: RoutingRule; action: { type: 'reject'; reason: string } }
+  | {
+      matchedRule: RoutingRule | null
+      action: null
+      target: { type: 'llama_swap' }
+      authMode: 'require_key'
+      preserveAuthorization: false
+    }
+  | {
+      matchedRule: RoutingRule
+      action: { type: 'rewrite_model'; model: string } | { type: 'reject'; reason: string } | { type: 'noop' }
+      target: RoutingRule['target']
+      authMode: RoutingRule['authMode']
+      preserveAuthorization: boolean
+    }
 
 function matchesStringList(values: string[], current: string | null): boolean {
   if (values.length === 0) return true
@@ -152,10 +173,20 @@ export function matchesRoutingRule(rule: RoutingRule, ctx: RoutingContext): bool
 export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext): RoutingDecision {
   for (const rule of rules) {
     if (!matchesRoutingRule(rule, ctx)) continue
+    const meta = { target: rule.target, authMode: rule.authMode, preserveAuthorization: rule.preserveAuthorization }
     if (rule.action.type === 'rewrite_model') {
-      return { matchedRule: rule, action: { type: 'rewrite_model', model: rule.action.model } }
+      return { matchedRule: rule, action: { type: 'rewrite_model', model: rule.action.model }, ...meta }
     }
-    return { matchedRule: rule, action: { type: 'reject', reason: rule.action.reason } }
+    if (rule.action.type === 'noop') {
+      return { matchedRule: rule, action: { type: 'noop' }, ...meta }
+    }
+    return { matchedRule: rule, action: { type: 'reject', reason: rule.action.reason }, ...meta }
   }
-  return { matchedRule: null, action: null }
+  return {
+    matchedRule: null,
+    action: null,
+    target: { type: 'llama_swap' },
+    authMode: 'require_key',
+    preserveAuthorization: false,
+  }
 }

@@ -13,7 +13,7 @@ import {
 } from '../../lib/queries'
 
 type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
-type RoutingActionType = 'rewrite_model' | 'reject'
+type RoutingActionType = 'rewrite_model' | 'reject' | 'noop'
 
 const INITIAL_RULES: RoutingRule[] = []
 
@@ -32,6 +32,9 @@ function emptyRule(order: number): RoutingRule {
       maxEstimatedPromptTokens: '',
     },
     action: { type: 'rewrite_model', model: '' },
+    target: { type: 'llama_swap' },
+    authMode: 'require_key',
+    preserveAuthorization: false,
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   }
@@ -54,11 +57,20 @@ function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>) {
   const then =
     rule.action.type === 'rewrite_model'
       ? `rewrite model to ${rule.action.model || '—'}`
-      : `reject with reason "${rule.action.reason || '—'}"`
+      : rule.action.type === 'reject'
+        ? `reject with reason "${rule.action.reason || '—'}"`
+        : 'continue unchanged'
+  const auth =
+    rule.authMode === 'passthrough'
+      ? `passthrough auth${rule.preserveAuthorization ? ' · keep Authorization' : ''}`
+      : 'require llama-dash key'
+  const target = rule.target.type === 'direct' ? `direct upstream ${rule.target.baseUrl}` : 'llama-swap'
 
   return {
     when: whenBits.length > 0 ? whenBits : ['matches any request'],
     then,
+    auth,
+    target,
   }
 }
 
@@ -111,6 +123,9 @@ export function RoutingPanel() {
       enabled: draft.enabled,
       match: draft.match,
       action: draft.action,
+      target: draft.target,
+      authMode: draft.authMode,
+      preserveAuthorization: draft.authMode === 'passthrough' && draft.preserveAuthorization,
     }
     const existing = rules.some((rule) => rule.id === draft.id)
     if (existing) {
@@ -240,7 +255,19 @@ export function RoutingPanel() {
                         </div>
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-accent">THEN</span>
-                          <Chip tone={rule.action.type === 'reject' ? 'err' : 'ok'}>{summary.then}</Chip>
+                          <Chip
+                            tone={rule.action.type === 'reject' ? 'err' : rule.action.type === 'noop' ? 'info' : 'ok'}
+                          >
+                            {summary.then}
+                          </Chip>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-accent">AUTH</span>
+                          <Chip tone={rule.authMode === 'passthrough' ? 'info' : 'default'}>{summary.auth}</Chip>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-accent">TARGET</span>
+                          <Chip tone={rule.target.type === 'direct' ? 'info' : 'default'}>{summary.target}</Chip>
                         </div>
                       </div>
                     </div>
@@ -387,29 +414,39 @@ export function RoutingPanel() {
                         }
                       />
 
-                      <TokenInput
-                        label="API key"
-                        helper="matches by stored key id, never raw token"
-                        placeholder="add key…"
-                        values={draft.match.apiKeyIds}
-                        suggestions={keys.map((key) => key.id)}
-                        renderValue={(value) => `${keyMap.get(value) ?? value}`}
-                        onAdd={(value) =>
-                          setDraft({
-                            ...draft,
-                            match: { ...draft.match, apiKeyIds: [...draft.match.apiKeyIds, value] },
-                          })
-                        }
-                        onRemove={(value) =>
-                          setDraft({
-                            ...draft,
-                            match: {
-                              ...draft.match,
-                              apiKeyIds: draft.match.apiKeyIds.filter((item) => item !== value),
-                            },
-                          })
-                        }
-                      />
+                      {draft.authMode === 'passthrough' ? (
+                        <div className="border-l border-warn px-4 py-3 font-mono text-xs text-fg-dim">
+                          <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-warn">
+                            API key matcher disabled
+                          </div>
+                          Passthrough rules run before llama-dash API-key auth, so they cannot match a stored llama-dash
+                          key. Match by endpoint, requested model, stream mode, or estimated prompt tokens.
+                        </div>
+                      ) : (
+                        <TokenInput
+                          label="API key"
+                          helper="matches by stored key id, never raw token"
+                          placeholder="add key…"
+                          values={draft.match.apiKeyIds}
+                          suggestions={keys.map((key) => key.id)}
+                          renderValue={(value) => `${keyMap.get(value) ?? value}`}
+                          onAdd={(value) =>
+                            setDraft({
+                              ...draft,
+                              match: { ...draft.match, apiKeyIds: [...draft.match.apiKeyIds, value] },
+                            })
+                          }
+                          onRemove={(value) =>
+                            setDraft({
+                              ...draft,
+                              match: {
+                                ...draft.match,
+                                apiKeyIds: draft.match.apiKeyIds.filter((item) => item !== value),
+                              },
+                            })
+                          }
+                        />
+                      )}
 
                       <div className="space-y-1.5">
                         <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Stream</div>
@@ -486,6 +523,7 @@ export function RoutingPanel() {
                       {[
                         ['rewrite_model', 'rewrite model'],
                         ['reject', 'reject'],
+                        ['noop', 'continue'],
                       ].map(([value, label]) => (
                         <button
                           key={value}
@@ -542,6 +580,142 @@ export function RoutingPanel() {
                     </label>
                   ) : null}
 
+                  <div className="border-t border-border pt-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-accent">Auth</span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
+                        · request authentication
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 overflow-hidden border border-border bg-surface-3 text-xs font-mono">
+                      {[
+                        ['require_key', 'require llama-dash key'],
+                        ['passthrough', 'passthrough auth'],
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setDraft({
+                              ...draft,
+                              authMode: value as RoutingRule['authMode'],
+                              preserveAuthorization: value === 'passthrough',
+                            })
+                          }
+                          className={cn(
+                            'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
+                            draft.authMode === value && 'bg-surface-1 text-fg',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {draft.authMode === 'passthrough' ? (
+                      <div className="mt-3 space-y-3">
+                        <label className="flex items-center justify-between gap-3 border border-border bg-surface-1 px-3 py-2.5">
+                          <span className="font-mono text-xs text-fg-dim">
+                            Pass through client Authorization header
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDraft({ ...draft, preserveAuthorization: !draft.preserveAuthorization })}
+                            className={cn(
+                              'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors',
+                              draft.preserveAuthorization ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
+                            )}
+                            aria-pressed={draft.preserveAuthorization}
+                          >
+                            <span
+                              className={cn(
+                                'inline-block h-3.5 w-3.5 rounded-full bg-fg transition-transform',
+                                draft.preserveAuthorization ? 'translate-x-[14px]' : 'translate-x-[2px]',
+                              )}
+                            />
+                          </button>
+                        </label>
+                        <div className="border-l border-warn px-4 py-4 font-mono text-xs text-fg-dim">
+                          <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-warn">Passthrough auth</div>
+                          Passthrough auth lets the upstream provider validate the client's bearer token. llama-dash
+                          will not apply key-specific rate limits, model allow-lists, or system prompts for requests
+                          matched by this rule.
+                        </div>
+                        {draft.match.requestedModels.length > 0 && draft.match.endpoints.length === 0 ? (
+                          <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">
+                            <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">
+                              Bodyless requests
+                            </div>
+                            Model-only passthrough rules do not match bodyless requests such as GET /v1/models. Add an
+                            endpoint-specific passthrough rule if the client probes models before sending a completion.
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="border-t border-border pt-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-accent">Target</span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
+                        · upstream destination
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 overflow-hidden border border-border bg-surface-3 text-xs font-mono">
+                      {[
+                        ['llama_swap', 'llama-swap'],
+                        ['direct', 'direct upstream'],
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setDraft({
+                              ...draft,
+                              target:
+                                value === 'direct'
+                                  ? {
+                                      type: 'direct',
+                                      baseUrl: draft.target.type === 'direct' ? draft.target.baseUrl : '',
+                                    }
+                                  : { type: 'llama_swap' },
+                            })
+                          }
+                          className={cn(
+                            'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
+                            draft.target.type === value && 'bg-surface-1 text-fg',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {draft.target.type === 'direct' ? (
+                      <div className="mt-3 space-y-3">
+                        <label className="flex flex-col gap-1.5">
+                          <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
+                            Direct upstream base URL
+                          </span>
+                          <input
+                            type="url"
+                            className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
+                            placeholder="https://api.openai.com/v1"
+                            value={draft.target.baseUrl}
+                            onChange={(event) =>
+                              setDraft({ ...draft, target: { type: 'direct', baseUrl: event.target.value } })
+                            }
+                          />
+                        </label>
+                        <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">
+                          <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Direct target</div>
+                          Direct upstreams must use HTTPS and end with /v1. llama-dash appends the incoming /v1 path
+                          suffix; clients never choose the destination URL.
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
                   {(() => {
                     const preview = formatRuleSummary(draft, keyMap)
                     return (
@@ -557,7 +731,19 @@ export function RoutingPanel() {
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span className="text-accent">THEN</span>
-                          <Chip tone={draft.action.type === 'reject' ? 'err' : 'ok'}>{preview.then}</Chip>
+                          <Chip
+                            tone={draft.action.type === 'reject' ? 'err' : draft.action.type === 'noop' ? 'info' : 'ok'}
+                          >
+                            {preview.then}
+                          </Chip>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-accent">AUTH</span>
+                          <Chip tone={draft.authMode === 'passthrough' ? 'info' : 'default'}>{preview.auth}</Chip>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-accent">TARGET</span>
+                          <Chip tone={draft.target.type === 'direct' ? 'info' : 'default'}>{preview.target}</Chip>
                         </div>
                       </div>
                     )
@@ -727,6 +913,7 @@ function TokenInput({
 function coerceAction(type: RoutingActionType, current: RoutingAction): RoutingAction {
   if (type === current.type) return current
   if (type === 'rewrite_model') return { type, model: '' }
+  if (type === 'noop') return { type }
   return { type, reason: '' }
 }
 
@@ -749,6 +936,10 @@ function ObservabilityPreview({
     ['requested model', requestedModel],
     ['routed model', routedModel],
     ['api key', keyLabel],
+    ['auth mode', rule.authMode],
+    ['authorization', rule.preserveAuthorization ? 'preserved' : 'default'],
+    ['target', rule.target.type],
+    ['upstream', rule.target.type === 'direct' ? rule.target.baseUrl : '—'],
     ['endpoint', rule.match.endpoints[0] ?? '—'],
     ['eval time', `0.4 ms · evaluated ${rule.order} of ${totalRules} rules`],
   ]

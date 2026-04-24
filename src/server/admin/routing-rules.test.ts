@@ -17,6 +17,9 @@ function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
       maxEstimatedPromptTokens: '',
     },
     action: { type: 'rewrite_model', model: 'rewritten-model' },
+    target: { type: 'llama_swap' },
+    authMode: 'require_key',
+    preserveAuthorization: false,
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
     ...overrides,
@@ -108,6 +111,21 @@ describe('evaluateRoutingRules', () => {
     const decision = evaluateRoutingRules([rule], makeContext())
     expect(decision.matchedRule?.id).toBe('rrl_reject')
     expect(decision.action).toEqual({ type: 'reject', reason: 'Prompt blocked by routing policy' })
+  })
+
+  it('returns noop action when a continue rule matches', () => {
+    const rule = makeRule({
+      id: 'rrl_noop',
+      action: { type: 'noop' },
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+    })
+    const decision = evaluateRoutingRules([rule], makeContext())
+    expect(decision.matchedRule?.id).toBe('rrl_noop')
+    expect(decision.action).toEqual({ type: 'noop' })
+    expect(decision.target).toEqual({ type: 'llama_swap' })
+    expect(decision.authMode).toBe('passthrough')
+    expect(decision.preserveAuthorization).toBe(true)
   })
 
   it('skips disabled rules and uses the next matching rule', () => {

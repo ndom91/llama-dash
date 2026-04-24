@@ -33,7 +33,7 @@ import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
 import type { UpdateAttributionSettingsBody, UpdateRequestLimitsBody } from './schemas/settings'
 
-const POLL_MS = 5_000
+export const POLL_MS = 5_000
 
 function invalidateKeys(qc: ReturnType<typeof useQueryClient>, keys: ReadonlyArray<readonly unknown[]>) {
   for (const queryKey of keys) qc.invalidateQueries({ queryKey })

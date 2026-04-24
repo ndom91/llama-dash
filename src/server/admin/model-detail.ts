@@ -125,6 +125,10 @@ export function getModelRequests(
       sessionId: r.sessionId,
       routingRuleName: r.routingRuleName,
       routingActionType: r.routingActionType,
+      routingAuthMode: r.routingAuthMode,
+      routingPreserveAuthorization: r.routingPreserveAuthorization,
+      routingTargetType: r.routingTargetType,
+      routingTargetBaseUrl: r.routingTargetBaseUrl,
       routingRoutedModel: r.routingRoutedModel,
     }))
 

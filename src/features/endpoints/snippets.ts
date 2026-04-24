@@ -109,20 +109,28 @@ rest_command:
         }
       case 'opencode':
         return {
-          filename: '.opencode/config.json',
+          filename: 'opencode.json',
           lang: 'json',
           code: `{
+  "$schema": "https://opencode.ai/config.json",
   "provider": {
     "llama-dash": {
-      "apiKey": "${apiKey}",
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama-dash",
+      "options": {
+        "baseURL": "${baseUrl}/v1",
+        "headers": {
+          "Authorization": "Bearer ${apiKey}"
+        }
+      },
       "models": {
         "${model}": {
-          "name": "${model}",
-          "apiUrl": "${baseUrl}/v1/chat/completions"
+          "name": "${model}"
         }
       }
     }
-  }
+  },
+  "model": "llama-dash/${model}"
 }`,
         }
       case 'continue':

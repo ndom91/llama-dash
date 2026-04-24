@@ -44,6 +44,10 @@ export type RequestLogInput = {
   routingRuleId: string | null
   routingRuleName: string | null
   routingActionType: string | null
+  routingAuthMode: string | null
+  routingPreserveAuthorization: boolean
+  routingTargetType: string | null
+  routingTargetBaseUrl: string | null
   routingRequestedModel: string | null
   routingRoutedModel: string | null
   routingRejectReason: string | null
@@ -86,6 +90,10 @@ export function writeRequestLog(row: RequestLogInput) {
       routingRuleId: row.routingRuleId,
       routingRuleName: row.routingRuleName,
       routingActionType: row.routingActionType,
+      routingAuthMode: row.routingAuthMode,
+      routingPreserveAuthorization: row.routingPreserveAuthorization,
+      routingTargetType: row.routingTargetType,
+      routingTargetBaseUrl: row.routingTargetBaseUrl,
       routingRequestedModel: row.routingRequestedModel,
       routingRoutedModel: row.routingRoutedModel,
       routingRejectReason: row.routingRejectReason,

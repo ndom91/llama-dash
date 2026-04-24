@@ -1,6 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useNavigate } from '@tanstack/react-router'
-import { RefreshCw, Search, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
@@ -13,6 +13,7 @@ import { useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
+import { RequestsRefreshButton } from './RequestsRefreshButton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
@@ -32,8 +33,17 @@ type Props = {
 
 export function RequestsPage({ modelParam, sessionParam }: Props) {
   const navigate = useNavigate()
-  const { data, error, isLoading, isRefetching, refetch, hasNextPage, fetchNextPage, isFetchingNextPage } =
-    useRequestsList()
+  const {
+    data,
+    error,
+    isLoading,
+    isRefetching,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    dataUpdatedAt,
+  } = useRequestsList()
   const { data: histogram } = useRequestHistogram()
 
   const [search, setSearch] = useState('')
@@ -47,6 +57,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   const [endUserFilter, setEndUserFilter] = useState('')
   const [sessionFilter, setSessionFilter] = useState(sessionParam ?? '')
   const [selectedIdx, setSelectedIdx] = useState(-1)
+  const refreshCycleKey = dataUpdatedAt || 'initial'
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -227,19 +238,11 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   live
                 </span>
                 <Tooltip label="Refresh">
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon"
-                    onClick={() => refetch()}
-                    disabled={isRefetching}
-                    aria-label="Refresh"
-                  >
-                    <RefreshCw
-                      className={cn('icon-14', isRefetching && 'animate-spin')}
-                      strokeWidth={1.75}
-                      aria-hidden="true"
-                    />
-                  </button>
+                  <RequestsRefreshButton
+                    cycleKey={refreshCycleKey}
+                    isRefetching={isRefetching}
+                    onRefresh={() => refetch()}
+                  />
                 </Tooltip>
               </div>
             }
@@ -538,7 +541,11 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                                               className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info"
                                               title={`${r.routingRuleName ?? 'routing rule'} · ${r.routingActionType}${r.routingRoutedModel ? ` · ${r.routingRoutedModel}` : ''}`}
                                             >
-                                              {r.routingActionType === 'rewrite_model' ? 'rewrite' : 'reject'}
+                                              {r.routingActionType === 'rewrite_model'
+                                                ? 'rewrite'
+                                                : r.routingActionType === 'noop'
+                                                  ? 'continue'
+                                                  : 'reject'}
                                             </span>
                                           ) : null}
                                         </div>

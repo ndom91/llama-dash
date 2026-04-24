@@ -13,7 +13,11 @@ export type TransformContext = {
 export type RoutingOutcome = {
   ruleId: string | null
   ruleName: string | null
-  actionType: 'rewrite_model' | 'reject' | null
+  actionType: 'rewrite_model' | 'reject' | 'noop' | null
+  authMode: 'require_key' | 'passthrough' | null
+  preserveAuthorization: boolean
+  targetType: 'llama_swap' | 'direct' | null
+  targetBaseUrl: string | null
   requestedModel: string | null
   routedModel: string | null
   rejectReason: string | null
@@ -40,7 +44,13 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
   if (allowErrBeforeRouting) return allowErrBeforeRouting
 
   const routingDecision = ctx.skipRouting
-    ? { matchedRule: null, action: null }
+    ? {
+        matchedRule: null,
+        action: null,
+        target: { type: 'llama_swap' as const },
+        authMode: 'require_key' as const,
+        preserveAuthorization: false,
+      }
     : evaluateRoutingRules(listRoutingRules(), {
         endpoint: ctx.endpoint,
         requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
@@ -53,6 +63,10 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
         ruleId: routingDecision.matchedRule.id,
         ruleName: routingDecision.matchedRule.name,
         actionType: routingDecision.action?.type ?? null,
+        authMode: routingDecision.authMode,
+        preserveAuthorization: routingDecision.authMode === 'passthrough' && routingDecision.preserveAuthorization,
+        targetType: routingDecision.target.type,
+        targetBaseUrl: routingDecision.target.type === 'direct' ? routingDecision.target.baseUrl : null,
         requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
         routedModel: routingDecision.action?.type === 'rewrite_model' ? routingDecision.action.model : null,
         rejectReason: routingDecision.action?.type === 'reject' ? routingDecision.action.reason : null,
@@ -114,6 +128,10 @@ function emptyRoutingOutcome(): RoutingOutcome {
     ruleId: null,
     ruleName: null,
     actionType: null,
+    authMode: null,
+    preserveAuthorization: false,
+    targetType: null,
+    targetBaseUrl: null,
     requestedModel: null,
     routedModel: null,
     rejectReason: null,

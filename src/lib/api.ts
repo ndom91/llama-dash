@@ -133,10 +133,27 @@ export const api = {
     sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
-  createRoutingRule: (body: { name: string; enabled: boolean; match: object; action: object }) =>
-    sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
-  updateRoutingRule: (id: string, body: { name?: string; enabled?: boolean; match?: object; action?: object }) =>
-    sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
+  createRoutingRule: (body: {
+    name: string
+    enabled: boolean
+    match: object
+    action: object
+    target?: object
+    authMode?: string
+    preserveAuthorization?: boolean
+  }) => sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
+  updateRoutingRule: (
+    id: string,
+    body: {
+      name?: string
+      enabled?: boolean
+      match?: object
+      action?: object
+      target?: object
+      authMode?: string
+      preserveAuthorization?: boolean
+    },
+  ) => sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
   deleteRoutingRule: (id: string) => sendEmpty(`/api/routing-rules/${id}`, OkSchema, 'DELETE'),
   reorderRoutingRules: (ids: string[]) =>
     sendJson('/api/routing-rules/reorder', RoutingRuleListResponseSchema, { method: 'POST', body: { ids } }),

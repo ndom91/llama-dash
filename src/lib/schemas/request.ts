@@ -22,6 +22,10 @@ export const ApiRequestSchema = v.object({
   sessionId: v.nullable(v.string()),
   routingRuleName: v.nullable(v.string()),
   routingActionType: v.nullable(v.string()),
+  routingAuthMode: v.nullable(v.string()),
+  routingPreserveAuthorization: v.boolean(),
+  routingTargetType: v.nullable(v.string()),
+  routingTargetBaseUrl: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
 })
 
@@ -40,6 +44,10 @@ export const ApiRequestDetailSchema = v.object({
   routingRuleId: v.nullable(v.string()),
   routingRuleName: v.nullable(v.string()),
   routingActionType: v.nullable(v.string()),
+  routingAuthMode: v.nullable(v.string()),
+  routingPreserveAuthorization: v.boolean(),
+  routingTargetType: v.nullable(v.string()),
+  routingTargetBaseUrl: v.nullable(v.string()),
   routingRequestedModel: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
   routingRejectReason: v.nullable(v.string()),

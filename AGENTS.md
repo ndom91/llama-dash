@@ -143,13 +143,18 @@ paths (proxy will grow middleware; admin will grow CRUD).
     llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
-    Policies (request limits + persisted routing rule editor with rewrite and
-    reject actions), Endpoints (connection examples for curl, Python, TS,
+    Policies (request limits + persisted routing rule editor with rewrite,
+    reject, auth passthrough, and direct upstream target controls), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
 8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
+   Routing rules can explicitly opt into `passthrough` auth, which skips
+   llama-dash key enforcement for matching requests and can preserve the
+   client's `Authorization` header for upstream OAuth/API-key validation.
+   Routing rules can also target a configured direct HTTPS `/v1` upstream,
+   bypassing llama-swap for that matched request while keeping proxy logging.
    **Exception**: `/v1/messages` and `/v1/messages/count_tokens` with an
    `anthropic-version` header skip llama-dash key enforcement. The caller's
    `Authorization` header (OAuth subscription bearer or real Anthropic key)
@@ -160,14 +165,15 @@ paths (proxy will grow middleware; admin will grow CRUD).
    applies transforms in order, re-serializes only if mutated:
    allow-list check → routing rule evaluation → alias resolution → system
    prompt injection → request size limits. Routing rules are ordered,
-   first-match-wins, and currently support `rewrite_model` and `reject`.
+   first-match-wins, and currently support `noop`, `rewrite_model`, `reject`, and
+   per-rule auth mode (`require_key` or `passthrough`).
    In-memory caches for aliases and settings, invalidated on admin writes.
    System-prompt injection branches
    by endpoint: `/v1/chat/completions` prepends a `system` message to
    `messages[]`; `/v1/messages` prepends to the top-level `system` field
    (string or content-block array, preserved shape).
-10. Request logs persist routing and attribution context. Request detail shows
-    matched routing rule/action plus client, end-user, and session metadata.
+ 10. Request logs persist routing and attribution context. Request detail shows
+     matched routing rule/action/auth mode plus client, end-user, and session metadata.
     Request list supports routing and attribution filters, and session IDs
     deep-link back into the filtered request log.
 11. Feature-local UI structure under `src/features/*`. Route files are thin

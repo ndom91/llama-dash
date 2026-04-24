@@ -42,6 +42,10 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     sessionId: r.sessionId,
     routingRuleName: r.routingRuleName,
     routingActionType: r.routingActionType,
+    routingAuthMode: r.routingAuthMode,
+    routingPreserveAuthorization: r.routingPreserveAuthorization,
+    routingTargetType: r.routingTargetType,
+    routingTargetBaseUrl: r.routingTargetBaseUrl,
     routingRoutedModel: r.routingRoutedModel,
   }))
 }
@@ -87,6 +91,10 @@ export function getRequestById(id: string): RequestDetail | null {
     routingRuleId: r.routingRuleId,
     routingRuleName: r.routingRuleName,
     routingActionType: r.routingActionType,
+    routingAuthMode: r.routingAuthMode,
+    routingPreserveAuthorization: r.routingPreserveAuthorization,
+    routingTargetType: r.routingTargetType,
+    routingTargetBaseUrl: r.routingTargetBaseUrl,
     routingRequestedModel: r.routingRequestedModel,
     routingRoutedModel: r.routingRoutedModel,
     routingRejectReason: r.routingRejectReason,

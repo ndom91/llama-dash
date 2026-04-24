@@ -488,6 +488,35 @@
   to { background-position: -40% 0; }
 }
 
+@keyframes requests-refresh-ring {
+  from { stroke-dashoffset: 50.27; }
+  to { stroke-dashoffset: 0; }
+}
+
+.requests-refresh-ring {
+  stroke-dasharray: 50.27;
+  stroke-dashoffset: 50.27;
+  animation-name: requests-refresh-ring;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.requests-refresh-button {
+  position: relative;
+  overflow: hidden;
+  background-clip: padding-box;
+}
+
+.requests-refresh-button svg {
+  position: relative;
+  z-index: 1;
+}
+
+.requests-refresh-ring-active {
+  opacity: 0.72;
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
 .stream-flow-bar {
   position: relative;
   background-image: linear-gradient(

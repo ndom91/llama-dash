@@ -314,7 +314,10 @@ const routes: Array<Route> = [
         result.output.name === undefined &&
         result.output.enabled === undefined &&
         result.output.match === undefined &&
-        result.output.action === undefined
+        result.output.action === undefined &&
+        result.output.target === undefined &&
+        result.output.authMode === undefined &&
+        result.output.preserveAuthorization === undefined
       ) {
         return error(400, 'At least one field to update is required')
       }

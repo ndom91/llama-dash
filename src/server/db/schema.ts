@@ -28,6 +28,10 @@ export const requests = sqliteTable('requests', {
   routingRuleId: text('routing_rule_id'),
   routingRuleName: text('routing_rule_name'),
   routingActionType: text('routing_action_type'),
+  routingAuthMode: text('routing_auth_mode'),
+  routingPreserveAuthorization: integer('routing_preserve_authorization', { mode: 'boolean' }).notNull().default(false),
+  routingTargetType: text('routing_target_type'),
+  routingTargetBaseUrl: text('routing_target_base_url'),
   routingRequestedModel: text('routing_requested_model'),
   routingRoutedModel: text('routing_routed_model'),
   routingRejectReason: text('routing_reject_reason'),
@@ -82,6 +86,11 @@ export const routingRules = sqliteTable('routing_rules', {
   order: integer('order').notNull(),
   matchJson: text('match_json').notNull(),
   actionJson: text('action_json').notNull(),
+  targetJson: text('target_json').notNull().default('{"type":"llama_swap"}'),
+  authMode: text('auth_mode', { enum: ['require_key', 'passthrough'] })
+    .notNull()
+    .default('require_key'),
+  preserveAuthorization: integer('preserve_authorization', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 })
