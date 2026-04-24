@@ -155,9 +155,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    client's `Authorization` header for upstream OAuth/API-key validation.
    Routing rules can also target a configured direct HTTPS `/v1` upstream,
    bypassing llama-swap for that matched request while keeping proxy logging.
-   Built-in system routing handles `/v1/messages` and `/v1/messages/count_tokens`
-   with an `anthropic-version` header as `passthrough` auth, preserving the
-   caller's `Authorization` header for Anthropic while keeping request logging.
+   Anthropic/Claude Code passthrough is configured explicitly with routing rules,
+   typically matching `/v1/messages` and `/v1/messages/count_tokens` with
+   `noop` + `passthrough` auth and preserved client `Authorization`.
 9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once,
    applies transforms in order, re-serializes only if mutated:
@@ -390,10 +390,8 @@ peers:
 
 **Proxy-layer specifics:**
 
-- Built-in system routing rule (`src/server/admin/routing-rules.ts` —
-  `rrl_system_anthropic_passthrough`). Requests to `/v1/messages` or
-  `/v1/messages/count_tokens` with an `anthropic-version` header use
-  `noop` + `passthrough` auth and preserve the client `Authorization` header.
+- Explicit routing rules should match `/v1/messages` and `/v1/messages/count_tokens`,
+  use `noop` + `passthrough` auth, and preserve the client `Authorization` header.
 - Response content-encoding strip (`src/server/proxy/handler.ts` —
   `STRIP_RESPONSE_HEADERS`). Node's fetch auto-decompresses upstream bodies
   when consumed as a stream, so forwarding `content-encoding: gzip|br` would
