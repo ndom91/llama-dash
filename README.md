@@ -3,7 +3,9 @@
   &nbsp;llama-dash
 </h1>
 
-Alternative dashboard and proxy for [llama-swap](https://github.com/mostlygeek/llama-swap). Point your clients at llama-dash instead of llama-swap — it proxies requests to a llama-swap instance rather than running inference itself. Hardware-specific Docker Compose files bundling both are included to get started quickly.
+<img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
+
+Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostlygeek/llama-swap) with many additional features including:
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
