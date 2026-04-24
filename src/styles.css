@@ -483,6 +483,25 @@
   50% { box-shadow: 0 0 10px var(--warn); }
 }
 
+@keyframes stream-flow {
+  from { background-position: 140% 0; }
+  to { background-position: -40% 0; }
+}
+
+.stream-flow-bar {
+  position: relative;
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 78%, transparent),
+    var(--accent) 34%,
+    color-mix(in srgb, white 38%, var(--accent)) 50%,
+    var(--accent) 66%,
+    color-mix(in srgb, var(--accent) 78%, transparent)
+  );
+  background-size: 220% 100%;
+  animation: stream-flow 4.2s var(--ease-in-out) infinite;
+}
+
 /* Small text after a dot — e.g. `● ready` */
 .state-label {
   font-family: var(--font-mono);

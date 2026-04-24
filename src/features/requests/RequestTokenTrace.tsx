@@ -17,8 +17,8 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec }: P
         </span>
       </div>
       <div className="px-4 py-3">
-        <div className="h-2 overflow-hidden rounded bg-surface-3">
-          <div className="h-full w-full rounded bg-accent" />
+        <div className="h-2 rounded bg-surface-3">
+          <div className="stream-flow-bar h-full w-full rounded bg-accent" />
         </div>
         <div className="mt-2 flex flex-wrap justify-between gap-2 font-mono text-[11px] text-fg-dim">
           <span style={{ color: 'var(--accent-shifted)' }}>start</span>
