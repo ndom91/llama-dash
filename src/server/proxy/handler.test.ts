@@ -73,7 +73,7 @@ function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
       maxEstimatedPromptTokens: '',
     },
     action: { type: 'noop' },
-    target: { type: 'direct', baseUrl: 'https://api.example.com/v1' },
+    target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
     authMode: 'passthrough',
     preserveAuthorization: true,
     createdAt: new Date(0).toISOString(),
@@ -149,7 +149,7 @@ describe('handleProxyRequest auth/body ordering', () => {
 
     expect(response.status).toBe(200)
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.example.com/v1/messages',
+      'https://api.openai.com/v1/messages',
       expect.objectContaining({ headers: expect.objectContaining({ authorization: 'Bearer upstream-token' }) }),
     )
   })
@@ -167,7 +167,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     const response = await handleProxyRequest(request)
 
     expect(response.status).toBe(200)
-    expect(fetch).toHaveBeenCalledWith('https://api.example.com/v1/messages', expect.any(Object))
+    expect(fetch).toHaveBeenCalledWith('https://api.openai.com/v1/messages', expect.any(Object))
   })
 
   it('reads the body after valid key auth when no pre-auth body fields are needed', async () => {

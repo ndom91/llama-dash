@@ -1,4 +1,9 @@
+import { isAllowedDirectUpstream } from '../../lib/schemas/routing-rule.ts'
+
 export function buildDirectUpstream(baseUrl: string, endpoint: string, search: string): string {
+  if (!isAllowedDirectUpstream(baseUrl)) {
+    throw new Error('Direct upstreams are currently limited to api.openai.com and api.anthropic.com')
+  }
   const base = new URL(baseUrl)
   const suffix = endpoint === '/v1' ? '' : endpoint.slice('/v1'.length)
   base.pathname = `${base.pathname.replace(/\/$/, '')}${suffix}`

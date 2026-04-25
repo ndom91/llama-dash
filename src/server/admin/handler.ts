@@ -294,7 +294,11 @@ const routes: Array<Route> = [
       }
       const result = v.safeParse(CreateRoutingRuleBodySchema, parsed)
       if (!result.success) return error(400, 'Invalid routing rule body')
-      return json(201, createRoutingRule(result.output))
+      try {
+        return json(201, createRoutingRule(result.output))
+      } catch (err) {
+        return error(400, err instanceof Error ? err.message : String(err))
+      }
     },
   },
   {
@@ -321,7 +325,12 @@ const routes: Array<Route> = [
       ) {
         return error(400, 'At least one field to update is required')
       }
-      const updated = updateRoutingRule(id, result.output)
+      let updated = null
+      try {
+        updated = updateRoutingRule(id, result.output)
+      } catch (err) {
+        return error(400, err instanceof Error ? err.message : String(err))
+      }
       if (!updated) return error(404, `Routing rule ${id} not found`)
       return json(200, updated)
     },

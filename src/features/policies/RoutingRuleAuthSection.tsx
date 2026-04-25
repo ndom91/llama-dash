@@ -62,6 +62,18 @@ export function RoutingRuleAuthSection({
             Passthrough auth lets the upstream provider validate the client's bearer token. llama-dash will not apply
             key-specific rate limits, model allow-lists, or system prompts for requests matched by this rule.
           </div>
+          {draft.target.type === 'direct' &&
+          draft.match.endpoints.length === 0 &&
+          draft.match.requestedModels.length === 0 &&
+          draft.match.stream === 'any' &&
+          draft.match.minEstimatedPromptTokens === '' &&
+          draft.match.maxEstimatedPromptTokens === '' ? (
+            <div className="border-l border-err px-4 py-4 font-mono text-xs text-fg-dim">
+              <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-err">Matcher required</div>
+              Direct passthrough rules must include at least one matcher so they cannot accidentally proxy every
+              request.
+            </div>
+          ) : null}
           {draft.match.requestedModels.length > 0 && draft.match.endpoints.length === 0 ? (
             <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">
               <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Bodyless requests</div>

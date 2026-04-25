@@ -50,8 +50,8 @@ export function RoutingRuleTargetSection({
           </label>
           <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">
             <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Direct target</div>
-            Direct upstreams must use HTTPS and end with /v1. llama-dash appends the incoming /v1 path suffix; clients
-            never choose the destination URL.
+            Direct upstreams must use HTTPS, end with /v1, and currently target api.openai.com or api.anthropic.com.
+            llama-dash appends the incoming /v1 path suffix; clients never choose the destination URL.
           </div>
         </div>
       ) : null}

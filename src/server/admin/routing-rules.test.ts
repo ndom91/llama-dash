@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { RoutingRule } from '../../lib/schemas/routing-rule'
+import { CreateRoutingRuleBodySchema, type RoutingRule } from '../../lib/schemas/routing-rule'
+import * as v from 'valibot'
 import {
   evaluatePreAuthRoutingRules,
   evaluateRoutingRules,
@@ -199,5 +200,49 @@ describe('evaluatePreAuthRoutingRules', () => {
     expect(hasBodyDependentPreAuthRoutingRule([endpointOnly])).toBe(false)
     expect(hasBodyDependentPreAuthRoutingRule([modelScoped])).toBe(true)
     expect(hasBodyDependentPreAuthRoutingRule([streamScoped])).toBe(true)
+  })
+
+  it('rejects broad direct passthrough rules at the schema boundary', () => {
+    const result = v.safeParse(CreateRoutingRuleBodySchema, {
+      name: 'Unsafe passthrough',
+      enabled: true,
+      match: makeRule().match,
+      action: { type: 'noop' },
+      target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('allows matched direct passthrough rules for OpenAI and Anthropic', () => {
+    for (const baseUrl of ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']) {
+      const result = v.safeParse(CreateRoutingRuleBodySchema, {
+        name: 'Safe passthrough',
+        enabled: true,
+        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+        action: { type: 'noop' },
+        target: { type: 'direct', baseUrl },
+        authMode: 'passthrough',
+        preserveAuthorization: true,
+      })
+
+      expect(result.success).toBe(true)
+    }
+  })
+
+  it('rejects direct targets outside the built-in allowlist', () => {
+    const result = v.safeParse(CreateRoutingRuleBodySchema, {
+      name: 'Blocked target',
+      enabled: true,
+      match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+      action: { type: 'noop' },
+      target: { type: 'direct', baseUrl: 'https://example.com/v1' },
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+    })
+
+    expect(result.success).toBe(false)
   })
 })

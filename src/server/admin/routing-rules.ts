@@ -3,6 +3,11 @@ import { ulid } from 'ulidx'
 import * as v from 'valibot'
 import type { CreateRoutingRuleBody, RoutingRule, UpdateRoutingRuleBody } from '../../lib/schemas/routing-rule.ts'
 import { RoutingActionSchema, RoutingMatchSchema, RoutingTargetSchema } from '../../lib/schemas/routing-rule.ts'
+import {
+  hasAnyRoutingMatcher,
+  isAllowedDirectUpstream,
+  ROUTING_MATCH_FIELD_METADATA,
+} from '../../lib/schemas/routing-rule.ts'
 import { db, schema } from '../db/index.ts'
 
 let _cache: RoutingRule[] | null = null
@@ -65,6 +70,11 @@ export function createRoutingRule(input: CreateRoutingRuleBody): RoutingRule {
 }
 
 export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): RoutingRule | null {
+  const existing = db.select().from(schema.routingRules).where(eq(schema.routingRules.id, id)).get()
+  if (!existing) return null
+  const nextRule = { ...toApiShape(existing), ...fields }
+  validateRoutingRuleSafety(nextRule)
+
   const set: Record<string, unknown> = { updatedAt: new Date() }
   if (fields.name !== undefined) set.name = fields.name
   if (fields.enabled !== undefined) set.enabled = fields.enabled
@@ -79,6 +89,15 @@ export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): Ro
   invalidateCache()
   const row = db.select().from(schema.routingRules).where(eq(schema.routingRules.id, id)).get()
   return row ? toApiShape(row) : null
+}
+
+function validateRoutingRuleSafety(rule: Pick<RoutingRule, 'authMode' | 'match' | 'target'>) {
+  if (rule.target.type === 'direct' && !isAllowedDirectUpstream(rule.target.baseUrl)) {
+    throw new Error('Direct upstreams are currently limited to api.openai.com and api.anthropic.com')
+  }
+  if (rule.target.type === 'direct' && rule.authMode === 'passthrough' && !hasAnyRoutingMatcher(rule.match)) {
+    throw new Error('Direct passthrough routing rules require at least one matcher')
+  }
 }
 
 export function deleteRoutingRule(id: string): boolean {
@@ -209,9 +228,11 @@ function isPreAuthRoutingCandidate(rule: RoutingRule): boolean {
 
 function needsBodyForPreAuthRouting(rule: RoutingRule): boolean {
   return (
-    rule.match.requestedModels.length > 0 ||
-    rule.match.stream !== 'any' ||
-    rule.match.minEstimatedPromptTokens !== '' ||
-    rule.match.maxEstimatedPromptTokens !== ''
+    (ROUTING_MATCH_FIELD_METADATA.requestedModels.requiresBodyForPreAuth && rule.match.requestedModels.length > 0) ||
+    (ROUTING_MATCH_FIELD_METADATA.stream.requiresBodyForPreAuth && rule.match.stream !== 'any') ||
+    (ROUTING_MATCH_FIELD_METADATA.minEstimatedPromptTokens.requiresBodyForPreAuth &&
+      rule.match.minEstimatedPromptTokens !== '') ||
+    (ROUTING_MATCH_FIELD_METADATA.maxEstimatedPromptTokens.requiresBodyForPreAuth &&
+      rule.match.maxEstimatedPromptTokens !== '')
   )
 }

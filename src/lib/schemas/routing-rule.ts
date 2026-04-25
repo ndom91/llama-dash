@@ -18,6 +18,27 @@ export const RoutingMatchSchema = v.object({
   maxEstimatedPromptTokens: OptionalPositiveIntStringSchema,
 })
 export type RoutingMatch = v.InferOutput<typeof RoutingMatchSchema>
+export type RoutingMatchField = keyof RoutingMatch
+
+export const ROUTING_MATCH_FIELD_METADATA: Record<RoutingMatchField, { requiresBodyForPreAuth: boolean }> = {
+  endpoints: { requiresBodyForPreAuth: false },
+  requestedModels: { requiresBodyForPreAuth: true },
+  apiKeyIds: { requiresBodyForPreAuth: false },
+  stream: { requiresBodyForPreAuth: true },
+  minEstimatedPromptTokens: { requiresBodyForPreAuth: true },
+  maxEstimatedPromptTokens: { requiresBodyForPreAuth: true },
+}
+
+export function hasAnyRoutingMatcher(match: RoutingMatch): boolean {
+  return (
+    match.endpoints.length > 0 ||
+    match.requestedModels.length > 0 ||
+    match.apiKeyIds.length > 0 ||
+    match.stream !== 'any' ||
+    match.minEstimatedPromptTokens !== '' ||
+    match.maxEstimatedPromptTokens !== ''
+  )
+}
 
 export const RewriteModelActionSchema = v.object({
   type: v.literal('rewrite_model'),
@@ -65,6 +86,29 @@ export const DirectTargetSchema = v.pipe(
 export const RoutingTargetSchema = v.variant('type', [LlamaSwapTargetSchema, DirectTargetSchema])
 export type RoutingTarget = v.InferOutput<typeof RoutingTargetSchema>
 
+export const ALLOWED_DIRECT_UPSTREAM_HOSTS = new Set(['api.openai.com', 'api.anthropic.com'])
+
+export function isAllowedDirectUpstream(baseUrl: string): boolean {
+  try {
+    return ALLOWED_DIRECT_UPSTREAM_HOSTS.has(new URL(baseUrl).hostname.toLowerCase())
+  } catch {
+    return false
+  }
+}
+
+type RoutingRuleSafetyInput = {
+  match: RoutingMatch
+  target?: RoutingTarget
+  authMode?: RoutingAuthMode
+}
+
+function isSafeRoutingRule(input: RoutingRuleSafetyInput): boolean {
+  const target = input.target ?? { type: 'llama_swap' }
+  if (target.type === 'direct' && !isAllowedDirectUpstream(target.baseUrl)) return false
+  if (target.type === 'direct' && input.authMode === 'passthrough') return hasAnyRoutingMatcher(input.match)
+  return true
+}
+
 export const RoutingRuleSchema = v.object({
   id: v.string(),
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
@@ -84,7 +128,7 @@ export const RoutingRuleListResponseSchema = v.object({
   rules: v.array(RoutingRuleSchema),
 })
 
-export const CreateRoutingRuleBodySchema = v.object({
+const CreateRoutingRuleBodyBaseSchema = v.object({
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
   enabled: v.boolean(),
   match: RoutingMatchSchema,
@@ -93,7 +137,15 @@ export const CreateRoutingRuleBodySchema = v.object({
   authMode: v.optional(RoutingAuthModeSchema),
   preserveAuthorization: v.optional(v.boolean()),
 })
-export type CreateRoutingRuleBody = v.InferOutput<typeof CreateRoutingRuleBodySchema>
+
+export const CreateRoutingRuleBodySchema = v.pipe(
+  CreateRoutingRuleBodyBaseSchema,
+  v.check(
+    (input) => isSafeRoutingRule(input),
+    'Direct passthrough rules require at least one matcher and direct upstreams are currently limited to OpenAI and Anthropic',
+  ),
+)
+export type CreateRoutingRuleBody = v.InferOutput<typeof CreateRoutingRuleBodyBaseSchema>
 
 export const UpdateRoutingRuleBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(200))),
