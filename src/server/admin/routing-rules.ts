@@ -196,8 +196,22 @@ export function evaluatePreAuthRoutingRules(
   rules: RoutingRule[],
   ctx: Omit<RoutingContext, 'apiKeyId'>,
 ): RoutingDecision {
-  return evaluateRoutingRules(
-    rules.filter((rule) => rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0),
-    { ...ctx, apiKeyId: null },
+  return evaluateRoutingRules(rules.filter(isPreAuthRoutingCandidate), { ...ctx, apiKeyId: null })
+}
+
+export function hasBodyDependentPreAuthRoutingRule(rules: RoutingRule[]): boolean {
+  return rules.some((rule) => isPreAuthRoutingCandidate(rule) && needsBodyForPreAuthRouting(rule))
+}
+
+function isPreAuthRoutingCandidate(rule: RoutingRule): boolean {
+  return rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0
+}
+
+function needsBodyForPreAuthRouting(rule: RoutingRule): boolean {
+  return (
+    rule.match.requestedModels.length > 0 ||
+    rule.match.stream !== 'any' ||
+    rule.match.minEstimatedPromptTokens !== '' ||
+    rule.match.maxEstimatedPromptTokens !== ''
   )
 }

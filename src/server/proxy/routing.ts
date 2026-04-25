@@ -1,4 +1,8 @@
-import { evaluatePreAuthRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
+import {
+  evaluatePreAuthRoutingRules,
+  hasBodyDependentPreAuthRoutingRule,
+  listRoutingRules,
+} from '../admin/routing-rules.ts'
 import { routingOutcomeFromDecision, type RoutingOutcome } from './transforms.ts'
 import { estimatePromptTokens } from './tokens.ts'
 
@@ -18,6 +22,11 @@ export function evaluatePreAuthRouting(
     decision,
     parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
   )
+}
+
+export function preAuthRoutingNeedsBody(method: string): boolean {
+  if (method === 'GET' || method === 'HEAD') return false
+  return hasBodyDependentPreAuthRoutingRule(listRoutingRules())
 }
 
 export function shouldPreserveAuthorization(routing: RoutingOutcome): boolean {

@@ -3,6 +3,7 @@ import type { RoutingRule } from '../../lib/schemas/routing-rule'
 import {
   evaluatePreAuthRoutingRules,
   evaluateRoutingRules,
+  hasBodyDependentPreAuthRoutingRule,
   matchesRoutingRule,
   type RoutingContext,
 } from './routing-rules'
@@ -173,5 +174,30 @@ describe('evaluatePreAuthRoutingRules', () => {
 
     expect(decision.matchedRule?.id).toBe('rrl_public_passthrough')
     expect(decision.authMode).toBe('passthrough')
+  })
+
+  it('detects whether pre-auth routing needs body fields', () => {
+    const endpointOnly = makeRule({
+      id: 'rrl_endpoint_only',
+      authMode: 'passthrough',
+      action: { type: 'noop' },
+      match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+    })
+    const modelScoped = makeRule({
+      id: 'rrl_model_scoped',
+      authMode: 'passthrough',
+      action: { type: 'noop' },
+      match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] },
+    })
+    const streamScoped = makeRule({
+      id: 'rrl_stream_scoped',
+      authMode: 'passthrough',
+      action: { type: 'noop' },
+      match: { ...makeRule().match, stream: 'stream' },
+    })
+
+    expect(hasBodyDependentPreAuthRoutingRule([endpointOnly])).toBe(false)
+    expect(hasBodyDependentPreAuthRoutingRule([modelScoped])).toBe(true)
+    expect(hasBodyDependentPreAuthRoutingRule([streamScoped])).toBe(true)
   })
 })

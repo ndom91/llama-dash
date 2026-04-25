@@ -8,11 +8,12 @@ import {
   getProxyForwardBody,
   getProxyLoggedBody,
   prepareProxyBody,
+  type ProxyBodySnapshot,
 } from './body.ts'
 import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
-import { preferPostAuthRouting, shouldPreserveAuthorization } from './routing.ts'
+import { preAuthRoutingNeedsBody, preferPostAuthRouting, shouldPreserveAuthorization } from './routing.ts'
 import type { RoutingOutcome } from './transforms.ts'
 import { applyTransforms, emptyRoutingOutcome } from './transforms.ts'
 import { selectUpstream } from './upstream.ts'
@@ -28,9 +29,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const attribution = extractAttribution(request.headers, getAttributionSettings())
   let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
-  let body = await prepareProxyBody(request, method)
+  let body: ProxyBodySnapshot | null = null
+  if (preAuthRoutingNeedsBody(method)) {
+    body = await prepareProxyBody(request, method)
+  }
 
-  const authResult = authenticateRequest(request, endpoint, body.parsedBody)
+  const authResult = authenticateRequest(request, endpoint, body?.parsedBody ?? null)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
@@ -41,7 +45,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       status: authResult.status,
       method,
       endpoint,
-      usage: nullUsage(body.reqModel),
+      usage: nullUsage(body?.reqModel),
       streamed: false,
       error: authResult.body.error.message,
       reqHeaders: loggedReqHeaders(),
@@ -61,6 +65,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const keyId = authResult.keyId
   const keyRow = authResult.keyRow
   routingOutcome = authResult.preAuthRouting
+  body ??= await prepareProxyBody(request, method)
 
   if (!body.hasBody) {
     upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
