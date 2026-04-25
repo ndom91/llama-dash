@@ -1,51 +1,65 @@
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
-export const requests = sqliteTable('requests', {
-  id: text('id').primaryKey(),
-  startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
-  durationMs: integer('duration_ms').notNull(),
-  method: text('method').notNull(),
-  endpoint: text('endpoint').notNull(),
-  model: text('model'),
-  statusCode: integer('status_code').notNull(),
-  promptTokens: integer('prompt_tokens'),
-  completionTokens: integer('completion_tokens'),
-  totalTokens: integer('total_tokens'),
-  cacheCreationTokens: integer('cache_creation_tokens'),
-  cacheReadTokens: integer('cache_read_tokens'),
-  costUsd: real('cost_usd'),
-  streamed: integer('streamed', { mode: 'boolean' }).notNull().default(false),
-  error: text('error'),
-  requestHeaders: text('request_headers'),
-  requestBody: text('request_body'),
-  responseHeaders: text('response_headers'),
-  responseBody: text('response_body'),
-  streamCloseMs: integer('stream_close_ms'),
-  keyId: text('key_id'),
-  clientName: text('client_name'),
-  endUserId: text('end_user_id'),
-  sessionId: text('session_id'),
-  routingRuleId: text('routing_rule_id'),
-  routingRuleName: text('routing_rule_name'),
-  routingActionType: text('routing_action_type'),
-  routingAuthMode: text('routing_auth_mode'),
-  routingPreserveAuthorization: integer('routing_preserve_authorization', { mode: 'boolean' }).notNull().default(false),
-  routingTargetType: text('routing_target_type'),
-  routingTargetBaseUrl: text('routing_target_base_url'),
-  routingRequestedModel: text('routing_requested_model'),
-  routingRoutedModel: text('routing_routed_model'),
-  routingRejectReason: text('routing_reject_reason'),
-})
+export const requests = sqliteTable(
+  'requests',
+  {
+    id: text('id').primaryKey(),
+    startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    method: text('method').notNull(),
+    endpoint: text('endpoint').notNull(),
+    model: text('model'),
+    statusCode: integer('status_code').notNull(),
+    promptTokens: integer('prompt_tokens'),
+    completionTokens: integer('completion_tokens'),
+    totalTokens: integer('total_tokens'),
+    cacheCreationTokens: integer('cache_creation_tokens'),
+    cacheReadTokens: integer('cache_read_tokens'),
+    costUsd: real('cost_usd'),
+    streamed: integer('streamed', { mode: 'boolean' }).notNull().default(false),
+    error: text('error'),
+    requestHeaders: text('request_headers'),
+    requestBody: text('request_body'),
+    responseHeaders: text('response_headers'),
+    responseBody: text('response_body'),
+    streamCloseMs: integer('stream_close_ms'),
+    keyId: text('key_id'),
+    clientName: text('client_name'),
+    endUserId: text('end_user_id'),
+    sessionId: text('session_id'),
+    routingRuleId: text('routing_rule_id'),
+    routingRuleName: text('routing_rule_name'),
+    routingActionType: text('routing_action_type'),
+    routingAuthMode: text('routing_auth_mode'),
+    routingPreserveAuthorization: integer('routing_preserve_authorization', { mode: 'boolean' })
+      .notNull()
+      .default(false),
+    routingTargetType: text('routing_target_type'),
+    routingTargetBaseUrl: text('routing_target_base_url'),
+    routingRequestedModel: text('routing_requested_model'),
+    routingRoutedModel: text('routing_routed_model'),
+    routingRejectReason: text('routing_reject_reason'),
+  },
+  (table) => [
+    index('idx_requests_started_at').on(table.startedAt),
+    index('idx_requests_key_id_id').on(table.keyId, table.id),
+    index('idx_requests_model_id').on(table.model, table.id),
+  ],
+)
 
 export type Request = typeof requests.$inferSelect
 export type NewRequest = typeof requests.$inferInsert
 
-export const modelEvents = sqliteTable('model_events', {
-  id: text('id').primaryKey(),
-  modelId: text('model_id').notNull(),
-  event: text('event', { enum: ['load', 'unload'] }).notNull(),
-  timestamp: integer('timestamp', { mode: 'timestamp_ms' }).notNull(),
-})
+export const modelEvents = sqliteTable(
+  'model_events',
+  {
+    id: text('id').primaryKey(),
+    modelId: text('model_id').notNull(),
+    event: text('event', { enum: ['load', 'unload'] }).notNull(),
+    timestamp: integer('timestamp', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [index('idx_model_events_timestamp').on(table.timestamp)],
+)
 
 export type ModelEvent = typeof modelEvents.$inferSelect
 export type NewModelEvent = typeof modelEvents.$inferInsert
