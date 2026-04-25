@@ -34,6 +34,13 @@ export default createServerEntry({
       return handleAdminRequest(request)
     }
 
+    if (url.pathname === '/metrics') {
+      const { renderPrometheusMetrics } = await import('./server/metrics.ts')
+      return new Response(await renderPrometheusMetrics(), {
+        headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' },
+      })
+    }
+
     return ssrHandler(request, ...args)
   },
 })

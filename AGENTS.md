@@ -83,6 +83,7 @@ src/
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
+    metrics.ts            — Prometheus text exporter for /metrics
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
 docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llama-dash + llama-swap
@@ -136,12 +137,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/routing-rules` — CRUD + reorder for ordered routing rules
    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
-5. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
+5. `/metrics` — Prometheus text exporter with low-cardinality request, token,
+   latency-window, queue, upstream, running-model, and GPU metrics.
+6. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
-6. Model watcher: polls llama-swap `/running` every 15s, diffs against
+7. Model watcher: polls llama-swap `/running` every 15s, diffs against
    known state, inserts `load`/`unload` events into SQLite.
-7. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
+8. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     DB, proxy, queue, and poller status), Playground
@@ -153,7 +156,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, and direct upstream target controls), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
-8. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
+9. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
@@ -165,7 +168,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `noop` + `passthrough` auth and preserved client `Authorization`.
-9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
+10. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once when
    needed, applies transforms in order, re-serializes only if mutated:
    allow-list check → routing rule evaluation → alias resolution → system
@@ -182,12 +185,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
    by endpoint: `/v1/chat/completions` prepends a `system` message to
    `messages[]`; `/v1/messages` prepends to the top-level `system` field
    (string or content-block array, preserved shape).
- 10. Request logs persist routing and attribution context. Request detail shows
+11. Request logs persist routing and attribution context. Request detail shows
      matched routing rule/action/auth mode plus client, end-user, and session metadata.
     Request list supports routing and attribution filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
-11. Feature-local UI structure under `src/features/*`. Route files are thin
+12. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
 
