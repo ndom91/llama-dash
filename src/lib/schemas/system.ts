@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { GpuInfoSchema } from './gpu'
 
 export const ApiSystemStatusSchema = v.object({
   runtime: v.object({
@@ -26,6 +27,7 @@ export const ApiSystemStatusSchema = v.object({
     gpuCount: v.number(),
     polledAt: v.number(),
     ageMs: v.nullable(v.number()),
+    gpus: v.array(GpuInfoSchema),
   }),
 })
 

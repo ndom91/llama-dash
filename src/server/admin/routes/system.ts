@@ -60,6 +60,7 @@ export const systemRoutes: Route[] = [
           gpuCount: gpu.gpus.length,
           polledAt: gpu.polledAt,
           ageMs: gpu.polledAt > 0 ? now - gpu.polledAt : null,
+          gpus: gpu.gpus,
         },
       })
     },

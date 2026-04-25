@@ -18,6 +18,7 @@ function resolveTitle(pathname: string): string {
   if (normalized === '/config') return 'Config'
   if (normalized === '/endpoints') return 'Endpoints'
   if (normalized === '/policies') return 'Policies'
+  if (normalized === '/system') return 'System'
   return 'llama-dash'
 }
 
