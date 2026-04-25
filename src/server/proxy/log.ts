@@ -81,9 +81,9 @@ export function resetRequestLogQueueForTest() {
 
 export function flushRequestLogQueue() {
   flushScheduled = false
-  while (queue.length > 0) {
-    const row = queue.shift()
-    if (!row) continue
+  const rows = queue
+  queue = []
+  for (const row of rows) {
     try {
       writeRequestLogNow(row)
     } catch (err) {

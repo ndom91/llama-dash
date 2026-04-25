@@ -130,8 +130,9 @@ async function readBody(request: Request, maxBytes: number): Promise<{ text: str
     combined.set(chunk, offset)
     offset += chunk.byteLength
   }
-  const text = new TextDecoder().decode(combined)
-  return { text, prefix: new TextDecoder().decode(combined.slice(0, PRE_AUTH_PREFIX_BYTES)) }
+  const decoder = new TextDecoder()
+  const text = decoder.decode(combined)
+  return { text, prefix: text.slice(0, PRE_AUTH_PREFIX_BYTES) }
 }
 
 function assertContentLengthWithinLimit(headers: Headers) {

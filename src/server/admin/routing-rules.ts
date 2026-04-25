@@ -43,6 +43,11 @@ export function listRoutingRules(): RoutingRule[] {
 }
 
 export function createRoutingRule(input: CreateRoutingRuleBody): RoutingRule {
+  validateRoutingRuleSafety({
+    match: input.match,
+    target: input.target ?? { type: 'llama_swap' },
+    authMode: input.authMode ?? 'require_key',
+  })
   const id = `rrl_${ulid()}`
   const now = new Date()
   const currentMax = db
