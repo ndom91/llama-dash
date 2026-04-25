@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SystemRouteImport } from './routes/system'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LogsRouteImport } from './routes/logs'
@@ -27,6 +28,11 @@ import { Route as KeysIdRouteImport } from './routes/keys.$id'
 const SystemRoute = SystemRouteImport.update({
   id: '/system',
   path: '/system',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PoliciesRoute = PoliciesRouteImport.update({
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/settings': typeof SettingsRoute
   '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/settings': typeof SettingsRoute
   '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/settings': typeof SettingsRoute
   '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/settings'
     | '/system'
     | '/keys/$id'
     | '/models/$id'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/settings'
     | '/system'
     | '/keys/$id'
     | '/models/$id'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/settings'
     | '/system'
     | '/keys/$id'
     | '/models/$id'
@@ -203,6 +215,7 @@ export interface RootRouteChildren {
   LogsRoute: typeof LogsRoute
   PlaygroundRoute: typeof PlaygroundRoute
   PoliciesRoute: typeof PoliciesRoute
+  SettingsRoute: typeof SettingsRoute
   SystemRoute: typeof SystemRoute
   KeysIdRoute: typeof KeysIdRoute
   ModelsIdRoute: typeof ModelsIdRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/system'
       fullPath: '/system'
       preLoaderRoute: typeof SystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/policies': {
@@ -323,6 +343,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogsRoute: LogsRoute,
   PlaygroundRoute: PlaygroundRoute,
   PoliciesRoute: PoliciesRoute,
+  SettingsRoute: SettingsRoute,
   SystemRoute: SystemRoute,
   KeysIdRoute: KeysIdRoute,
   ModelsIdRoute: ModelsIdRoute,

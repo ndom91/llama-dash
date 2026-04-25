@@ -20,6 +20,7 @@ Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostly
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
 - **Playground** — Supports chat, image, speech and transcribe. See request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
+- **Settings** — application appearance controls and the home for global proxy/privacy defaults.
 
 <table>
   <tr>
@@ -141,7 +142,7 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/db/*` — Drizzle schema, migrator, SQLite initialization, and request/model-event indexes for common dashboard query paths.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
-- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
+- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 

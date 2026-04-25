@@ -16,6 +16,7 @@ function resolveTitle(pathname: string): string {
   if (normalized === '/keys') return 'API Keys'
   if (normalized.startsWith('/keys/')) return 'API Key Detail'
   if (normalized === '/config') return 'Config'
+  if (normalized === '/settings') return 'Settings'
   if (normalized === '/endpoints') return 'Endpoints'
   if (normalized === '/policies') return 'Policies'
   if (normalized === '/system') return 'System'

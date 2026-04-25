@@ -151,7 +151,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     (chat plus request/response/timing/events/curl inspector tabs; timing
     sidebar shows TTFT, prefill, decode, and stream-close when upstream
     llama.cpp timing metadata is present), Config editor with explicit
-    validate action plus pre-save schema validation, API Keys (list +
+    validate action plus pre-save schema validation, Settings (appearance controls
+    and global proxy/privacy defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, and direct upstream target controls), Endpoints (connection examples for curl, Python, TS,

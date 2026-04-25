@@ -9,17 +9,15 @@ import {
   ScrollText,
   ServerCog,
   Settings,
+  SlidersHorizontal,
   Shield,
   Terminal,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
-import { useColorTheme } from '../lib/use-color-theme'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
-import { ThemeToggle } from './ThemeToggle'
-import { Tooltip } from './Tooltip'
 import { Logo } from './Logo'
 
 type NavItem = {
@@ -31,6 +29,7 @@ type NavItem = {
     | '/system'
     | '/playground'
     | '/config'
+    | '/settings'
     | '/keys'
     | '/attribution'
     | '/endpoints'
@@ -73,6 +72,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
       { to: '/attribution', label: 'Attribution', shortcut: 'A09', Icon: Fingerprint },
       { to: '/policies', label: 'Policies', shortcut: 'P10', Icon: Shield },
       { to: '/endpoints', label: 'Endpoints', shortcut: 'E11', Icon: Link2 },
+      { to: '/settings', label: 'Settings', shortcut: 'S12', Icon: SlidersHorizontal },
     ],
   },
 ]
@@ -86,7 +86,6 @@ export function Sidebar() {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
-  const colorTheme = useColorTheme()
 
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
@@ -184,32 +183,12 @@ export function Sidebar() {
       </nav>
 
       <div className="p-2.5 border-t border-border flex flex-col gap-2">
-        <div className="flex items-center gap-2 border border-border rounded bg-surface-2 py-1.5 px-2 pl-3">
-          <div className="flex justify-between flex-1">
-            {colorTheme.themes.map((t) => (
-              <Tooltip key={t.id} label={t.name} side="top">
-                <button
-                  type="button"
-                  className={cn(
-                    'size-3 rounded-pill border-2 border-transparent cursor-pointer transition-[border-color,box-shadow] duration-150',
-                    'hover:shadow-[0_0_0_2px_var(--bg-0),0_0_0_4px_var(--fg-dim)]',
-                    t.id === colorTheme.themeId && 'shadow-[0_0_0_2px_var(--bg-0),0_0_0_4px_var(--fg)]',
-                  )}
-                  style={{ background: t.accent['500'] }}
-                  onClick={() => colorTheme.select(t.id)}
-                  aria-label={t.name}
-                />
-              </Tooltip>
-            ))}
-          </div>
-          <ThemeToggle />
-        </div>
         <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
           <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
             <span>{gpu?.driver === 'apple' ? 'memory' : 'vram'} ·</span>
             <span className="ml-auto text-fg-muted">
               {hasVram
-                ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
+                ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`
                 : resident
                   ? `${visibleIdx} of ${totalCount}`
                   : 'idle'}
