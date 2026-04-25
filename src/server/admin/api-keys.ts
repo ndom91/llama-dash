@@ -101,6 +101,7 @@ export function findKeyByHash(hash: string): schema.ApiKey | undefined {
 }
 
 let _hasUserKeysCache: boolean | null = null
+let _keyNameCache: Map<string, string> | null = null
 
 export function hasAnyUserKeys(): boolean {
   if (_hasUserKeysCache != null) return _hasUserKeysCache
@@ -116,6 +117,18 @@ export function hasAnyUserKeys(): boolean {
 
 export function invalidateKeyCache() {
   _hasUserKeysCache = null
+  _keyNameCache = null
+}
+
+export function getApiKeyNameMap(): Map<string, string> {
+  if (_keyNameCache) return _keyNameCache
+  const rows = db.select({ id: schema.apiKeys.id, name: schema.apiKeys.name }).from(schema.apiKeys).all()
+  _keyNameCache = new Map(rows.map((row) => [row.id, row.name]))
+  return _keyNameCache
+}
+
+export function getApiKeyName(id: string): string | null {
+  return getApiKeyNameMap().get(id) ?? null
 }
 
 let _systemRawKey: string | null = null

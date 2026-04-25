@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
-import { listApiKeys } from './api-keys.ts'
+import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
@@ -17,8 +17,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     .limit(opts.limit)
     .all()
 
-  const keys = listApiKeys()
-  const keyMap = new Map(keys.map((k) => [k.id, k.name]))
+  const keyMap = getApiKeyNameMap()
 
   return rows.map((r) => ({
     id: r.id,
@@ -56,8 +55,7 @@ export function getRequestById(id: string): RequestDetail | null {
 
   let keyName: string | null = null
   if (r.keyId) {
-    const keys = listApiKeys()
-    keyName = keys.find((k) => k.id === r.keyId)?.name ?? null
+    keyName = getApiKeyName(r.keyId)
   }
 
   // Fall back to the in-memory ring buffer for full bodies when the request
