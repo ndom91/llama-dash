@@ -1,5 +1,6 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { setAuthMode, togglePreserveAuthorization } from './routing-draft'
 
 export function RoutingRuleAuthSection({
   draft,
@@ -24,13 +25,7 @@ export function RoutingRuleAuthSection({
           <button
             key={value}
             type="button"
-            onClick={() =>
-              onChange({
-                ...draft,
-                authMode: value as RoutingRule['authMode'],
-                preserveAuthorization: value === 'passthrough',
-              })
-            }
+            onClick={() => onChange(setAuthMode(draft, value === 'passthrough' ? 'passthrough' : 'require_key'))}
             className={cn(
               'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
               draft.authMode === value && 'bg-surface-1 text-fg',
@@ -47,7 +42,7 @@ export function RoutingRuleAuthSection({
             <span className="font-mono text-xs text-fg-dim">Pass through client Authorization header</span>
             <button
               type="button"
-              onClick={() => onChange({ ...draft, preserveAuthorization: !draft.preserveAuthorization })}
+              onClick={() => onChange(togglePreserveAuthorization(draft))}
               className={cn(
                 'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors',
                 draft.preserveAuthorization ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',

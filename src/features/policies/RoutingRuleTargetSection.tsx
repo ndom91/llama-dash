@@ -1,5 +1,6 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { setDirectTargetBaseUrl, setTargetType } from './routing-draft'
 
 export function RoutingRuleTargetSection({
   draft,
@@ -22,15 +23,7 @@ export function RoutingRuleTargetSection({
           <button
             key={value}
             type="button"
-            onClick={() =>
-              onChange({
-                ...draft,
-                target:
-                  value === 'direct'
-                    ? { type: 'direct', baseUrl: draft.target.type === 'direct' ? draft.target.baseUrl : '' }
-                    : { type: 'llama_swap' },
-              })
-            }
+            onClick={() => onChange(setTargetType(draft, value === 'direct' ? 'direct' : 'llama_swap'))}
             className={cn(
               'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
               draft.target.type === value && 'bg-surface-1 text-fg',
@@ -52,7 +45,7 @@ export function RoutingRuleTargetSection({
               className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
               placeholder="https://api.openai.com/v1"
               value={draft.target.baseUrl}
-              onChange={(event) => onChange({ ...draft, target: { type: 'direct', baseUrl: event.target.value } })}
+              onChange={(event) => onChange(setDirectTargetBaseUrl(draft, event.target.value))}
             />
           </label>
           <div className="border-l border-info px-4 py-4 font-mono text-xs text-fg-dim">

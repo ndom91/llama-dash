@@ -1,6 +1,7 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { coerceAction, type RoutingActionType } from './routing-ui'
+import { setActionType, setRejectReason, setRewriteModel } from './routing-draft'
+import type { RoutingActionType } from './routing-ui'
 
 export function RoutingRuleActionSection({
   draft,
@@ -27,7 +28,7 @@ export function RoutingRuleActionSection({
             <button
               key={value}
               type="button"
-              onClick={() => onChange({ ...draft, action: coerceAction(value as RoutingActionType, draft.action) })}
+              onClick={() => onChange(setActionType(draft, value as RoutingActionType))}
               className={cn(
                 'border-b-2 border-transparent px-3 py-2.5',
                 draft.action.type === value && 'border-accent text-accent',
@@ -47,7 +48,7 @@ export function RoutingRuleActionSection({
           <select
             className="select-native h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
             value={draft.action.model}
-            onChange={(event) => onChange({ ...draft, action: { type: 'rewrite_model', model: event.target.value } })}
+            onChange={(event) => onChange(setRewriteModel(draft, event.target.value))}
           >
             <option value="">select model…</option>
             {modelOptions.map((modelId) => (
@@ -66,7 +67,7 @@ export function RoutingRuleActionSection({
           <textarea
             className="min-h-[120px] border border-border bg-surface-3 px-3 py-2.5 font-mono text-xs text-fg"
             value={draft.action.reason}
-            onChange={(event) => onChange({ ...draft, action: { type: 'reject', reason: event.target.value } })}
+            onChange={(event) => onChange(setRejectReason(draft, event.target.value))}
           />
         </label>
       ) : null}

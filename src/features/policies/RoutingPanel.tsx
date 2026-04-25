@@ -260,7 +260,7 @@ function ObservabilityPreview({
     ['target', rule.target.type],
     ['upstream', rule.target.type === 'direct' ? rule.target.baseUrl : '—'],
     ['endpoint', rule.match.endpoints[0] ?? '—'],
-    ['eval time', `0.4 ms · evaluated ${rule.order} of ${totalRules} rules`],
+    ['evaluation order', `evaluated ${rule.order} of ${totalRules} rules`],
   ]
 
   return (

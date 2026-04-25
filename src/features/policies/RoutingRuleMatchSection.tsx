@@ -1,6 +1,7 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { type RoutingStreamMode, TokenInput } from './routing-ui'
+import { addMatchValue, asStreamMode, removeMatchValue, setMatchField } from './routing-draft'
+import { TokenInput } from './routing-ui'
 
 export function RoutingRuleMatchSection({
   draft,
@@ -27,15 +28,8 @@ export function RoutingRuleMatchSection({
           helper="exact strings only · no wildcards in MVP"
           placeholder="add endpoint…"
           values={draft.match.endpoints}
-          onAdd={(value) =>
-            onChange({ ...draft, match: { ...draft.match, endpoints: [...draft.match.endpoints, value] } })
-          }
-          onRemove={(value) =>
-            onChange({
-              ...draft,
-              match: { ...draft.match, endpoints: draft.match.endpoints.filter((item) => item !== value) },
-            })
-          }
+          onAdd={(value) => onChange(addMatchValue(draft, 'endpoints', value))}
+          onRemove={(value) => onChange(removeMatchValue(draft, 'endpoints', value))}
         />
 
         <TokenInput
@@ -43,18 +37,8 @@ export function RoutingRuleMatchSection({
           placeholder="add model…"
           values={draft.match.requestedModels}
           suggestions={modelOptions}
-          onAdd={(value) =>
-            onChange({ ...draft, match: { ...draft.match, requestedModels: [...draft.match.requestedModels, value] } })
-          }
-          onRemove={(value) =>
-            onChange({
-              ...draft,
-              match: {
-                ...draft.match,
-                requestedModels: draft.match.requestedModels.filter((item) => item !== value),
-              },
-            })
-          }
+          onAdd={(value) => onChange(addMatchValue(draft, 'requestedModels', value))}
+          onRemove={(value) => onChange(removeMatchValue(draft, 'requestedModels', value))}
         />
 
         {draft.authMode === 'passthrough' ? (
@@ -71,15 +55,8 @@ export function RoutingRuleMatchSection({
             values={draft.match.apiKeyIds}
             suggestions={keys.map((key) => key.id)}
             renderValue={(value) => `${keyMap.get(value) ?? value}`}
-            onAdd={(value) =>
-              onChange({ ...draft, match: { ...draft.match, apiKeyIds: [...draft.match.apiKeyIds, value] } })
-            }
-            onRemove={(value) =>
-              onChange({
-                ...draft,
-                match: { ...draft.match, apiKeyIds: draft.match.apiKeyIds.filter((item) => item !== value) },
-              })
-            }
+            onAdd={(value) => onChange(addMatchValue(draft, 'apiKeyIds', value))}
+            onRemove={(value) => onChange(removeMatchValue(draft, 'apiKeyIds', value))}
           />
         )}
 
@@ -94,7 +71,7 @@ export function RoutingRuleMatchSection({
               <button
                 key={value}
                 type="button"
-                onClick={() => onChange({ ...draft, match: { ...draft.match, stream: value as RoutingStreamMode } })}
+                onClick={() => onChange(setMatchField(draft, 'stream', asStreamMode(value)))}
                 className={cn(
                   'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
                   draft.match.stream === value && 'bg-surface-1 text-fg',
@@ -115,9 +92,7 @@ export function RoutingRuleMatchSection({
               className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
               placeholder="min · —"
               value={draft.match.minEstimatedPromptTokens}
-              onChange={(event) =>
-                onChange({ ...draft, match: { ...draft.match, minEstimatedPromptTokens: event.target.value } })
-              }
+              onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
             />
             <input
               type="number"
@@ -125,9 +100,7 @@ export function RoutingRuleMatchSection({
               className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
               placeholder="max · —"
               value={draft.match.maxEstimatedPromptTokens}
-              onChange={(event) =>
-                onChange({ ...draft, match: { ...draft.match, maxEstimatedPromptTokens: event.target.value } })
-              }
+              onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
             />
           </div>
           <div className="text-[11px] font-mono text-fg-dim">rough JSON-size heuristic · not model tokenization</div>

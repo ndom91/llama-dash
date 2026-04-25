@@ -24,6 +24,10 @@ export function shouldPreserveAuthorization(routing: RoutingOutcome): boolean {
   return routing.authMode === 'passthrough' && routing.preserveAuthorization
 }
 
+function hasRoutingMatch(routing: RoutingOutcome): boolean {
+  return routing.targetType !== null
+}
+
 export function preferPostAuthRouting(preAuthRouting: RoutingOutcome, postAuthRouting: RoutingOutcome): RoutingOutcome {
-  return postAuthRouting.targetType === null && preAuthRouting.targetType !== null ? preAuthRouting : postAuthRouting
+  return hasRoutingMatch(postAuthRouting) || !hasRoutingMatch(preAuthRouting) ? postAuthRouting : preAuthRouting
 }
