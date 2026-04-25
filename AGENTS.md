@@ -76,11 +76,10 @@ src/
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
     config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
-    vite-plugin.ts        — mounts proxy + admin handlers on the Vite dev server
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
-    proxy/                — /v1/* pass-through: handler.ts, transforms.ts, usage.ts, log.ts, auth.ts, rate-limiter.ts
+    proxy/                — /v1/* pass-through: handler, auth, body snapshots, transforms, forwarding, usage, logging, rate limits
     admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts, key-detail.ts, api-keys.ts, model-aliases.ts, settings.ts
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
@@ -106,11 +105,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
    config like request limits and attribution header mapping).
 3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
    per request with token counts pulled from the final SSE `usage` chunk (or
-   the JSON `usage` field for non-streamed responses). Handles both OpenAI
-   (`/v1/chat/completions`, flat `usage.prompt_tokens`/`completion_tokens`)
-   and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`, nested
-   `message.usage` with `input_tokens`/`output_tokens`, `message_stop` stream
-   terminator) shapes.
+   the JSON `usage` field for non-streamed responses). `handler.ts` owns the
+   high-level flow, `body.ts` owns request body snapshots/forward bodies/logged
+   bodies/content-length updates, and `forward.ts` owns upstream fetch,
+   streaming, usage scanning, completion/disconnect logging, and TPM recording.
+   Handles both OpenAI (`/v1/chat/completions`, flat
+   `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
+   `/v1/messages/count_tokens`, nested `message.usage` with
+   `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
 4. Admin API:
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
@@ -159,12 +161,17 @@ paths (proxy will grow middleware; admin will grow CRUD).
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `noop` + `passthrough` auth and preserved client `Authorization`.
 9. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
-   POST `/v1/*` requests between auth and forwarding. Parses body once,
-   applies transforms in order, re-serializes only if mutated:
+   POST `/v1/*` requests between auth and forwarding. Parses body once when
+   needed, applies transforms in order, re-serializes only if mutated:
    allow-list check → routing rule evaluation → alias resolution → system
    prompt injection → request size limits. Routing rules are ordered,
    first-match-wins, and currently support `noop`, `rewrite_model`, `reject`, and
-   per-rule auth mode (`require_key` or `passthrough`).
+   per-rule auth mode (`require_key` or `passthrough`). Pre-auth passthrough
+   routing only evaluates passthrough rules without API-key matchers. Normal
+   key-auth requests authenticate before body parsing unless an enabled
+   pre-auth passthrough rule needs body-derived fields (`requestedModels`,
+   `stream`, or estimated prompt token bounds). Endpoint-only passthrough rules
+   can match before auth without consuming the request body.
    In-memory caches for aliases and settings, invalidated on admin writes.
    System-prompt injection branches
    by endpoint: `/v1/chat/completions` prepends a `system` message to
@@ -330,6 +337,14 @@ sort lexicographically by creation time).
 - **Request bodies are not logged.** Ever, in this first pass. If that
   changes it will be a deliberate opt-in feature, not a side-effect of
   another change. Privacy matters; prompts are sensitive.
+- **Proxy body state belongs in `src/server/proxy/body.ts`.** Do not spread
+  ad-hoc body variables through `handler.ts`. Use the body snapshot helpers for
+  parsed routing input, transformed JSON serialization, multipart model updates,
+  forward body selection, logged body selection, and `content-length` updates.
+- **Authenticate before body parsing when safe.** `handler.ts` should only read
+  the body before auth when pre-auth passthrough routing can require body fields.
+  Keep `preAuthRoutingNeedsBody()` and `hasBodyDependentPreAuthRoutingRule()` in
+  sync with any new routing match fields.
 - **Streaming correctness is non-negotiable.** SSE must pass through
   without buffering (`res.write(value)` as each chunk arrives, no gather-
   then-flush). Token counting happens on a `tee`d scan, not by reading the
