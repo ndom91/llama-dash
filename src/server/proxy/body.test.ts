@@ -4,6 +4,7 @@ import {
   applyProxyBodyTransform,
   getProxyForwardBody,
   getProxyLoggedBody,
+  MAX_PROXY_BODY_BYTES,
   prepareProxyBody,
 } from './body'
 
@@ -82,5 +83,15 @@ describe('prepareProxyBody', () => {
     expect(transformed.reqModel).toBe('after')
     expect(transformed.multipartFormData?.get('model')).toBe('after')
     expect(getProxyLoggedBody(transformed)).toBeNull()
+  })
+
+  it('rejects bodies over the hard proxy body limit', async () => {
+    const request = new Request('http://dash.test/v1/messages', {
+      method: 'POST',
+      headers: { 'content-length': String(MAX_PROXY_BODY_BYTES + 1) },
+      body: '{}',
+    })
+
+    await expect(prepareProxyBody(request, 'POST')).rejects.toThrow('Request body exceeds')
   })
 })

@@ -1,4 +1,5 @@
 const PRE_AUTH_PREFIX_BYTES = 16 * 1024
+export const MAX_PROXY_BODY_BYTES = 10 * 1024 * 1024
 
 export type PreparedProxyBody = {
   parsedBody: Record<string, unknown> | null
@@ -30,7 +31,7 @@ export async function prepareProxyBody(request: Request, method: string): Promis
     return snapshot(await prepareMultipartBody(request), hasBody)
   }
 
-  const { text, prefix } = await readBody(request)
+  const { text, prefix } = await readBody(request, MAX_PROXY_BODY_BYTES)
   let parsedBody: Record<string, unknown> | null = null
   try {
     parsedBody = JSON.parse(text)
@@ -91,6 +92,7 @@ function extractModel(parsedBody: Record<string, unknown> | null): string | null
 
 async function prepareMultipartBody(request: Request): Promise<PreparedProxyBody> {
   try {
+    assertContentLengthWithinLimit(request.headers)
     const multipartFormData = await request.clone().formData()
     const modelField = multipartFormData.get('model')
     const streamField = multipartFormData.get('stream')
@@ -104,7 +106,8 @@ async function prepareMultipartBody(request: Request): Promise<PreparedProxyBody
   }
 }
 
-async function readBody(request: Request): Promise<{ text: string; prefix: string }> {
+async function readBody(request: Request, maxBytes: number): Promise<{ text: string; prefix: string }> {
+  assertContentLengthWithinLimit(request.headers)
   const reader = request.body?.getReader()
   if (!reader) return { text: '', prefix: '' }
 
@@ -114,6 +117,10 @@ async function readBody(request: Request): Promise<{ text: string; prefix: strin
     const { value, done } = await reader.read()
     if (done) break
     total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {})
+      throw new Error(`Request body exceeds ${maxBytes} bytes`)
+    }
     chunks.push(value)
   }
 
@@ -125,6 +132,15 @@ async function readBody(request: Request): Promise<{ text: string; prefix: strin
   }
   const text = new TextDecoder().decode(combined)
   return { text, prefix: new TextDecoder().decode(combined.slice(0, PRE_AUTH_PREFIX_BYTES)) }
+}
+
+function assertContentLengthWithinLimit(headers: Headers) {
+  const raw = headers.get('content-length')
+  if (!raw) return
+  const size = Number(raw)
+  if (Number.isFinite(size) && size > MAX_PROXY_BODY_BYTES) {
+    throw new Error(`Request body exceeds ${MAX_PROXY_BODY_BYTES} bytes`)
+  }
 }
 
 function parseRoutingPrefix(prefix: string): Record<string, unknown> | null {

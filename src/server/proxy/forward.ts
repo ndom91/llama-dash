@@ -2,6 +2,7 @@ import type { ApiKey } from '../db/schema.ts'
 import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
+import { BoundedTextCapture } from './text-capture.ts'
 import type { RoutingOutcome } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
@@ -143,7 +144,7 @@ export async function forwardUpstreamAndLog(input: {
   const reader = upstreamResponse.body.getReader()
   const decoder = isBinaryResponse ? null : new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner() : null
-  const responseChunks: Array<string> = []
+  const responseCapture = decoder ? new BoundedTextCapture() : null
 
   const responseBody = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -154,15 +155,16 @@ export async function forwardUpstreamAndLog(input: {
           if (decoder) {
             const tail = decoder.decode()
             if (tail) {
-              responseChunks.push(tail)
+              responseCapture?.append(tail)
               if (sseScanner) sseScanner.feed(tail, Date.now())
             }
           }
-          const resBody = decoder ? responseChunks.join('') : null
+          const resBody = responseCapture?.text() ?? null
+          const usageBody = responseCapture?.usageText()
           const usage: UsageWithClose = sseScanner
             ? sseScanner.done(Date.now())
-            : isJson && resBody
-              ? { ...usageFromJsonBody(resBody), streamCloseMs: null }
+            : isJson && usageBody
+              ? { ...usageFromJsonBody(usageBody), streamCloseMs: null }
               : nullUsage(input.reqModel)
           if (
             input.endpoint === '/v1/messages/count_tokens' &&
@@ -197,7 +199,7 @@ export async function forwardUpstreamAndLog(input: {
         controller.enqueue(value)
         if (decoder) {
           const text = decoder.decode(value, { stream: true })
-          responseChunks.push(text)
+          responseCapture?.append(text)
           if (sseScanner) sseScanner.feed(text, Date.now())
         }
       } catch (err) {
@@ -214,7 +216,7 @@ export async function forwardUpstreamAndLog(input: {
           reqHeaders: input.reqHeadersJson,
           reqBody: input.reqBody,
           resHeaders: resHeadersJson,
-          resBody: decoder ? responseChunks.join('') || null : null,
+          resBody: responseCapture?.text() ?? null,
           keyId: input.keyId,
           attribution: input.attribution,
           routing: input.routing,
@@ -234,7 +236,7 @@ export async function forwardUpstreamAndLog(input: {
         reqHeaders: input.reqHeadersJson,
         reqBody: input.reqBody,
         resHeaders: resHeadersJson,
-        resBody: decoder ? responseChunks.join('') || null : null,
+        resBody: responseCapture?.text() ?? null,
         keyId: input.keyId,
         attribution: input.attribution,
         routing: input.routing,

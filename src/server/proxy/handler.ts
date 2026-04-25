@@ -30,8 +30,20 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const attribution = extractAttribution(request.headers, getAttributionSettings())
   let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
   let body: ProxyBodySnapshot | null = null
-  if (preAuthRoutingNeedsBody(method)) {
-    body = await prepareProxyBody(request, method)
+  try {
+    if (preAuthRoutingNeedsBody(method)) {
+      body = await prepareProxyBody(request, method)
+    }
+  } catch (err) {
+    return rejectBodyTooLarge({
+      err,
+      startedAt,
+      method,
+      endpoint,
+      reqHeaders: loggedReqHeaders(),
+      attribution,
+      routingOutcome,
+    })
   }
 
   const authResult = authenticateRequest(request, endpoint, body?.parsedBody ?? null)
@@ -65,7 +77,19 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const keyId = authResult.keyId
   const keyRow = authResult.keyRow
   routingOutcome = authResult.preAuthRouting
-  body ??= await prepareProxyBody(request, method)
+  try {
+    body ??= await prepareProxyBody(request, method)
+  } catch (err) {
+    return rejectBodyTooLarge({
+      err,
+      startedAt,
+      method,
+      endpoint,
+      reqHeaders: loggedReqHeaders(),
+      attribution,
+      routingOutcome,
+    })
+  }
 
   if (!body.hasBody) {
     upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
@@ -157,4 +181,34 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   return forwardedResponse
+}
+
+function rejectBodyTooLarge(input: {
+  err: unknown
+  startedAt: number
+  method: string
+  endpoint: string
+  reqHeaders: string
+  attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
+  routingOutcome: RoutingOutcome
+}): Response {
+  const message = input.err instanceof Error ? input.err.message : String(input.err)
+  const body = { error: { message, type: 'request_too_large' } }
+  writeProxyLog({
+    startedAt: input.startedAt,
+    status: 413,
+    method: input.method,
+    endpoint: input.endpoint,
+    usage: nullUsage(),
+    streamed: false,
+    error: message,
+    reqHeaders: input.reqHeaders,
+    reqBody: null,
+    resHeaders: null,
+    resBody: JSON.stringify(toErrorBody(input.endpoint, body)),
+    keyId: null,
+    attribution: input.attribution,
+    routing: input.routingOutcome,
+  })
+  return Response.json(toErrorBody(input.endpoint, body), { status: 413 })
 }
