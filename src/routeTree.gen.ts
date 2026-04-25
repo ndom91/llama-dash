@@ -14,6 +14,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LogsRouteImport } from './routes/logs'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as EndpointsRouteImport } from './routes/endpoints'
 import { Route as ConfigRouteImport } from './routes/config'
 import { Route as AttributionRouteImport } from './routes/attribution'
@@ -48,6 +49,11 @@ const PlaygroundRoute = PlaygroundRouteImport.update({
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EndpointsRoute = EndpointsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/attribution': typeof AttributionRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/attribution': typeof AttributionRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/attribution': typeof AttributionRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
@@ -160,6 +169,7 @@ export interface FileRouteTypes {
     | '/attribution'
     | '/config'
     | '/endpoints'
+    | '/login'
     | '/logs'
     | '/playground'
     | '/policies'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/attribution'
     | '/config'
     | '/endpoints'
+    | '/login'
     | '/logs'
     | '/playground'
     | '/policies'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/attribution'
     | '/config'
     | '/endpoints'
+    | '/login'
     | '/logs'
     | '/playground'
     | '/policies'
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   AttributionRoute: typeof AttributionRoute
   ConfigRoute: typeof ConfigRoute
   EndpointsRoute: typeof EndpointsRoute
+  LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
   PlaygroundRoute: typeof PlaygroundRoute
   PoliciesRoute: typeof PoliciesRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/endpoints': {
@@ -340,6 +360,7 @@ const rootRouteChildren: RootRouteChildren = {
   AttributionRoute: AttributionRoute,
   ConfigRoute: ConfigRoute,
   EndpointsRoute: EndpointsRoute,
+  LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
   PlaygroundRoute: PlaygroundRoute,
   PoliciesRoute: PoliciesRoute,

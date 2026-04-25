@@ -42,6 +42,7 @@
     "@tanstack/router-plugin": "^1.132.0",
     "ajv": "^8.18.0",
     "ajv-formats": "^3.0.1",
+    "better-auth": "^1.6.9",
     "better-sqlite3": "^12.9.0",
     "drizzle-orm": "^0.45.2",
     "gpt-tokenizer": "^3.4.0",

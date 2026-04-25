@@ -176,6 +176,20 @@
       "when": 1777046402000,
       "tag": "0024_routing_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1777046403000,
+      "tag": "0025_request_query_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1777143600000,
+      "tag": "0026_better_auth",
+      "breakpoints": true
     }
   ]
 }

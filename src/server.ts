@@ -6,8 +6,8 @@ if (config.llamaSwapInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 }
 
-const { runMigrations } = await import('./server/db/migrate.ts')
-runMigrations()
+const { ensureDashboardUser, getDashboardSession, isDashboardAuthEnabled, auth } = await import('./server/auth.ts')
+await ensureDashboardUser()
 
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
@@ -24,12 +24,23 @@ export default createServerEntry({
   async fetch(request, ...args) {
     const url = new URL(request.url)
 
+    if (url.pathname.startsWith('/api/auth/')) {
+      return auth.handler(request)
+    }
+
     if (url.pathname.startsWith('/v1/') || url.pathname === '/v1') {
       const { handleProxyRequest } = await import('./server/proxy/handler.ts')
       return handleProxyRequest(request)
     }
 
     if (url.pathname.startsWith('/api/')) {
+      const session = await getDashboardSession(request)
+      if (isDashboardAuthEnabled() && !session) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
       const { handleAdminRequest } = await import('./server/admin/handler.ts')
       return handleAdminRequest(request)
     }
@@ -39,6 +50,15 @@ export default createServerEntry({
       return new Response(await renderPrometheusMetrics(), {
         headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' },
       })
+    }
+
+    if (isDashboardAuthEnabled() && url.pathname !== '/login') {
+      const session = await getDashboardSession(request)
+      if (!session) {
+        const redirectTo = new URL('/login', url)
+        redirectTo.searchParams.set('redirect', `${url.pathname}${url.search}`)
+        return Response.redirect(redirectTo, 302)
+      }
     }
 
     return ssrHandler(request, ...args)

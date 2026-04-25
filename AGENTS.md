@@ -51,7 +51,9 @@ src/
     policies.tsx            · /policies model aliases + request limits
     endpoints.tsx           · /endpoints client connection examples
     logs.tsx                · /logs raw log viewer
+    login.tsx               · /login Better Auth username/password form
   features/               — route-owned UI, one component per file, grouped by feature
+    auth/                  · login page
     dashboard/             · dashboard panels + metrics helpers
     endpoints/             · endpoint examples + copy/highlight helpers
     keys/                  · keys list/detail panels and forms
@@ -75,10 +77,11 @@ src/
     queries.ts            — TanStack Query hooks (5s polling, infinite scroll)
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
+    auth.ts               — Better Auth dashboard session config + bootstrap
     config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
-    db/                   — drizzle schema + SQLite init + migrator
+    db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
@@ -98,13 +101,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Six tables plus query indexes for common
+2. SQLite (`data/dash.db`) + Drizzle. Ten tables plus query indexes for common
    request/model-event lookups: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt), `model_aliases` (global model name mapping),
    `routing_rules` (ordered request routing rules), `settings` (key-value
-   config like request limits and attribution header mapping).
+   config like request limits and attribution header mapping), and Better Auth's
+   `user`, `session`, `account`, and `verification` tables for dashboard sessions.
 3. `/v1/*` pass-through proxy that streams SSE unchanged and queues one log row
    per completed request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). `handler.ts` owns the
@@ -118,6 +122,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
 4. Admin API:
+   Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
+   `/api/auth/*` is handled by Better Auth for username/password sign-in, session lookup, and sign-out.
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
@@ -144,7 +150,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
 7. Model watcher: polls llama-swap `/running` every 15s, diffs against
    known state, inserts `load`/`unload` events into SQLite.
-8. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
+8. UI views: Login (Better Auth username/password form), Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     DB, proxy, queue, and GPU poller/device status), Playground

@@ -12,6 +12,7 @@ Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostly
 - **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, and detail view.
 - **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
+- **Dashboard auth** — optional Better Auth username/password session gate for the UI and `/api/*`; `/v1/*` proxy auth stays API-key based.
 - **Policies** — ordered routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
@@ -131,18 +132,24 @@ Copy `.env.example` to `.env` and fill in the values.
 | `LLAMASWAP_INSECURE` | `false` | Skip TLS verification for upstream with self-signed certs. |
 | `LLAMASWAP_CONFIG_FILE` | (empty) | Absolute path to llama-swap's `config.yaml`. Required for config editor. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
+| `DASHBOARD_AUTH_USERNAME` | (empty) | Enables dashboard auth when set with `DASHBOARD_AUTH_PASSWORD`. |
+| `DASHBOARD_AUTH_PASSWORD` | (empty) | Password for the configured dashboard user. |
+| `DASHBOARD_AUTH_EMAIL` | `<username>@llama-dash.local` | Optional Better Auth email for the configured dashboard user. |
+| `BETTER_AUTH_SECRET` | (empty) | Required when dashboard auth is enabled; use a long random value. |
+| `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. |
 
 ## How it's wired
 
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, settings, and system health.
+- `src/server/auth.ts` — Better Auth setup for optional dashboard username/password sessions; protects UI and `/api/*`, not `/v1/*`.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and feeds dashboard/System GPU details. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
-- `src/server/db/*` — Drizzle schema, migrator, SQLite initialization, and request/model-event indexes for common dashboard query paths.
+- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
-- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
+- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 

@@ -5,6 +5,7 @@ import {
   KeyRound,
   LayoutDashboard,
   Link2,
+  LogOut,
   MessageSquare,
   ScrollText,
   ServerCog,
@@ -14,6 +15,7 @@ import {
   Terminal,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
@@ -86,6 +88,7 @@ export function Sidebar() {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
+  const { data: session } = authClient.useSession()
 
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
@@ -122,6 +125,11 @@ export function Sidebar() {
   const gpuCard = gpu?.available ? gpu.gpus[0] : null
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
+
+  async function signOut() {
+    await authClient.signOut()
+    window.location.href = '/login'
+  }
 
   return (
     <aside
@@ -232,7 +240,33 @@ export function Sidebar() {
             </>
           )}
         </div>
+        <div className="flex items-center gap-2 rounded border border-border bg-surface-1 px-3 py-2">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-3 font-mono text-[10px] font-semibold uppercase text-fg-muted">
+            {initials(session?.user.name || session?.user.email)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">signed in</div>
+            <div className="truncate font-mono text-xs text-fg" title={session?.user.email ?? undefined}>
+              {session?.user.email ?? 'dashboard user'}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            onClick={signOut}
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </aside>
   )
+}
+
+function initials(value: string | null | undefined): string {
+  const trimmed = value?.trim()
+  if (!trimmed) return 'U'
+  return trimmed.slice(0, 2)
 }
