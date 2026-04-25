@@ -1,7 +1,18 @@
 import * as v from 'valibot'
 import { isSensitiveAttributionHeaderName, normalizeAttributionHeaderName } from '../../../lib/schemas/attribution.ts'
-import { UpdateAttributionSettingsBodySchema, UpdateRequestLimitsBodySchema } from '../../../lib/schemas/settings.ts'
-import { getAttributionSettings, getRequestLimits, setAttributionSettings, setRequestLimits } from '../settings.ts'
+import {
+  UpdateAttributionSettingsBodySchema,
+  UpdatePrivacySettingsBodySchema,
+  UpdateRequestLimitsBodySchema,
+} from '../../../lib/schemas/settings.ts'
+import {
+  getAttributionSettings,
+  getPrivacySettings,
+  getRequestLimits,
+  setAttributionSettings,
+  setPrivacySettings,
+  setRequestLimits,
+} from '../settings.ts'
 import { error, json, readJsonBody, type Route } from './types.ts'
 
 export const settingRoutes: Route[] = [
@@ -48,6 +59,23 @@ export const settingRoutes: Route[] = [
       if (!result.success) return error(400, 'Invalid request limits body')
       setRequestLimits(result.output)
       return json(200, getRequestLimits())
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/settings\/privacy$/,
+    handler: async () => json(200, getPrivacySettings()),
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/settings\/privacy$/,
+    handler: async (request) => {
+      const parsed = await readJsonBody(request)
+      if (!parsed.ok) return error(400, 'Invalid JSON body')
+      const result = v.safeParse(UpdatePrivacySettingsBodySchema, parsed.value)
+      if (!result.success) return error(400, 'Invalid privacy settings body')
+      setPrivacySettings(result.output)
+      return json(200, getPrivacySettings())
     },
   },
 ]

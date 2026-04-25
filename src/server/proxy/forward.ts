@@ -1,4 +1,5 @@
 import type { ApiKey } from '../db/schema.ts'
+import { getPrivacySettings } from '../admin/settings.ts'
 import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -120,6 +121,7 @@ export async function forwardUpstreamAndLog(input: {
   const isSse = contentType.includes('text/event-stream')
   const isJson = contentType.includes('application/json')
   const isBinaryResponse = !isSse && !isJson
+  const captureResponseBodies = getPrivacySettings().captureResponseBodies
 
   if (!upstreamResponse.body) {
     writeProxyLog({
@@ -159,7 +161,7 @@ export async function forwardUpstreamAndLog(input: {
               if (sseScanner) sseScanner.feed(tail, Date.now())
             }
           }
-          const resBody = responseCapture?.text() ?? null
+          const resBody = captureResponseBodies ? (responseCapture?.text() ?? null) : null
           const usageBody = responseCapture?.usageText()
           const usage: UsageWithClose = sseScanner
             ? sseScanner.done(Date.now())
@@ -216,7 +218,7 @@ export async function forwardUpstreamAndLog(input: {
           reqHeaders: input.reqHeadersJson,
           reqBody: input.reqBody,
           resHeaders: resHeadersJson,
-          resBody: responseCapture?.text() ?? null,
+          resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
           keyId: input.keyId,
           attribution: input.attribution,
           routing: input.routing,
@@ -236,7 +238,7 @@ export async function forwardUpstreamAndLog(input: {
         reqHeaders: input.reqHeadersJson,
         reqBody: input.reqBody,
         resHeaders: resHeadersJson,
-        resBody: responseCapture?.text() ?? null,
+        resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
         keyId: input.keyId,
         attribution: input.attribution,
         routing: input.routing,

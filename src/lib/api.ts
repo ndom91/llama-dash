@@ -3,7 +3,7 @@ import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
-import { AttributionSettingsSchema, RequestLimitsSchema } from './schemas/settings'
+import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
 import { ApiSystemStatusSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
@@ -42,7 +42,7 @@ export type {
 export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
-export type { AttributionSettings, RequestLimits } from './schemas/settings'
+export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus } from './schemas/system'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
@@ -169,4 +169,10 @@ export const api = {
   getRequestLimits: () => getJson('/api/settings/request-limits', RequestLimitsSchema),
   updateRequestLimits: (body: { maxMessages?: number | null; maxEstimatedTokens?: number | null }) =>
     sendJson('/api/settings/request-limits', RequestLimitsSchema, { method: 'PATCH', body }),
+  getPrivacySettings: () => getJson('/api/settings/privacy', PrivacySettingsSchema),
+  updatePrivacySettings: (body: {
+    captureRequestBodies?: boolean
+    captureResponseBodies?: boolean
+    maxStoredBodyBytes?: number
+  }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
 }

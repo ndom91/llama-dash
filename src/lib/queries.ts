@@ -26,13 +26,18 @@ import {
   type ApiSystemStatus,
   type AttributionSettings,
   type ModelAliasItem,
+  type PrivacySettings,
   type RoutingRule,
   type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
-import type { UpdateAttributionSettingsBody, UpdateRequestLimitsBody } from './schemas/settings'
+import type {
+  UpdateAttributionSettingsBody,
+  UpdatePrivacySettingsBody,
+  UpdateRequestLimitsBody,
+} from './schemas/settings'
 
 export const POLL_MS = 5_000
 
@@ -62,6 +67,7 @@ export const qk = {
   aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
+  privacySettings: ['settings', 'privacy'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
 }
 
@@ -515,6 +521,13 @@ export function useAttributionSettings(): UseQueryResult<AttributionSettings> {
   })
 }
 
+export function usePrivacySettings(): UseQueryResult<PrivacySettings> {
+  return useQuery({
+    queryKey: qk.privacySettings,
+    queryFn: () => api.getPrivacySettings(),
+  })
+}
+
 export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error, UpdateRequestLimitsBody> {
   const qc = useQueryClient()
   return useMutation({
@@ -544,6 +557,21 @@ export function useUpdateAttributionSettings(): UseMutationResult<
     },
     onError: (e) => {
       toastMutationError('Failed to update attribution settings', e)
+    },
+  })
+}
+
+export function useUpdatePrivacySettings(): UseMutationResult<PrivacySettings, Error, UpdatePrivacySettingsBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.updatePrivacySettings(body),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.privacySettings, settings)
+      invalidateKeys(qc, [qk.privacySettings])
+      toast.success('Privacy settings updated')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update privacy settings', e)
     },
   })
 }

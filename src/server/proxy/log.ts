@@ -13,6 +13,7 @@ let droppedLogs = 0
 
 function truncateBody(body: string | null, maxBytes: number): string | null {
   if (body == null) return null
+  if (maxBytes <= 0) return null
   const fullBytes = Buffer.byteLength(body, 'utf8')
   if (fullBytes <= maxBytes) return body
   // Reserve room for the marker. Slice by code units (cheap) and trim any
@@ -103,7 +104,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const id = `req_${ulid()}`
   const { maxBytes } = getBodyLogLimits()
   // Keep full bodies in-memory for recent-debug access; DB keeps truncated.
-  storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
+  if (maxBytes > 0) storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
   const requestBody = truncateBody(row.requestBody, maxBytes)
   const responseBody = truncateBody(row.responseBody, maxBytes)
   const costUsd = computeCostUsd(row.model, row)

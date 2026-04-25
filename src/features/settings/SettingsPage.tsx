@@ -1,8 +1,9 @@
-import { Monitor } from 'lucide-react'
+import { Monitor, ShieldCheck } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
+import { usePrivacySettings, useUpdatePrivacySettings } from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
 
 function SettingsPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
@@ -17,9 +18,54 @@ function SettingsPanel({ title, subtitle, children }: { title: string; subtitle:
   )
 }
 
+function PrivacyToggle({
+  title,
+  description,
+  enabled,
+  disabled,
+  onToggle,
+}: {
+  title: string
+  description: string
+  enabled: boolean
+  disabled?: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded border border-border bg-surface-2 p-3">
+      <div>
+        <div className="font-mono text-xs font-semibold text-fg">{title}</div>
+        <div className="mt-1 font-mono text-[11px] leading-relaxed text-fg-dim">{description}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-label={`${enabled ? 'Disable' : 'Enable'} ${title.toLowerCase()}`}
+        className={cn(
+          'relative inline-flex h-5 w-8 shrink-0 items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+          enabled ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
+        )}
+        aria-pressed={enabled}
+      >
+        <span
+          className={cn(
+            'inline-block h-3.5 w-3.5 rounded-full bg-fg transition-transform',
+            enabled ? 'translate-x-[14px]' : 'translate-x-[2px]',
+          )}
+        />
+      </button>
+    </div>
+  )
+}
+
 export function SettingsPage() {
   const colorTheme = useColorTheme()
+  const privacySettings = usePrivacySettings()
+  const updatePrivacySettings = useUpdatePrivacySettings()
   const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
+  const privacy = privacySettings.data
+  const isPrivacyMutating = updatePrivacySettings.isPending
 
   return (
     <div className="main-col">
@@ -83,9 +129,58 @@ export function SettingsPage() {
             </SettingsPanel>
 
             <SettingsPanel title="Logging & Privacy" subtitle="global proxy capture policy">
-              <div className="max-w-3xl font-mono text-xs leading-relaxed text-fg-dim">
-                Body capture controls will live here next: global capture mode, max stored body bytes, and future
-                redaction rules. Current behavior remains unchanged until those settings are added.
+              <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                    <ShieldCheck className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                    Capture policy
+                  </div>
+                  <div className="font-mono text-lg font-semibold text-fg">Request logs</div>
+                  <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                    Controls what prompt and response payloads are retained after proxy requests complete.
+                  </div>
+                </div>
+
+                <div className="grid gap-3 xl:grid-cols-2">
+                  <PrivacyToggle
+                    title="Request bodies"
+                    description="Store forwarded request payloads for request detail inspection. Disable to avoid retaining prompts."
+                    enabled={privacy?.captureRequestBodies ?? false}
+                    disabled={!privacy || isPrivacyMutating}
+                    onToggle={() =>
+                      privacy && updatePrivacySettings.mutate({ captureRequestBodies: !privacy.captureRequestBodies })
+                    }
+                  />
+                  <PrivacyToggle
+                    title="Response bodies"
+                    description="Store upstream response payloads for debugging. Token usage scanning continues even when disabled."
+                    enabled={privacy?.captureResponseBodies ?? false}
+                    disabled={!privacy || isPrivacyMutating}
+                    onToggle={() =>
+                      privacy && updatePrivacySettings.mutate({ captureResponseBodies: !privacy.captureResponseBodies })
+                    }
+                  />
+                  <label className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
+                    <span className="font-mono text-xs font-semibold text-fg">Max stored body bytes</span>
+                    <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
+                      Truncates persisted request and response bodies. Set to 0 to store no body text.
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={1024 * 1024}
+                      step={1024}
+                      disabled={!privacy || isPrivacyMutating}
+                      className="h-9 max-w-48 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg disabled:cursor-not-allowed disabled:opacity-50"
+                      value={privacy?.maxStoredBodyBytes ?? ''}
+                      onChange={(event) => {
+                        const value = Number(event.target.value)
+                        if (!Number.isFinite(value) || value < 0) return
+                        updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
             </SettingsPanel>
           </div>

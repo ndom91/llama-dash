@@ -1,6 +1,6 @@
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
-import { getAttributionSettings } from '../admin/settings.ts'
+import { getAttributionSettings, getPrivacySettings } from '../admin/settings.ts'
 import { extractAttribution } from './attribution.ts'
 import {
   applyProxyBodyHeaders,
@@ -97,6 +97,7 @@ export function loggedRequestHeaders(ctx: ProxyContext): string {
 }
 
 export function loggedRequestBody(ctx: ProxyContext): string | null {
+  if (!getPrivacySettings().captureRequestBodies) return null
   return ctx.body ? getProxyLoggedBody(ctx.body) : null
 }
 

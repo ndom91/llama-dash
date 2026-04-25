@@ -15,6 +15,11 @@ vi.mock('../config.ts', () => ({
 
 vi.mock('../admin/settings.ts', () => ({
   getAttributionSettings: () => ({ clientHeader: '', endUserHeader: '', sessionHeader: '' }),
+  getPrivacySettings: () => ({
+    captureRequestBodies: true,
+    captureResponseBodies: true,
+    maxStoredBodyBytes: 32 * 1024,
+  }),
   getRequestLimits: () => ({ maxMessages: null, maxEstimatedTokens: null }),
 }))
 
