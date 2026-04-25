@@ -149,10 +149,10 @@ Route any Anthropic SDK (Claude Code included) through llama-dash for
 logging, filtering, and per-request inspection. Supports Anthropic subscriptions. Traffic flows:
 
 ```
-Claude Code ──► llama-dash :5173 (log + filter) ──► llama-swap peer ──► api.anthropic.com
+Claude Code ──► llama-dash :5173 (log + filter) ──► api.anthropic.com
 ```
 
-**1. Client config** (`~/.claude/settings.json`):
+**Client config** (`~/.claude/settings.json`):
 
 ```json
 { "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:5173" } }
@@ -161,18 +161,9 @@ Claude Code ──► llama-dash :5173 (log + filter) ──► llama-swap peer 
 Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
 Code manages the bearer itself and llama-dash passes it through unchanged.
 
-**2. llama-swap `config.yaml`** — add a `peers:` entry pointing at
-Anthropic; omit `apiKey` so the client's OAuth/Bearer flows through:
-
-```yaml
-peers:
-  anthropic:
-    proxy: https://api.anthropic.com
-    models:
-      - claude-opus-4-7
-      - claude-sonnet-4-6
-      - claude-haiku-4-5-20251001
-```
+Configure explicit routing rules in Policies for `/v1/messages` and
+`/v1/messages/count_tokens` using `continue`, `passthrough` auth, preserved
+client `Authorization`, and direct target `https://api.anthropic.com/v1`.
 
 ## Acknowledgements
 
