@@ -6,7 +6,7 @@ import { authenticateRequest } from './auth.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import type { RoutingOutcome } from './transforms.ts'
-import { applyTransforms } from './transforms.ts'
+import { applyTransforms, emptyRoutingOutcome, routingOutcomeFromDecision } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
 const HOP_BY_HOP = new Set([
@@ -34,19 +34,6 @@ const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
 // still carry the real values — redaction applies only to the logged copy.
 const SENSITIVE_HEADERS = new Set(['authorization', 'x-api-key', 'proxy-authorization', 'cookie', 'set-cookie'])
 const PRE_AUTH_PREFIX_BYTES = 16 * 1024
-
-const EMPTY_ROUTING_OUTCOME: RoutingOutcome = {
-  ruleId: null,
-  ruleName: null,
-  actionType: null,
-  authMode: null,
-  preserveAuthorization: false,
-  targetType: null,
-  targetBaseUrl: null,
-  requestedModel: null,
-  routedModel: null,
-  rejectReason: null,
-}
 
 function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
@@ -119,41 +106,6 @@ function evaluateBodylessRouting(endpoint: string, headers: Headers): RoutingOut
   return routingOutcomeFromDecision(decision, null)
 }
 
-function evaluateParsedRouting(
-  endpoint: string,
-  parsedBody: Record<string, unknown>,
-  headers: Headers,
-): RoutingOutcome {
-  const decision = evaluateRoutingRules(listRoutingRules(), {
-    endpoint,
-    requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
-    apiKeyId: null,
-    stream: parsedBody.stream === true,
-    estimatedPromptTokens: null,
-    headers,
-  })
-  return routingOutcomeFromDecision(decision, typeof parsedBody.model === 'string' ? parsedBody.model : null)
-}
-
-function routingOutcomeFromDecision(
-  decision: ReturnType<typeof evaluateRoutingRules>,
-  requestedModel: string | null,
-): RoutingOutcome {
-  if (!decision.matchedRule) return { ...EMPTY_ROUTING_OUTCOME }
-  return {
-    ruleId: decision.matchedRule.id,
-    ruleName: decision.matchedRule.name,
-    actionType: decision.action?.type ?? null,
-    authMode: decision.authMode,
-    preserveAuthorization: decision.authMode === 'passthrough' && decision.preserveAuthorization,
-    targetType: decision.target.type,
-    targetBaseUrl: decision.target.type === 'direct' ? decision.target.baseUrl : null,
-    requestedModel,
-    routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
-    rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,
-  }
-}
-
 async function readBody(request: Request): Promise<{ text: string; prefix: string }> {
   const reader = request.body?.getReader()
   if (!reader) return { text: '', prefix: '' }
@@ -193,10 +145,6 @@ function formatError(err: unknown): string {
   return `${err.message}${cause}`
 }
 
-function debugDirectProxy(message: string, fields: Record<string, unknown> = {}) {
-  console.log('[proxy:direct]', message, fields)
-}
-
 function nullUsage(model?: string | null): UsageWithClose {
   return {
     model: model ?? null,
@@ -221,26 +169,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const reqContentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
-  const contentLength = request.headers.get('content-length')
-
-  if (endpoint.startsWith('/v1/')) {
-    debugDirectProxy('request received', {
-      method,
-      endpoint,
-      hasBody,
-      contentLength,
-      contentType: reqContentType,
-      incomingAuthorization: request.headers.has('authorization'),
-    })
-  }
-
   let reqBodyText: string | null = null
   let preAuthBodyText: string | null = null
   let parsedBody: Record<string, unknown> | null = null
   let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
   let reqModel: string | null = null
   let multipartFormData: FormData | null = null
-  let routingOutcome: RoutingOutcome = { ...EMPTY_ROUTING_OUTCOME }
+  let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
 
   if (isMultipart) {
     try {
@@ -256,15 +191,9 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       // Can't parse form data — still forward the request
     }
   } else if (hasBody) {
-    debugDirectProxy('body read start', { endpoint, contentLength })
     const body = await readBody(request)
     reqBodyText = body.text
     preAuthBodyText = body.text
-    debugDirectProxy('body read complete', {
-      endpoint,
-      bytes: Buffer.byteLength(reqBodyText, 'utf8'),
-      prefixBytes: Buffer.byteLength(body.prefix, 'utf8'),
-    })
     try {
       parsedBody = JSON.parse(reqBodyText)
     } catch {
@@ -309,13 +238,6 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   if (!hasBody && routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
     upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-    debugDirectProxy('bodyless target selected', {
-      endpoint,
-      upstream,
-      ruleId: routingOutcome.ruleId,
-      authMode: routingOutcome.authMode,
-      preserveAuthorization: routingOutcome.preserveAuthorization,
-    })
   }
 
   if (isMultipart) {
@@ -356,144 +278,69 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
     if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
       upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-      debugDirectProxy('multipart target selected', {
-        endpoint,
-        upstream,
-        ruleId: routingOutcome.ruleId,
-        authMode: routingOutcome.authMode,
-        preserveAuthorization: routingOutcome.preserveAuthorization,
-      })
     }
 
     fetchBody = multipartFormData ?? request.body ?? undefined
   } else if (hasBody) {
-    if (authResult.passthrough && parsedBody) {
-      routingOutcome = evaluateParsedRouting(endpoint, parsedBody, request.headers)
-      if (routingOutcome.targetType === 'direct') {
-        debugDirectProxy('pre-auth parsed target selected', {
-          endpoint,
-          ruleId: routingOutcome.ruleId,
-          requestedModel: routingOutcome.requestedModel,
-          bodyMode: 'buffered',
-          authMode: routingOutcome.authMode,
-          preserveAuthorization: routingOutcome.preserveAuthorization,
-        })
+    reqBodyText = preAuthBodyText ?? (await request.text())
+    if (!parsedBody) {
+      try {
+        parsedBody = JSON.parse(reqBodyText)
+      } catch {
+        // non-JSON body — skip transforms
       }
     }
 
-    if (
-      authResult.passthrough &&
-      routingOutcome.actionType === 'noop' &&
-      routingOutcome.targetType === 'direct' &&
-      routingOutcome.targetBaseUrl &&
-      preAuthBodyText != null
-    ) {
-      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-      debugDirectProxy('forwarding buffered direct noop body', {
+    if (parsedBody) {
+      reqModel = (parsedBody.model as string) ?? null
+      const transformResult = applyTransforms(parsedBody, {
+        keyRow,
         endpoint,
-        upstream,
-        ruleId: routingOutcome.ruleId,
-        bytes: Buffer.byteLength(preAuthBodyText, 'utf8'),
+        method,
+        skipRouting: false,
+        headers: request.headers,
       })
-      reqBodyText = preAuthBodyText
-      reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
-      fetchBody = reqBodyText || undefined
-    } else {
-      reqBodyText = preAuthBodyText ?? (await request.text())
-      if (!parsedBody) {
-        try {
-          parsedBody = JSON.parse(reqBodyText)
-        } catch {
-          // non-JSON body — skip transforms
-        }
-      }
-
-      if (parsedBody) {
-        reqModel = (parsedBody.model as string) ?? null
-        const transformResult = applyTransforms(parsedBody, {
-          keyRow,
-          endpoint,
+      routingOutcome = transformResult.routing
+      if (!transformResult.ok) {
+        writeLog({
+          startedAt,
+          status: transformResult.status,
           method,
-          skipRouting: false,
-          headers: request.headers,
-        })
-        routingOutcome = transformResult.routing
-        if (!transformResult.ok) {
-          writeLog({
-            startedAt,
-            status: transformResult.status,
-            method,
-            endpoint,
-            usage: nullUsage(reqModel),
-            streamed: false,
-            error: transformResult.body.error.message,
-            reqHeaders: loggedReqHeaders(),
-            reqBody: isMultipart ? null : reqBodyText,
-            resHeaders: null,
-            resBody: JSON.stringify(transformResult.body),
-            keyId,
-            attribution,
-            routing: routingOutcome,
-          })
-          return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
-        }
-        if (transformResult.mutated) {
-          reqBodyText = JSON.stringify(transformResult.body)
-        }
-        reqModel = (transformResult.body?.model as string) ?? reqModel
-      }
-
-      if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
-        upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-        debugDirectProxy('json target selected', {
           endpoint,
-          upstream,
-          ruleId: routingOutcome.ruleId,
-          actionType: routingOutcome.actionType,
-          authMode: routingOutcome.authMode,
-          preserveAuthorization: routingOutcome.preserveAuthorization,
+          usage: nullUsage(reqModel),
+          streamed: false,
+          error: transformResult.body.error.message,
+          reqHeaders: loggedReqHeaders(),
+          reqBody: isMultipart ? null : reqBodyText,
+          resHeaders: null,
+          resBody: JSON.stringify(transformResult.body),
+          keyId,
+          attribution,
+          routing: routingOutcome,
         })
+        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
       }
-
-      fetchBody = reqBodyText || undefined
-      if (reqBodyText) reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
+      if (transformResult.mutated) {
+        reqBodyText = JSON.stringify(transformResult.body)
+      }
+      reqModel = (transformResult.body?.model as string) ?? reqModel
     }
-  }
 
-  if (authResult.passthrough && parsedBody) {
-    routingOutcome = evaluateParsedRouting(endpoint, parsedBody, request.headers)
+    if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
+      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+    }
+
+    fetchBody = reqBodyText || undefined
+    if (reqBodyText) reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
   }
 
   const shouldPreserveAuthorization = authResult.passthrough && authResult.preserveAuthorization
-  if (routingOutcome.targetType === 'direct') {
-    debugDirectProxy('authorization decision', {
-      endpoint,
-      passthrough: authResult.passthrough,
-      preserveAuthorization: authResult.preserveAuthorization,
-      shouldPreserveAuthorization,
-      incomingAuthorization: request.headers.has('authorization'),
-      filteredAuthorization: reqHeaders.authorization ? 'present' : 'absent',
-      headerKeys: Object.keys(reqHeaders).sort(),
-    })
-  }
   if (!shouldPreserveAuthorization) {
     delete reqHeaders.authorization
   }
 
   let upstreamResponse: Response
   try {
-    if (routingOutcome.targetType === 'direct') {
-      debugDirectProxy('fetch start', {
-        method,
-        endpoint,
-        upstream,
-        hasBody,
-        hasFetchBody: fetchBody != null,
-        contentType: reqHeaders['content-type'],
-        accept: reqHeaders.accept,
-        authorization: reqHeaders.authorization ? 'present' : 'absent',
-      })
-    }
     upstreamResponse = await fetch(upstream, {
       method,
       headers: reqHeaders,
@@ -502,19 +349,8 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       duplex: hasBody ? 'half' : undefined,
       redirect: 'manual',
     })
-    if (routingOutcome.targetType === 'direct') {
-      debugDirectProxy('fetch response', {
-        endpoint,
-        upstream,
-        status: upstreamResponse.status,
-        contentType: upstreamResponse.headers.get('content-type'),
-      })
-    }
   } catch (err) {
     const message = formatError(err)
-    if (routingOutcome.targetType === 'direct') {
-      debugDirectProxy('fetch error', { endpoint, upstream, error: message })
-    }
     writeLog({
       startedAt,
       status: 502,

@@ -24,6 +24,19 @@ export type RoutingOutcome = {
   rejectReason: string | null
 }
 
+export const EMPTY_ROUTING_OUTCOME: RoutingOutcome = {
+  ruleId: null,
+  ruleName: null,
+  actionType: null,
+  authMode: null,
+  preserveAuthorization: false,
+  targetType: null,
+  targetBaseUrl: null,
+  requestedModel: null,
+  routedModel: null,
+  rejectReason: null,
+}
+
 type TransformOk = { ok: true; body: Record<string, unknown> | null; mutated: boolean; routing: RoutingOutcome }
 type TransformErr = {
   ok: false
@@ -50,7 +63,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
         action: null,
         target: { type: 'llama_swap' as const },
         authMode: 'require_key' as const,
-        preserveAuthorization: false,
+        preserveAuthorization: false as const,
       }
     : evaluateRoutingRules(listRoutingRules(), {
         endpoint: ctx.endpoint,
@@ -60,20 +73,10 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
         estimatedPromptTokens: estimatePromptTokens(parsedBody),
         headers: ctx.headers,
       })
-  const routing = routingDecision.matchedRule
-    ? {
-        ruleId: routingDecision.matchedRule.id,
-        ruleName: routingDecision.matchedRule.name,
-        actionType: routingDecision.action?.type ?? null,
-        authMode: routingDecision.authMode,
-        preserveAuthorization: routingDecision.authMode === 'passthrough' && routingDecision.preserveAuthorization,
-        targetType: routingDecision.target.type,
-        targetBaseUrl: routingDecision.target.type === 'direct' ? routingDecision.target.baseUrl : null,
-        requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
-        routedModel: routingDecision.action?.type === 'rewrite_model' ? routingDecision.action.model : null,
-        rejectReason: routingDecision.action?.type === 'reject' ? routingDecision.action.reason : null,
-      }
-    : emptyRoutingOutcome()
+  const routing = routingOutcomeFromDecision(
+    routingDecision,
+    typeof parsedBody.model === 'string' ? parsedBody.model : null,
+  )
 
   if (routingDecision.action?.type === 'reject') {
     return {
@@ -125,18 +128,26 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
   return { ok: true, body: parsedBody, mutated, routing }
 }
 
-function emptyRoutingOutcome(): RoutingOutcome {
+export function emptyRoutingOutcome(): RoutingOutcome {
+  return { ...EMPTY_ROUTING_OUTCOME }
+}
+
+export function routingOutcomeFromDecision(
+  decision: ReturnType<typeof evaluateRoutingRules>,
+  requestedModel: string | null,
+): RoutingOutcome {
+  if (!decision.matchedRule) return emptyRoutingOutcome()
   return {
-    ruleId: null,
-    ruleName: null,
-    actionType: null,
-    authMode: null,
-    preserveAuthorization: false,
-    targetType: null,
-    targetBaseUrl: null,
-    requestedModel: null,
-    routedModel: null,
-    rejectReason: null,
+    ruleId: decision.matchedRule.id,
+    ruleName: decision.matchedRule.name,
+    actionType: decision.action?.type ?? null,
+    authMode: decision.authMode,
+    preserveAuthorization: decision.authMode === 'passthrough' && decision.preserveAuthorization,
+    targetType: decision.target.type,
+    targetBaseUrl: decision.target.type === 'direct' ? decision.target.baseUrl : null,
+    requestedModel,
+    routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
+    rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,
   }
 }
 
