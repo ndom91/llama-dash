@@ -76,7 +76,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   )
   const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
   const clientLabel = deriveClientLabel(reqHeaders)
-  const kickerParts = ['req', `${req.id.slice(4, 10)}...`]
+  const kickerParts = ['req', req.id.slice(4, 30)]
   if (clientLabel) kickerParts.push(clientLabel)
   if (req.routingRuleName) kickerParts.push(req.routingRuleName)
   const modelLabel = req.routingRoutedModel
