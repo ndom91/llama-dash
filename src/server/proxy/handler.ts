@@ -2,7 +2,13 @@ import { config } from '../config.ts'
 import { getAttributionSettings } from '../admin/settings.ts'
 import { extractAttribution } from './attribution.ts'
 import { authenticateRequest } from './auth.ts'
-import { prepareProxyBody } from './body.ts'
+import {
+  applyProxyBodyHeaders,
+  applyProxyBodyTransform,
+  getProxyForwardBody,
+  getProxyLoggedBody,
+  prepareProxyBody,
+} from './body.ts'
 import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
@@ -21,15 +27,10 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const reqHeaders = filterRequestHeaders(request.headers)
   const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const attribution = extractAttribution(request.headers, getAttributionSettings())
-  const hasBody = method !== 'GET' && method !== 'HEAD'
-  let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
-  let reqModel: string | null = null
   let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
-  const preparedBody = await prepareProxyBody(request, method)
-  let { parsedBody, bodyText: reqBodyText, multipartFormData } = preparedBody
-  const isMultipart = preparedBody.isMultipart
+  let body = await prepareProxyBody(request, method)
 
-  const authResult = authenticateRequest(request, endpoint, parsedBody)
+  const authResult = authenticateRequest(request, endpoint, body.parsedBody)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
@@ -40,7 +41,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       status: authResult.status,
       method,
       endpoint,
-      usage: nullUsage(reqModel),
+      usage: nullUsage(body.reqModel),
       streamed: false,
       error: authResult.body.error.message,
       reqHeaders: loggedReqHeaders(),
@@ -61,14 +62,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const keyRow = authResult.keyRow
   routingOutcome = authResult.preAuthRouting
 
-  if (!hasBody) {
+  if (!body.hasBody) {
     upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
   }
 
-  if (isMultipart) {
-    if (parsedBody && Object.keys(parsedBody).length > 0) {
-      reqModel = (parsedBody.model as string) ?? null
-      const transformResult = applyTransforms(parsedBody, {
+  if (body.hasBody) {
+    if (body.parsedBody && (!body.isMultipart || Object.keys(body.parsedBody).length > 0)) {
+      const transformResult = applyTransforms(body.parsedBody, {
         keyRow,
         endpoint,
         method,
@@ -82,11 +82,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           status: transformResult.status,
           method,
           endpoint,
-          usage: nullUsage(reqModel),
+          usage: nullUsage(body.reqModel),
           streamed: false,
           error: transformResult.body.error.message,
           reqHeaders: loggedReqHeaders(),
-          reqBody: null,
+          reqBody: getProxyLoggedBody(body),
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
           keyId,
@@ -95,57 +95,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         })
         return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
       }
-      reqModel = (transformResult.body?.model as string) ?? reqModel
-      if (multipartFormData && typeof transformResult.body?.model === 'string') {
-        multipartFormData.set('model', transformResult.body.model)
-      }
+      body = applyProxyBodyTransform(body, transformResult)
     }
 
     routingOutcome = preferPostAuthRouting(authResult.preAuthRouting, routingOutcome)
     upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
-
-    fetchBody = multipartFormData ?? request.body ?? undefined
-  } else if (hasBody) {
-    if (parsedBody) {
-      reqModel = (parsedBody.model as string) ?? null
-      const transformResult = applyTransforms(parsedBody, {
-        keyRow,
-        endpoint,
-        method,
-        skipRouting: false,
-        headers: request.headers,
-      })
-      routingOutcome = transformResult.routing
-      if (!transformResult.ok) {
-        writeProxyLog({
-          startedAt,
-          status: transformResult.status,
-          method,
-          endpoint,
-          usage: nullUsage(reqModel),
-          streamed: false,
-          error: transformResult.body.error.message,
-          reqHeaders: loggedReqHeaders(),
-          reqBody: isMultipart ? null : reqBodyText,
-          resHeaders: null,
-          resBody: JSON.stringify(transformResult.body),
-          keyId,
-          attribution,
-          routing: routingOutcome,
-        })
-        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
-      }
-      if (transformResult.mutated) {
-        reqBodyText = JSON.stringify(transformResult.body)
-      }
-      reqModel = (transformResult.body?.model as string) ?? reqModel
-    }
-
-    routingOutcome = preferPostAuthRouting(authResult.preAuthRouting, routingOutcome)
-    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
-
-    fetchBody = reqBodyText || undefined
-    if (reqBodyText) reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
+    applyProxyBodyHeaders(body, reqHeaders)
   }
 
   if (!shouldPreserveAuthorization(routingOutcome)) {
@@ -153,16 +108,16 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   const reqHeadersJson = loggedReqHeaders()
-  const loggedReqBody = isMultipart ? null : reqBodyText
+  const loggedReqBody = getProxyLoggedBody(body)
   const forwardedResponse = await forwardUpstreamAndLog({
     upstream,
     method,
     headers: reqHeaders,
-    body: fetchBody,
-    hasBody,
+    body: getProxyForwardBody(body, request),
+    hasBody: body.hasBody,
     startedAt,
     endpoint,
-    reqModel,
+    reqModel: body.reqModel,
     reqHeadersJson,
     reqBody: loggedReqBody,
     keyId,
@@ -177,7 +132,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       status: 502,
       method,
       endpoint,
-      usage: nullUsage(reqModel),
+      usage: nullUsage(body.reqModel),
       streamed: false,
       error: forwardedResponse.upstreamError,
       reqHeaders: reqHeadersJson,

@@ -7,17 +7,27 @@ export type PreparedProxyBody = {
   isMultipart: boolean
 }
 
-export async function prepareProxyBody(request: Request, method: string): Promise<PreparedProxyBody> {
+export type ProxyBodySnapshot = PreparedProxyBody & {
+  hasBody: boolean
+  reqModel: string | null
+}
+
+export type ProxyBodyTransformResult = {
+  body: Record<string, unknown> | null
+  mutated: boolean
+}
+
+export async function prepareProxyBody(request: Request, method: string): Promise<ProxyBodySnapshot> {
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const contentType = request.headers.get('content-type') ?? ''
   const isMultipart = hasBody && contentType.includes('multipart/form-data')
 
   if (!hasBody) {
-    return { parsedBody: null, bodyText: null, multipartFormData: null, isMultipart: false }
+    return snapshot({ parsedBody: null, bodyText: null, multipartFormData: null, isMultipart: false }, hasBody)
   }
 
   if (isMultipart) {
-    return prepareMultipartBody(request)
+    return snapshot(await prepareMultipartBody(request), hasBody)
   }
 
   const { text, prefix } = await readBody(request)
@@ -28,7 +38,55 @@ export async function prepareProxyBody(request: Request, method: string): Promis
     parsedBody = parseRoutingPrefix(prefix)
   }
 
-  return { parsedBody, bodyText: text, multipartFormData: null, isMultipart: false }
+  return snapshot({ parsedBody, bodyText: text, multipartFormData: null, isMultipart: false }, hasBody)
+}
+
+export function applyProxyBodyTransform(
+  body: ProxyBodySnapshot,
+  transform: ProxyBodyTransformResult,
+): ProxyBodySnapshot {
+  if (!transform.body) return body
+  if (body.isMultipart) {
+    if (body.multipartFormData && typeof transform.body.model === 'string') {
+      body.multipartFormData.set('model', transform.body.model)
+    }
+    return snapshot({ ...body, parsedBody: transform.body }, body.hasBody)
+  }
+  return snapshot(
+    {
+      ...body,
+      parsedBody: transform.body,
+      bodyText: transform.mutated ? JSON.stringify(transform.body) : body.bodyText,
+    },
+    body.hasBody,
+  )
+}
+
+export function getProxyForwardBody(
+  body: ProxyBodySnapshot,
+  request: Request,
+): ReadableStream<Uint8Array> | BodyInit | undefined {
+  if (!body.hasBody) return undefined
+  if (body.isMultipart) return body.multipartFormData ?? request.body ?? undefined
+  return body.bodyText || undefined
+}
+
+export function getProxyLoggedBody(body: ProxyBodySnapshot): string | null {
+  return body.isMultipart ? null : body.bodyText
+}
+
+export function applyProxyBodyHeaders(body: ProxyBodySnapshot, headers: Record<string, string>) {
+  if (!body.isMultipart && body.bodyText) {
+    headers['content-length'] = String(Buffer.byteLength(body.bodyText, 'utf8'))
+  }
+}
+
+function snapshot(body: PreparedProxyBody, hasBody: boolean): ProxyBodySnapshot {
+  return { ...body, hasBody, reqModel: extractModel(body.parsedBody) }
+}
+
+function extractModel(parsedBody: Record<string, unknown> | null): string | null {
+  return parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null
 }
 
 async function prepareMultipartBody(request: Request): Promise<PreparedProxyBody> {
