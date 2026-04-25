@@ -128,7 +128,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/health` — upstream reachability, version, latency
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
-   - `/api/system` — runtime, DB, proxy, log queue, and poller status
+   - `/api/system` — runtime, DB, proxy, log queue, and poller status with GPU device details
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
@@ -147,7 +147,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 8. UI views: Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
-    DB, proxy, queue, and poller status), Playground
+    DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; timing
     sidebar shows TTFT, prefill, decode, and stream-close when upstream
     llama.cpp timing metadata is present), Config editor with explicit
