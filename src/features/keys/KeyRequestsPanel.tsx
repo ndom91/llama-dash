@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
 import type { ApiRequest } from '../../lib/api'
+import { formatWhen } from '../requests/requestsListUtils'
 
 type Props = {
   rows: Array<ApiRequest>
@@ -29,7 +30,7 @@ export function KeyRequestsPanel({ rows }: Props) {
         <table className="dtable">
           <thead>
             <tr>
-              <th className="mono" style={{ width: 80 }}>
+              <th className="mono" style={{ width: 132 }}>
                 t
               </th>
               <th className="mono">endpoint</th>
@@ -41,9 +42,7 @@ export function KeyRequestsPanel({ rows }: Props) {
               <th className="num" style={{ width: 72 }}>
                 tok-out
               </th>
-              <th className="num" style={{ width: 180 }}>
-                duration
-              </th>
+              <th style={{ width: 120 }}>duration</th>
             </tr>
           </thead>
           <tbody>
@@ -53,7 +52,9 @@ export function KeyRequestsPanel({ rows }: Props) {
                 className="clickable-row"
                 onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
               >
-                <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
+                <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                  {formatWhen(r.startedAt)}
+                </td>
                 <td className="mono" translate="no">
                   {r.endpoint}
                 </td>
