@@ -188,6 +188,13 @@
     @apply text-fg-dim;
   }
 
+  @media (max-width: 1100px) {
+    .dtable thead th,
+    .dtable tbody td {
+      @apply px-2.5 py-1.5;
+    }
+  }
+
   .empty-state {
     @apply p-7 text-center text-[13px] text-fg-dim;
   }
@@ -545,7 +552,8 @@
 .dtable-virtual-wrap {
   display: flex;
   flex-direction: column;
-  max-height: min(70vh, 800px);
+  min-height: 0;
+  flex: 1;
 }
 .dtable-virtual {
   table-layout: fixed;

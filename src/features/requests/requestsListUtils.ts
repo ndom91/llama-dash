@@ -1,7 +1,7 @@
 import type { ApiRequest } from '../../lib/api'
 
 export const REQUESTS_ROW_HEIGHT = 37
-export const REQUESTS_COL_WIDTHS = [100, '22%', '24%', 70, 80, 80, 80, 80, 110] as const
+export const REQUESTS_COL_WIDTHS = [132, '21%', '24%', 70, 80, 80, 80, 80, 110] as const
 
 export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
 export type SortDir = 'asc' | 'desc'

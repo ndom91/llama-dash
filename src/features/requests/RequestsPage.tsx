@@ -518,7 +518,9 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                                   <tbody>
                                     <tr>
                                       <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                                        {formatWhen(r.startedAt)}
+                                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                                          {formatWhen(r.startedAt)}
+                                        </span>
                                       </td>
                                       <td className="mono" translate="no">
                                         <span
@@ -538,7 +540,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                                           </span>
                                           {r.routingActionType ? (
                                             <span
-                                              className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info"
+                                              className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info max-[1400px]:hidden"
                                               title={`${r.routingRuleName ?? 'routing rule'} · ${r.routingActionType}${r.routingRoutedModel ? ` · ${r.routingRoutedModel}` : ''}`}
                                             >
                                               {r.routingActionType === 'rewrite_model'
