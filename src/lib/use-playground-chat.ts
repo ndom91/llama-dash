@@ -108,6 +108,7 @@ export function usePlaygroundChat() {
 
       let evSeq = 0
       let finalized = false
+      let estimatedPromptTokens = 0
       const isCurrentRun = () => runSeqRef.current === runId
       const pushEvent = (tag: string, text: string) => {
         if (!isCurrentRun()) return
@@ -115,45 +116,45 @@ export function usePlaygroundChat() {
         events.push(ev)
         setInspector((prev) => ({ ...prev, events: [...events] }))
       }
+      const applyFinalMetrics = (closeAt?: number) => {
+        const ttftMs = timings.firstContentAt ? timings.firstContentAt - timings.requestAt : undefined
+        const totalMs = timings.doneAt ? timings.doneAt - timings.requestAt : undefined
+        const decodeMs =
+          timings.predictedMs ||
+          (timings.doneAt && timings.firstContentAt ? timings.doneAt - timings.firstContentAt : undefined)
+        const streamCloseMs = closeAt && timings.doneAt ? Math.max(0, closeAt - timings.doneAt) : undefined
+        const tokOut = usage.completion
+        const tokPerSec = tokOut != null && decodeMs ? (tokOut / decodeMs) * 1000 : undefined
+        const metrics: MessageMetrics = {
+          ttftMs,
+          totalMs,
+          tokIn: usage.prompt ?? estimatedPromptTokens,
+          tokOut,
+          tokPerSec,
+        }
+        assistantMsg.metrics = metrics
+        if (!isCurrentRun()) return
+        setMessages([...msgs, { ...assistantMsg }])
+        setInspector((prev) => ({
+          ...prev,
+          lastResponseText: assistantMsg.content,
+          lastMetrics: metrics,
+          timing: {
+            queueMs: null,
+            swapMs: null,
+            prefillMs: timings.promptMs || ttftMs || null,
+            decodeMs: decodeMs ?? null,
+            streamCloseMs: streamCloseMs ?? prev.timing.streamCloseMs,
+          },
+        }))
+      }
 
       try {
         const apiMsgs = buildApiMessages(msgs)
-        const estimatedPromptTokens = estimatePromptTokens(apiMsgs)
+        estimatedPromptTokens = estimatePromptTokens(apiMsgs)
         const activeModel = models?.find((item) => item.id === model)
         const includeTimings = activeModel?.kind !== 'peer'
         const apiKey = await loadApiKey()
-        const applyFinalMetrics = (closeAt?: number) => {
-          const ttftMs = timings.firstContentAt ? timings.firstContentAt - timings.requestAt : undefined
-          const totalMs = timings.doneAt ? timings.doneAt - timings.requestAt : undefined
-          const decodeMs =
-            timings.predictedMs ||
-            (timings.doneAt && timings.firstContentAt ? timings.doneAt - timings.firstContentAt : undefined)
-          const streamCloseMs = closeAt && timings.doneAt ? Math.max(0, closeAt - timings.doneAt) : undefined
-          const tokOut = usage.completion
-          const tokPerSec = tokOut != null && decodeMs ? (tokOut / decodeMs) * 1000 : undefined
-          const metrics: MessageMetrics = {
-            ttftMs,
-            totalMs,
-            tokIn: usage.prompt ?? estimatedPromptTokens,
-            tokOut,
-            tokPerSec,
-          }
-          assistantMsg.metrics = metrics
-          if (!isCurrentRun()) return
-          setMessages([...msgs, { ...assistantMsg }])
-          setInspector((prev) => ({
-            ...prev,
-            lastResponseText: assistantMsg.content,
-            lastMetrics: metrics,
-            timing: {
-              queueMs: null,
-              swapMs: null,
-              prefillMs: timings.promptMs || ttftMs || null,
-              decodeMs: decodeMs ?? null,
-              streamCloseMs: streamCloseMs ?? prev.timing.streamCloseMs,
-            },
-          }))
-        }
 
         const stream = streamChatCompletion({
           messages: apiMsgs,
@@ -251,7 +252,12 @@ export function usePlaygroundChat() {
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          // keep partial response
+          if (!finalized) {
+            finalized = true
+            timings.doneAt = Date.now()
+            pushEvent('STOP', 'aborted by user')
+            applyFinalMetrics(timings.closeAt || undefined)
+          }
         } else {
           const errMsg = err instanceof Error ? err.message : String(err)
           assistantMsg.content += assistantMsg.content ? `\n\n---\n**Error:** ${errMsg}` : `**Error:** ${errMsg}`
@@ -312,6 +318,7 @@ export function usePlaygroundChat() {
   }, [])
 
   const clearChat = useCallback(() => {
+    runSeqRef.current++
     abortRef.current?.abort()
     clearMessages()
     setInspector(EMPTY_INSPECTOR)

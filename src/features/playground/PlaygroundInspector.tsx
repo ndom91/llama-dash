@@ -166,7 +166,9 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
                   className="grid grid-cols-[48px_52px_minmax(0,1fr)] items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-[11px]"
                 >
                   <span className="font-mono text-fg-dim">{formatClock(event.at)}</span>
-                  <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                  <span className={cn('pg-event-tag mt-0.5', `pg-event-tag-${event.tag.toLowerCase()}`)}>
+                    {event.tag}
+                  </span>
                   <span className="min-w-0 text-fg-muted">{event.text}</span>
                 </div>
               ))}
