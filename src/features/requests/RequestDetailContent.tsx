@@ -112,25 +112,32 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 }
                 side="bottom"
               >
-                <Link
-                  to="/requests/$id"
-                  params={{ id: prevId ?? '' }}
-                  className={cn(
-                    navButtonClass,
-                    prevId
-                      ? 'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg'
-                      : 'pointer-events-none border-border text-fg-faint opacity-30 transition-none',
-                  )}
-                  disabled={!prevId || isPrevPending}
-                  aria-disabled={!prevId || isPrevPending}
-                  onClick={(e) => !prevId && e.preventDefault()}
-                >
-                  {isPrevPending ? (
-                    <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                  ) : (
+                {prevId ? (
+                  <Link
+                    to="/requests/$id"
+                    params={{ id: prevId }}
+                    className={cn(
+                      navButtonClass,
+                      'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
+                    )}
+                    aria-disabled={isPrevPending}
+                  >
+                    {isPrevPending ? (
+                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+                    ) : (
+                      <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
+                    disabled
+                    aria-label="No newer request"
+                  >
                     <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
-                  )}
-                </Link>
+                  </button>
+                )}
               </Tooltip>
               <Tooltip
                 label={
@@ -140,25 +147,32 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 }
                 side="bottom"
               >
-                <Link
-                  to="/requests/$id"
-                  params={{ id: nextId ?? '' }}
-                  className={cn(
-                    navButtonClass,
-                    nextId
-                      ? 'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg'
-                      : 'pointer-events-none border-border text-fg-faint opacity-30 transition-none',
-                  )}
-                  disabled={!nextId || isNextPending}
-                  aria-disabled={!nextId || isNextPending}
-                  onClick={(e) => !nextId && e.preventDefault()}
-                >
-                  {isNextPending ? (
-                    <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                  ) : (
+                {nextId ? (
+                  <Link
+                    to="/requests/$id"
+                    params={{ id: nextId }}
+                    className={cn(
+                      navButtonClass,
+                      'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
+                    )}
+                    aria-disabled={isNextPending}
+                  >
+                    {isNextPending ? (
+                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
+                    ) : (
+                      <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
+                    disabled
+                    aria-label="No older request"
+                  >
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
-                  )}
-                </Link>
+                  </button>
+                )}
               </Tooltip>
             </div>
             <button type="button" className="btn btn-ghost btn-xs" disabled>
