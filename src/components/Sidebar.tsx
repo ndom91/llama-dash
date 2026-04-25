@@ -7,6 +7,7 @@ import {
   Link2,
   MessageSquare,
   ScrollText,
+  ServerCog,
   Settings,
   Shield,
   Terminal,
@@ -27,6 +28,7 @@ type NavItem = {
     | '/models'
     | '/requests'
     | '/logs'
+    | '/system'
     | '/playground'
     | '/config'
     | '/keys'
@@ -53,23 +55,24 @@ const SECTIONS: ReadonlyArray<NavSection> = [
       { to: '/', label: 'Dashboard', shortcut: 'D01', Icon: LayoutDashboard },
       { to: '/requests', label: 'Requests', shortcut: 'R02', Icon: ScrollText },
       { to: '/logs', label: 'Logs', shortcut: 'L03', Icon: Terminal },
+      { to: '/system', label: 'System', shortcut: 'S04', Icon: ServerCog },
     ],
   },
   {
     title: 'interact',
     items: [
-      { to: '/models', label: 'Models', shortcut: 'M04', Icon: Boxes },
-      { to: '/playground', label: 'Playground', shortcut: 'P05', Icon: MessageSquare },
+      { to: '/models', label: 'Models', shortcut: 'M05', Icon: Boxes },
+      { to: '/playground', label: 'Playground', shortcut: 'P06', Icon: MessageSquare },
     ],
   },
   {
     title: 'configure',
     items: [
-      { to: '/config', label: 'Config', shortcut: 'C06', Icon: Settings },
-      { to: '/keys', label: 'API Keys', shortcut: 'K07', Icon: KeyRound },
-      { to: '/attribution', label: 'Attribution', shortcut: 'A08', Icon: Fingerprint },
-      { to: '/policies', label: 'Policies', shortcut: 'P09', Icon: Shield },
-      { to: '/endpoints', label: 'Endpoints', shortcut: 'E10', Icon: Link2 },
+      { to: '/config', label: 'Config', shortcut: 'C07', Icon: Settings },
+      { to: '/keys', label: 'API Keys', shortcut: 'K08', Icon: KeyRound },
+      { to: '/attribution', label: 'Attribution', shortcut: 'A09', Icon: Fingerprint },
+      { to: '/policies', label: 'Policies', shortcut: 'P10', Icon: Shield },
+      { to: '/endpoints', label: 'Endpoints', shortcut: 'E11', Icon: Link2 },
     ],
   },
 ]

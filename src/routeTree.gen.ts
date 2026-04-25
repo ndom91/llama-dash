@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SystemRouteImport } from './routes/system'
 import { Route as PoliciesRouteImport } from './routes/policies'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as LogsRouteImport } from './routes/logs'
@@ -23,6 +24,11 @@ import { Route as RequestsIdRouteImport } from './routes/requests.$id'
 import { Route as ModelsIdRouteImport } from './routes/models.$id'
 import { Route as KeysIdRouteImport } from './routes/keys.$id'
 
+const SystemRoute = SystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PoliciesRoute = PoliciesRouteImport.update({
   id: '/policies',
   path: '/policies',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/logs': typeof LogsRoute
   '/playground': typeof PlaygroundRoute
   '/policies': typeof PoliciesRoute
+  '/system': typeof SystemRoute
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/system'
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/system'
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/playground'
     | '/policies'
+    | '/system'
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   LogsRoute: typeof LogsRoute
   PlaygroundRoute: typeof PlaygroundRoute
   PoliciesRoute: typeof PoliciesRoute
+  SystemRoute: typeof SystemRoute
   KeysIdRoute: typeof KeysIdRoute
   ModelsIdRoute: typeof ModelsIdRoute
   RequestsIdRoute: typeof RequestsIdRoute
@@ -201,6 +214,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/system': {
+      id: '/system'
+      path: '/system'
+      fullPath: '/system'
+      preLoaderRoute: typeof SystemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/policies': {
       id: '/policies'
       path: '/policies'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   LogsRoute: LogsRoute,
   PlaygroundRoute: PlaygroundRoute,
   PoliciesRoute: PoliciesRoute,
+  SystemRoute: SystemRoute,
   KeysIdRoute: KeysIdRoute,
   ModelsIdRoute: ModelsIdRoute,
   RequestsIdRoute: RequestsIdRoute,

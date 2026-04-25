@@ -4,6 +4,7 @@ import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema 
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
 import { AttributionSettingsSchema, RequestLimitsSchema } from './schemas/settings'
+import { ApiSystemStatusSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
@@ -42,6 +43,7 @@ export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelB
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
 export type { AttributionSettings, RequestLimits } from './schemas/settings'
+export type { ApiSystemStatus } from './schemas/system'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -97,6 +99,7 @@ export const api = {
   validateConfig: (content: string) =>
     sendJson('/api/config/validate', ApiConfigValidationSchema, { method: 'POST', body: { content } }),
   health: () => getJson('/api/health', ApiHealthSchema),
+  systemStatus: () => getJson('/api/system', ApiSystemStatusSchema),
   requestStats: () => getJson('/api/requests/stats', ApiRequestStatsSchema),
   modelTimeline: (windowMs?: number) => {
     const q = windowMs != null ? `?window=${windowMs}` : ''

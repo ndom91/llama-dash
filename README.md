@@ -139,7 +139,7 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
 - `src/server/db/*` — Drizzle schema, migrator, SQLite initialization, and request/model-event indexes for common dashboard query paths.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
-- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
+- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 

@@ -23,6 +23,7 @@ import {
   type ApiRequest,
   type ApiRequestDetail,
   type ApiRequestStats,
+  type ApiSystemStatus,
   type AttributionSettings,
   type ModelAliasItem,
   type RoutingRule,
@@ -45,6 +46,7 @@ function toastMutationError(title: string, error: Error) {
 
 export const qk = {
   health: ['health'] as const,
+  systemStatus: ['system'] as const,
   models: ['models'] as const,
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
@@ -69,6 +71,14 @@ export function useHealth(): UseQueryResult<ApiHealth> {
   return useQuery({
     queryKey: qk.health,
     queryFn: () => api.health(),
+    refetchInterval: POLL_MS,
+  })
+}
+
+export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
+  return useQuery({
+    queryKey: qk.systemStatus,
+    queryFn: () => api.systemStatus(),
     refetchInterval: POLL_MS,
   })
 }
