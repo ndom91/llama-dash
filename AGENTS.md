@@ -79,8 +79,8 @@ src/
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init + migrator
-    proxy/                — /v1/* pass-through: handler, auth, body snapshots, transforms, forwarding, usage, logging, rate limits
-    admin/                — /api/* admin surface: handler.ts, requests.ts, model-events.ts, model-detail.ts, key-detail.ts, api-keys.ts, model-aliases.ts, settings.ts
+    proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
+    admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
 drizzle/                  — generated SQL migrations (checked in)
@@ -97,18 +97,21 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Six tables: `requests` (per-call
+2. SQLite (`data/dash.db`) + Drizzle. Six tables plus query indexes for common
+   request/model-event lookups: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt), `model_aliases` (global model name mapping),
    `routing_rules` (ordered request routing rules), `settings` (key-value
    config like request limits and attribution header mapping).
-3. `/v1/*` pass-through proxy that streams SSE unchanged and logs one row
-   per request with token counts pulled from the final SSE `usage` chunk (or
+3. `/v1/*` pass-through proxy that streams SSE unchanged and queues one log row
+   per completed request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). `handler.ts` owns the
-   high-level flow, `body.ts` owns request body snapshots/forward bodies/logged
-   bodies/content-length updates, and `forward.ts` owns upstream fetch,
-   streaming, usage scanning, completion/disconnect logging, and TPM recording.
+   high-level flow, `context.ts` owns request-scoped proxy state transitions,
+   `body.ts` owns request body snapshots/forward bodies/logged bodies/content-length
+   updates, `forward.ts` owns upstream fetch, streaming, usage scanning,
+   completion/disconnect log enqueueing, and TPM recording, and `log.ts` owns the
+   bounded async SQLite write queue.
    Handles both OpenAI (`/v1/chat/completions`, flat
    `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
    `/v1/messages/count_tokens`, nested `message.usage` with
@@ -180,7 +183,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
  10. Request logs persist routing and attribution context. Request detail shows
      matched routing rule/action/auth mode plus client, end-user, and session metadata.
     Request list supports routing and attribution filters, and session IDs
-    deep-link back into the filtered request log.
+    deep-link back into the filtered request log. Request/response body capture is
+    bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
 11. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
@@ -351,7 +355,9 @@ sort lexicographically by creation time).
   body end-to-end before forwarding.
 - **Log on completion, not on start.** A `requests` row represents an
   exchange, not an attempt. If the client disconnects mid-stream we still
-  write the row from the `catch` path with whatever usage we scraped.
+  enqueue the row from the `catch` path with whatever usage we scraped. The
+  logging queue is bounded; if it fills, dropping logs is preferable to blocking
+  proxy traffic.
 - **Config round-tripping will matter later.** When the config editor
   lands, user comments and key order in `config.yaml` must survive a write.
   Don't pick a YAML library that doesn't round-trip.

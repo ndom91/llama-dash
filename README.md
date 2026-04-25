@@ -9,8 +9,8 @@ Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostly
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
-- **Request logging** — every `/v1/*` call logged with searchable UI, histogram, and detail view.
-- **Transparent proxy** — streaming SSE preserved, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
+- **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, and detail view.
+- **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Policies** — ordered routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
@@ -128,16 +128,16 @@ Copy `.env.example` to `.env` and fill in the values.
 | `LLAMASWAP_URL` | `http://localhost:8080` | Upstream llama-swap base URL. No trailing slash. |
 | `LLAMASWAP_INSECURE` | `false` | Skip TLS verification for upstream with self-signed certs. |
 | `LLAMASWAP_CONFIG_FILE` | (empty) | Absolute path to llama-swap's `config.yaml`. Required for config editor. |
-| `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. |
+| `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
 
 ## How it's wired
 
-- `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, token counts scraped from the response as it flies by, one row per request written to SQLite on completion.
-- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI (models, requests, stats, histogram, health, GPU, model-timeline, routing rules, attribution settings).
+- `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
+- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, settings, and system health.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory. AMD APUs use GTT (not VRAM) for actual usable memory.
 - `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
-- `src/server/vite-plugin.ts` — mounts handlers + starts pollers as Vite dev-server middleware for local development.
+- `src/server/db/*` — Drizzle schema, migrator, SQLite initialization, and request/model-event indexes for common dashboard query paths.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/models`, `/models/:id`, `/requests`, `/logs`, `/playground`, `/config`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
