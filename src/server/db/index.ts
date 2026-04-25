@@ -5,10 +5,15 @@ import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { config } from '../config.ts'
 import * as schema from './schema.ts'
 
-const dbPath = resolve(process.cwd(), config.databasePath)
-mkdirSync(dirname(dbPath), { recursive: true })
+export function resolveDatabasePath(path: string): { filename: string; needsDirectory: boolean } {
+  if (path === ':memory:' || path.startsWith('file:')) return { filename: path, needsDirectory: false }
+  return { filename: resolve(process.cwd(), path), needsDirectory: true }
+}
 
-const sqlite = new Database(dbPath)
+const dbPath = resolveDatabasePath(config.databasePath)
+if (dbPath.needsDirectory) mkdirSync(dirname(dbPath.filename), { recursive: true })
+
+const sqlite = new Database(dbPath.filename)
 sqlite.pragma('journal_mode = WAL')
 sqlite.pragma('foreign_keys = ON')
 
