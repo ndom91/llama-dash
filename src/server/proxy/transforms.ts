@@ -2,6 +2,7 @@ import { resolveAlias } from '../admin/model-aliases.ts'
 import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
+import { estimatePromptTokens, getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
 
 export type TransformContext = {
   keyRow: ApiKey | null
@@ -22,19 +23,6 @@ export type RoutingOutcome = {
   requestedModel: string | null
   routedModel: string | null
   rejectReason: string | null
-}
-
-export const EMPTY_ROUTING_OUTCOME: RoutingOutcome = {
-  ruleId: null,
-  ruleName: null,
-  actionType: null,
-  authMode: null,
-  preserveAuthorization: false,
-  targetType: null,
-  targetBaseUrl: null,
-  requestedModel: null,
-  routedModel: null,
-  rejectReason: null,
 }
 
 type TransformOk = { ok: true; body: Record<string, unknown> | null; mutated: boolean; routing: RoutingOutcome }
@@ -129,7 +117,18 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
 }
 
 export function emptyRoutingOutcome(): RoutingOutcome {
-  return { ...EMPTY_ROUTING_OUTCOME }
+  return {
+    ruleId: null,
+    ruleName: null,
+    actionType: null,
+    authMode: null,
+    preserveAuthorization: false,
+    targetType: null,
+    targetBaseUrl: null,
+    requestedModel: null,
+    routedModel: null,
+    rejectReason: null,
+  }
 }
 
 export function routingOutcomeFromDecision(
@@ -149,15 +148,6 @@ export function routingOutcomeFromDecision(
     routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
     rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,
   }
-}
-
-function estimatePromptTokens(body: Record<string, unknown>): number | null {
-  const parts: Array<unknown> = []
-  if (Array.isArray(body.messages)) parts.push(body.messages)
-  if (body.system != null) parts.push(body.system)
-  if (Array.isArray(body.tools)) parts.push(body.tools)
-  if (parts.length === 0) return null
-  return Math.ceil(JSON.stringify(parts).length / 4)
 }
 
 // Anthropic's /v1/messages `system` field accepts either a string or an array of
@@ -193,12 +183,9 @@ function checkRequestLimits(body: Record<string, unknown>, routing: RoutingOutco
     // Count everything the model sees on input: OpenAI `messages`, Anthropic
     // top-level `system` and `tools`. Size limits were previously bypassable
     // with a giant system prompt or tool definition.
-    const parts: Array<unknown> = []
-    if (Array.isArray(body.messages)) parts.push(body.messages)
-    if (body.system != null) parts.push(body.system)
-    if (Array.isArray(body.tools)) parts.push(body.tools)
+    const parts = getPromptTokenEstimateParts(body)
     if (parts.length > 0) {
-      const estimated = Math.ceil(JSON.stringify(parts).length / 4)
+      const estimated = estimateTokensFromJson(parts)
       if (estimated > limits.maxEstimatedTokens) {
         return {
           ok: false,

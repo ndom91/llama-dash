@@ -1,143 +1,17 @@
 import { config } from '../config.ts'
-import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { getAttributionSettings } from '../admin/settings.ts'
 import { extractAttribution } from './attribution.ts'
 import { authenticateRequest } from './auth.ts'
+import { prepareProxyBody } from './body.ts'
+import { toErrorBody } from './errors.ts'
+import { filterRequestHeaders, filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
+import { evaluateBodylessPreAuthRouting, shouldPreserveAuthorization } from './routing.ts'
 import type { RoutingOutcome } from './transforms.ts'
-import { applyTransforms, emptyRoutingOutcome, routingOutcomeFromDecision } from './transforms.ts'
+import { applyTransforms, emptyRoutingOutcome } from './transforms.ts'
+import { buildDirectUpstream } from './upstream.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
-
-const HOP_BY_HOP = new Set([
-  'host',
-  'connection',
-  'keep-alive',
-  'proxy-authenticate',
-  'proxy-authorization',
-  'te',
-  'trailer',
-  'transfer-encoding',
-  'upgrade',
-])
-
-// Node's fetch (undici) transparently decompresses upstream bodies when we read
-// response.body as a ReadableStream. Forwarding `content-encoding: gzip|br|…`
-// alongside the already-decoded bytes causes clients to double-decode (e.g.
-// Claude Code throws `Decompression error: ZlibError`). Strip these from the
-// response hop. `content-length` goes with them since the decoded length
-// differs from the compressed length the upstream header announced.
-const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
-
-// Values for these headers are replaced with [redacted] before headers are
-// persisted to SQLite. The client-facing response and the upstream request
-// still carry the real values — redaction applies only to the logged copy.
-const SENSITIVE_HEADERS = new Set(['authorization', 'x-api-key', 'proxy-authorization', 'cookie', 'set-cookie'])
-const PRE_AUTH_PREFIX_BYTES = 16 * 1024
-
-function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const [key, value] of Object.entries(headers)) {
-    out[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? '[redacted]' : value
-  }
-  return out
-}
-
-// Anthropic's SDKs expect `{type:"error", error:{type,message}}`; the OpenAI
-// SDKs expect `{error:{message,type}}`. Reshape llama-dash-originated errors
-// (auth, allow-list, transforms, upstream reachability) so the client renders
-// them natively instead of showing a generic parse failure.
-function isAnthropicEndpoint(endpoint: string): boolean {
-  return endpoint === '/v1/messages' || endpoint === '/v1/messages/count_tokens'
-}
-
-function toErrorBody(endpoint: string, body: { error: { message: string; type: string } }): unknown {
-  if (!isAnthropicEndpoint(endpoint)) return body
-  return { type: 'error', error: { type: body.error.type, message: body.error.message } }
-}
-
-function filterRequestHeaders(headers: Headers): Record<string, string> {
-  const out: Record<string, string> = {}
-  headers.forEach((value, key) => {
-    const lower = key.toLowerCase()
-    if (HOP_BY_HOP.has(lower)) return
-    if (lower === 'content-length') return
-    out[key] = value
-  })
-  return out
-}
-
-function filterResponseHeaders(upstream: Headers): Headers {
-  const out = new Headers()
-  upstream.forEach((value, key) => {
-    const lower = key.toLowerCase()
-    if (HOP_BY_HOP.has(lower)) return
-    if (STRIP_RESPONSE_HEADERS.has(lower)) return
-    out.set(key, value)
-  })
-  return out
-}
-
-function headersToRecord(headers: Headers): Record<string, string> {
-  const out: Record<string, string> = {}
-  headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value
-  })
-  return out
-}
-
-function buildDirectUpstream(baseUrl: string, endpoint: string, search: string): string {
-  const base = new URL(baseUrl)
-  const suffix = endpoint === '/v1' ? '' : endpoint.slice('/v1'.length)
-  base.pathname = `${base.pathname.replace(/\/$/, '')}${suffix}`
-  base.search = search
-  return base.toString()
-}
-
-function evaluateBodylessRouting(endpoint: string, headers: Headers): RoutingOutcome {
-  const decision = evaluateRoutingRules(listRoutingRules(), {
-    endpoint,
-    requestedModel: null,
-    apiKeyId: null,
-    stream: false,
-    estimatedPromptTokens: null,
-    headers,
-  })
-  return routingOutcomeFromDecision(decision, null)
-}
-
-async function readBody(request: Request): Promise<{ text: string; prefix: string }> {
-  const reader = request.body?.getReader()
-  if (!reader) return { text: '', prefix: '' }
-
-  const chunks: Uint8Array[] = []
-  let total = 0
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    total += value.byteLength
-    chunks.push(value)
-  }
-
-  const combined = new Uint8Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    combined.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  const text = new TextDecoder().decode(combined)
-  return { text, prefix: new TextDecoder().decode(combined.slice(0, PRE_AUTH_PREFIX_BYTES)) }
-}
-
-function parseRoutingPrefix(prefix: string): Record<string, unknown> | null {
-  const model = prefix.match(/"model"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/)
-  const stream = prefix.match(/"stream"\s*:\s*(true|false)/)
-  if (!model && !stream) return null
-  return {
-    ...(model ? { model: JSON.parse(`"${model[1]}"`) } : {}),
-    ...(stream ? { stream: stream[1] === 'true' } : {}),
-  }
-}
 
 function formatError(err: unknown): string {
   if (!(err instanceof Error)) return String(err)
@@ -167,39 +41,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const attribution = extractAttribution(request.headers, getAttributionSettings())
   const hasBody = method !== 'GET' && method !== 'HEAD'
-  const reqContentType = request.headers.get('content-type') ?? ''
-  const isMultipart = hasBody && reqContentType.includes('multipart/form-data')
-  let reqBodyText: string | null = null
-  let preAuthBodyText: string | null = null
-  let parsedBody: Record<string, unknown> | null = null
   let fetchBody: ReadableStream<Uint8Array> | BodyInit | undefined
   let reqModel: string | null = null
-  let multipartFormData: FormData | null = null
   let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
-
-  if (isMultipart) {
-    try {
-      const clone = request.clone()
-      multipartFormData = await clone.formData()
-      const modelField = multipartFormData.get('model')
-      const streamField = multipartFormData.get('stream')
-      parsedBody = {
-        ...(typeof modelField === 'string' ? { model: modelField } : {}),
-        ...(typeof streamField === 'string' ? { stream: streamField === 'true' } : {}),
-      }
-    } catch {
-      // Can't parse form data — still forward the request
-    }
-  } else if (hasBody) {
-    const body = await readBody(request)
-    reqBodyText = body.text
-    preAuthBodyText = body.text
-    try {
-      parsedBody = JSON.parse(reqBodyText)
-    } catch {
-      parsedBody = parseRoutingPrefix(body.prefix)
-    }
-  }
+  const preparedBody = await prepareProxyBody(request, method)
+  let { parsedBody, bodyText: reqBodyText, multipartFormData } = preparedBody
+  const isMultipart = preparedBody.isMultipart
 
   const authResult = authenticateRequest(request, endpoint, parsedBody)
   if (!authResult.ok) {
@@ -233,7 +80,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const keyRow = authResult.keyRow
 
   if (!hasBody) {
-    routingOutcome = evaluateBodylessRouting(endpoint, request.headers)
+    routingOutcome = evaluateBodylessPreAuthRouting(endpoint, request.headers)
   }
 
   if (!hasBody && routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
@@ -282,15 +129,6 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
     fetchBody = multipartFormData ?? request.body ?? undefined
   } else if (hasBody) {
-    reqBodyText = preAuthBodyText ?? (await request.text())
-    if (!parsedBody) {
-      try {
-        parsedBody = JSON.parse(reqBodyText)
-      } catch {
-        // non-JSON body — skip transforms
-      }
-    }
-
     if (parsedBody) {
       reqModel = (parsedBody.model as string) ?? null
       const transformResult = applyTransforms(parsedBody, {
@@ -334,8 +172,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (reqBodyText) reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
   }
 
-  const shouldPreserveAuthorization = authResult.passthrough && authResult.preserveAuthorization
-  if (!shouldPreserveAuthorization) {
+  if (!shouldPreserveAuthorization(authResult, routingOutcome)) {
     delete reqHeaders.authorization
   }
 

@@ -191,3 +191,13 @@ export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext):
     preserveAuthorization: false,
   }
 }
+
+export function evaluatePreAuthRoutingRules(
+  rules: RoutingRule[],
+  ctx: Omit<RoutingContext, 'apiKeyId'>,
+): RoutingDecision {
+  return evaluateRoutingRules(
+    rules.filter((rule) => rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0),
+    { ...ctx, apiKeyId: null },
+  )
+}

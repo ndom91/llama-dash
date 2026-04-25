@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { RoutingRule } from '../../lib/schemas/routing-rule'
-import { evaluateRoutingRules, matchesRoutingRule, type RoutingContext } from './routing-rules'
+import {
+  evaluatePreAuthRoutingRules,
+  evaluateRoutingRules,
+  matchesRoutingRule,
+  type RoutingContext,
+} from './routing-rules'
 
 function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
   return {
@@ -137,5 +142,36 @@ describe('evaluateRoutingRules', () => {
     const decision = evaluateRoutingRules(rules, makeContext())
     expect(decision.matchedRule?.id).toBe('rrl_enabled')
     expect(decision.action).toEqual({ type: 'rewrite_model', model: 'model-b' })
+  })
+})
+
+describe('evaluatePreAuthRoutingRules', () => {
+  it('only considers passthrough rules without API-key matchers', () => {
+    const requireKeyRule = makeRule({
+      id: 'rrl_require_key',
+      authMode: 'require_key',
+      action: { type: 'noop' },
+    })
+    const keyScopedPassthroughRule = makeRule({
+      id: 'rrl_key_passthrough',
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+      match: { ...makeRule().match, apiKeyIds: ['key_homeassistant'] },
+      action: { type: 'noop' },
+    })
+    const publicPassthroughRule = makeRule({
+      id: 'rrl_public_passthrough',
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+      action: { type: 'noop' },
+    })
+
+    const decision = evaluatePreAuthRoutingRules(
+      [requireKeyRule, keyScopedPassthroughRule, publicPassthroughRule],
+      makeContext(),
+    )
+
+    expect(decision.matchedRule?.id).toBe('rrl_public_passthrough')
+    expect(decision.authMode).toBe('passthrough')
   })
 })

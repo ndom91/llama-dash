@@ -1,8 +1,9 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { ApiKey } from '../db/schema.ts'
 import { findKeyByHash, hasAnyUserKeys } from '../admin/api-keys.ts'
-import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
+import { evaluatePreAuthRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { checkRpm, checkTpm } from './rate-limiter.ts'
+import { estimatePromptTokens } from './tokens.ts'
 
 type AuthOk = {
   ok: true
@@ -11,6 +12,7 @@ type AuthOk = {
   preserveAuthorization: boolean
   passthrough: boolean
 }
+export type AuthOkResult = AuthOk
 type AuthErr = { ok: false; status: number; retryAfterMs?: number; body: { error: { message: string; type: string } } }
 export type AuthResult = AuthOk | AuthErr
 
@@ -19,10 +21,9 @@ export function authenticateRequest(
   endpoint: string,
   parsedBody: Record<string, unknown> | null,
 ): AuthResult {
-  const decision = evaluateRoutingRules(listRoutingRules(), {
+  const decision = evaluatePreAuthRoutingRules(listRoutingRules(), {
     endpoint,
     requestedModel: parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
-    apiKeyId: null,
     stream: parsedBody?.stream === true,
     estimatedPromptTokens: parsedBody ? estimatePromptTokens(parsedBody) : null,
     headers: request.headers,
@@ -103,13 +104,4 @@ export function authenticateRequest(
   }
 
   return { ok: true, keyId: keyRow.id, keyRow, preserveAuthorization: true, passthrough: false }
-}
-
-function estimatePromptTokens(body: Record<string, unknown>): number | null {
-  const parts: Array<unknown> = []
-  if (Array.isArray(body.messages)) parts.push(body.messages)
-  if (body.system != null) parts.push(body.system)
-  if (Array.isArray(body.tools)) parts.push(body.tools)
-  if (parts.length === 0) return null
-  return Math.ceil(JSON.stringify(parts).length / 4)
 }
