@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
+import { cn } from '../../lib/cn'
 import {
   analyzeResponse,
   analyzeTiming,
@@ -47,6 +48,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
+  const navButtonClass =
+    'inline-flex h-8 w-8 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
   useHotkey('H', (e) => {
     if (!prevId) return
@@ -112,7 +115,12 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <Link
                   to="/requests/$id"
                   params={{ id: prevId ?? '' }}
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${prevId ? '' : 'pointer-events-none opacity-30'}`}
+                  className={cn(
+                    navButtonClass,
+                    prevId
+                      ? 'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg'
+                      : 'pointer-events-none border-border text-fg-faint opacity-30 transition-none',
+                  )}
                   disabled={!prevId || isPrevPending}
                   aria-disabled={!prevId || isPrevPending}
                   onClick={(e) => !prevId && e.preventDefault()}
@@ -135,7 +143,12 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <Link
                   to="/requests/$id"
                   params={{ id: nextId ?? '' }}
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded border border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg active:scale-95 ${nextId ? '' : 'pointer-events-none opacity-30'}`}
+                  className={cn(
+                    navButtonClass,
+                    nextId
+                      ? 'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg'
+                      : 'pointer-events-none border-border text-fg-faint opacity-30 transition-none',
+                  )}
                   disabled={!nextId || isNextPending}
                   aria-disabled={!nextId || isNextPending}
                   onClick={(e) => !nextId && e.preventDefault()}

@@ -1,18 +1,16 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { ApiKey } from '../db/schema.ts'
 import { findKeyByHash, hasAnyUserKeys } from '../admin/api-keys.ts'
-import { evaluatePreAuthRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { checkRpm, checkTpm } from './rate-limiter.ts'
-import { estimatePromptTokens } from './tokens.ts'
+import { evaluatePreAuthRouting } from './routing.ts'
+import type { RoutingOutcome } from './transforms.ts'
 
 type AuthOk = {
   ok: true
   keyId: string | null
   keyRow: ApiKey | null
-  preserveAuthorization: boolean
-  passthrough: boolean
+  preAuthRouting: RoutingOutcome
 }
-export type AuthOkResult = AuthOk
 type AuthErr = { ok: false; status: number; retryAfterMs?: number; body: { error: { message: string; type: string } } }
 export type AuthResult = AuthOk | AuthErr
 
@@ -21,25 +19,13 @@ export function authenticateRequest(
   endpoint: string,
   parsedBody: Record<string, unknown> | null,
 ): AuthResult {
-  const decision = evaluatePreAuthRoutingRules(listRoutingRules(), {
-    endpoint,
-    requestedModel: parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
-    stream: parsedBody?.stream === true,
-    estimatedPromptTokens: parsedBody ? estimatePromptTokens(parsedBody) : null,
-    headers: request.headers,
-  })
-  if (decision.matchedRule && decision.authMode === 'passthrough') {
-    return {
-      ok: true,
-      keyId: null,
-      keyRow: null,
-      preserveAuthorization: decision.preserveAuthorization,
-      passthrough: true,
-    }
+  const preAuthRouting = evaluatePreAuthRouting(endpoint, parsedBody, request.headers)
+  if (preAuthRouting.authMode === 'passthrough') {
+    return { ok: true, keyId: null, keyRow: null, preAuthRouting }
   }
 
   if (!hasAnyUserKeys()) {
-    return { ok: true, keyId: null, keyRow: null, preserveAuthorization: true, passthrough: false }
+    return { ok: true, keyId: null, keyRow: null, preAuthRouting }
   }
 
   const authHeader = request.headers.get('authorization')
@@ -103,5 +89,5 @@ export function authenticateRequest(
     }
   }
 
-  return { ok: true, keyId: keyRow.id, keyRow, preserveAuthorization: true, passthrough: false }
+  return { ok: true, keyId: keyRow.id, keyRow, preAuthRouting }
 }

@@ -5,3 +5,15 @@ export function buildDirectUpstream(baseUrl: string, endpoint: string, search: s
   base.search = search
   return base.toString()
 }
+
+export function selectUpstream(
+  defaultUpstream: string,
+  routing: { targetType: string | null; targetBaseUrl: string | null },
+  endpoint: string,
+  search: string,
+): string {
+  if (routing.targetType === 'direct' && routing.targetBaseUrl) {
+    return buildDirectUpstream(routing.targetBaseUrl, endpoint, search)
+  }
+  return defaultUpstream
+}

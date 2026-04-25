@@ -7,10 +7,10 @@ import { toErrorBody } from './errors.ts'
 import { filterRequestHeaders, filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
-import { evaluateBodylessPreAuthRouting, shouldPreserveAuthorization } from './routing.ts'
+import { preferPostAuthRouting, shouldPreserveAuthorization } from './routing.ts'
 import type { RoutingOutcome } from './transforms.ts'
 import { applyTransforms, emptyRoutingOutcome } from './transforms.ts'
-import { buildDirectUpstream } from './upstream.ts'
+import { selectUpstream } from './upstream.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
 function formatError(err: unknown): string {
@@ -36,7 +36,8 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const method = request.method.toUpperCase()
   const url = new URL(request.url)
   const endpoint = url.pathname
-  let upstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
+  const defaultUpstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
+  let upstream = defaultUpstream
   const reqHeaders = filterRequestHeaders(request.headers)
   const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
   const attribution = extractAttribution(request.headers, getAttributionSettings())
@@ -78,13 +79,10 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   const keyId = authResult.keyId
   const keyRow = authResult.keyRow
+  routingOutcome = authResult.preAuthRouting
 
   if (!hasBody) {
-    routingOutcome = evaluateBodylessPreAuthRouting(endpoint, request.headers)
-  }
-
-  if (!hasBody && routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
-    upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
+    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
   }
 
   if (isMultipart) {
@@ -123,9 +121,8 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       }
     }
 
-    if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
-      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-    }
+    routingOutcome = preferPostAuthRouting(authResult.preAuthRouting, routingOutcome)
+    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
 
     fetchBody = multipartFormData ?? request.body ?? undefined
   } else if (hasBody) {
@@ -164,15 +161,14 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       reqModel = (transformResult.body?.model as string) ?? reqModel
     }
 
-    if (routingOutcome.targetType === 'direct' && routingOutcome.targetBaseUrl) {
-      upstream = buildDirectUpstream(routingOutcome.targetBaseUrl, endpoint, url.search)
-    }
+    routingOutcome = preferPostAuthRouting(authResult.preAuthRouting, routingOutcome)
+    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
 
     fetchBody = reqBodyText || undefined
     if (reqBodyText) reqHeaders['content-length'] = String(Buffer.byteLength(reqBodyText, 'utf8'))
   }
 
-  if (!shouldPreserveAuthorization(authResult, routingOutcome)) {
+  if (!shouldPreserveAuthorization(routingOutcome)) {
     delete reqHeaders.authorization
   }
 

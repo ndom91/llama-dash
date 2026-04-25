@@ -1,20 +1,29 @@
 import { evaluatePreAuthRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
-import type { AuthOkResult } from './auth.ts'
 import { routingOutcomeFromDecision, type RoutingOutcome } from './transforms.ts'
+import { estimatePromptTokens } from './tokens.ts'
 
-export function evaluateBodylessPreAuthRouting(endpoint: string, headers: Headers): RoutingOutcome {
+export function evaluatePreAuthRouting(
+  endpoint: string,
+  parsedBody: Record<string, unknown> | null,
+  headers: Headers,
+): RoutingOutcome {
   const decision = evaluatePreAuthRoutingRules(listRoutingRules(), {
     endpoint,
-    requestedModel: null,
-    stream: false,
-    estimatedPromptTokens: null,
+    requestedModel: parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
+    stream: parsedBody?.stream === true,
+    estimatedPromptTokens: parsedBody ? estimatePromptTokens(parsedBody) : null,
     headers,
   })
-  return routingOutcomeFromDecision(decision, null)
+  return routingOutcomeFromDecision(
+    decision,
+    parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null,
+  )
 }
 
-export function shouldPreserveAuthorization(auth: AuthOkResult, routing: RoutingOutcome): boolean {
-  const passthrough = auth.passthrough || routing.authMode === 'passthrough'
-  if (!passthrough) return false
-  return auth.preserveAuthorization || routing.preserveAuthorization
+export function shouldPreserveAuthorization(routing: RoutingOutcome): boolean {
+  return routing.authMode === 'passthrough' && routing.preserveAuthorization
+}
+
+export function preferPostAuthRouting(preAuthRouting: RoutingOutcome, postAuthRouting: RoutingOutcome): RoutingOutcome {
+  return postAuthRouting.targetType === null && preAuthRouting.targetType !== null ? preAuthRouting : postAuthRouting
 }
