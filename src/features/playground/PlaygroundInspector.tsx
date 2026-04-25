@@ -18,6 +18,9 @@ const TABS: Array<{ id: InspectorTab; label: string }> = [
   { id: 'curl', label: 'curl' },
 ]
 
+const inspectorPreClass =
+  'm-0 whitespace-pre-wrap break-words rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted'
+
 type Props = {
   model: string
   inspector: InspectorState
@@ -114,9 +117,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
             </div>
           ) : null}
           {requestJson ? (
-            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
-              {requestJson}
-            </pre>
+            <pre className={inspectorPreClass}>{requestJson}</pre>
           ) : (
             <EmptyNote>No request sent yet.</EmptyNote>
           )}
@@ -129,9 +130,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
         >
           {inspector.lastResponseText ? (
-            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
-              {inspector.lastResponseText}
-            </pre>
+            <pre className={inspectorPreClass}>{inspector.lastResponseText}</pre>
           ) : (
             <EmptyNote>Run a request to capture its response.</EmptyNote>
           )}
@@ -184,9 +183,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
           action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
         >
           {curlCommand ? (
-            <pre className="m-0 overflow-x-auto rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted">
-              {curlCommand}
-            </pre>
+            <pre className={inspectorPreClass}>{curlCommand}</pre>
           ) : (
             <EmptyNote>Send a request to generate a curl command.</EmptyNote>
           )}
