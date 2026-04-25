@@ -1,179 +1,141 @@
-import { config } from '../config.ts'
-import { getAttributionSettings } from '../admin/settings.ts'
-import { extractAttribution } from './attribution.ts'
 import { authenticateRequest } from './auth.ts'
 import {
-  applyProxyBodyHeaders,
-  applyProxyBodyTransform,
-  getProxyForwardBody,
-  getProxyLoggedBody,
-  prepareProxyBody,
-  type ProxyBodySnapshot,
-} from './body.ts'
+  applyTransformResultToContext,
+  createProxyContext,
+  ensureProxyBody,
+  finalizeRoutingAndBody,
+  forwardBody,
+  loggedRequestBody,
+  loggedRequestHeaders,
+  prepareBodyBeforeAuthIfNeeded,
+  setAuthContext,
+  type ProxyContext,
+} from './context.ts'
 import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
-import { filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
-import { preAuthRoutingNeedsBody, preferPostAuthRouting, shouldPreserveAuthorization } from './routing.ts'
-import type { RoutingOutcome } from './transforms.ts'
-import { applyTransforms, emptyRoutingOutcome } from './transforms.ts'
-import { selectUpstream } from './upstream.ts'
+import { shouldPreserveAuthorization } from './routing.ts'
+import { applyTransforms } from './transforms.ts'
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
-  const startedAt = Date.now()
-  const method = request.method.toUpperCase()
-  const url = new URL(request.url)
-  const endpoint = url.pathname
-  const defaultUpstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
-  let upstream = defaultUpstream
-  const reqHeaders = filterRequestHeaders(request.headers)
-  const loggedReqHeaders = () => JSON.stringify(redactSensitiveHeaders(reqHeaders))
-  const attribution = extractAttribution(request.headers, getAttributionSettings())
-  let routingOutcome: RoutingOutcome = emptyRoutingOutcome()
-  let body: ProxyBodySnapshot | null = null
+  const ctx = createProxyContext(request)
   try {
-    if (preAuthRoutingNeedsBody(method)) {
-      body = await prepareProxyBody(request, method)
-    }
+    await prepareBodyBeforeAuthIfNeeded(ctx)
   } catch (err) {
-    return rejectBodyTooLarge({
-      err,
-      startedAt,
-      method,
-      endpoint,
-      reqHeaders: loggedReqHeaders(),
-      attribution,
-      routingOutcome,
-    })
+    return rejectBodyTooLarge(ctx, err)
   }
 
-  const authResult = authenticateRequest(request, endpoint, body?.parsedBody ?? null)
+  const authResult = authenticateRequest(request, ctx.endpoint, ctx.body?.parsedBody ?? null)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
       headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
     }
     writeProxyLog({
-      startedAt,
+      startedAt: ctx.startedAt,
       status: authResult.status,
-      method,
-      endpoint,
-      usage: nullUsage(body?.reqModel),
+      method: ctx.method,
+      endpoint: ctx.endpoint,
+      usage: nullUsage(ctx.body?.reqModel),
       streamed: false,
       error: authResult.body.error.message,
-      reqHeaders: loggedReqHeaders(),
+      reqHeaders: loggedRequestHeaders(ctx),
       reqBody: null,
       resHeaders: null,
-      resBody: JSON.stringify(toErrorBody(endpoint, authResult.body)),
+      resBody: JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)),
       keyId: null,
-      attribution,
-      routing: routingOutcome,
+      attribution: ctx.attribution,
+      routing: ctx.routingOutcome,
     })
-    return new Response(JSON.stringify(toErrorBody(endpoint, authResult.body)), {
+    return new Response(JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)), {
       status: authResult.status,
       headers,
     })
   }
 
-  const keyId = authResult.keyId
-  const keyRow = authResult.keyRow
-  routingOutcome = authResult.preAuthRouting
+  setAuthContext(ctx, authResult)
   try {
-    body ??= await prepareProxyBody(request, method)
+    await ensureProxyBody(ctx)
   } catch (err) {
-    return rejectBodyTooLarge({
-      err,
-      startedAt,
-      method,
-      endpoint,
-      reqHeaders: loggedReqHeaders(),
-      attribution,
-      routingOutcome,
-    })
+    return rejectBodyTooLarge(ctx, err)
   }
 
-  if (!body.hasBody) {
-    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
-  }
-
-  if (body.hasBody) {
-    if (body.parsedBody && (!body.isMultipart || Object.keys(body.parsedBody).length > 0)) {
-      const transformResult = applyTransforms(body.parsedBody, {
-        keyRow,
-        endpoint,
-        method,
+  if (ctx.body?.hasBody) {
+    if (ctx.body.parsedBody && (!ctx.body.isMultipart || Object.keys(ctx.body.parsedBody).length > 0)) {
+      const transformResult = applyTransforms(ctx.body.parsedBody, {
+        keyRow: ctx.keyRow,
+        endpoint: ctx.endpoint,
+        method: ctx.method,
         skipRouting: false,
         headers: request.headers,
       })
-      routingOutcome = transformResult.routing
+      ctx.routingOutcome = transformResult.routing
       if (!transformResult.ok) {
         writeProxyLog({
-          startedAt,
+          startedAt: ctx.startedAt,
           status: transformResult.status,
-          method,
-          endpoint,
-          usage: nullUsage(body.reqModel),
+          method: ctx.method,
+          endpoint: ctx.endpoint,
+          usage: nullUsage(ctx.body.reqModel),
           streamed: false,
           error: transformResult.body.error.message,
-          reqHeaders: loggedReqHeaders(),
-          reqBody: getProxyLoggedBody(body),
+          reqHeaders: loggedRequestHeaders(ctx),
+          reqBody: loggedRequestBody(ctx),
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
-          keyId,
-          attribution,
-          routing: routingOutcome,
+          keyId: ctx.keyId,
+          attribution: ctx.attribution,
+          routing: ctx.routingOutcome,
         })
-        return Response.json(toErrorBody(endpoint, transformResult.body), { status: transformResult.status })
+        return Response.json(toErrorBody(ctx.endpoint, transformResult.body), { status: transformResult.status })
       }
-      body = applyProxyBodyTransform(body, transformResult)
+      applyTransformResultToContext(ctx, transformResult)
     }
-
-    routingOutcome = preferPostAuthRouting(authResult.preAuthRouting, routingOutcome)
-    upstream = selectUpstream(defaultUpstream, routingOutcome, endpoint, url.search)
-    applyProxyBodyHeaders(body, reqHeaders)
   }
 
-  if (!shouldPreserveAuthorization(routingOutcome)) {
-    delete reqHeaders.authorization
+  finalizeRoutingAndBody(ctx, authResult.preAuthRouting)
+
+  if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
+    delete ctx.reqHeaders.authorization
   }
 
-  const reqHeadersJson = loggedReqHeaders()
-  const loggedReqBody = getProxyLoggedBody(body)
+  const reqHeadersJson = loggedRequestHeaders(ctx)
+  const reqBody = loggedRequestBody(ctx)
   const forwardedResponse = await forwardUpstreamAndLog({
-    upstream,
-    method,
-    headers: reqHeaders,
-    body: getProxyForwardBody(body, request),
-    hasBody: body.hasBody,
-    startedAt,
-    endpoint,
-    reqModel: body.reqModel,
+    upstream: ctx.upstream,
+    method: ctx.method,
+    headers: ctx.reqHeaders,
+    body: forwardBody(ctx),
+    hasBody: ctx.body?.hasBody ?? false,
+    startedAt: ctx.startedAt,
+    endpoint: ctx.endpoint,
+    reqModel: ctx.body?.reqModel ?? null,
     reqHeadersJson,
-    reqBody: loggedReqBody,
-    keyId,
-    keyRow,
-    attribution,
-    routing: routingOutcome,
+    reqBody,
+    keyId: ctx.keyId,
+    keyRow: ctx.keyRow,
+    attribution: ctx.attribution,
+    routing: ctx.routingOutcome,
   })
 
   if ('upstreamError' in forwardedResponse) {
     writeProxyLog({
-      startedAt,
+      startedAt: ctx.startedAt,
       status: 502,
-      method,
-      endpoint,
-      usage: nullUsage(body.reqModel),
+      method: ctx.method,
+      endpoint: ctx.endpoint,
+      usage: nullUsage(ctx.body?.reqModel),
       streamed: false,
       error: forwardedResponse.upstreamError,
       reqHeaders: reqHeadersJson,
-      reqBody: loggedReqBody,
+      reqBody,
       resHeaders: null,
       resBody: null,
-      keyId,
-      attribution,
-      routing: routingOutcome,
+      keyId: ctx.keyId,
+      attribution: ctx.attribution,
+      routing: ctx.routingOutcome,
     })
     return Response.json(
-      toErrorBody(endpoint, {
+      toErrorBody(ctx.endpoint, {
         error: { message: `Upstream unreachable: ${forwardedResponse.upstreamError}`, type: 'upstream_unreachable' },
       }),
       { status: 502 },
@@ -183,32 +145,24 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   return forwardedResponse
 }
 
-function rejectBodyTooLarge(input: {
-  err: unknown
-  startedAt: number
-  method: string
-  endpoint: string
-  reqHeaders: string
-  attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
-  routingOutcome: RoutingOutcome
-}): Response {
-  const message = input.err instanceof Error ? input.err.message : String(input.err)
+function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
+  const message = err instanceof Error ? err.message : String(err)
   const body = { error: { message, type: 'request_too_large' } }
   writeProxyLog({
-    startedAt: input.startedAt,
+    startedAt: ctx.startedAt,
     status: 413,
-    method: input.method,
-    endpoint: input.endpoint,
+    method: ctx.method,
+    endpoint: ctx.endpoint,
     usage: nullUsage(),
     streamed: false,
     error: message,
-    reqHeaders: input.reqHeaders,
+    reqHeaders: loggedRequestHeaders(ctx),
     reqBody: null,
     resHeaders: null,
-    resBody: JSON.stringify(toErrorBody(input.endpoint, body)),
+    resBody: JSON.stringify(toErrorBody(ctx.endpoint, body)),
     keyId: null,
-    attribution: input.attribution,
-    routing: input.routingOutcome,
+    attribution: ctx.attribution,
+    routing: ctx.routingOutcome,
   })
-  return Response.json(toErrorBody(input.endpoint, body), { status: 413 })
+  return Response.json(toErrorBody(ctx.endpoint, body), { status: 413 })
 }
