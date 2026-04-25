@@ -1,7 +1,7 @@
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { createRootRoute, HeadContent, Outlet, Scripts } from '@tanstack/react-router'
+import { createRootRoute, HeadContent, Outlet, Scripts, useMatches } from '@tanstack/react-router'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { useCallback, useState } from 'react'
@@ -78,6 +78,10 @@ function AppShell() {
   const [open, setOpen] = useState(false)
   const toggle = useCallback(() => setOpen((v) => !v), [])
   const close = useCallback(() => setOpen(false), [])
+  const matches = useMatches()
+  const leaf = matches[matches.length - 1]?.pathname ?? '/'
+
+  if (leaf === '/login') return <Outlet />
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>

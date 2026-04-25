@@ -6,8 +6,7 @@ if (config.llamaSwapInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 }
 
-const { ensureDashboardUser, getDashboardSession, isDashboardAuthEnabled, auth } = await import('./server/auth.ts')
-await ensureDashboardUser()
+const { auth, getDashboardSession } = await import('./server/auth.ts')
 
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
@@ -35,7 +34,7 @@ export default createServerEntry({
 
     if (url.pathname.startsWith('/api/')) {
       const session = await getDashboardSession(request)
-      if (isDashboardAuthEnabled() && !session) {
+      if (!session) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { 'content-type': 'application/json' },
@@ -52,7 +51,7 @@ export default createServerEntry({
       })
     }
 
-    if (isDashboardAuthEnabled() && url.pathname !== '/login') {
+    if (url.pathname !== '/login') {
       const session = await getDashboardSession(request)
       if (!session) {
         const redirectTo = new URL('/login', url)

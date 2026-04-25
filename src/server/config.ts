@@ -10,9 +10,6 @@ export const config = {
   llamaSwapInsecure: parseBool(process.env.LLAMASWAP_INSECURE, false),
   llamaSwapConfigFile: process.env.LLAMASWAP_CONFIG_FILE ?? '',
   databasePath: process.env.DATABASE_PATH ?? 'data/dash.db',
-  authUsername: process.env.DASHBOARD_AUTH_USERNAME ?? '',
-  authPassword: process.env.DASHBOARD_AUTH_PASSWORD ?? '',
-  authEmail: process.env.DASHBOARD_AUTH_EMAIL ?? '',
   authSecret: process.env.BETTER_AUTH_SECRET ?? '',
   authUrl: process.env.BETTER_AUTH_URL ? stripTrailingSlash(process.env.BETTER_AUTH_URL) : '',
 }
