@@ -4,6 +4,13 @@ import { db, schema } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
 
+const MAX_LOG_QUEUE_SIZE = 1_000
+const LOG_FLUSH_INTERVAL_MS = 25
+
+let queue: RequestLogInput[] = []
+let flushScheduled = false
+let droppedLogs = 0
+
 function truncateBody(body: string | null, maxBytes: number): string | null {
   if (body == null) return null
   const fullBytes = Buffer.byteLength(body, 'utf8')
@@ -54,6 +61,45 @@ export type RequestLogInput = {
 }
 
 export function writeRequestLog(row: RequestLogInput) {
+  if (queue.length >= MAX_LOG_QUEUE_SIZE) {
+    droppedLogs++
+    return
+  }
+  queue.push(row)
+  scheduleFlush()
+}
+
+export function getRequestLogQueueStats(): { queued: number; dropped: number } {
+  return { queued: queue.length, dropped: droppedLogs }
+}
+
+export function resetRequestLogQueueForTest() {
+  queue = []
+  flushScheduled = false
+  droppedLogs = 0
+}
+
+export function flushRequestLogQueue() {
+  flushScheduled = false
+  while (queue.length > 0) {
+    const row = queue.shift()
+    if (!row) continue
+    try {
+      writeRequestLogNow(row)
+    } catch (err) {
+      droppedLogs++
+      console.warn('Failed to write request log', err)
+    }
+  }
+}
+
+function scheduleFlush() {
+  if (flushScheduled) return
+  flushScheduled = true
+  setTimeout(flushRequestLogQueue, LOG_FLUSH_INTERVAL_MS).unref?.()
+}
+
+export function writeRequestLogNow(row: RequestLogInput) {
   const id = `req_${ulid()}`
   const { maxBytes } = getBodyLogLimits()
   // Keep full bodies in-memory for recent-debug access; DB keeps truncated.
