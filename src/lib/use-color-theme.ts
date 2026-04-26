@@ -4,6 +4,7 @@ import themesData from './themes.json'
 type ThemeDef = (typeof themesData.themes)[number]
 
 const STORAGE_KEY = 'color-theme'
+const THEME_CHANGE_EVENT = 'llama-dash:color-theme-change'
 const DEFAULT_THEME_ID = 'ultraviolet'
 
 export const themes: ReadonlyArray<ThemeDef> = themesData.themes
@@ -50,6 +51,13 @@ export function useColorTheme() {
     const id = getStoredId()
     setThemeId(id)
     applyTheme(findTheme(id))
+
+    function onThemeChange() {
+      setThemeId(getStoredId())
+    }
+
+    window.addEventListener(THEME_CHANGE_EVENT, onThemeChange)
+    return () => window.removeEventListener(THEME_CHANGE_EVENT, onThemeChange)
   }, [])
 
   const select = (id: string) => {
@@ -57,6 +65,7 @@ export function useColorTheme() {
     setThemeId(theme.id)
     applyTheme(theme)
     window.localStorage.setItem(STORAGE_KEY, theme.id)
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT))
   }
 
   return { themeId, themes, select }

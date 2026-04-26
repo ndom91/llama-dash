@@ -20,6 +20,7 @@ import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
+import { useColorTheme } from '../lib/use-color-theme'
 import { StatusDot, stateTone } from './StatusDot'
 import { Logo } from './Logo'
 import { Tooltip } from './Tooltip'
@@ -84,7 +85,6 @@ const SECTIONS: ReadonlyArray<NavSection> = [
 const NAV_LINK =
   'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
-const USER_AVATAR_COLORS = ['#e2ff7a', '#9ad8ff', '#5e8cff', '#ff8a3d', '#1c1f2a']
 
 export function Sidebar() {
   const { open, close } = useMobileMenu()
@@ -92,6 +92,15 @@ export function Sidebar() {
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
   const { data: session } = authClient.useSession()
+  const colorTheme = useColorTheme()
+  const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
+  const avatarColors = [
+    activeTheme.accent['300'],
+    activeTheme.accent['500'],
+    activeTheme.accent['700'],
+    activeTheme.status.info,
+    activeTheme.status.warn,
+  ]
 
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
@@ -249,7 +258,7 @@ export function Sidebar() {
               name={session?.user.email || session?.user.name || 'dashboard user'}
               variant="marble"
               size={28}
-              colors={USER_AVATAR_COLORS}
+              colors={avatarColors}
               title={false}
               aria-hidden="true"
             />
