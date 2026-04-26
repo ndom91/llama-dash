@@ -21,6 +21,7 @@ import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels } from '../lib/queries'
 import { StatusDot, stateTone } from './StatusDot'
 import { Logo } from './Logo'
+import { Tooltip } from './Tooltip'
 
 type NavItem = {
   to:
@@ -250,15 +251,11 @@ export function Sidebar() {
               {session?.user.email ?? 'dashboard user'}
             </div>
           </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-icon"
-            onClick={signOut}
-            title="Sign out"
-            aria-label="Sign out"
-          >
-            <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-          </button>
+          <Tooltip label="Signout">
+            <button type="button" className="btn btn-ghost btn-icon" onClick={signOut} aria-label="Signout">
+              <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </aside>

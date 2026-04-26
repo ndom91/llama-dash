@@ -106,7 +106,6 @@ export function LoginPage() {
                 setMode('sign-up')
               }}
               onSubmit={(event) => onSubmit(event, 'sign-in')}
-              instanceLabel={dashHost}
             />
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
@@ -245,7 +244,6 @@ function SignInForm({
   onResetPassword,
   onSignup,
   onSubmit,
-  instanceLabel,
 }: {
   username: string
   password: string
@@ -258,7 +256,6 @@ function SignInForm({
   onResetPassword: () => void
   onSignup: () => void
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
-  instanceLabel: string
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
