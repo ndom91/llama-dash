@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import Avatar from 'boring-avatars'
 import {
   Boxes,
   Fingerprint,
@@ -83,6 +84,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
 const NAV_LINK =
   'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
+const USER_AVATAR_COLORS = ['#e2ff7a', '#9ad8ff', '#5e8cff', '#ff8a3d', '#1c1f2a']
 
 export function Sidebar() {
   const { open, close } = useMobileMenu()
@@ -242,8 +244,15 @@ export function Sidebar() {
           )}
         </div>
         <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-3 py-2">
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-3 font-mono text-[10px] font-semibold uppercase text-fg-muted">
-            {initials(session?.user.name || session?.user.email)}
+          <div className="size-7 shrink-0 overflow-hidden rounded-full border border-border bg-surface-3">
+            <Avatar
+              name={session?.user.email || session?.user.name || 'dashboard user'}
+              variant="marble"
+              size={28}
+              colors={USER_AVATAR_COLORS}
+              title={false}
+              aria-hidden="true"
+            />
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">signed in</div>
@@ -260,10 +269,4 @@ export function Sidebar() {
       </div>
     </aside>
   )
-}
-
-function initials(value: string | null | undefined): string {
-  const trimmed = value?.trim()
-  if (!trimmed) return 'U'
-  return trimmed.slice(0, 2)
 }

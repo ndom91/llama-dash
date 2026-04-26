@@ -46,6 +46,7 @@
     "ajv-formats": "^3.0.1",
     "better-auth": "^1.6.9",
     "better-sqlite3": "^12.9.0",
+    "boring-avatars": "^2.0.4",
     "drizzle-orm": "^0.45.2",
     "gpt-tokenizer": "^3.4.0",
     "highlight.js": "^11.11.1",
