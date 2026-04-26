@@ -56,9 +56,9 @@ export function LoginPage() {
 
   return (
     <main className="min-h-dvh bg-surface-0 text-fg">
-      <section className="grid min-h-dvh border border-border bg-surface-0 lg:grid-cols-[28vw_minmax(0,1fr)]">
+      <section className="grid min-h-dvh grid-rows-[auto_minmax(0,1fr)] border border-border bg-surface-0 lg:grid-cols-[28vw_minmax(0,1fr)] lg:grid-rows-none">
         <InstanceRail mode={mode} dashHost={dashHost} />
-        <div className="flex min-w-0 flex-col px-[8vw] py-7 max-md:px-6">
+        <div className="flex min-h-0 min-w-0 flex-col px-[8vw] py-7 max-md:px-6">
           <div className="mb-auto flex items-start justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-dim">
             <span>
               auth / <span className="text-fg">{mode === 'sign-up' ? 'first run' : 'sign in'}</span>
@@ -139,14 +139,21 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
   }
 
   return (
-    <aside className="flex flex-col border-r border-border bg-surface-1 px-[3vw] py-7">
-      <div className="flex items-center justify-between font-mono">
-        <div className="text-xl font-bold text-fg">
+    <aside className="flex flex-col border-r border-border bg-surface-1 px-[3vw] py-7 max-lg:border-r-0 max-lg:border-b max-lg:px-5 max-lg:py-4">
+      <div className="flex items-center justify-between gap-4 font-mono">
+        <div className="shrink-0 text-xl font-bold text-fg max-lg:text-lg">
           ld <span className="text-accent">_</span>
+        </div>
+        <div className="hidden min-w-0 flex-1 items-center justify-end gap-2 text-right font-mono max-lg:flex">
+          <span className={cn('size-1.5 shrink-0 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
+          <span className="truncate text-sm text-fg">{dashHost}</span>
+          <span className="hidden text-[10px] text-fg-dim min-[420px]:inline">
+            {mode === 'sign-up' ? 'first run' : uptime}
+          </span>
         </div>
       </div>
 
-      <div className="mt-auto mb-[32vh]">
+      <div className="mt-auto mb-[32vh] max-lg:hidden">
         <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llama-dash</div>
         <div className="break-all font-mono text-2xl text-fg">{dashHost}</div>
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
@@ -156,10 +163,12 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
         </div>
       </div>
 
-      <div className="mt-auto space-y-2 font-mono text-[11px] text-fg-dim">
-        <MetaLine label="commit" value={commit} />
-        <MetaLine label="tls" value={tls} highlight />
-        <div className="flex items-center gap-2 pt-5">
+      <div className="mt-auto space-y-2 font-mono text-[11px] text-fg-dim max-lg:hidden">
+        <div className="max-lg:hidden">
+          <MetaLine label="commit" value={commit} />
+          <MetaLine label="tls" value={tls} highlight />
+        </div>
+        <div className="flex items-center gap-2 pt-5 max-lg:hidden">
           {colorTheme.themes.map((theme) => (
             <button
               key={theme.id}
@@ -190,7 +199,8 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               <Moon className="size-3" strokeWidth={1.75} />
             )}
           </button>
-          <span className="ml-auto text-fg-dim">self-hosted</span>
+          <span className="ml-auto text-fg-dim max-lg:hidden">self-hosted</span>
+          <span className="ml-auto hidden text-fg-dim max-lg:inline">{tls}</span>
         </div>
       </div>
     </aside>
@@ -251,9 +261,9 @@ function SignInForm({
   instanceLabel: string
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
-      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash · {instanceLabel}</p>
+      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username" />
       <PasswordField
         label="password"
@@ -310,7 +320,7 @@ function SignUpForm({
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">first account on this instance · will be granted admin</p>
       <Field label="username" value={username} onChange={setUsername} autoComplete="username" />
