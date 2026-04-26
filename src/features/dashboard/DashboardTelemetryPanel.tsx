@@ -83,6 +83,14 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                     {gpuEntry.temperatureC != null ? ` · ${gpuEntry.temperatureC}°C` : ''}
                   </dd>
                 </div>
+                {gpuEntry.powerW != null ? (
+                  <div className={metaGrid}>
+                    <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">power</dt>
+                    <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+                      {gpuEntry.powerW} W
+                    </dd>
+                  </div>
+                ) : null}
               </dl>
             </div>
           ))

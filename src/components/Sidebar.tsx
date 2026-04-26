@@ -204,9 +204,9 @@ export function Sidebar() {
 
       <div className="p-2.5 border-t border-border flex flex-col gap-2">
         <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
-          <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
-            <span>{gpu?.driver === 'apple' ? 'memory' : 'vram'} ·</span>
-            <span className="ml-auto text-fg-muted">
+          <div className="flex justify-between items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
+            <span className="text-fg-muted">{gpuCard?.powerW ?? '-'} W</span>
+            <span className="text-fg-muted">
               {hasVram
                 ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`
                 : resident
