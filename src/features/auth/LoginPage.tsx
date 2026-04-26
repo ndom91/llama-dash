@@ -225,7 +225,7 @@ function applyThemeMode(mode: LoginThemeMode) {
 
 function MetaLine({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex justify-between border-b border-dashed border-border pb-1">
+    <div className="flex justify-between border-b border-dashed border-border pt-1">
       <span>{label}</span>
       <span className={highlight ? 'text-warn' : 'text-fg'}>{value}</span>
     </div>

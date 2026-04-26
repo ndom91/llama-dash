@@ -68,23 +68,33 @@ export const systemRoutes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/login-meta$/,
-    handler: async () => {
-      const upstreamUrl = new URL(config.llamaSwapUrl)
-      const protocol = upstreamUrl.protocol
+    handler: async (request) => {
+      const publicUrl = getPublicUrl(request)
       return json(200, {
-        instanceLabel: upstreamUrl.hostname || 'local instance',
+        instanceLabel: publicUrl.host || 'local instance',
         uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
         commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
-        tlsLabel:
-          protocol === 'https:'
-            ? config.llamaSwapInsecure
-              ? 'https · verify off'
-              : 'https · verified'
-            : 'http · no tls',
+        tlsLabel: publicUrl.protocol === 'https:' ? 'https · tls' : 'http · no tls',
       })
     },
   },
 ]
+
+function getPublicUrl(request: Request) {
+  const url = new URL(request.url)
+  const forwardedProto = firstForwardedValue(request.headers.get('x-forwarded-proto'))
+  const forwardedHost = firstForwardedValue(request.headers.get('x-forwarded-host'))
+  const host = forwardedHost ?? request.headers.get('host')
+
+  if (forwardedProto) url.protocol = forwardedProto.endsWith(':') ? forwardedProto : `${forwardedProto}:`
+  if (host) url.host = host
+
+  return url
+}
+
+function firstForwardedValue(value: string | null) {
+  return value?.split(',')[0]?.trim() || null
+}
 
 function formatLoginUptime(seconds: number) {
   const hours = Math.floor(seconds / 3600)
