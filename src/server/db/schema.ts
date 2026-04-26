@@ -161,6 +161,29 @@ export const verification = sqliteTable(
 export type Verification = typeof verification.$inferSelect
 export type NewVerification = typeof verification.$inferInsert
 
+export const passkey = sqliteTable(
+  'passkey',
+  {
+    id: text('id').primaryKey(),
+    name: text('name'),
+    publicKey: text('public_key').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    credentialID: text('credential_id').notNull(),
+    counter: integer('counter').notNull(),
+    deviceType: text('device_type').notNull(),
+    backedUp: integer('backed_up', { mode: 'boolean' }).notNull(),
+    transports: text('transports'),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }),
+    aaguid: text('aaguid'),
+  },
+  (table) => [index('idx_passkey_user_id').on(table.userId)],
+)
+
+export type Passkey = typeof passkey.$inferSelect
+export type NewPasskey = typeof passkey.$inferInsert
+
 export const modelAliases = sqliteTable('model_aliases', {
   id: text('id').primaryKey(),
   alias: text('alias').notNull().unique(),

@@ -1,4 +1,5 @@
 import { count } from 'drizzle-orm'
+import { passkey } from '@better-auth/passkey'
 import { betterAuth, type BetterAuthPlugin } from 'better-auth'
 import { createAuthMiddleware, APIError } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
@@ -7,6 +8,9 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { authAuditLogger } from './auth-audit.ts'
 import { db, schema } from './db/index.ts'
 import { config } from './config.ts'
+
+const passkeyOrigin = config.authUrl ? new URL(config.authUrl).origin : undefined
+const passkeyRpId = config.authUrl ? new URL(config.authUrl).hostname : undefined
 
 export const auth = betterAuth({
   basePath: '/api/auth',
@@ -27,7 +31,13 @@ export const auth = betterAuth({
     },
   },
   disabledPaths: ['/is-username-available'],
-  plugins: [firstUserOnlySignup(), username(), authAuditLogger(), tanstackStartCookies()],
+  plugins: [
+    firstUserOnlySignup(),
+    username(),
+    passkey({ rpName: 'llama-dash', rpID: passkeyRpId, origin: passkeyOrigin }),
+    authAuditLogger(),
+    tanstackStartCookies(),
+  ],
 })
 
 export async function getDashboardSession(request: Request) {

@@ -22,11 +22,27 @@ export function LoginPage() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [passkeyPending, setPasskeyPending] = useState(false)
   const [mode, setMode] = useState<AuthMode>('sign-in')
 
   useEffect(() => {
     setDashHost(window.location.host || window.location.hostname || 'local instance')
   }, [])
+
+  useEffect(() => {
+    if (typeof PublicKeyCredential === 'undefined' || !PublicKeyCredential.isConditionalMediationAvailable) return
+    let cancelled = false
+    PublicKeyCredential.isConditionalMediationAvailable()
+      .then(async (available) => {
+        if (!available || cancelled) return
+        const result = await authClient.signIn.passkey({ autoFill: true })
+        if (!cancelled && !result.error) await navigate({ to: safeRedirect(search.redirect) })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [navigate, search.redirect])
 
   async function onSubmit(event: SyntheticEvent<HTMLFormElement>, submitMode: AuthMode) {
     event.preventDefault()
@@ -48,6 +64,20 @@ export function LoginPage() {
 
     if (result.error) {
       setError(result.error.message || 'Invalid username or password')
+      return
+    }
+
+    await navigate({ to: safeRedirect(search.redirect) })
+  }
+
+  async function onPasskeySignIn() {
+    setError(null)
+    setPasskeyPending(true)
+    const result = await authClient.signIn.passkey()
+    setPasskeyPending(false)
+
+    if (result.error) {
+      setError(result.error.message || 'Passkey sign-in failed')
       return
     }
 
@@ -96,6 +126,7 @@ export function LoginPage() {
               password={password}
               remember={remember}
               pending={pending}
+              passkeyPending={passkeyPending}
               error={error}
               setUsername={setUsername}
               setPassword={setPassword}
@@ -106,6 +137,7 @@ export function LoginPage() {
                 setMode('sign-up')
               }}
               onSubmit={(event) => onSubmit(event, 'sign-in')}
+              onPasskeySignIn={onPasskeySignIn}
             />
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
@@ -237,6 +269,7 @@ function SignInForm({
   password,
   remember,
   pending,
+  passkeyPending,
   error,
   setUsername,
   setPassword,
@@ -244,11 +277,13 @@ function SignInForm({
   onResetPassword,
   onSignup,
   onSubmit,
+  onPasskeySignIn,
 }: {
   username: string
   password: string
   remember: boolean
   pending: boolean
+  passkeyPending: boolean
   error: string | null
   setUsername: (value: string) => void
   setPassword: (value: string) => void
@@ -256,12 +291,13 @@ function SignInForm({
   onResetPassword: () => void
   onSignup: () => void
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
+  onPasskeySignIn: () => void
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash</p>
-      <Field label="username or email" value={username} onChange={setUsername} autoComplete="username" />
+      <Field label="username or email" value={username} onChange={setUsername} autoComplete="username webauthn" />
       <PasswordField
         label="password"
         value={password}
@@ -280,6 +316,14 @@ function SignInForm({
       </label>
       {error ? <ErrorBox error={error} /> : null}
       <SubmitButton pending={pending} label="Sign in" pendingLabel="Signing in..." />
+      <button
+        type="button"
+        onClick={onPasskeySignIn}
+        disabled={passkeyPending || pending}
+        className="mt-3 h-9 w-full border border-border bg-surface-1 font-mono text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {passkeyPending ? 'Waiting for passkey...' : 'Use passkey'}
+      </button>
       <button
         type="button"
         onClick={onSignup}

@@ -1,10 +1,12 @@
-import { Monitor, ShieldCheck } from 'lucide-react'
+import { KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { TopBar } from '../../components/TopBar'
+import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import { usePrivacySettings, useUpdatePrivacySettings } from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
+import { useState } from 'react'
 
 function SettingsPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
@@ -63,9 +65,31 @@ export function SettingsPage() {
   const colorTheme = useColorTheme()
   const privacySettings = usePrivacySettings()
   const updatePrivacySettings = useUpdatePrivacySettings()
+  const passkeys = authClient.useListPasskeys()
+  const [passkeyName, setPasskeyName] = useState('')
+  const [passkeyPending, setPasskeyPending] = useState(false)
+  const [passkeyError, setPasskeyError] = useState<string | null>(null)
   const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
   const privacy = privacySettings.data
   const isPrivacyMutating = updatePrivacySettings.isPending
+
+  async function addPasskey() {
+    setPasskeyError(null)
+    setPasskeyPending(true)
+    const result = await authClient.passkey.addPasskey({ name: passkeyName.trim() || undefined })
+    setPasskeyPending(false)
+    if (result.error) {
+      setPasskeyError(result.error.message || 'Failed to add passkey')
+      return
+    }
+    setPasskeyName('')
+  }
+
+  async function deletePasskey(id: string) {
+    setPasskeyError(null)
+    const result = await authClient.$fetch('/passkey/delete-passkey', { method: 'POST', body: { id } })
+    if (result.error) setPasskeyError(result.error.message || 'Failed to delete passkey')
+  }
 
   return (
     <div className="main-col">
@@ -124,6 +148,80 @@ export function SettingsPage() {
                       </button>
                     )
                   })}
+                </div>
+              </div>
+            </SettingsPanel>
+
+            <SettingsPanel title="Security" subtitle="dashboard passkeys">
+              <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                    <KeyRound className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                    Passkeys
+                  </div>
+                  <div className="font-mono text-lg font-semibold text-fg">Passwordless sign-in</div>
+                  <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                    Register a passkey after signing in, then use biometrics, a device PIN, or a hardware key on the
+                    login page.
+                  </div>
+                </div>
+
+                <div className="grid gap-3">
+                  <div className="rounded border border-border bg-surface-2 p-3">
+                    <label className="block font-mono text-xs font-semibold text-fg" htmlFor="passkey-name">
+                      New passkey
+                    </label>
+                    <div className="mt-2 flex gap-2 max-sm:flex-col">
+                      <input
+                        id="passkey-name"
+                        value={passkeyName}
+                        onChange={(event) => setPasskeyName(event.currentTarget.value)}
+                        placeholder="This device"
+                        className="h-9 min-w-0 flex-1 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg outline-none transition-colors focus:border-accent"
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={passkeyPending}
+                        onClick={addPasskey}
+                      >
+                        {passkeyPending ? 'Waiting...' : 'Add passkey'}
+                      </button>
+                    </div>
+                    {passkeyError ? <div className="mt-3 err-banner">{passkeyError}</div> : null}
+                  </div>
+
+                  <div className="grid gap-2">
+                    {(passkeys.data ?? []).length === 0 ? (
+                      <div className="rounded border border-dashed border-border bg-surface-2 p-3 font-mono text-xs text-fg-dim">
+                        No passkeys registered.
+                      </div>
+                    ) : (
+                      (passkeys.data ?? []).map((passkey) => (
+                        <div
+                          key={passkey.id}
+                          className="flex items-center gap-3 rounded border border-border bg-surface-2 p-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-mono text-xs font-semibold text-fg">
+                              {passkey.name || 'Unnamed passkey'}
+                            </div>
+                            <div className="mt-1 font-mono text-[10px] text-fg-dim">
+                              {passkey.deviceType} · {passkey.backedUp ? 'synced' : 'device-bound'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-icon"
+                            onClick={() => deletePasskey(passkey.id)}
+                            aria-label={`Delete ${passkey.name || 'passkey'}`}
+                          >
+                            <Trash2 className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </SettingsPanel>

@@ -51,7 +51,7 @@ src/
     policies.tsx            · /policies model aliases + request limits
     endpoints.tsx           · /endpoints client connection examples
     logs.tsx                · /logs raw log viewer
-    login.tsx               · /login Better Auth username/password form
+    login.tsx               · /login Better Auth username/password + passkey form
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
     dashboard/             · dashboard panels + metrics helpers
@@ -77,7 +77,7 @@ src/
     queries.ts            — TanStack Query hooks (5s polling, infinite scroll)
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
-    auth.ts               — Better Auth dashboard session config + first-user signup guard
+    auth.ts               — Better Auth dashboard session config + first-user signup guard + passkeys
     config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
@@ -123,7 +123,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
 4. Admin API:
    Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
-   `/api/auth/*` is handled by Better Auth for first-user signup, username/password sign-in, session lookup, and sign-out.
+   `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
@@ -150,7 +150,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
 7. Model watcher: polls llama-swap `/running` every 15s, diffs against
    known state, inserts `load`/`unload` events into SQLite.
-8. UI views: Login (Better Auth username/password form), Dashboard (stats, timeline, running models, upstream+GPU,
+8. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     DB, proxy, queue, and GPU poller/device status), Playground
