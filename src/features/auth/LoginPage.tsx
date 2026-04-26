@@ -90,6 +90,10 @@ export function LoginPage() {
               setUsername={setUsername}
               setPassword={setPassword}
               setRemember={setRemember}
+              onSignup={() => {
+                setError(null)
+                setMode('sign-up')
+              }}
               onSubmit={(event) => onSubmit(event, 'sign-in')}
             />
           )}
@@ -159,6 +163,7 @@ function SignInForm({
   setUsername,
   setPassword,
   setRemember,
+  onSignup,
   onSubmit,
 }: {
   username: string
@@ -169,6 +174,7 @@ function SignInForm({
   setUsername: (value: string) => void
   setPassword: (value: string) => void
   setRemember: (value: boolean) => void
+  onSignup: () => void
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
@@ -188,6 +194,13 @@ function SignInForm({
       </label>
       {error ? <ErrorBox error={error} /> : null}
       <SubmitButton pending={pending} label="Sign in" pendingLabel="Signing in..." />
+      <button
+        type="button"
+        onClick={onSignup}
+        className="mt-4 block font-mono text-[11px] text-[#69726d] hover:text-[#9fc48b]"
+      >
+        {'Signup ->'}
+      </button>
     </form>
   )
 }

@@ -240,7 +240,7 @@ export function Sidebar() {
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 rounded border border-border bg-surface-1 px-3 py-2">
+        <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-3 py-2">
           <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-surface-3 font-mono text-[10px] font-semibold uppercase text-fg-muted">
             {initials(session?.user.name || session?.user.email)}
           </div>
