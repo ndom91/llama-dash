@@ -16,6 +16,7 @@ function formatUptime(seconds: number): string {
   const days = Math.floor(seconds / 86_400)
   const hours = Math.floor((seconds % 86_400) / 3_600)
   const minutes = Math.floor((seconds % 3_600) / 60)
+  if (days === 0 && hours === 0 && minutes === 0) return `${Math.max(1, Math.floor(seconds))}s`
   return [days > 0 ? `${days}d` : null, hours > 0 || days > 0 ? `${hours}h` : null, `${minutes}m`]
     .filter(Boolean)
     .join(' ')
@@ -23,8 +24,8 @@ function formatUptime(seconds: number): string {
 
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid items-center gap-3 border-b border-border/45 py-1.5 last:border-b-0 [grid-template-columns:120px_minmax(0,1fr)]">
-      <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">{label}</dt>
+    <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
+      <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-faint">{label}</dt>
       <dd className="m-0 min-w-0 justify-self-end text-right font-mono text-xs text-fg">{value}</dd>
     </div>
   )
@@ -42,25 +43,23 @@ function SystemPanel({
   className?: string
 }) {
   return (
-    <section className={cn('panel overflow-hidden p-3', className)}>
-      <div className="mb-1.5 flex items-center gap-2 border-b border-border/55 pb-1.5">
-        <h2 className="m-0 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
-          <span className="text-accent">—</span> {title}
-        </h2>
+    <section className={cn('panel !rounded-none border-x-0 !bg-surface-1', className)}>
+      <div className="panel-head bg-transparent px-6 max-md:px-4">
+        <h2 className="m-0 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">{title}</h2>
         {aside ? <div className="ml-auto font-mono text-[10px] text-accent">{aside}</div> : null}
       </div>
-      <dl className="m-0">{children}</dl>
+      <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
     </section>
   )
 }
 
 function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
   return (
-    <section className="panel min-w-0 p-3">
-      <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+    <section className="min-w-0 border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <StatusDot tone={tone} /> {label}
       </div>
-      <div className="truncate font-mono text-lg font-semibold text-fg">{value}</div>
+      <div className="truncate font-mono text-xl font-semibold tracking-[-0.04em] text-fg">{value}</div>
       {meta ? <div className="mt-1 truncate font-mono text-[10px] text-fg-dim">{meta}</div> : null}
     </section>
   )
@@ -68,16 +67,16 @@ function StatTile({ label, value, meta, tone }: { label: string; value: React.Re
 
 function ComponentRail({ components }: { components: Array<{ label: string; age: string; tone: Tone }> }) {
   return (
-    <aside className="hidden w-[220px] shrink-0 border-r border-border bg-surface-0/70 xl:block">
-      <div className="flex items-center border-b border-border px-3 py-3 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+    <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface-0/70 xl:block">
+      <div className="flex h-12 items-center border-b border-border px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <span>components</span>
         <span className="ml-auto">all</span>
       </div>
-      <div className="p-2">
+      <div className="py-2">
         {components.map((item) => (
           <div
             key={item.label}
-            className="grid items-center gap-2 border-b border-border/35 px-2 py-2 last:border-b-0 [grid-template-columns:12px_minmax(0,1fr)_auto]"
+            className="grid items-center gap-2 border-l-2 border-transparent px-4 py-2.5 first:border-l-accent first:bg-surface-2/65 [grid-template-columns:12px_minmax(0,1fr)_auto]"
           >
             <StatusDot tone={item.tone} />
             <span className="truncate font-mono text-[11px] text-fg-muted">{item.label}</span>
@@ -91,7 +90,7 @@ function ComponentRail({ components }: { components: Array<{ label: string; age:
 
 function DirectTargets({ targets }: { targets: string[] }) {
   return (
-    <div className="mt-3 flex flex-col items-end gap-2">
+    <div className="mt-3 flex flex-col items-end gap-2 border-t border-border/45 pt-3">
       <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         whitelisted direct upstream hosts
       </div>
@@ -99,7 +98,7 @@ function DirectTargets({ targets }: { targets: string[] }) {
         {targets.map((target) => (
           <span
             key={target}
-            className="rounded border border-border/70 bg-surface-2 px-2 py-1 font-mono text-[10px] text-fg-dim"
+            className="border border-border/70 bg-surface-2 px-2 py-1 font-mono text-[10px] text-fg-dim"
           >
             {target.replace('https://', '')}
           </span>
@@ -158,9 +157,9 @@ export function SystemPage() {
           />
           <div className="flex min-h-0 flex-1">
             <ComponentRail components={components} />
-            <main className="min-h-0 flex-1 overflow-y-auto p-3">
-              <div className="mx-auto flex max-w-7xl flex-col gap-3">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">
+              <div className="flex flex-col flex-1">
+                <div className="grid gap-3 border-b border-border bg-surface-0 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
                   <StatTile
                     label="runtime"
                     value={formatUptime(data.runtime.uptimeSec)}
@@ -187,7 +186,7 @@ export function SystemPage() {
                   />
                 </div>
 
-                <SystemPanel title="Control Bus" aside="configured">
+                <SystemPanel title="Control Bus" aside="configured" className="!border-t-0">
                   <MetaRow label="upstream" value={<span className="break-all">{data.proxy.upstreamBaseUrl}</span>} />
                   <MetaRow label="host" value={data.proxy.upstreamHost} />
                   <MetaRow label="auth" value={data.proxy.insecureTls ? 'insecure tls enabled' : 'standard tls'} />
@@ -196,7 +195,7 @@ export function SystemPage() {
                   <DirectTargets targets={data.proxy.directTargets} />
                 </SystemPanel>
 
-                <div className="grid gap-3 xl:grid-cols-2">
+                <div className="grid border-t border-border xl:grid-cols-2">
                   <SystemPanel title="Loading Queue" aside={data.logging.dropped > 0 ? 'dropping' : 'ready'}>
                     <MetaRow
                       label="state"
@@ -210,7 +209,7 @@ export function SystemPage() {
                     <MetaRow label="dropped" value={data.logging.dropped} />
                   </SystemPanel>
 
-                  <SystemPanel title="GPU Poller" aside={`${data.gpu.gpuCount} device`}>
+                  <SystemPanel title="GPU Poller" aside={`${data.gpu.gpuCount} device`} className="xl:border-l">
                     <MetaRow
                       label="state"
                       value={
@@ -243,14 +242,14 @@ export function SystemPage() {
                   </SystemPanel>
                 </div>
 
-                <div className="grid gap-3 xl:grid-cols-2">
+                <div className="grid border-t border-border xl:grid-cols-2 flex-1">
                   <SystemPanel title="Runtime">
                     <MetaRow label="uptime" value={formatUptime(data.runtime.uptimeSec)} />
                     <MetaRow label="node" value={data.runtime.nodeVersion} />
                     <MetaRow label="commit" value={data.runtime.gitCommit} />
                   </SystemPanel>
 
-                  <SystemPanel title="Database">
+                  <SystemPanel title="Database" className="xl:border-l">
                     <MetaRow label="path" value={<span className="break-all">{data.database.path}</span>} />
                     <MetaRow label="special" value={data.database.specialPath ? 'yes' : 'no'} />
                   </SystemPanel>
