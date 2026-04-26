@@ -19,6 +19,13 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  rateLimit: {
+    window: 10,
+    max: 10,
+    customRules: {
+      '/v1/*': false,
+    },
+  },
   disabledPaths: ['/is-username-available'],
   plugins: [firstUserOnlySignup(), username(), authAuditLogger(), tanstackStartCookies()],
 })
