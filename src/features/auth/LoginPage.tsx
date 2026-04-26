@@ -1,7 +1,10 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { Eye } from 'lucide-react'
-import { type SyntheticEvent, useState } from 'react'
+import { Eye, Moon, Sun } from 'lucide-react'
+import { type SyntheticEvent, useEffect, useState } from 'react'
 import { authClient } from '../../lib/auth-client'
+import { cn } from '../../lib/cn'
+import { useColorTheme } from '../../lib/use-color-theme'
+import { useLoginMeta } from '../../lib/queries'
 
 type LoginSearch = { redirect?: string }
 type AuthMode = 'sign-in' | 'sign-up'
@@ -9,6 +12,9 @@ type AuthMode = 'sign-in' | 'sign-up'
 export function LoginPage() {
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as LoginSearch
+  const { data: meta } = useLoginMeta()
+  const [dashHost, setDashHost] = useState('local instance')
+  const commit = meta?.commitLabel ?? 'unknown'
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,6 +23,10 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [mode, setMode] = useState<AuthMode>('sign-in')
+
+  useEffect(() => {
+    setDashHost(window.location.host || window.location.hostname || 'local instance')
+  }, [])
 
   async function onSubmit(event: SyntheticEvent<HTMLFormElement>, submitMode: AuthMode) {
     event.preventDefault()
@@ -45,13 +55,13 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-dvh bg-[#030504] text-[#d9ded9]">
-      <section className="grid min-h-dvh border border-[#1d2421] bg-[#030504] lg:grid-cols-[28vw_minmax(0,1fr)]">
-        <InstanceRail mode={mode} />
+    <main className="min-h-dvh bg-surface-0 text-fg">
+      <section className="grid min-h-dvh border border-border bg-surface-0 lg:grid-cols-[28vw_minmax(0,1fr)]">
+        <InstanceRail mode={mode} dashHost={dashHost} />
         <div className="flex min-w-0 flex-col px-[8vw] py-7 max-md:px-6">
-          <div className="mb-auto flex items-start justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-[#59625f]">
+          <div className="mb-auto flex items-start justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.2em] text-fg-dim">
             <span>
-              auth / <span className="text-[#d9ded9]">{mode === 'sign-up' ? 'first run' : 'sign in'}</span>
+              auth / <span className="text-fg">{mode === 'sign-up' ? 'first run' : 'sign in'}</span>
             </span>
             {mode === 'sign-up' ? (
               <button
@@ -60,7 +70,7 @@ export function LoginPage() {
                   setError(null)
                   setMode('sign-in')
                 }}
-                className="text-left lowercase tracking-normal text-[#69726d] hover:text-[#9fc48b]"
+                className="text-left lowercase tracking-normal text-fg-muted hover:text-accent"
               >
                 {'have an account? sign in ->'}
               </button>
@@ -90,15 +100,17 @@ export function LoginPage() {
               setUsername={setUsername}
               setPassword={setPassword}
               setRemember={setRemember}
+              onResetPassword={() => setPassword('')}
               onSignup={() => {
                 setError(null)
                 setMode('sign-up')
               }}
               onSubmit={(event) => onSubmit(event, 'sign-in')}
+              instanceLabel={dashHost}
             />
           )}
-          <div className="mt-auto flex items-center justify-between border-t border-[#1d2421] pt-4 font-mono text-[10px] text-[#5d6662]">
-            <span>llama-dash · v0.4.2</span>
+          <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
+            <span>llama-dash · {commit}</span>
             <span>press ↵</span>
             <span>docs</span>
           </div>
@@ -108,48 +120,105 @@ export function LoginPage() {
   )
 }
 
-function InstanceRail({ mode }: { mode: AuthMode }) {
+function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) {
+  const { data } = useLoginMeta()
+  const colorTheme = useColorTheme()
+  const [themeMode, setThemeMode] = useState<LoginThemeMode>('dark')
+  const uptime = data?.uptimeLabel ?? 'checking runtime'
+  const commit = data?.commitLabel ?? 'unknown'
+  const tls = data?.tlsLabel ?? 'checking tls'
+
+  useEffect(() => {
+    setThemeMode(getInitialThemeMode())
+  }, [])
+
+  function toggleThemeMode() {
+    const next = themeMode === 'dark' ? 'light' : 'dark'
+    setThemeMode(next)
+    applyThemeMode(next)
+  }
+
   return (
-    <aside className="flex flex-col border-r border-[#1d2421] bg-[#101417] px-[3vw] py-7">
+    <aside className="flex flex-col border-r border-border bg-surface-1 px-[3vw] py-7">
       <div className="flex items-center justify-between font-mono">
-        <div className="text-xl font-bold text-[#e2e7e2]">
-          ld <span className="text-[#9fc48b]">_</span>
+        <div className="text-xl font-bold text-fg">
+          ld <span className="text-accent">_</span>
         </div>
-        <div className="text-[10px] text-[#59625f]">v0.4.2</div>
       </div>
 
       <div className="mt-auto mb-[32vh]">
-        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#59625f]">
-          - {mode === 'sign-up' ? 'first run' : 'this instance'}
-        </div>
-        <div className="font-mono text-2xl text-[#e2e7e2]">puff.lan</div>
-        <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-[#98a19c]">
-          <span className={`size-1.5 rounded-full ${mode === 'sign-up' ? 'bg-[#f3c982]' : 'bg-[#9fc48b]'}`} />
-          <span className="size-1.5 rounded-full bg-[#89948f]" />
-          <span>{mode === 'sign-up' ? 'awaiting first operator' : 'up · 22h 51m'}</span>
+        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llama-dash</div>
+        <div className="break-all font-mono text-2xl text-fg">{dashHost}</div>
+        <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
+          <span className={cn('size-1.5 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
+          <span className="size-1.5 rounded-full bg-fg-dim" />
+          <span>{mode === 'sign-up' ? 'awaiting first operator' : uptime}</span>
         </div>
       </div>
 
-      <div className="mt-auto space-y-2 font-mono text-[11px] text-[#68716d]">
-        <MetaLine label="commit" value="59843fb · main" />
-        <MetaLine label="node" value="v24.15.0" />
-        <MetaLine label="tls" value="disabled · plain http" highlight />
-        <div className="flex gap-2 pt-5">
-          {['#9fc48b', '#f3c982', '#e9a58c', '#c3a5df', '#92a8e8', '#a8d0d0', '#87918c'].map((color) => (
-            <span key={color} className="size-2 rounded-full" style={{ backgroundColor: color }} />
+      <div className="mt-auto space-y-2 font-mono text-[11px] text-fg-dim">
+        <MetaLine label="commit" value={commit} />
+        <MetaLine label="tls" value={tls} highlight />
+        <div className="flex items-center gap-2 pt-5">
+          {colorTheme.themes.map((theme) => (
+            <button
+              key={theme.id}
+              type="button"
+              onClick={() => colorTheme.select(theme.id)}
+              aria-label={`Use ${theme.name} accent theme`}
+              aria-pressed={colorTheme.themeId === theme.id}
+              className="-m-2 inline-flex size-6.5 items-center justify-center rounded-full transition-transform hover:scale-110"
+            >
+              <span
+                className={cn(
+                  'size-2.5 rounded-full border',
+                  colorTheme.themeId === theme.id ? 'border-fg' : 'border-transparent',
+                )}
+                style={{ backgroundColor: theme.accent['500'] }}
+              />
+            </button>
           ))}
-          <span className="ml-auto text-[#68716d]">self-hosted</span>
+          <button
+            type="button"
+            onClick={toggleThemeMode}
+            aria-label={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
+            className="-my-2 ml-0 inline-flex size-7 items-center justify-center text-fg-dim transition-colors hover:text-fg"
+          >
+            {themeMode === 'dark' ? (
+              <Sun className="size-3" strokeWidth={1.75} />
+            ) : (
+              <Moon className="size-3" strokeWidth={1.75} />
+            )}
+          </button>
+          <span className="ml-auto text-fg-dim">self-hosted</span>
         </div>
       </div>
     </aside>
   )
 }
 
+type LoginThemeMode = 'light' | 'dark'
+
+function getInitialThemeMode(): LoginThemeMode {
+  if (typeof window === 'undefined') return 'dark'
+  const stored = window.localStorage.getItem('theme')
+  if (stored === 'light' || stored === 'dark') return stored
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+}
+
+function applyThemeMode(mode: LoginThemeMode) {
+  document.documentElement.classList.remove('light', 'dark')
+  document.documentElement.classList.add(mode)
+  document.documentElement.setAttribute('data-theme', mode)
+  document.documentElement.style.colorScheme = mode
+  window.localStorage.setItem('theme', mode)
+}
+
 function MetaLine({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="flex justify-between border-b border-dashed border-[#2a322f] pb-1">
+    <div className="flex justify-between border-b border-dashed border-border pb-1">
       <span>{label}</span>
-      <span className={highlight ? 'text-[#d4c176]' : 'text-[#d9ded9]'}>{value}</span>
+      <span className={highlight ? 'text-warn' : 'text-fg'}>{value}</span>
     </div>
   )
 }
@@ -163,8 +232,10 @@ function SignInForm({
   setUsername,
   setPassword,
   setRemember,
+  onResetPassword,
   onSignup,
   onSubmit,
+  instanceLabel,
 }: {
   username: string
   password: string
@@ -174,21 +245,29 @@ function SignInForm({
   setUsername: (value: string) => void
   setPassword: (value: string) => void
   setRemember: (value: boolean) => void
+  onResetPassword: () => void
   onSignup: () => void
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
+  instanceLabel: string
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px]">
-      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-[#d9ded9]">Sign in</h1>
-      <p className="mt-1 font-mono text-xs text-[#59625f]">to continue to llama-dash · puff.lan</p>
+      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
+      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash · {instanceLabel}</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username" />
-      <PasswordField label="password" value={password} onChange={setPassword} action="reset" />
-      <label className="mt-4 flex items-center gap-2 font-mono text-[11px] text-[#88928d]">
+      <PasswordField
+        label="password"
+        value={password}
+        onChange={setPassword}
+        action="reset"
+        onAction={onResetPassword}
+      />
+      <label className="mt-4 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
         <input
           type="checkbox"
           checked={remember}
           onChange={(event) => setRemember(event.currentTarget.checked)}
-          className="size-3 accent-[#76a866]"
+          className="size-3 accent-accent"
         />
         remember this browser · 30 days
       </label>
@@ -197,7 +276,7 @@ function SignInForm({
       <button
         type="button"
         onClick={onSignup}
-        className="mt-4 block font-mono text-[11px] text-[#69726d] hover:text-[#9fc48b]"
+        className="mt-4 block font-mono text-[11px] text-fg-dim hover:text-accent"
       >
         {'Signup ->'}
       </button>
@@ -232,8 +311,8 @@ function SignUpForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px]">
-      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-[#d9ded9]">Create operator</h1>
-      <p className="mt-1 font-mono text-xs text-[#59625f]">first account on this instance · will be granted admin</p>
+      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
+      <p className="mt-1 font-mono text-xs text-fg-dim">first account on this instance · will be granted admin</p>
       <Field label="username" value={username} onChange={setUsername} autoComplete="username" />
       <Field label="email" value={email} onChange={setEmail} autoComplete="email" type="email" />
       <PasswordField label="password" value={password} onChange={setPassword} />
@@ -262,7 +341,7 @@ function Field({
 }) {
   return (
     <label className="mt-5 block">
-      <span className="mb-2 flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#59625f]">
+      <span className="mb-2 flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-fg-dim">
         {label}
         {optional ? <span className="lowercase tracking-normal">optional</span> : null}
       </span>
@@ -271,7 +350,7 @@ function Field({
         type={type}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
-        className="h-10 w-full border border-[#1d2421] bg-[#101417] px-3 font-mono text-sm text-[#d9ded9] outline-none transition-colors focus:border-[#76a866]"
+        className="h-10 w-full border border-border bg-surface-1 px-3 font-mono text-sm text-fg outline-none transition-colors focus:border-accent"
       />
     </label>
   )
@@ -282,39 +361,60 @@ function PasswordField({
   value,
   onChange,
   action,
+  onAction,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   action?: string
+  onAction?: () => void
 }) {
+  const [visible, setVisible] = useState(false)
+  const inputId = `password-${label.replace(/\s+/g, '-')}`
+
   return (
-    <label className="mt-5 block">
-      <span className="mb-2 flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-[#59625f]">
-        {label}
-        {action ? <span className="lowercase tracking-normal">{action}</span> : null}
-      </span>
+    <div className="mt-5 block">
+      <div className="mb-2 flex justify-between font-mono text-[10px] uppercase tracking-[0.16em] text-fg-dim">
+        <label htmlFor={inputId}>{label}</label>
+        {action ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="lowercase tracking-normal transition-colors hover:text-accent"
+          >
+            {action}
+          </button>
+        ) : null}
+      </div>
       <span className="relative block">
         <input
+          id={inputId}
           autoComplete={label === 'confirm' ? 'new-password' : 'current-password'}
-          type="password"
+          type={visible ? 'text' : 'password'}
           value={value}
           onChange={(event) => onChange(event.currentTarget.value)}
-          className="h-10 w-full border border-[#1d2421] bg-[#101417] px-3 pr-9 font-mono text-sm text-[#d9ded9] outline-none transition-colors focus:border-[#76a866]"
+          className="h-10 w-full border border-border bg-surface-1 px-3 pr-9 font-mono text-sm text-fg outline-none transition-colors focus:border-accent"
         />
-        <Eye className="absolute top-1/2 right-3 size-3.5 -translate-y-1/2 text-[#59625f]" strokeWidth={1.75} />
+        <button
+          type="button"
+          onClick={() => setVisible((current) => !current)}
+          aria-label={visible ? 'Hide password' : 'Show password'}
+          className="absolute top-1/2 right-1 inline-flex size-8 -translate-y-1/2 items-center justify-center text-fg-dim transition-colors hover:text-accent"
+        >
+          <Eye className="size-3.5" strokeWidth={1.75} />
+        </button>
       </span>
-    </label>
+    </div>
   )
 }
 
 function PasswordStrength({ password }: { password: string }) {
   const filled = Math.min(4, Math.max(1, Math.floor(password.length / 4)))
   return (
-    <div className="mt-3 flex items-center gap-2 font-mono text-[10px] text-[#59625f]">
+    <div className="mt-3 flex items-center gap-2 font-mono text-[10px] text-fg-dim">
       <div className="flex flex-1 gap-2">
         {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} className={`h-px flex-1 ${i < filled ? 'bg-[#9fc48b]' : 'bg-[#1d2421]'}`} />
+          <span key={i} className={cn('h-px flex-1', i < filled ? 'bg-accent' : 'bg-border')} />
         ))}
       </div>
       <span>strong · {password.length} chars</span>
@@ -326,7 +426,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
   return (
     <button
       type="submit"
-      className="mt-5 h-10 w-full bg-[#76a866] font-mono text-sm font-bold text-[#030504] transition-colors hover:bg-[#88ba75] disabled:cursor-not-allowed disabled:opacity-60"
+      className="mt-5 h-10 w-full bg-accent font-mono text-sm font-bold text-accent-on transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
       {pending ? pendingLabel : `${label}  ->`}
@@ -335,7 +435,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
 }
 
 function ErrorBox({ error }: { error: string }) {
-  return <div className="mt-4 border border-[#7b3630] bg-[#231110] px-3 py-2 text-xs text-[#ef9388]">{error}</div>
+  return <div className="mt-4 border border-err bg-err-bg px-3 py-2 text-xs text-err">{error}</div>
 }
 
 function safeRedirect(value: string | undefined): string {

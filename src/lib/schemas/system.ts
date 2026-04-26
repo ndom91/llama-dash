@@ -32,3 +32,12 @@ export const ApiSystemStatusSchema = v.object({
 })
 
 export type ApiSystemStatus = v.InferOutput<typeof ApiSystemStatusSchema>
+
+export const LoginMetaSchema = v.object({
+  instanceLabel: v.string(),
+  uptimeLabel: v.string(),
+  commitLabel: v.string(),
+  tlsLabel: v.string(),
+})
+
+export type LoginMeta = v.InferOutput<typeof LoginMetaSchema>

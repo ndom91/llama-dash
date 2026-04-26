@@ -65,4 +65,35 @@ export const systemRoutes: Route[] = [
       })
     },
   },
+  {
+    method: 'GET',
+    pattern: /^\/api\/login-meta$/,
+    handler: async () => {
+      const upstreamUrl = new URL(config.llamaSwapUrl)
+      const protocol = upstreamUrl.protocol
+      return json(200, {
+        instanceLabel: upstreamUrl.hostname || 'local instance',
+        uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
+        commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
+        tlsLabel:
+          protocol === 'https:'
+            ? config.llamaSwapInsecure
+              ? 'https · verify off'
+              : 'https · verified'
+            : 'http · no tls',
+      })
+    },
+  },
 ]
+
+function formatLoginUptime(seconds: number) {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) return `up · ${hours}h ${minutes}m`
+  return `up · ${minutes}m`
+}
+
+function formatLoginCommit(commit: string) {
+  if (commit === 'unknown') return commit
+  return commit.slice(0, 7)
+}

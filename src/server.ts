@@ -32,6 +32,11 @@ export default createServerEntry({
       return handleProxyRequest(request)
     }
 
+    if (url.pathname === '/api/login-meta') {
+      const { handleAdminRequest } = await import('./server/admin/handler.ts')
+      return handleAdminRequest(request)
+    }
+
     if (url.pathname.startsWith('/api/')) {
       const session = await getDashboardSession(request)
       if (!session) {

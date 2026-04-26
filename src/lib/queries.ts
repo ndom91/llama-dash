@@ -89,6 +89,14 @@ export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
   })
 }
 
+export function useLoginMeta() {
+  return useQuery({
+    queryKey: ['login-meta'] as const,
+    queryFn: () => api.loginMeta(),
+    refetchInterval: POLL_MS,
+  })
+}
+
 export function useModels<T = Array<ApiModel>>(select?: (data: Array<ApiModel>) => T): UseQueryResult<T> {
   return useQuery({
     queryKey: qk.models,
