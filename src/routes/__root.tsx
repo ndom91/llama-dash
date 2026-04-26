@@ -22,7 +22,7 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     if (location.pathname === '/login') return
-    const session = await getSession()
+    const session = await getSession().catch(() => null)
     if (!session) {
       throw redirect({
         to: '/login',
