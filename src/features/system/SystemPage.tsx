@@ -25,7 +25,7 @@ function formatUptime(seconds: number): string {
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
-      <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-faint">{label}</dt>
+      <dt className="font-mono text-[11px] lowercase tracking-[0.02em] text-fg-muted">{label}</dt>
       <dd className="m-0 min-w-0 justify-self-end text-right font-mono text-xs text-fg">{value}</dd>
     </div>
   )
@@ -45,8 +45,8 @@ function SystemPanel({
   return (
     <section className={cn('panel !rounded-none border-x-0 !bg-surface-1', className)}>
       <div className="panel-head bg-transparent px-6 max-md:px-4">
-        <h2 className="m-0 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">{title}</h2>
-        {aside ? <div className="ml-auto font-mono text-[10px] text-accent">{aside}</div> : null}
+        <h2 className="panel-title">{title}</h2>
+        {aside ? <span className="panel-sub ml-auto">· {aside}</span> : null}
       </div>
       <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
     </section>
