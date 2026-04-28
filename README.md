@@ -168,9 +168,11 @@ Claude Code ──► llama-dash :5173 (log + filter) ──► api.anthropic.co
 Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
 Code manages the bearer itself and llama-dash passes it through unchanged.
 
-Configure explicit routing rules in Policies for `/v1/messages` and
-`/v1/messages/count_tokens` using `continue`, `passthrough` auth, preserved
-client `Authorization`, and direct target `https://api.anthropic.com/v1`.
+In llama-dash, configure an explicit routing rule in Policies for `/v1` 
+target path, using `continue`, `passthrough` auth, preserved client 
+`Authorization`, and direct target `https://api.anthropic.com/v1`. This
+will result in all Anthropic requests being transparently proxied through
+while logging all traffic in llama-dash and applying filters.
 
 ## Acknowledgements
 
