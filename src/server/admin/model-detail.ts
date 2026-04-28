@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { and, asc, desc, eq, gte, like, lt, or } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, like, lt, or } from 'drizzle-orm'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import type { ApiModel, ApiModelKeyBreakdown, ApiModelStats } from '../../lib/schemas/model'
 import type { ApiRequest } from '../../lib/schemas/request'
@@ -11,7 +11,51 @@ type LlamaSwapModel = Awaited<ReturnType<typeof llamaSwap.listModels>>['data'][n
 type LlamaSwapRunningModel = Awaited<ReturnType<typeof llamaSwap.listRunning>>['running'][number]
 
 function modelMatch(modelId: string) {
-  return or(eq(schema.requests.model, modelId), like(schema.requests.model, `%/${modelId}`))
+  const names = getConfigModelLogNames().get(modelId) ?? [modelId]
+  return or(inArray(schema.requests.model, names), like(schema.requests.model, `%/${modelId}`))
+}
+
+function readParsedConfig(): unknown {
+  if (!config.llamaSwapConfigFile) return null
+  try {
+    return parseYaml(readFileSync(config.llamaSwapConfigFile, 'utf-8'))
+  } catch {
+    return null
+  }
+}
+
+function getConfigModels(parsed: unknown): Record<string, unknown> | null {
+  if (!parsed || typeof parsed !== 'object' || !('models' in parsed)) return null
+  const models = parsed.models
+  return models && typeof models === 'object' ? (models as Record<string, unknown>) : null
+}
+
+function extractModelPath(value: unknown): string | null {
+  const snippet = typeof value === 'string' ? value : value == null ? null : stringifyYaml(value, { indent: 2 })
+  if (typeof snippet !== 'string') return null
+  const match = snippet.match(/--model(?:\s+|=)(?:"([^"]+)"|'([^']+)'|(\S+))/)
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null
+}
+
+function basename(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path
+}
+
+function getConfigModelLogNames(): Map<string, Array<string>> {
+  const models = getConfigModels(readParsedConfig())
+  if (!models) return new Map()
+
+  const names = new Map<string, Array<string>>()
+  for (const [modelId, modelConfig] of Object.entries(models)) {
+    const candidates = new Set([modelId])
+    const modelPath = extractModelPath(modelConfig)
+    if (modelPath) {
+      candidates.add(modelPath)
+      candidates.add(basename(modelPath))
+    }
+    names.set(modelId, [...candidates])
+  }
+  return names
 }
 
 export function getModelEvents(modelId: string, windowMs = 86_400_000) {
@@ -179,15 +223,9 @@ export function getModelKeyBreakdown(modelId: string): Array<ApiModelKeyBreakdow
 }
 
 export function extractModelConfig(modelId: string): string | null {
-  if (!config.llamaSwapConfigFile) return null
-  try {
-    const content = readFileSync(config.llamaSwapConfigFile, 'utf-8')
-    const parsed = parseYaml(content)
-    if (!parsed?.models?.[modelId]) return null
-    return stringifyYaml({ [modelId]: parsed.models[modelId] }, { indent: 2 })
-  } catch {
-    return null
-  }
+  const models = getConfigModels(readParsedConfig())
+  if (!models?.[modelId]) return null
+  return stringifyYaml({ [modelId]: models[modelId] }, { indent: 2 })
 }
 
 function pickModelContextLength(model: LlamaSwapModel): number | null {
@@ -238,27 +276,13 @@ function extractCtxSize(value: unknown): number | null {
 }
 
 export function getConfigContextLengths(): Map<string, number> {
-  if (!config.llamaSwapConfigFile) return new Map()
-  try {
-    const content = readFileSync(config.llamaSwapConfigFile, 'utf-8')
-    const parsed = parseYaml(content)
-    if (
-      !parsed ||
-      typeof parsed !== 'object' ||
-      !('models' in parsed) ||
-      !parsed.models ||
-      typeof parsed.models !== 'object'
-    ) {
-      return new Map()
-    }
+  const models = getConfigModels(readParsedConfig())
+  if (!models) return new Map()
 
-    const lengths = new Map<string, number>()
-    for (const [modelId, modelConfig] of Object.entries(parsed.models as Record<string, unknown>)) {
-      const ctxSize = extractCtxSize(modelConfig)
-      if (ctxSize != null) lengths.set(modelId, ctxSize)
-    }
-    return lengths
-  } catch {
-    return new Map()
+  const lengths = new Map<string, number>()
+  for (const [modelId, modelConfig] of Object.entries(models)) {
+    const ctxSize = extractCtxSize(modelConfig)
+    if (ctxSize != null) lengths.set(modelId, ctxSize)
   }
+  return lengths
 }

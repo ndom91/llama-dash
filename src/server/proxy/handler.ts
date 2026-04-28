@@ -43,6 +43,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: null,
       resBody: JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)),
       keyId: null,
+      reqModel: ctx.body?.reqModel ?? null,
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
     })
@@ -83,6 +84,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
           keyId: ctx.keyId,
+          reqModel: ctx.body.reqModel,
           attribution: ctx.attribution,
           routing: ctx.routingOutcome,
         })
@@ -131,6 +133,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       resHeaders: null,
       resBody: null,
       keyId: ctx.keyId,
+      reqModel: ctx.body?.reqModel ?? null,
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
     })
@@ -161,6 +164,7 @@ function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
     resHeaders: null,
     resBody: JSON.stringify(toErrorBody(ctx.endpoint, body)),
     keyId: null,
+    reqModel: ctx.body?.reqModel ?? null,
     attribution: ctx.attribution,
     routing: ctx.routingOutcome,
   })

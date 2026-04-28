@@ -13,7 +13,7 @@ type Attribution = {
   sessionId: string | null
 }
 
-type ProxyLogInput = {
+export type ProxyLogInput = {
   startedAt: number
   status: number
   method: string
@@ -26,6 +26,7 @@ type ProxyLogInput = {
   resHeaders: string | null
   resBody: string | null
   keyId: string | null
+  reqModel: string | null
   attribution: Attribution
   routing: RoutingOutcome
 }
@@ -49,12 +50,14 @@ export function nullUsage(model?: string | null): UsageWithClose {
 }
 
 export function writeProxyLog(input: ProxyLogInput) {
+  const loggedModel = input.routing.routedModel ?? input.routing.requestedModel ?? input.reqModel ?? input.usage.model
+
   writeRequestLog({
     startedAt: input.startedAt,
     durationMs: Date.now() - input.startedAt,
     method: input.method,
     endpoint: input.endpoint,
-    model: input.usage.model,
+    model: loggedModel,
     statusCode: input.status,
     promptTokens: input.usage.promptTokens,
     completionTokens: input.usage.completionTokens,
@@ -137,6 +140,7 @@ export async function forwardUpstreamAndLog(input: {
       resHeaders: resHeadersJson,
       resBody: null,
       keyId: input.keyId,
+      reqModel: input.reqModel,
       attribution: input.attribution,
       routing: input.routing,
     })
@@ -189,6 +193,7 @@ export async function forwardUpstreamAndLog(input: {
             resHeaders: resHeadersJson,
             resBody,
             keyId: input.keyId,
+            reqModel: input.reqModel,
             attribution: input.attribution,
             routing: input.routing,
           })
@@ -220,6 +225,7 @@ export async function forwardUpstreamAndLog(input: {
           resHeaders: resHeadersJson,
           resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
           keyId: input.keyId,
+          reqModel: input.reqModel,
           attribution: input.attribution,
           routing: input.routing,
         })
@@ -240,6 +246,7 @@ export async function forwardUpstreamAndLog(input: {
         resHeaders: resHeadersJson,
         resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
         keyId: input.keyId,
+        reqModel: input.reqModel,
         attribution: input.attribution,
         routing: input.routing,
       })
