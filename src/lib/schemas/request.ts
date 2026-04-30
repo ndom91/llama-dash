@@ -17,6 +17,7 @@ export const ApiRequestSchema = v.object({
   streamed: v.boolean(),
   error: v.nullable(v.string()),
   keyName: v.nullable(v.string()),
+  clientHost: v.nullable(v.string()),
   clientName: v.nullable(v.string()),
   endUserId: v.nullable(v.string()),
   sessionId: v.nullable(v.string()),

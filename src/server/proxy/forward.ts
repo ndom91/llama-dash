@@ -49,6 +49,26 @@ export function nullUsage(model?: string | null): UsageWithClose {
   }
 }
 
+function deriveClientHost(reqHeadersJson: string | null): string | null {
+  if (!reqHeadersJson) return null
+  try {
+    const headers = JSON.parse(reqHeadersJson) as Record<string, string>
+    const origin = headers.origin
+    if (origin) {
+      try {
+        return new URL(origin).hostname
+      } catch {
+        return origin
+      }
+    }
+    const xff = headers['x-forwarded-for']
+    if (xff) return xff.split(',')[0].trim() || null
+    return null
+  } catch {
+    return null
+  }
+}
+
 export function writeProxyLog(input: ProxyLogInput) {
   const loggedModel = input.routing.routedModel ?? input.routing.requestedModel ?? input.reqModel ?? input.usage.model
 
@@ -72,6 +92,7 @@ export function writeProxyLog(input: ProxyLogInput) {
     responseBody: input.resBody,
     streamCloseMs: input.usage.streamCloseMs,
     keyId: input.keyId,
+    clientHost: deriveClientHost(input.reqHeaders),
     clientName: input.attribution.clientName,
     endUserId: input.attribution.endUserId,
     sessionId: input.attribution.sessionId,

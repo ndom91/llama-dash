@@ -194,7 +194,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (string or content-block array, preserved shape).
 11. Request logs persist routing and attribution context. Request detail shows
      matched routing rule/action/auth mode plus client, end-user, and session metadata.
-    Request list supports routing and attribution filters, and session IDs
+    Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
 12. Feature-local UI structure under `src/features/*`. Route files are thin

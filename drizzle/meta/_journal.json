@@ -204,6 +204,13 @@
       "when": 1777150800000,
       "tag": "0028_passkey",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "6",
+      "when": 1777561192743,
+      "tag": "0029_request_client_host",
+      "breakpoints": true
     }
   ]
 }

@@ -164,6 +164,7 @@ export function getModelRequests(
       streamed: r.streamed,
       error: r.error,
       keyName: null,
+      clientHost: r.clientHost,
       clientName: r.clientName,
       endUserId: r.endUserId,
       sessionId: r.sessionId,

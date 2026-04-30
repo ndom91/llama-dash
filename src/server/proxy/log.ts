@@ -46,6 +46,7 @@ export type RequestLogInput = {
   responseBody: string | null
   streamCloseMs: number | null
   keyId: string | null
+  clientHost: string | null
   clientName: string | null
   endUserId: string | null
   sessionId: string | null
@@ -131,6 +132,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
       responseBody,
       streamCloseMs: row.streamCloseMs,
       keyId: row.keyId,
+      clientHost: row.clientHost,
       clientName: row.clientName,
       endUserId: row.endUserId,
       sessionId: row.sessionId,
