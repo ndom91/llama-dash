@@ -10,7 +10,7 @@ import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
-import { useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
@@ -44,6 +44,7 @@ export function RequestsPage() {
     dataUpdatedAt,
   } = useRequestsList()
   const { data: histogram } = useRequestHistogram()
+  const { data: attribution } = useAttributionSettings()
 
   const search = routeSearch.q ?? ''
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
@@ -407,7 +408,14 @@ export function RequestsPage() {
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Client</div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+                    Client
+                    {attribution?.clientNameHeader ? (
+                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                        {attribution.clientNameHeader}
+                      </span>
+                    ) : null}
+                  </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
@@ -418,7 +426,14 @@ export function RequestsPage() {
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">End user</div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+                    End user
+                    {attribution?.endUserIdHeader ? (
+                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                        {attribution.endUserIdHeader}
+                      </span>
+                    ) : null}
+                  </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
@@ -429,7 +444,14 @@ export function RequestsPage() {
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Session</div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+                    Session
+                    {attribution?.sessionIdHeader ? (
+                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                        {attribution.sessionIdHeader}
+                      </span>
+                    ) : null}
+                  </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
