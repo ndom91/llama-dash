@@ -374,17 +374,6 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Client</div>
-                  <input
-                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                    type="text"
-                    value={clientFilter}
-                    onChange={(e) => setClientFilter(e.target.value)}
-                    placeholder="claude-code"
-                  />
-                </div>
-
-                <div className="mb-4 flex flex-col gap-1.5">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Host</div>
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
@@ -399,6 +388,17 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="mb-4 flex flex-col gap-1.5">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Client</div>
+                  <input
+                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                    type="text"
+                    value={clientFilter}
+                    onChange={(e) => setClientFilter(e.target.value)}
+                    placeholder="claude-code"
+                  />
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
