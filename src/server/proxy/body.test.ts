@@ -36,7 +36,7 @@ describe('prepareProxyBody', () => {
     expect(body.parsedBody).toEqual({ model: 'claude-opus-4-6', stream: true })
   })
 
-  it('extracts routing fields from multipart form data', async () => {
+  it('streams multipart form data without parsing it', async () => {
     const form = new FormData()
     form.set('model', 'whisper-large')
     form.set('stream', 'false')
@@ -45,14 +45,14 @@ describe('prepareProxyBody', () => {
     const body = await prepareProxyBody(request, 'POST')
 
     expect(body.isMultipart).toBe(true)
-    expect(body.canTransformMultipart).toBe(true)
-    expect(body.multipartFormData?.get('model')).toBe('whisper-large')
-    expect(body.parsedBody).toEqual({ model: 'whisper-large', stream: false })
-    expect(body.reqModel).toBe('whisper-large')
+    expect(body.preserveContentLength).toBe(true)
+    expect(body.parsedBody).toBeNull()
+    expect(body.reqModel).toBeNull()
+    expect(getProxyForwardBody(body, request)).toBe(request.body)
     expect(getProxyLoggedBody(body)).toBeNull()
   })
 
-  it('streams multipart bodies unchanged when form parsing fails', async () => {
+  it('streams multipart bodies unchanged without reading malformed forms', async () => {
     const bodyStream = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(new TextEncoder().encode('--dash\r\nmalformed'))
@@ -69,7 +69,6 @@ describe('prepareProxyBody', () => {
     const body = await prepareProxyBody(request, 'POST')
 
     expect(body.isMultipart).toBe(true)
-    expect(body.canTransformMultipart).toBe(false)
     expect(body.preserveContentLength).toBe(true)
     expect(body.parsedBody).toBeNull()
     expect(getProxyForwardBody(body, request)).toBe(request.body)
@@ -114,22 +113,6 @@ describe('prepareProxyBody', () => {
     expect(transformed.reqModel).toBe('after')
     expect(getProxyForwardBody(transformed, request)).toBe('{"model":"after","messages":[]}')
     expect(headers['content-length']).toBe(String(Buffer.byteLength(transformed.bodyText ?? '', 'utf8')))
-  })
-
-  it('updates multipart model fields without logging the body', async () => {
-    const form = new FormData()
-    form.set('model', 'before')
-    const request = new Request('http://dash.test/v1/audio/transcriptions', { method: 'POST', body: form })
-    const body = await prepareProxyBody(request, 'POST')
-
-    const transformed = applyProxyBodyTransform(body, {
-      mutated: true,
-      body: { model: 'after' },
-    })
-
-    expect(transformed.reqModel).toBe('after')
-    expect(transformed.multipartFormData?.get('model')).toBe('after')
-    expect(getProxyLoggedBody(transformed)).toBeNull()
   })
 
   it('rejects bodies over the hard proxy body limit', async () => {

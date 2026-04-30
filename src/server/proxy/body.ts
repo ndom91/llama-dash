@@ -4,9 +4,7 @@ export const MAX_PROXY_BODY_BYTES = 10 * 1024 * 1024
 export type PreparedProxyBody = {
   parsedBody: Record<string, unknown> | null
   bodyText: string | null
-  multipartFormData: FormData | null
   isMultipart: boolean
-  canTransformMultipart: boolean
   preserveContentLength: boolean
 }
 
@@ -30,9 +28,7 @@ export async function prepareProxyBody(request: Request, method: string): Promis
       {
         parsedBody: null,
         bodyText: null,
-        multipartFormData: null,
         isMultipart: false,
-        canTransformMultipart: false,
         preserveContentLength: false,
       },
       hasBody,
@@ -40,7 +36,16 @@ export async function prepareProxyBody(request: Request, method: string): Promis
   }
 
   if (isMultipart) {
-    return snapshot(await prepareMultipartBody(request), hasBody)
+    assertContentLengthWithinLimit(request.headers)
+    return snapshot(
+      {
+        parsedBody: null,
+        bodyText: null,
+        isMultipart: true,
+        preserveContentLength: true,
+      },
+      hasBody,
+    )
   }
 
   const { text, prefix } = await readBody(request, MAX_PROXY_BODY_BYTES)
@@ -55,9 +60,7 @@ export async function prepareProxyBody(request: Request, method: string): Promis
     {
       parsedBody,
       bodyText: text,
-      multipartFormData: null,
       isMultipart: false,
-      canTransformMultipart: false,
       preserveContentLength: false,
     },
     hasBody,
@@ -70,9 +73,6 @@ export function applyProxyBodyTransform(
 ): ProxyBodySnapshot {
   if (!transform.body) return body
   if (body.isMultipart) {
-    if (body.multipartFormData && typeof transform.body.model === 'string') {
-      body.multipartFormData.set('model', transform.body.model)
-    }
     return snapshot({ ...body, parsedBody: transform.body, preserveContentLength: false }, body.hasBody)
   }
   return snapshot(
@@ -90,7 +90,7 @@ export function getProxyForwardBody(
   request: Request,
 ): ReadableStream<Uint8Array> | BodyInit | undefined {
   if (!body.hasBody) return undefined
-  if (body.isMultipart) return body.multipartFormData ?? request.body ?? undefined
+  if (body.isMultipart) return request.body ?? undefined
   return body.bodyText || undefined
 }
 
@@ -120,36 +120,6 @@ function snapshot(body: PreparedProxyBody, hasBody: boolean): ProxyBodySnapshot 
 
 function extractModel(parsedBody: Record<string, unknown> | null): string | null {
   return parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null
-}
-
-async function prepareMultipartBody(request: Request): Promise<PreparedProxyBody> {
-  try {
-    assertContentLengthWithinLimit(request.headers)
-    const multipartFormData = await request.clone().formData()
-    const modelField = multipartFormData.get('model')
-    const streamField = multipartFormData.get('stream')
-    const parsedBody = {
-      ...(typeof modelField === 'string' ? { model: modelField } : {}),
-      ...(typeof streamField === 'string' ? { stream: streamField === 'true' } : {}),
-    }
-    return {
-      parsedBody,
-      bodyText: null,
-      multipartFormData,
-      isMultipart: true,
-      canTransformMultipart: true,
-      preserveContentLength: false,
-    }
-  } catch {
-    return {
-      parsedBody: null,
-      bodyText: null,
-      multipartFormData: null,
-      isMultipart: true,
-      canTransformMultipart: false,
-      preserveContentLength: true,
-    }
-  }
 }
 
 async function readBody(request: Request, maxBytes: number): Promise<{ text: string; prefix: string }> {
