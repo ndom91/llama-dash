@@ -410,11 +410,9 @@ export function RequestsPage() {
                 <div className="mb-4 flex flex-col gap-1.5">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
                     Client
-                    {attribution?.clientNameHeader ? (
-                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                        {attribution.clientNameHeader}
-                      </span>
-                    ) : null}
+                    <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                      {attribution?.clientNameHeader ?? 'x-client-name'}
+                    </span>
                   </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
@@ -428,11 +426,9 @@ export function RequestsPage() {
                 <div className="mb-4 flex flex-col gap-1.5">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
                     End user
-                    {attribution?.endUserIdHeader ? (
-                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                        {attribution.endUserIdHeader}
-                      </span>
-                    ) : null}
+                    <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                      {attribution?.endUserIdHeader ?? 'x-end-user-id'}
+                    </span>
                   </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
@@ -446,11 +442,9 @@ export function RequestsPage() {
                 <div className="mb-4 flex flex-col gap-1.5">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
                     Session
-                    {attribution?.sessionIdHeader ? (
-                      <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                        {attribution.sessionIdHeader}
-                      </span>
-                    ) : null}
+                    <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
+                      {attribution?.sessionIdHeader ?? 'x-session-id'}
+                    </span>
                   </div>
                   <input
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
