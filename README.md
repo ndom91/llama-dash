@@ -5,7 +5,23 @@
 
 <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
 
-Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostlygeek/llama-swap) with many additional features including:
+llama-dash turns a self-hosted [llama-swap](https://github.com/mostlygeek/llama-swap) box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup.
+
+It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, and routing; llama-swap owns local model processes and inference when traffic is routed to local models.
+
+```text
+OpenAI SDK / Claude Code / Continue / Open WebUI
+                    │
+                    ▼
+              llama-dash :5173
+      dashboard · auth · logs · routing · metrics
+              │                    │
+              ▼                    ▼
+      llama-swap :8080      direct /v1 upstreams
+      llama.cpp models      OpenAI · Anthropic · peers
+```
+
+## What it adds
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
@@ -23,60 +39,69 @@ Alternative dashboard and proxy on top of [llama-swap](https://github.com/mostly
 - **Playground** — Supports chat, image, speech and transcribe. See request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
 - **Settings** — application appearance controls and the home for global proxy/privacy defaults.
 
+## Use cases
+
+- Give teammates API keys without exposing llama-swap directly on your network.
+- See which models are running, which clients are using them, and where latency is coming from.
+- Debug slow or failed requests with status, token usage, timing, routing, attribution, and upstream metadata in one place.
+- Enforce model allow-lists, request size limits, model aliases, and routing rules before traffic reaches llama-swap.
+- Route Claude Code or other Anthropic clients through one observable gateway while preserving subscription/OAuth bearer flows.
+- Keep Prometheus metrics and searchable SQLite request history for a single-box self-hosted AI stack.
+
 <table>
   <tr>
-    <td align="center">
-      Dashboard
+    <td align="center" valign="top">
+      <sub><strong>Dashboard</strong><br />Live traffic, tokens, model residency, upstream and GPU health</sub>
     </td>
-    <td align="center">
-      Playground - Chat
+    <td align="center" valign="top">
+      <sub><strong>Playground</strong><br />Chat against local endpoints with request/response inspection</sub>
     </td>
-    <td align="center">
-      Request Details
+    <td align="center" valign="top">
+      <sub><strong>Request detail</strong><br />Routing, attribution, latency, tokens, and payload metadata</sub>
     </td>
-    <td align="center">
-      Logs
+    <td align="center" valign="top">
+      <sub><strong>Logs</strong><br />Raw llama-swap, proxy, and upstream streams in one viewer</sub>
     </td>
   </tr>
   <tr>
-    <td>
+    <td valign="top">
       <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Dark - Playground" src="./.github/assets/playground-chat.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Dark - Request Details" src="./.github/assets/request-details.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Light - Logs" src="./.github/assets/logs.png" />
     </td>
   </tr>
   <tr>
-    <td align="center">
-      Model Details
+    <td align="center" valign="top">
+      <sub><strong>Model detail</strong><br />Load history, stats, recent requests, and config context</sub>
     </td>
-    <td align="center">
-      Playground - Speech
+    <td align="center" valign="top">
+      <sub><strong>Speech playground</strong><br />Audio and image-capable endpoint testing</sub>
     </td>
-    <td align="center">
-      Policies
+    <td align="center" valign="top">
+      <sub><strong>Policies</strong><br />Aliases, routing rules, passthrough auth, and request limits</sub>
     </td>
-    <td align="center">
-      Requests
+    <td align="center" valign="top">
+      <sub><strong>Requests</strong><br />Searchable history with filters, sorting, and histogram</sub>
     </td>
   </tr>
   <tr>
-    <td>
+    <td valign="top">
       <img alt="Dark - Model Details" src="./.github/assets/model-details.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Dark - Speech" src="./.github/assets/playground-speech.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Dark - Policies" src="./.github/assets/policies.png" />
     </td>
-    <td>
+    <td valign="top">
       <img alt="Dark - Requests" src="./.github/assets/requests.png" />
     </td>
   </tr>
