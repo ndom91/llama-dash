@@ -54,7 +54,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   const [keyFilter, setKeyFilter] = useState<string>('all')
   const [routingFilter, setRoutingFilter] = useState<RoutingFilter>('all')
   const [clientFilter, setClientFilter] = useState('')
-  const [hostFilter, setHostFilter] = useState('')
+  const [hostFilter, setHostFilter] = useState<string>('all')
   const [endUserFilter, setEndUserFilter] = useState('')
   const [sessionFilter, setSessionFilter] = useState(sessionParam ?? '')
   const [selectedIdx, setSelectedIdx] = useState(-1)
@@ -73,6 +73,12 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   const keyNames = useMemo(() => {
     const set = new Set<string>()
     for (const r of allRows) if (r.keyName) set.add(r.keyName)
+    return Array.from(set).sort()
+  }, [allRows])
+
+  const hosts = useMemo(() => {
+    const set = new Set<string>()
+    for (const r of allRows) if (r.clientHost) set.add(r.clientHost)
     return Array.from(set).sort()
   }, [allRows])
 
@@ -104,7 +110,10 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
     else if (routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
 
     if (clientFilter) out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(clientFilter.toLowerCase()))
-    if (hostFilter) out = out.filter((r) => (r.clientHost ?? '').toLowerCase().includes(hostFilter.toLowerCase()))
+    if (hostFilter !== 'all') {
+      if (hostFilter === '__none__') out = out.filter((r) => r.clientHost == null)
+      else out = out.filter((r) => r.clientHost === hostFilter)
+    }
     if (endUserFilter) out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUserFilter.toLowerCase()))
     if (sessionFilter) out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(sessionFilter.toLowerCase()))
 
@@ -232,7 +241,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
     keyFilter !== 'all' ||
     routingFilter !== 'all' ||
     clientFilter !== '' ||
-    hostFilter !== '' ||
+    hostFilter !== 'all' ||
     endUserFilter !== '' ||
     sessionFilter !== ''
 
@@ -377,13 +386,19 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
 
                 <div className="mb-4 flex flex-col gap-1.5">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Host</div>
-                  <input
-                    className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                    type="text"
+                  <select
+                    className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={hostFilter}
                     onChange={(e) => setHostFilter(e.target.value)}
-                    placeholder="10.0.0.99"
-                  />
+                  >
+                    <option value="all">All hosts</option>
+                    <option value="__none__">No host</option>
+                    {hosts.map((h) => (
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="mb-4 flex flex-col gap-1.5">
@@ -419,7 +434,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                       setKeyFilter('all')
                       setRoutingFilter('all')
                       setClientFilter('')
-                      setHostFilter('')
+                      setHostFilter('all')
                       setEndUserFilter('')
                       setSessionFilter('')
                     }}
