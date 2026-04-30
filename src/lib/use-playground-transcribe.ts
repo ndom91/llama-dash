@@ -72,10 +72,9 @@ export function usePlaygroundTranscribe() {
     abortRef.current = abort
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file, file.name)
     formData.append('model', model)
     formData.append('response_format', 'verbose_json')
-    formData.append('timestamp_granularities[]', 'segment')
 
     const headers: Record<string, string> = {}
     if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
