@@ -420,6 +420,10 @@ export function RequestsPage() {
                     value={clientFilter}
                     onChange={(e) => updateSearch({ client: e.target.value })}
                     placeholder="claude-code"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
 
@@ -436,6 +440,10 @@ export function RequestsPage() {
                     value={endUserFilter}
                     onChange={(e) => updateSearch({ endUser: e.target.value })}
                     placeholder="alice"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
 
@@ -452,6 +460,10 @@ export function RequestsPage() {
                     value={sessionFilter}
                     onChange={(e) => updateSearch({ session: e.target.value })}
                     placeholder="sess_123"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore="true"
                   />
                 </div>
 
