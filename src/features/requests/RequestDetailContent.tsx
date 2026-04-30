@@ -285,15 +285,21 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <dl className="detail-meta-list">
               <div>
                 <dt>requested</dt>
-                <dd>{requestPayload.model ?? '—'}</dd>
+                <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
               </div>
               <div>
                 <dt>served</dt>
-                <dd>{req.model ?? '—'}</dd>
+                <dd>{req.routingRoutedModel ?? req.model ?? '—'}</dd>
               </div>
               <div>
                 <dt>rewrite</dt>
-                <dd>{deriveRewriteLabel(requestPayload.model, req.model, resHeaders) ?? '—'}</dd>
+                <dd>
+                  {deriveRewriteLabel(
+                    req.routingRequestedModel ?? requestPayload.model,
+                    req.routingRoutedModel ?? req.model,
+                    resHeaders,
+                  ) ?? '—'}
+                </dd>
               </div>
             </dl>
           </div>
