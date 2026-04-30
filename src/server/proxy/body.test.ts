@@ -6,6 +6,7 @@ import {
   getProxyLoggedBody,
   MAX_PROXY_BODY_BYTES,
   prepareProxyBody,
+  restoreProxyBodyContentLength,
 } from './body'
 
 describe('prepareProxyBody', () => {
@@ -44,10 +45,56 @@ describe('prepareProxyBody', () => {
     const body = await prepareProxyBody(request, 'POST')
 
     expect(body.isMultipart).toBe(true)
+    expect(body.canTransformMultipart).toBe(true)
     expect(body.multipartFormData?.get('model')).toBe('whisper-large')
     expect(body.parsedBody).toEqual({ model: 'whisper-large', stream: false })
     expect(body.reqModel).toBe('whisper-large')
     expect(getProxyLoggedBody(body)).toBeNull()
+  })
+
+  it('streams multipart bodies unchanged when form parsing fails', async () => {
+    const bodyStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('--dash\r\nmalformed'))
+        controller.close()
+      },
+    })
+    const request = new Request('http://dash.test/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=dash' },
+      body: bodyStream,
+      ...({ duplex: 'half' } as RequestInit),
+    })
+
+    const body = await prepareProxyBody(request, 'POST')
+
+    expect(body.isMultipart).toBe(true)
+    expect(body.canTransformMultipart).toBe(false)
+    expect(body.preserveContentLength).toBe(true)
+    expect(body.parsedBody).toBeNull()
+    expect(getProxyForwardBody(body, request)).toBe(request.body)
+    expect(getProxyLoggedBody(body)).toBeNull()
+  })
+
+  it('restores content length for untouched multipart stream forwarding', async () => {
+    const bodyStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('--dash\r\nmalformed'))
+        controller.close()
+      },
+    })
+    const request = new Request('http://dash.test/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=dash', 'content-length': '18' },
+      body: bodyStream,
+      ...({ duplex: 'half' } as RequestInit),
+    })
+    const body = await prepareProxyBody(request, 'POST')
+    const headers: Record<string, string> = {}
+
+    restoreProxyBodyContentLength(body, request, headers)
+
+    expect(headers['content-length']).toBe('18')
   })
 
   it('serializes transformed JSON bodies and updates content length', async () => {

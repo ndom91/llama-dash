@@ -8,6 +8,7 @@ import {
   getProxyForwardBody,
   getProxyLoggedBody,
   prepareProxyBody,
+  restoreProxyBodyContentLength,
   type ProxyBodySnapshot,
 } from './body.ts'
 import { filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
@@ -90,6 +91,7 @@ export function finalizeRoutingAndBody(ctx: ProxyContext, preAuthRouting: Routin
   ctx.routingOutcome = preferPostAuthRouting(preAuthRouting, ctx.routingOutcome)
   ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
   applyProxyBodyHeaders(ctx.body, ctx.reqHeaders)
+  restoreProxyBodyContentLength(ctx.body, ctx.request, ctx.reqHeaders)
 }
 
 export function loggedRequestHeaders(ctx: ProxyContext): string {
