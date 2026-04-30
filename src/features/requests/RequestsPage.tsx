@@ -1,7 +1,8 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useNavigate } from '@tanstack/react-router'
+import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { RequestsSearch } from '../../routes/requests.index'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusCell } from '../../components/StatusCell'
@@ -26,13 +27,11 @@ import {
   type StatusFilter,
 } from './requestsListUtils'
 
-type Props = {
-  modelParam?: string
-  sessionParam?: string
-}
+const requestsRouteApi = getRouteApi('/requests/')
 
-export function RequestsPage({ modelParam, sessionParam }: Props) {
+export function RequestsPage() {
   const navigate = useNavigate()
+  const routeSearch = requestsRouteApi.useSearch()
   const {
     data,
     error,
@@ -46,17 +45,36 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   } = useRequestsList()
   const { data: histogram } = useRequestHistogram()
 
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
-  const [modelFilter, setModelFilter] = useState<string>(modelParam ?? 'all')
-  const [sortKey, setSortKey] = useState<SortKey>('startedAt')
-  const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [keyFilter, setKeyFilter] = useState<string>('all')
-  const [routingFilter, setRoutingFilter] = useState<RoutingFilter>('all')
-  const [clientFilter, setClientFilter] = useState('')
-  const [hostFilter, setHostFilter] = useState<string>('all')
-  const [endUserFilter, setEndUserFilter] = useState('')
-  const [sessionFilter, setSessionFilter] = useState(sessionParam ?? '')
+  const search = routeSearch.q ?? ''
+  const statusFilter: StatusFilter = routeSearch.status ?? 'all'
+  const modelFilter: string = routeSearch.model ?? 'all'
+  const sortKey: SortKey = routeSearch.sortKey ?? 'startedAt'
+  const sortDir: SortDir = routeSearch.sortDir ?? 'desc'
+  const keyFilter: string = routeSearch.key ?? 'all'
+  const routingFilter: RoutingFilter = routeSearch.routing ?? 'all'
+  const clientFilter = routeSearch.client ?? ''
+  const hostFilter: string = routeSearch.host ?? 'all'
+  const endUserFilter = routeSearch.endUser ?? ''
+  const sessionFilter = routeSearch.session ?? ''
+
+  const updateSearch = useCallback(
+    (patch: Partial<RequestsSearch>) => {
+      navigate({
+        to: '/requests',
+        search: (prev) => {
+          const next: Record<string, unknown> = { ...prev, ...patch }
+          for (const k of Object.keys(patch)) {
+            const v = next[k]
+            if (v === undefined || v === '' || v === 'all') delete next[k]
+          }
+          return next as RequestsSearch
+        },
+        replace: true,
+      })
+    },
+    [navigate],
+  )
+
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const refreshCycleKey = dataUpdatedAt || 'initial'
   const searchRef = useRef<HTMLInputElement>(null)
@@ -83,15 +101,11 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   }, [allRows])
 
   useEffect(() => {
-    if (modelFilter === 'all' || !modelParam || models.length === 0) return
+    if (modelFilter === 'all' || models.length === 0) return
     if (models.includes(modelFilter)) return
-    const match = models.find((m) => m === modelParam || m.endsWith(`/${modelParam}`))
-    if (match) setModelFilter(match)
-  }, [models, modelFilter, modelParam])
-
-  useEffect(() => {
-    setSessionFilter(sessionParam ?? '')
-  }, [sessionParam])
+    const match = models.find((m) => m === modelFilter || m.endsWith(`/${modelFilter}`))
+    if (match) updateSearch({ model: match })
+  }, [models, modelFilter, updateSearch])
 
   const filtered = useMemo(() => {
     let out = allRows
@@ -227,10 +241,12 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
   }, [])
 
   const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
-    else {
-      setSortKey(key)
-      setSortDir(key === 'startedAt' ? 'desc' : 'asc')
+    if (sortKey === key) {
+      const nextDir: SortDir = sortDir === 'asc' ? 'desc' : 'asc'
+      updateSearch({ sortDir: nextDir, sortKey: key })
+    } else {
+      const nextDir: SortDir = key === 'startedAt' ? 'desc' : 'asc'
+      updateSearch({ sortKey: key, sortDir: nextDir })
     }
   }
 
@@ -294,7 +310,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                       className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                       placeholder="endpoint, model, status"
                       value={search}
-                      onChange={(e) => setSearch(e.target.value)}
+                      onChange={(e) => updateSearch({ q: e.target.value })}
                     />
                     {!search ? (
                       <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
@@ -305,7 +321,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                       <button
                         type="button"
                         className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
-                        onClick={() => setSearch('')}
+                        onClick={() => updateSearch({ q: undefined })}
                         aria-label="Clear search"
                       >
                         <X size={12} strokeWidth={2} />
@@ -319,7 +335,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                    onChange={(e) => updateSearch({ status: e.target.value as StatusFilter })}
                   >
                     <option value="all">All status</option>
                     <option value="ok">Success</option>
@@ -332,7 +348,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={modelFilter}
-                    onChange={(e) => setModelFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ model: e.target.value })}
                   >
                     <option value="all">All models</option>
                     {models.map((m) => (
@@ -348,7 +364,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={keyFilter}
-                    onChange={(e) => setKeyFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ key: e.target.value })}
                   >
                     <option value="all">All keys</option>
                     <option value="__none__">No key</option>
@@ -365,7 +381,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={routingFilter}
-                    onChange={(e) => setRoutingFilter(e.target.value as RoutingFilter)}
+                    onChange={(e) => updateSearch({ routing: e.target.value as RoutingFilter })}
                   >
                     <option value="all">All requests</option>
                     <option value="routed">Routed only</option>
@@ -378,7 +394,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                   <select
                     className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     value={hostFilter}
-                    onChange={(e) => setHostFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ host: e.target.value })}
                   >
                     <option value="all">All hosts</option>
                     <option value="__none__">No host</option>
@@ -396,7 +412,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
                     value={clientFilter}
-                    onChange={(e) => setClientFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ client: e.target.value })}
                     placeholder="claude-code"
                   />
                 </div>
@@ -407,7 +423,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
                     value={endUserFilter}
-                    onChange={(e) => setEndUserFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ endUser: e.target.value })}
                     placeholder="alice"
                   />
                 </div>
@@ -418,7 +434,7 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                     className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     type="text"
                     value={sessionFilter}
-                    onChange={(e) => setSessionFilter(e.target.value)}
+                    onChange={(e) => updateSearch({ session: e.target.value })}
                     placeholder="sess_123"
                   />
                 </div>
@@ -428,15 +444,17 @@ export function RequestsPage({ modelParam, sessionParam }: Props) {
                     type="button"
                     className="btn btn-ghost btn-xs self-start"
                     onClick={() => {
-                      setSearch('')
-                      setStatusFilter('all')
-                      setModelFilter('all')
-                      setKeyFilter('all')
-                      setRoutingFilter('all')
-                      setClientFilter('')
-                      setHostFilter('all')
-                      setEndUserFilter('')
-                      setSessionFilter('')
+                      updateSearch({
+                        q: undefined,
+                        status: undefined,
+                        model: undefined,
+                        key: undefined,
+                        routing: undefined,
+                        host: undefined,
+                        client: undefined,
+                        endUser: undefined,
+                        session: undefined,
+                      })
                     }}
                   >
                     Clear filters
