@@ -35,7 +35,7 @@ export function Chip({ children, tone = 'default' }: { children: string; tone?: 
       className={cn(
         'rounded border px-2 py-1 font-mono text-[11px]',
         tone === 'ok' && 'border-ok/35 bg-ok/12 text-ok',
-        tone === 'info' && 'border-info/40 bg-info/15 text-info',
+        tone === 'info' && 'border-info/45 bg-info/15 text-info brightness-75 dark:brightness-100',
         tone === 'err' && 'border-err/35 bg-err/12 text-err',
         tone === 'default' && 'border-border bg-surface-1 text-fg-muted',
       )}

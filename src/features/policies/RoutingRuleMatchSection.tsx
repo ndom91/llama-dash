@@ -42,10 +42,8 @@ export function RoutingRuleMatchSection({
         />
 
         {draft.authMode === 'passthrough' ? (
-          <div className="rounded border border-warn/35 bg-warn/10 px-4 py-3 font-mono text-xs text-fg-dim">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-warn">API key matcher disabled</div>
-            Passthrough rules run before llama-dash API-key auth, so they cannot match a stored llama-dash key. Match by
-            endpoint, requested model, stream mode, or estimated prompt tokens.
+          <div className="font-mono text-[11px] leading-5 text-fg-dim">
+            API-key matching is unavailable for passthrough rules because they run before llama-dash key auth.
           </div>
         ) : (
           <TokenInput

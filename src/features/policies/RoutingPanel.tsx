@@ -167,21 +167,40 @@ export function RoutingPanel() {
               </div>
             ) : null}
             {rules.map((rule, index) => (
-              <RoutingRuleRow
-                key={rule.id}
-                rule={rule}
-                index={index}
-                totalRules={rules.length}
-                keyMap={keyMap}
-                editingRuleId={editingRuleId}
-                reorderPending={reorderRulesMutation.isPending}
-                updatePending={updateRuleMutation.isPending}
-                deletePending={deleteRuleMutation.isPending}
-                onToggle={toggleRule}
-                onMove={moveRule}
-                onEdit={startEdit}
-                onDelete={deleteRule}
-              />
+              <div key={rule.id} className="space-y-3">
+                <RoutingRuleRow
+                  rule={rule}
+                  index={index}
+                  totalRules={rules.length}
+                  keyMap={keyMap}
+                  editingRuleId={editingRuleId}
+                  reorderPending={reorderRulesMutation.isPending}
+                  updatePending={updateRuleMutation.isPending}
+                  deletePending={deleteRuleMutation.isPending}
+                  onToggle={toggleRule}
+                  onMove={moveRule}
+                  onEdit={startEdit}
+                  onDelete={deleteRule}
+                />
+                {draft?.id === rule.id ? (
+                  <RoutingRuleEditor
+                    draft={draft}
+                    keyMap={keyMap}
+                    keys={keys}
+                    modelOptions={modelOptions}
+                    errorMessage={
+                      createRuleMutation.error?.message ??
+                      updateRuleMutation.error?.message ??
+                      deleteRuleMutation.error?.message ??
+                      reorderRulesMutation.error?.message
+                    }
+                    isMutating={isMutating}
+                    onChange={setDraft}
+                    onDiscard={discardDraft}
+                    onSave={saveDraft}
+                  />
+                ) : null}
+              </div>
             ))}
           </div>
 
@@ -197,7 +216,7 @@ export function RoutingPanel() {
             </div>
           ) : null}
 
-          {draft ? (
+          {draft && !rules.some((rule) => rule.id === draft.id) ? (
             <RoutingRuleEditor
               draft={draft}
               keyMap={keyMap}

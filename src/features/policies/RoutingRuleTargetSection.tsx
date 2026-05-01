@@ -48,10 +48,8 @@ export function RoutingRuleTargetSection({
               onChange={(event) => onChange(setDirectTargetBaseUrl(draft, event.target.value))}
             />
           </label>
-          <div className="rounded border border-info/35 bg-info/10 px-4 py-4 font-mono text-xs text-fg-dim">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Direct target</div>
-            Direct upstreams must use HTTPS, end with /v1, and currently target api.openai.com or api.anthropic.com.
-            llama-dash appends the incoming /v1 path suffix; clients never choose the destination URL.
+          <div className="font-mono text-[11px] leading-5 text-fg-dim">
+            Must use HTTPS and end with /v1. llama-dash appends the incoming /v1 path suffix.
           </div>
         </div>
       ) : null}

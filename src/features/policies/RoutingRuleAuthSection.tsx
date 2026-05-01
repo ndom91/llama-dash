@@ -57,10 +57,8 @@ export function RoutingRuleAuthSection({
               />
             </button>
           </label>
-          <div className="rounded border border-warn/35 bg-warn/10 px-4 py-4 font-mono text-xs text-fg-dim">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-warn">Passthrough auth</div>
-            Passthrough auth lets the upstream provider validate the client's bearer token. llama-dash will not apply
-            key-specific rate limits, model allow-lists, or system prompts for requests matched by this rule.
+          <div className="font-mono text-[11px] leading-5 text-fg-dim">
+            Upstream validates the bearer token. Key-specific rate limits, allow-lists, and system prompts are skipped.
           </div>
           {draft.target.type === 'direct' &&
           draft.match.endpoints.length === 0 &&
@@ -75,10 +73,8 @@ export function RoutingRuleAuthSection({
             </div>
           ) : null}
           {draft.match.requestedModels.length > 0 && draft.match.endpoints.length === 0 ? (
-            <div className="rounded border border-info/35 bg-info/10 px-4 py-4 font-mono text-xs text-fg-dim">
-              <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-info">Bodyless requests</div>
-              Model-only passthrough rules do not match bodyless requests such as GET /v1/models. Add an
-              endpoint-specific passthrough rule if the client probes models before sending a completion.
+            <div className="font-mono text-[11px] leading-5 text-fg-dim">
+              Model-only passthrough rules do not match bodyless requests like GET /v1/models.
             </div>
           ) : null}
         </div>
