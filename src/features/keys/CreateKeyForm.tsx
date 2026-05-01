@@ -18,7 +18,6 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
   const [rpm, setRpm] = useState('')
   const [tpm, setTpm] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
-  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,11 +62,6 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           <span className="text-[11px] text-fg-faint">
             {allowedModels.length === 0 ? 'empty = all models' : `${allowedModels.length} selected`}
           </span>
-          {allowedModels.length > 0 ? (
-            <div className="font-mono text-[11px] leading-5 text-fg-dim" translate="no">
-              Selected: <span className="text-fg">{allowedModels.join(', ')}</span>
-            </div>
-          ) : null}
           <div className="flex flex-wrap gap-1.5">
             {models?.map((m) => {
               const selected = allowedModels.includes(m.id)
@@ -120,27 +114,17 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="text-xs font-mono text-fg-dim hover:text-fg bg-transparent border-none cursor-pointer p-0 self-start"
-          onClick={() => setShowAdvanced(!showAdvanced)}
-        >
-          {showAdvanced ? '▾ Hide advanced' : '▸ Advanced options'}
-        </button>
-
-        {showAdvanced ? (
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-xs font-medium text-fg-dim">System prompt</span>
-            <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
-            <textarea
-              className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Enter a system prompt..."
-              maxLength={10000}
-            />
-          </label>
-        ) : null}
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="text-xs font-medium text-fg-dim">Prepend system prompt</span>
+          <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
+          <textarea
+            className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            placeholder="Enter a system prompt..."
+            maxLength={10000}
+          />
+        </label>
       </div>
 
       <div className="mt-4 flex justify-end gap-2 border-t border-border pt-3">
