@@ -150,7 +150,7 @@ export function RoutingPanel() {
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-6 py-4 max-md:px-3">
           <div className="space-y-3">
             {rules.length === 0 ? (
-              <div className="border border-dashed border-border bg-surface-0 px-5 py-6">
+              <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
                 <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-faint">
                   No routing rules yet
                 </div>
@@ -189,7 +189,7 @@ export function RoutingPanel() {
           updateRuleMutation.error ||
           deleteRuleMutation.error ||
           reorderRulesMutation.error ? (
-            <div className="border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
+            <div className="rounded border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
               {createRuleMutation.error?.message ??
                 updateRuleMutation.error?.message ??
                 deleteRuleMutation.error?.message ??
@@ -216,7 +216,7 @@ export function RoutingPanel() {
             />
           ) : null}
 
-          <section className="border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+          <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
             <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
               Observability · how a routed request surfaces on request detail
             </div>

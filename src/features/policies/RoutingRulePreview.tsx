@@ -6,7 +6,7 @@ export function RoutingRulePreview({ draft, keyMap }: { draft: RoutingRule; keyM
   const preview = formatRuleSummary(draft, keyMap)
 
   return (
-    <div className="border border-border bg-[#0b0d10] px-4 py-4 font-mono text-xs leading-6 text-fg-dim">
+    <div className="rounded border border-border bg-surface-2 px-4 py-4 font-mono text-xs leading-6 text-fg-dim">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-accent">WHEN</span>
         {preview.when.map((item) => (
