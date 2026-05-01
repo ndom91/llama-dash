@@ -1,19 +1,9 @@
-import hljs from 'highlight.js/lib/core'
-import bash from 'highlight.js/lib/languages/bash'
-import json from 'highlight.js/lib/languages/json'
-import python from 'highlight.js/lib/languages/python'
-import yaml from 'highlight.js/lib/languages/yaml'
 import { Check, Save } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { CodeBlock } from '../../components/CodeBlock'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
-
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('jsonc', json)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('yaml', yaml)
 
 type HighlightLanguage = 'bash' | 'json' | 'jsonc' | 'python' | 'yaml'
 type ExampleTab = (typeof EXAMPLE_TABS)[number]['id']
@@ -308,33 +298,5 @@ function HeaderConvention({ name, description }: { name: string; description: st
 }
 
 function ExampleCard({ title, code, language }: { title: string; code: string; language: HighlightLanguage }) {
-  const highlighted = useMemo(() => highlightExample(code, language), [code, language])
-
-  return (
-    <section className="border border-border bg-surface-0">
-      <div className="border-b border-border px-4 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
-        {title}
-      </div>
-      <pre className="overflow-x-auto px-4 py-4 font-mono text-xs text-fg">
-        <code
-          className={`language-${language}`}
-          translate="no"
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js output from static example templates
-          dangerouslySetInnerHTML={{ __html: highlighted }}
-        />
-      </pre>
-    </section>
-  )
-}
-
-function highlightExample(code: string, language: HighlightLanguage) {
-  try {
-    return hljs.highlight(code, { language, ignoreIllegals: true }).value
-  } catch {
-    return escapeHtml(code)
-  }
-}
-
-function escapeHtml(text: string) {
-  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  return <CodeBlock text={code} title={title} lang={language} />
 }
