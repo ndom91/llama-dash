@@ -51,10 +51,44 @@ export function KeyDetailContent({ data }: Props) {
         kicker={`key · ${key.name}`}
         title={key.name}
         subtitle={
-          <span translate="no">
-            {key.keyPrefix}… · {isRevoked ? 'revoked' : 'active'} · created{' '}
-            {new Date(key.createdAt).toLocaleDateString()}
-          </span>
+          <>
+            <span translate="no">
+              {key.keyPrefix}… · {isRevoked ? 'revoked' : 'active'} · created{' '}
+              {new Date(key.createdAt).toLocaleDateString()}
+            </span>
+            {rotatedRawKey ? (
+              <div className="mt-4 mb-1 rounded border border-ok bg-ok-bg px-4 py-3 font-sans text-fg">
+                <div className="mb-2 flex items-center gap-2 text-[13px]">
+                  <Check size={16} strokeWidth={2} className="text-ok" />
+                  <strong>Key rotated — copy the new secret now, it won't be shown again</strong>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-icon ml-auto"
+                    onClick={() => setRotatedRawKey(null)}
+                    aria-label="Dismiss rotated API key secret"
+                  >
+                    <X size={14} strokeWidth={2} />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 rounded-sm border border-border bg-surface-1 px-3 py-2">
+                  <code className="mono flex-1 break-all text-xs">{rotatedRawKey}</code>
+                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-icon"
+                      onClick={copyRotatedKey}
+                      aria-label={copied ? 'Copied rotated API key' : 'Copy rotated API key'}
+                    >
+                      <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+                        <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
+                        <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />
+                      </span>
+                    </button>
+                  </Tooltip>
+                </div>
+              </div>
+            ) : null}
+          </>
         }
         variant="integrated"
         action={
@@ -101,39 +135,6 @@ export function KeyDetailContent({ data }: Props) {
           </div>
         }
       />
-
-      {rotatedRawKey ? (
-        <div className="mx-6 mt-3 rounded border border-ok bg-ok-bg px-4 py-3 max-md:mx-3">
-          <div className="mb-2 flex items-center gap-2 text-[13px]">
-            <Check size={16} strokeWidth={2} className="text-ok" />
-            <strong>Key rotated — copy the new secret now, it won't be shown again</strong>
-            <button
-              type="button"
-              className="btn btn-ghost btn-icon ml-auto"
-              onClick={() => setRotatedRawKey(null)}
-              aria-label="Dismiss rotated API key secret"
-            >
-              <X size={14} strokeWidth={2} />
-            </button>
-          </div>
-          <div className="flex items-center gap-2 rounded-sm border border-border bg-surface-1 px-3 py-2">
-            <code className="mono flex-1 break-all text-xs">{rotatedRawKey}</code>
-            <Tooltip label={copied ? 'Copied' : 'Copy'}>
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon"
-                onClick={copyRotatedKey}
-                aria-label={copied ? 'Copied rotated API key' : 'Copy rotated API key'}
-              >
-                <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                  <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
-                  <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />
-                </span>
-              </button>
-            </Tooltip>
-          </div>
-        </div>
-      ) : null}
 
       <div className="detail-sidecar-shell">
         <aside className="detail-meta-rail">
