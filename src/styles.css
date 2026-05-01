@@ -41,7 +41,7 @@
   --radius-lg: 9px;
   --radius-pill: 9999px;
 
-  --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
+  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 
   --animate-pulse-ok: pulse-ok 1.6s ease-in-out infinite;
   --animate-pulse-warn: pulse-warn 1.2s ease-in-out infinite;
@@ -263,7 +263,7 @@
   --err-bg: rgba(200, 138, 138, 0.12);
   --info-bg: rgba(138, 174, 219, 0.12);
 
-  --shadow-focus: 0 0 0 2px rgba(180, 151, 214, 0.35);
+  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 
   --accent-shifted: oklch(84% 0.036 300);
 

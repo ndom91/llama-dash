@@ -31,7 +31,7 @@ function applyTheme(theme: ThemeDef) {
   s.setProperty('--warn-bg', hexToAlpha(theme.status.warn, 0.12))
   s.setProperty('--err-bg', hexToAlpha(theme.status.error, 0.12))
   s.setProperty('--info-bg', hexToAlpha(theme.status.info, 0.12))
-  s.setProperty('--shadow-focus', `0 0 0 2px ${hexToAlpha(theme.accent['500'], 0.35)}`)
+  s.setProperty('--shadow-focus', '0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)')
 
   const [l, c, h] = theme.accent.oklch.split(' ').map(parseFloat)
   s.setProperty('--accent-shifted', `oklch(${Math.min(l + 12, 95)}% ${(c * 0.4).toFixed(3)} ${h})`)
