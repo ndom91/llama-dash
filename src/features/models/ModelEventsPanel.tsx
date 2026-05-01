@@ -13,26 +13,28 @@ export function ModelEventsPanel({ events }: Props) {
         <span className="panel-title">History</span>
         <span className="panel-sub">· latest 12 load/unload events</span>
       </div>
-      <table className="dtable">
-        <thead>
-          <tr>
-            <th style={{ width: 18 }} aria-label="type" />
-            <th style={{ width: 160 }}>time</th>
-            <th>event</th>
-          </tr>
-        </thead>
-        <tbody>
-          {recentEvents.map((e) => (
-            <tr key={e.id}>
-              <td>
-                <StatusDot tone={e.event === 'load' ? 'ok' : 'idle'} />
-              </td>
-              <td className="mono dim">{new Date(e.timestamp).toLocaleString([], { hour12: false })}</td>
-              <td>{e.event}</td>
+      <div className="max-h-[310px] overflow-y-auto">
+        <table className="dtable">
+          <thead>
+            <tr>
+              <th style={{ width: 18 }} aria-label="type" />
+              <th style={{ width: 160 }}>time</th>
+              <th>event</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {recentEvents.map((e) => (
+              <tr key={e.id}>
+                <td>
+                  <StatusDot tone={e.event === 'load' ? 'ok' : 'idle'} />
+                </td>
+                <td className="mono dim">{new Date(e.timestamp).toLocaleString([], { hour12: false })}</td>
+                <td>{e.event}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   )
 }

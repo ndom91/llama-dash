@@ -8,7 +8,7 @@ type Props = {
 
 export function ModelStatsRow({ stats }: Props) {
   return (
-    <div className="stats-row detail-stacked-section detail-stacked-stats-row">
+    <div className="stats-row detail-stacked-section detail-stacked-stats-row shrink-0">
       <div className="stat-card">
         <div className="stat-card-label">requests · 30m</div>
         <div className="stat-card-row">
