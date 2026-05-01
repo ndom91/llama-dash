@@ -13,7 +13,7 @@ export function ModelEventsPanel({ events }: Props) {
         <span className="panel-title">History</span>
         <span className="panel-sub">· latest 12 load/unload events</span>
       </div>
-      <div className="max-h-[310px] overflow-y-auto">
+      <div className="max-h-[310px] overflow-y-auto pb-3">
         <table className="dtable">
           <thead>
             <tr>
