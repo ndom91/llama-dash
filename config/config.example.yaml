@@ -27,13 +27,3 @@ models:
   #       --parallel 1
   #       --host 0.0.0.0
   #       --port ${PORT}
-
-# Proxy Anthropic
-# peers:
-#   anthropic:
-#     proxy: https://api.anthropic.com
-#     models:
-#       - claude-sonnet-4-6
-#       - claude-opus-4-6
-#       - claude-opus-4-7
-#       - claude-haiku-4-5-20251001
