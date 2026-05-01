@@ -36,19 +36,21 @@ export function RoutingRuleRow({
   return (
     <article
       className={cn(
-        'border border-border bg-surface-0 px-5 py-4 transition-colors',
+        'rounded-lg border border-border bg-surface-0 px-5 py-4 transition-colors',
         rule.enabled ? 'opacity-100' : 'opacity-65',
-        editingRuleId === rule.id && 'border-accent/60 bg-surface-1',
+        editingRuleId === rule.id && 'border-accent/60 bg-surface-2/60',
       )}
     >
       <div className="flex items-start gap-4 max-md:flex-col">
         <div className="flex min-w-[70px] items-center gap-3 font-mono text-xs text-fg-dim">
-          <span>{String(rule.order).padStart(2, '0')}</span>
+          <span className="rounded border border-border bg-surface-1 px-2 py-1 text-[11px] text-fg-muted">
+            {String(rule.order).padStart(2, '0')}
+          </span>
           <button
             type="button"
             onClick={() => onToggle(rule.id)}
             className={cn(
-              'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors',
+              'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:shadow-focus',
               rule.enabled ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
             )}
             aria-pressed={rule.enabled}
