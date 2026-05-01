@@ -1,4 +1,6 @@
 import { KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { NumberInput } from '../../components/NumberInput'
 import { PageHeader } from '../../components/PageHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { TopBar } from '../../components/TopBar'
@@ -6,7 +8,6 @@ import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import { usePrivacySettings, useUpdatePrivacySettings } from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
-import { useState } from 'react'
 
 function SettingsPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
@@ -258,18 +259,20 @@ export function SettingsPage() {
                       privacy && updatePrivacySettings.mutate({ captureResponseBodies: !privacy.captureResponseBodies })
                     }
                   />
-                  <label className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
-                    <span className="font-mono text-xs font-semibold text-fg">Max stored body bytes</span>
+                  <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
+                    <label className="font-mono text-xs font-semibold text-fg" htmlFor="max-stored-body-bytes">
+                      Max stored body bytes
+                    </label>
                     <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
                       Truncates persisted request and response bodies. Set to 0 to store no body text.
                     </span>
-                    <input
-                      type="number"
+                    <NumberInput
+                      id="max-stored-body-bytes"
                       min={0}
                       max={1024 * 1024}
                       step={1024}
                       disabled={!privacy || isPrivacyMutating}
-                      className="h-9 max-w-48 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg disabled:cursor-not-allowed disabled:opacity-50"
+                      className="max-w-48"
                       value={privacy?.maxStoredBodyBytes ?? ''}
                       onChange={(event) => {
                         const value = Number(event.target.value)
@@ -277,7 +280,7 @@ export function SettingsPage() {
                         updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
                       }}
                     />
-                  </label>
+                  </div>
                 </div>
               </div>
             </SettingsPanel>

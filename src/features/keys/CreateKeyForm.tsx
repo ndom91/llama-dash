@@ -1,7 +1,8 @@
 import { KeyRound } from 'lucide-react'
 import { useState } from 'react'
-import { cn } from '../../lib/cn'
+import { NumberInput } from '../../components/NumberInput'
 import type { ApiKeyCreated } from '../../lib/api'
+import { cn } from '../../lib/cn'
 import { useCreateApiKey, useModels } from '../../lib/queries'
 
 type Props = {
@@ -78,28 +79,32 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         </div>
 
         <div className="flex gap-3 max-md:flex-col">
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-xs font-medium text-fg-dim">RPM limit</span>
-            <input
-              className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
-              type="number"
+          <div className="flex flex-1 flex-col gap-1">
+            <label className="text-xs font-medium text-fg-dim" htmlFor="create-key-rpm-limit">
+              RPM limit
+            </label>
+            <NumberInput
+              id="create-key-rpm-limit"
+              className="h-9 rounded-sm bg-surface-0 text-[13px]"
               min={1}
               value={rpm}
               onChange={(e) => setRpm(e.target.value)}
               placeholder="unlimited"
             />
-          </label>
-          <label className="flex flex-1 flex-col gap-1">
-            <span className="text-xs font-medium text-fg-dim">TPM limit</span>
-            <input
-              className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
-              type="number"
+          </div>
+          <div className="flex flex-1 flex-col gap-1">
+            <label className="text-xs font-medium text-fg-dim" htmlFor="create-key-tpm-limit">
+              TPM limit
+            </label>
+            <NumberInput
+              id="create-key-tpm-limit"
+              className="h-9 rounded-sm bg-surface-0 text-[13px]"
               min={1}
               value={tpm}
               onChange={(e) => setTpm(e.target.value)}
               placeholder="unlimited"
             />
-          </label>
+          </div>
         </div>
 
         <button

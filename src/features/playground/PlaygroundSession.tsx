@@ -1,4 +1,5 @@
 import { Plus, RotateCcw, Square } from 'lucide-react'
+import { NumberInput } from '../../components/NumberInput'
 import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/stream-chat'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
@@ -196,9 +197,9 @@ export function PlaygroundSession({
         <PlaygroundKVRow
           k="n (choices)"
           v={
-            <input
-              className="w-[76px] rounded-[3px] border border-border bg-surface-2 px-1.5 py-0.5 text-right font-mono text-[11px] text-fg outline-none focus:border-accent"
-              type="number"
+            <NumberInput
+              className="h-7 w-[76px] rounded-sm bg-surface-2 text-[11px]"
+              inputClassName="px-1.5 text-right"
               min={1}
               max={8}
               value={sampling.n}

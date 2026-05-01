@@ -1,3 +1,4 @@
+import { NumberInput } from '../../components/NumberInput'
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { addMatchValue, asStreamMode, removeMatchValue, setMatchField } from './routing-draft'
@@ -84,26 +85,20 @@ export function RoutingRuleMatchSection({
         <div className="space-y-1.5">
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Estimated prompt tokens</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
-              <span className="flex h-full items-center border-r border-border bg-surface-1 px-3 text-fg-dim">min</span>
-              <input
-                type="number"
-                min={0}
-                className="min-w-0 flex-1 bg-transparent px-3 text-fg outline-none"
-                value={draft.match.minEstimatedPromptTokens}
-                onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
-              />
-            </label>
-            <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
-              <span className="flex h-full items-center border-r border-border bg-surface-1 px-3 text-fg-dim">max</span>
-              <input
-                type="number"
-                min={0}
-                className="min-w-0 flex-1 bg-transparent px-3 text-fg outline-none"
-                value={draft.match.maxEstimatedPromptTokens}
-                onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
-              />
-            </label>
+            <NumberInput
+              prefix="min"
+              aria-label="Minimum estimated prompt tokens"
+              min={0}
+              value={draft.match.minEstimatedPromptTokens}
+              onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
+            />
+            <NumberInput
+              prefix="max"
+              aria-label="Maximum estimated prompt tokens"
+              min={0}
+              value={draft.match.maxEstimatedPromptTokens}
+              onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
+            />
           </div>
           <div className="text-[11px] font-mono text-fg-dim">rough JSON-size heuristic · not model tokenization</div>
         </div>
