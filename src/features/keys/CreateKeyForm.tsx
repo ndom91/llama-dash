@@ -1,4 +1,4 @@
-import { KeyRound } from 'lucide-react'
+import { Check, KeyRound } from 'lucide-react'
 import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
 import type { ApiKeyCreated } from '../../lib/api'
@@ -60,7 +60,14 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
 
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-fg-dim">Allowed models</span>
-          <span className="text-[11px] text-fg-faint">empty = all models</span>
+          <span className="text-[11px] text-fg-faint">
+            {allowedModels.length === 0 ? 'empty = all models' : `${allowedModels.length} selected`}
+          </span>
+          {allowedModels.length > 0 ? (
+            <div className="font-mono text-[11px] leading-5 text-fg-dim" translate="no">
+              Selected: <span className="text-fg">{allowedModels.join(', ')}</span>
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-1.5">
             {models?.map((m) => {
               const selected = allowedModels.includes(m.id)
@@ -69,12 +76,14 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
                   key={m.id}
                   type="button"
                   className={cn(
-                    'rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-                    selected && 'border-accent bg-accent/15 text-accent',
+                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+                    selected &&
+                      'border-accent bg-accent text-accent-on hover:border-accent hover:bg-accent-strong hover:text-accent-on',
                   )}
                   aria-pressed={selected}
                   onClick={() => toggleModel(m.id)}
                 >
+                  {selected ? <Check className="h-3 w-3" strokeWidth={2} aria-hidden="true" /> : null}
                   {m.id}
                 </button>
               )
