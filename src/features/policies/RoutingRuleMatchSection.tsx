@@ -85,7 +85,7 @@ export function RoutingRuleMatchSection({
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Estimated prompt tokens</div>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
-              <span className="border-r border-border bg-surface-1 px-3 text-fg-dim">min ·</span>
+              <span className="flex h-full items-center border-r border-border bg-surface-1 px-3 text-fg-dim">min</span>
               <input
                 type="number"
                 min={0}
@@ -95,7 +95,7 @@ export function RoutingRuleMatchSection({
               />
             </label>
             <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
-              <span className="border-r border-border bg-surface-1 px-3 text-fg-dim">max ·</span>
+              <span className="flex h-full items-center border-r border-border bg-surface-1 px-3 text-fg-dim">max</span>
               <input
                 type="number"
                 min={0}
