@@ -62,19 +62,23 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           <span className="text-xs font-medium text-fg-dim">Allowed models</span>
           <span className="text-[11px] text-fg-faint">empty = all models</span>
           <div className="flex flex-wrap gap-1.5">
-            {models?.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={cn(
-                  'rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors',
-                  allowedModels.includes(m.id) && 'border-accent bg-accent-bg text-accent',
-                )}
-                onClick={() => toggleModel(m.id)}
-              >
-                {m.id}
-              </button>
-            ))}
+            {models?.map((m) => {
+              const selected = allowedModels.includes(m.id)
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  className={cn(
+                    'rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+                    selected && 'border-accent bg-accent/15 text-accent',
+                  )}
+                  aria-pressed={selected}
+                  onClick={() => toggleModel(m.id)}
+                >
+                  {m.id}
+                </button>
+              )
+            })}
           </div>
         </div>
 
