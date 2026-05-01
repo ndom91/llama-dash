@@ -18,14 +18,14 @@ export function IconButton({
   busy?: boolean
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || busy}
-      className="inline-flex h-8 w-8 items-center justify-center border border-border bg-surface-1 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg disabled:cursor-not-allowed disabled:opacity-35"
-    >
-      {icon}
-    </button>
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled || busy}
+        className="inline-flex h-8 w-8 items-center justify-center rounded border border-border bg-surface-2 text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        {icon}
+      </button>
   )
 }
 
@@ -33,11 +33,11 @@ export function Chip({ children, tone = 'default' }: { children: string; tone?: 
   return (
     <span
       className={cn(
-        'border px-2 py-1 font-mono text-[11px]',
-        tone === 'ok' && 'border-ok/30 bg-ok/10 text-ok',
-        tone === 'info' && 'border-info/30 bg-info/10 text-info',
-        tone === 'err' && 'border-err/30 bg-err/10 text-err',
-        tone === 'default' && 'border-border bg-surface-1 text-fg-dim',
+        'rounded border px-2 py-1 font-mono text-[11px]',
+        tone === 'ok' && 'border-ok/35 bg-ok/12 text-ok',
+        tone === 'info' && 'border-info/40 bg-info/15 text-info',
+        tone === 'err' && 'border-err/35 bg-err/12 text-err',
+        tone === 'default' && 'border-border bg-surface-1 text-fg-muted',
       )}
     >
       {children}
@@ -77,11 +77,11 @@ export function TokenInput({
   return (
     <div className="space-y-1.5">
       <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">{label}</div>
-      <div className="flex min-h-10 flex-wrap items-center gap-2 border border-border bg-surface-3 px-3 py-2">
+      <div className="flex min-h-10 flex-wrap items-center gap-2 rounded border border-border bg-surface-3 px-3 py-2 focus-within:border-accent/70 focus-within:shadow-focus">
         {values.map((value) => (
           <span
             key={value}
-            className="inline-flex items-center gap-1 border border-border bg-surface-1 px-2 py-1 font-mono text-[11px] text-fg"
+            className="inline-flex items-center gap-1 rounded border border-border bg-surface-1 px-2 py-1 font-mono text-[11px] text-fg"
           >
             {renderValue ? renderValue(value) : value}
             <button type="button" className="text-fg-dim hover:text-fg" onClick={() => onRemove(value)}>
