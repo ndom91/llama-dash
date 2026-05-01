@@ -18,14 +18,14 @@ export function IconButton({
   busy?: boolean
 }) {
   return (
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled || busy}
-        className="inline-flex h-8 w-8 items-center justify-center rounded border border-border bg-surface-2 text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        {icon}
-      </button>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled || busy}
+      className="inline-flex h-8 w-8 items-center justify-center rounded border border-border bg-surface-2 text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      {icon}
+    </button>
   )
 }
 
