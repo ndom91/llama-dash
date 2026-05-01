@@ -384,6 +384,20 @@ export function useRevokeApiKey(): UseMutationResult<{ ok: true }, Error, string
   })
 }
 
+export function useRotateApiKey(): UseMutationResult<ApiKeyCreated, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => api.rotateKey(id),
+    onSuccess: (_data, id) => {
+      toast.success('API key rotated')
+      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
+    },
+    onError: (e) => {
+      toastMutationError('Rotate failed', e)
+    },
+  })
+}
+
 export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({

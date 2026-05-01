@@ -128,6 +128,7 @@ export const api = {
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedModels } }),
   updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { systemPrompt } }),
+  rotateKey: (id: string) => sendEmpty(`/api/keys/${id}/rotate`, ApiKeyCreatedSchema, 'POST'),
   revokeKey: (id: string) => sendEmpty(`/api/keys/${id}/revoke`, OkSchema, 'POST'),
   deleteKey: (id: string) => sendEmpty(`/api/keys/${id}`, OkSchema, 'DELETE'),
   listAliases: () => getJson('/api/aliases', ModelAliasListResponseSchema),

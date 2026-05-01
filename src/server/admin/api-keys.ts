@@ -60,6 +60,24 @@ export function createApiKey(input: {
   return { key: toApiShape({ ...row, createdAt: now, disabledAt: null }), rawKey }
 }
 
+export function rotateApiKey(id: string): { key: ApiKeyItem; rawKey: string } | null {
+  const existing = db
+    .select()
+    .from(schema.apiKeys)
+    .where(and(eq(schema.apiKeys.id, id), eq(schema.apiKeys.system, false)))
+    .get()
+  if (!existing || existing.disabledAt) return null
+
+  const rawKey = `sk-${randomBytes(32).toString('hex')}`
+  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+  const keyPrefix = rawKey.slice(0, 8)
+  const result = db.update(schema.apiKeys).set({ keyHash, keyPrefix }).where(eq(schema.apiKeys.id, id)).run()
+  if (result.changes === 0) return null
+
+  invalidateKeyCache()
+  return { key: toApiShape({ ...existing, keyHash, keyPrefix }), rawKey }
+}
+
 export function renameApiKey(id: string, name: string): boolean {
   const result = db.update(schema.apiKeys).set({ name }).where(eq(schema.apiKeys.id, id)).run()
   return result.changes > 0

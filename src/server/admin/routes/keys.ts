@@ -7,6 +7,7 @@ import {
   getSystemKeyRaw,
   listApiKeys,
   revokeApiKey,
+  rotateApiKey,
   updateApiKey,
 } from '../api-keys.ts'
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from '../key-detail.ts'
@@ -63,6 +64,15 @@ export const keyRoutes: Route[] = [
       })
       if (!ok) return error(404, `Key ${match[1]} not found`)
       return json(200, { ok: true })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/keys\/([a-zA-Z0-9_]+)\/rotate$/,
+    handler: async (_request, match) => {
+      const result = rotateApiKey(match[1])
+      if (!result) return error(404, `Key ${match[1]} not found or already revoked`)
+      return json(200, result)
     },
   },
   {

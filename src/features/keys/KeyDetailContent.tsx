@@ -1,8 +1,11 @@
-import { Power, RotateCw } from 'lucide-react'
+import { Check, Copy, Power, RotateCw, X } from 'lucide-react'
+import { useCallback, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
+import { Tooltip } from '../../components/Tooltip'
 import type { ApiKeyDetail } from '../../lib/api'
-import { useModels, useRevokeApiKey } from '../../lib/queries'
+import { cn } from '../../lib/cn'
+import { useModels, useRevokeApiKey, useRotateApiKey } from '../../lib/queries'
 import { KeyModelAccessPanel } from './KeyModelAccessPanel'
 import { KeyRequestsPanel } from './KeyRequestsPanel'
 import { KeyStatsRow } from './KeyStatsRow'
@@ -18,9 +21,29 @@ export function KeyDetailContent({ data }: Props) {
   const { data: models } = useModels()
   const isRevoked = key.disabledAt != null
   const revokeKey = useRevokeApiKey()
+  const rotateKey = useRotateApiKey()
+  const [confirmRotate, setConfirmRotate] = useState(false)
+  const [rotatedRawKey, setRotatedRawKey] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const lastUsedAt = requests.rows[0]?.startedAt ?? null
   const scopedModels =
     key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of ${models?.length ?? '—'}`
+
+  const copyRotatedKey = useCallback(() => {
+    if (!rotatedRawKey) return
+    navigator.clipboard.writeText(rotatedRawKey)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }, [rotatedRawKey])
+
+  const rotate = () => {
+    rotateKey.mutate(key.id, {
+      onSuccess: (result) => {
+        setRotatedRawKey(result.rawKey)
+        setConfirmRotate(false)
+      },
+    })
+  }
 
   return (
     <>
@@ -35,11 +58,37 @@ export function KeyDetailContent({ data }: Props) {
         }
         variant="integrated"
         action={
-          <div className="flex items-center gap-2">
-            <button type="button" className="btn btn-ghost btn-xs" disabled>
+          <div className="relative flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs"
+              disabled={isRevoked || rotateKey.isPending}
+              onClick={() => setConfirmRotate(true)}
+            >
               <RotateCw size={12} strokeWidth={2} />
-              rotate
+              {rotateKey.isPending ? 'rotating…' : 'rotate'}
             </button>
+            {confirmRotate ? (
+              <div className="absolute right-0 top-full z-20 mt-2 w-[280px] rounded border border-border-strong bg-surface-1 p-3 shadow-lg">
+                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-warn">Rotate API key</div>
+                <p className="my-2 text-xs leading-5 text-fg-dim">
+                  This immediately invalidates the current secret. Existing clients using it will fail until updated.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button type="button" className="btn btn-ghost btn-xs" onClick={() => setConfirmRotate(false)}>
+                    cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-xs"
+                    onClick={rotate}
+                    disabled={rotateKey.isPending}
+                  >
+                    confirm rotate
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <button
               type="button"
               className="btn btn-danger-ghost btn-xs"
@@ -52,6 +101,39 @@ export function KeyDetailContent({ data }: Props) {
           </div>
         }
       />
+
+      {rotatedRawKey ? (
+        <div className="mx-6 mt-3 rounded border border-ok bg-ok-bg px-4 py-3 max-md:mx-3">
+          <div className="mb-2 flex items-center gap-2 text-[13px]">
+            <Check size={16} strokeWidth={2} className="text-ok" />
+            <strong>Key rotated — copy the new secret now, it won't be shown again</strong>
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon ml-auto"
+              onClick={() => setRotatedRawKey(null)}
+              aria-label="Dismiss rotated API key secret"
+            >
+              <X size={14} strokeWidth={2} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 rounded-sm border border-border bg-surface-1 px-3 py-2">
+            <code className="mono flex-1 break-all text-xs">{rotatedRawKey}</code>
+            <Tooltip label={copied ? 'Copied' : 'Copy'}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon"
+                onClick={copyRotatedKey}
+                aria-label={copied ? 'Copied rotated API key' : 'Copy rotated API key'}
+              >
+                <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
+                  <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
+                  <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />
+                </span>
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      ) : null}
 
       <div className="detail-sidecar-shell">
         <aside className="detail-meta-rail">
