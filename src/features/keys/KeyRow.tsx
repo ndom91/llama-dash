@@ -24,9 +24,15 @@ export function KeyRow({ apiKey }: Props) {
       <td>
         <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
       </td>
-      <td>{apiKey.name}</td>
+      <td>
+        <div className="max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap" title={apiKey.name}>
+          {apiKey.name}
+        </div>
+      </td>
       <td className="mono">
-        <CopyableCode text={`${apiKey.keyPrefix}…`} />
+        <div className="max-w-[100px] overflow-hidden text-ellipsis whitespace-nowrap" title={`${apiKey.keyPrefix}…`}>
+          <CopyableCode text={`${apiKey.keyPrefix}…`} />
+        </div>
       </td>
       <td className="hide-mobile">
         {apiKey.allowedModels.length === 0 ? (
