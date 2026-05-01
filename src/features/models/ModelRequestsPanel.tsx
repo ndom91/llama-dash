@@ -33,7 +33,7 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
       {rows.length === 0 ? (
         <div className="empty-state">no requests for this model yet.</div>
       ) : (
-        <div className="max-h-[420px] overflow-y-auto pb-3">
+        <div className="h-[calc(100%-28px)] overflow-y-auto pb-3">
           <table className="dtable">
             <thead>
               <tr>
