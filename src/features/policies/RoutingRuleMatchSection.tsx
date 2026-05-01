@@ -84,22 +84,26 @@ export function RoutingRuleMatchSection({
         <div className="space-y-1.5">
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Estimated prompt tokens</div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              type="number"
-              min={0}
-              className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
-              placeholder="min · —"
-              value={draft.match.minEstimatedPromptTokens}
-              onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
-            />
-            <input
-              type="number"
-              min={0}
-              className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
-              placeholder="max · —"
-              value={draft.match.maxEstimatedPromptTokens}
-              onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
-            />
+            <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
+              <span className="border-r border-border bg-surface-1 px-3 text-fg-dim">min ·</span>
+              <input
+                type="number"
+                min={0}
+                className="min-w-0 flex-1 bg-transparent px-3 text-fg outline-none"
+                value={draft.match.minEstimatedPromptTokens}
+                onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
+              />
+            </label>
+            <label className="flex h-9 items-center overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs focus-within:shadow-focus">
+              <span className="border-r border-border bg-surface-1 px-3 text-fg-dim">max ·</span>
+              <input
+                type="number"
+                min={0}
+                className="min-w-0 flex-1 bg-transparent px-3 text-fg outline-none"
+                value={draft.match.maxEstimatedPromptTokens}
+                onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
+              />
+            </label>
           </div>
           <div className="text-[11px] font-mono text-fg-dim">rough JSON-size heuristic · not model tokenization</div>
         </div>
