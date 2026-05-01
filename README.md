@@ -13,7 +13,7 @@ It is the single public entrypoint for OpenAI-compatible and Anthropic-compatibl
 OpenAI SDK / Claude Code / Continue / Open WebUI
                     │
                     ▼
-              llama-dash :5173
+              llama-dash :3000
       dashboard · auth · logs · routing · metrics
              │                     │
              ▼                     ▼
@@ -21,30 +21,29 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   llama.cpp models · peers      OpenAI · Anthropic
 ```
 
-## What it adds
+## ✨ What it does
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, and detail view.
-- **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`, `/v1/messages/count_tokens`) shapes both supported — point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
+- **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
-- **Policies** — ordered routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
+- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **Prometheus metrics** — `/metrics` exposes proxy request, token, latency-window, queue, upstream, running-model, and GPU gauges.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
-- **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, Open WebUI.
-- **Playground** — Supports chat, image, speech and transcribe. See request/response/event tabs plus TTFT, prefill, decode, and stream-close timing when the upstream exposes llama.cpp timing metadata.
-- **Settings** — application appearance controls and the home for global proxy/privacy defaults.
+- **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Open WebUI, and more.
+- **Playground** — supports chat, image, speech and transcribe.
 
-## Use cases
+## 🎯 Use cases
 
 - Give teammates API keys without exposing llama-swap directly on your network.
 - See which models are running, which clients are using them, and where latency is coming from.
 - Debug slow or failed requests with status, token usage, timing, routing, attribution, and upstream metadata in one place.
-- Enforce model allow-lists, request size limits, model aliases, and routing rules before traffic reaches llama-swap.
+- Enforce model allow-lists, request size limits, model aliases, and routing rules before traffic reaches llama-swap/llama-cpp.
 - Route Claude Code or other Anthropic clients through one observable gateway while preserving subscription/OAuth bearer flows.
 - Keep Prometheus metrics and searchable SQLite request history for a single-box self-hosted AI stack.
 
@@ -74,7 +73,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       <img alt="Dark - Request Details" src="./.github/assets/request-details.png" />
     </td>
     <td valign="top">
-      <img alt="Light - Logs" src="./.github/assets/logs.png" />
+      <img alt="Dark - Logs" src="./.github/assets/logs.png" />
     </td>
   </tr>
   <tr>
@@ -108,7 +107,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 </table>
 
 
-## Quick start (Docker Compose)
+## ⚡ Quick start (Docker Compose)
 
 Choose the compose file that matches your GPU vendor. Both setups use `./config/config.yaml` for llama-swap config, `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
 
@@ -130,7 +129,7 @@ docker compose -f docker-compose.nvidia.yaml up -d
 
 `docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host.
 
-## Manual setup
+## 🏗️ Manual setup
 
 ### Requirements
 
@@ -147,20 +146,20 @@ pnpm db:migrate        # creates data/dash.db
 pnpm dev               # http://localhost:5173
 ```
 
-## Environment
+## 🏔️ Environment
 
 Copy `.env.example` to `.env` and fill in the values.
 
-| Var | Default | Notes |
+| Variable | Default | Notes |
 |---|---|---|
 | `LLAMASWAP_URL` | `http://localhost:8080` | Upstream llama-swap base URL. No trailing slash. |
 | `LLAMASWAP_INSECURE` | `false` | Skip TLS verification for upstream with self-signed certs. |
 | `LLAMASWAP_CONFIG_FILE` | (empty) | Absolute path to llama-swap's `config.yaml`. Required for config editor. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
-| `BETTER_AUTH_SECRET` | generated by Better Auth if unset | Secret for signing Better Auth session data; set a long random value for persistent deployments. |
+| `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
 
-## How it's wired
+## ⚙️ How it's wired
 
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, settings, and system health.
@@ -175,9 +174,9 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with 5s polling for live updates.
 
-## Claude Code / Anthropic passthrough
+## ✴️ Claude Code / Anthropic passthrough
 
-Route any Anthropic SDK (Claude Code included) through llama-dash for
+Route any Anthropic SDK (including claude-code) through llama-dash for
 logging, filtering, and per-request inspection. Supports Anthropic subscriptions. Traffic flows:
 
 ```
@@ -187,22 +186,26 @@ Claude Code ──► llama-dash :5173 (log + filter) ──► api.anthropic.co
 **Client config** (`~/.claude/settings.json`):
 
 ```json
-{ "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:5173" } }
+{ 
+  "env": { 
+    "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:3000" 
+  } 
+}
 ```
 
 Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
 Code manages the bearer itself and llama-dash passes it through unchanged.
 
-In llama-dash, configure an explicit routing rule in Policies for `/v1` 
-target path, using `continue`, `passthrough` auth, preserved client 
+In llama-dash, configure an explicit routing rule in Policies for `/v1/*` 
+target path or Claude source model names, using `continue`, `passthrough` auth, preserved client 
 `Authorization`, and direct target `https://api.anthropic.com/v1`. This
 will result in all Anthropic requests being transparently proxied through
 while logging all traffic in llama-dash and applying filters.
 
-## Acknowledgements
+## 🤖 Acknowledgements
 
 This project was developed with significant assistance from LLMs. Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.
 
-## License
+## 📝 License
 
 MIT
