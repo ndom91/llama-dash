@@ -56,7 +56,6 @@ export function RoutingPanel() {
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
   const modelOptions = models.map((model) => model.id)
 
-  const editingRule = useMemo(() => rules.find((rule) => rule.id === editingRuleId) ?? null, [editingRuleId, rules])
   const enabledCount = rules.filter((rule) => rule.enabled).length
   const isMutating =
     createRuleMutation.isPending ||
@@ -183,22 +182,25 @@ export function RoutingPanel() {
                   onDelete={deleteRule}
                 />
                 {draft?.id === rule.id ? (
-                  <RoutingRuleEditor
-                    draft={draft}
-                    keyMap={keyMap}
-                    keys={keys}
-                    modelOptions={modelOptions}
-                    errorMessage={
-                      createRuleMutation.error?.message ??
-                      updateRuleMutation.error?.message ??
-                      deleteRuleMutation.error?.message ??
-                      reorderRulesMutation.error?.message
-                    }
-                    isMutating={isMutating}
-                    onChange={setDraft}
-                    onDiscard={discardDraft}
-                    onSave={saveDraft}
-                  />
+                  <>
+                    <RoutingRuleEditor
+                      draft={draft}
+                      keyMap={keyMap}
+                      keys={keys}
+                      modelOptions={modelOptions}
+                      errorMessage={
+                        createRuleMutation.error?.message ??
+                        updateRuleMutation.error?.message ??
+                        deleteRuleMutation.error?.message ??
+                        reorderRulesMutation.error?.message
+                      }
+                      isMutating={isMutating}
+                      onChange={setDraft}
+                      onDiscard={discardDraft}
+                      onSave={saveDraft}
+                    />
+                    <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
+                  </>
                 ) : null}
               </div>
             ))}
@@ -217,40 +219,53 @@ export function RoutingPanel() {
           ) : null}
 
           {draft && !rules.some((rule) => rule.id === draft.id) ? (
-            <RoutingRuleEditor
-              draft={draft}
-              keyMap={keyMap}
-              keys={keys}
-              modelOptions={modelOptions}
-              errorMessage={
-                createRuleMutation.error?.message ??
-                updateRuleMutation.error?.message ??
-                deleteRuleMutation.error?.message ??
-                reorderRulesMutation.error?.message
-              }
-              isMutating={isMutating}
-              onChange={setDraft}
-              onDiscard={discardDraft}
-              onSave={saveDraft}
-            />
+            <>
+              <RoutingRuleEditor
+                draft={draft}
+                keyMap={keyMap}
+                keys={keys}
+                modelOptions={modelOptions}
+                errorMessage={
+                  createRuleMutation.error?.message ??
+                  updateRuleMutation.error?.message ??
+                  deleteRuleMutation.error?.message ??
+                  reorderRulesMutation.error?.message
+                }
+                isMutating={isMutating}
+                onChange={setDraft}
+                onDiscard={discardDraft}
+                onSave={saveDraft}
+              />
+              <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
+            </>
           ) : null}
 
-          <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
-            <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
-              Observability · how a routed request surfaces on request detail
-            </div>
-            {editingRule ? (
-              <ObservabilityPreview
-                rule={draft ?? editingRule}
-                keyMap={keyMap}
-                totalRules={Math.max(rules.length, 1)}
-              />
-            ) : (
-              <div>Select a rule to preview its request-detail surface.</div>
-            )}
-          </section>
+          {!draft ? <ObservabilityPanel /> : null}
         </div>
       </div>
+    </section>
+  )
+}
+
+function ObservabilityPanel({
+  rule,
+  keyMap,
+  totalRules,
+}: {
+  rule?: RoutingRule
+  keyMap?: Map<string, string>
+  totalRules?: number
+}) {
+  return (
+    <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+      <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
+        Observability · how a routed request surfaces on request detail
+      </div>
+      {rule && keyMap && totalRules ? (
+        <ObservabilityPreview rule={rule} keyMap={keyMap} totalRules={totalRules} />
+      ) : (
+        <div>Select a rule to preview its request-detail surface.</div>
+      )}
     </section>
   )
 }
