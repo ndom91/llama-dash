@@ -29,7 +29,7 @@ export function RoutingRuleEditor({
   onSave: () => void
 }) {
   return (
-    <section className="border border-accent/70 bg-surface-0/80 px-5 py-5">
+    <section className="rounded-lg border border-accent/60 bg-surface-0/80 px-5 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
           <Circle className="mr-2 inline-block icon-btn-12 fill-current" strokeWidth={0} aria-hidden="true" />
@@ -52,18 +52,18 @@ export function RoutingRuleEditor({
               <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Name</span>
               <input
                 type="text"
-                className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
+                className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
                 value={draft.name}
                 onChange={(event) => onChange({ ...draft, name: event.target.value })}
               />
             </label>
-            <label className="flex h-9 items-center justify-between gap-3 border border-border bg-surface-1 px-3 py-2.5">
+            <label className="flex h-9 items-center justify-between gap-3 rounded border border-border bg-surface-1 px-3 py-2.5">
               <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Enabled</span>
               <button
                 type="button"
                 onClick={() => onChange({ ...draft, enabled: !draft.enabled })}
                 className={cn(
-                  'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors',
+                  'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:shadow-focus',
                   draft.enabled ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
                 )}
                 aria-pressed={draft.enabled}

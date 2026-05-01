@@ -42,7 +42,7 @@ export function RoutingRuleMatchSection({
         />
 
         {draft.authMode === 'passthrough' ? (
-          <div className="border-l border-warn px-4 py-3 font-mono text-xs text-fg-dim">
+          <div className="rounded border border-warn/35 bg-warn/10 px-4 py-3 font-mono text-xs text-fg-dim">
             <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-warn">API key matcher disabled</div>
             Passthrough rules run before llama-dash API-key auth, so they cannot match a stored llama-dash key. Match by
             endpoint, requested model, stream mode, or estimated prompt tokens.
@@ -62,7 +62,7 @@ export function RoutingRuleMatchSection({
 
         <div className="space-y-1.5">
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Stream</div>
-          <div className="grid grid-cols-3 overflow-hidden border border-border bg-surface-3 text-xs font-mono">
+          <div className="grid grid-cols-3 overflow-hidden rounded border border-border bg-surface-3 text-xs font-mono">
             {[
               ['any', 'any'],
               ['stream', 'stream only'],
@@ -73,7 +73,7 @@ export function RoutingRuleMatchSection({
                 type="button"
                 onClick={() => onChange(setMatchField(draft, 'stream', asStreamMode(value)))}
                 className={cn(
-                  'border-r border-border px-3 py-2 text-fg-dim last:border-r-0',
+                  'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
                   draft.match.stream === value && 'bg-surface-1 text-fg',
                 )}
               >
@@ -89,7 +89,7 @@ export function RoutingRuleMatchSection({
             <input
               type="number"
               min={0}
-              className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
+              className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
               placeholder="min · —"
               value={draft.match.minEstimatedPromptTokens}
               onChange={(event) => onChange(setMatchField(draft, 'minEstimatedPromptTokens', event.target.value))}
@@ -97,7 +97,7 @@ export function RoutingRuleMatchSection({
             <input
               type="number"
               min={0}
-              className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
+              className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
               placeholder="max · —"
               value={draft.match.maxEstimatedPromptTokens}
               onChange={(event) => onChange(setMatchField(draft, 'maxEstimatedPromptTokens', event.target.value))}
