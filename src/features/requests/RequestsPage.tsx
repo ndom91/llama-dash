@@ -633,7 +633,7 @@ export function RequestsPage() {
                                             >
                                               {r.routingActionType === 'rewrite_model'
                                                 ? 'rewrite'
-                                                : r.routingActionType === 'noop'
+                                                : r.routingActionType === 'continue' || r.routingActionType === 'noop'
                                                   ? 'continue'
                                                   : 'reject'}
                                             </span>

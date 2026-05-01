@@ -18,7 +18,7 @@ export function RoutingRulePreview({ draft, keyMap }: { draft: RoutingRule; keyM
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-accent">THEN</span>
-        <Chip tone={draft.action.type === 'reject' ? 'err' : draft.action.type === 'noop' ? 'info' : 'ok'}>
+        <Chip tone={draft.action.type === 'reject' ? 'err' : draft.action.type === 'continue' ? 'info' : 'ok'}>
           {preview.then}
         </Chip>
       </div>

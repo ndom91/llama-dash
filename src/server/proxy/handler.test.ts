@@ -77,7 +77,7 @@ function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
       minEstimatedPromptTokens: '',
       maxEstimatedPromptTokens: '',
     },
-    action: { type: 'noop' },
+    action: { type: 'continue' },
     target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
     authMode: 'passthrough',
     preserveAuthorization: true,

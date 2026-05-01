@@ -23,7 +23,7 @@ export function RoutingRuleActionSection({
           {[
             ['rewrite_model', 'rewrite model'],
             ['reject', 'reject'],
-            ['noop', 'continue'],
+            ['continue', 'continue'],
           ].map(([value, label]) => (
             <button
               key={value}

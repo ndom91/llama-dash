@@ -4,7 +4,7 @@ import type { RoutingAction } from '../../lib/api'
 import { cn } from '../../lib/cn'
 
 export type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
-export type RoutingActionType = 'rewrite_model' | 'reject' | 'noop'
+export type RoutingActionType = 'rewrite_model' | 'reject' | 'continue'
 
 export function IconButton({
   icon,
@@ -120,6 +120,6 @@ export function TokenInput({
 export function coerceAction(type: RoutingActionType, current: RoutingAction): RoutingAction {
   if (type === current.type) return current
   if (type === 'rewrite_model') return { type, model: '' }
-  if (type === 'noop') return { type }
+  if (type === 'continue') return { type }
   return { type, reason: '' }
 }

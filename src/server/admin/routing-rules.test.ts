@@ -120,16 +120,16 @@ describe('evaluateRoutingRules', () => {
     expect(decision.action).toEqual({ type: 'reject', reason: 'Prompt blocked by routing policy' })
   })
 
-  it('returns noop action when a continue rule matches', () => {
+  it('returns continue action when a continue rule matches', () => {
     const rule = makeRule({
-      id: 'rrl_noop',
-      action: { type: 'noop' },
+      id: 'rrl_continue',
+      action: { type: 'continue' },
       authMode: 'passthrough',
       preserveAuthorization: true,
     })
     const decision = evaluateRoutingRules([rule], makeContext())
-    expect(decision.matchedRule?.id).toBe('rrl_noop')
-    expect(decision.action).toEqual({ type: 'noop' })
+    expect(decision.matchedRule?.id).toBe('rrl_continue')
+    expect(decision.action).toEqual({ type: 'continue' })
     expect(decision.target).toEqual({ type: 'llama_swap' })
     expect(decision.authMode).toBe('passthrough')
     expect(decision.preserveAuthorization).toBe(true)
@@ -152,20 +152,20 @@ describe('evaluatePreAuthRoutingRules', () => {
     const requireKeyRule = makeRule({
       id: 'rrl_require_key',
       authMode: 'require_key',
-      action: { type: 'noop' },
+      action: { type: 'continue' },
     })
     const keyScopedPassthroughRule = makeRule({
       id: 'rrl_key_passthrough',
       authMode: 'passthrough',
       preserveAuthorization: true,
       match: { ...makeRule().match, apiKeyIds: ['key_homeassistant'] },
-      action: { type: 'noop' },
+      action: { type: 'continue' },
     })
     const publicPassthroughRule = makeRule({
       id: 'rrl_public_passthrough',
       authMode: 'passthrough',
       preserveAuthorization: true,
-      action: { type: 'noop' },
+      action: { type: 'continue' },
     })
 
     const decision = evaluatePreAuthRoutingRules(
@@ -181,19 +181,19 @@ describe('evaluatePreAuthRoutingRules', () => {
     const endpointOnly = makeRule({
       id: 'rrl_endpoint_only',
       authMode: 'passthrough',
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       match: { ...makeRule().match, endpoints: ['/v1/messages'] },
     })
     const modelScoped = makeRule({
       id: 'rrl_model_scoped',
       authMode: 'passthrough',
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] },
     })
     const streamScoped = makeRule({
       id: 'rrl_stream_scoped',
       authMode: 'passthrough',
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       match: { ...makeRule().match, stream: 'stream' },
     })
 
@@ -207,7 +207,7 @@ describe('evaluatePreAuthRoutingRules', () => {
       name: 'Unsafe passthrough',
       enabled: true,
       match: makeRule().match,
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
       authMode: 'passthrough',
       preserveAuthorization: true,
@@ -222,7 +222,7 @@ describe('evaluatePreAuthRoutingRules', () => {
         name: 'Safe passthrough',
         enabled: true,
         match: { ...makeRule().match, endpoints: ['/v1/messages'] },
-        action: { type: 'noop' },
+        action: { type: 'continue' },
         target: { type: 'direct', baseUrl },
         authMode: 'passthrough',
         preserveAuthorization: true,
@@ -237,7 +237,7 @@ describe('evaluatePreAuthRoutingRules', () => {
       name: 'Blocked target',
       enabled: true,
       match: { ...makeRule().match, endpoints: ['/v1/messages'] },
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       target: { type: 'direct', baseUrl: 'https://example.com/v1' },
       authMode: 'passthrough',
       preserveAuthorization: true,

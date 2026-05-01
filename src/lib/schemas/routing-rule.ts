@@ -50,11 +50,15 @@ export const RejectActionSchema = v.object({
   reason: v.pipe(v.string(), v.minLength(1), v.maxLength(500)),
 })
 
-export const NoopActionSchema = v.object({
-  type: v.literal('noop'),
+export const ContinueActionSchema = v.object({
+  type: v.literal('continue'),
 })
 
-export const RoutingActionSchema = v.variant('type', [RewriteModelActionSchema, RejectActionSchema, NoopActionSchema])
+export const RoutingActionSchema = v.variant('type', [
+  RewriteModelActionSchema,
+  RejectActionSchema,
+  ContinueActionSchema,
+])
 export type RoutingAction = v.InferOutput<typeof RoutingActionSchema>
 
 export const LlamaSwapTargetSchema = v.object({

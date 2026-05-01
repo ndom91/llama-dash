@@ -88,7 +88,7 @@ export function RoutingRuleRow({
             </div>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="text-accent">THEN</span>
-              <Chip tone={rule.action.type === 'reject' ? 'err' : rule.action.type === 'noop' ? 'info' : 'ok'}>
+              <Chip tone={rule.action.type === 'reject' ? 'err' : rule.action.type === 'continue' ? 'info' : 'ok'}>
                 {summary.then}
               </Chip>
             </div>

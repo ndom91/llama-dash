@@ -15,7 +15,7 @@ export type TransformContext = {
 export type RoutingOutcome = {
   ruleId: string | null
   ruleName: string | null
-  actionType: 'rewrite_model' | 'reject' | 'noop' | null
+  actionType: 'rewrite_model' | 'reject' | 'continue' | null
   authMode: 'require_key' | 'passthrough' | null
   preserveAuthorization: boolean
   targetType: 'llama_swap' | 'direct' | null

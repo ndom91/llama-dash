@@ -174,13 +174,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
    bypassing llama-swap for that matched request while keeping proxy logging.
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
-   `noop` + `passthrough` auth and preserved client `Authorization`.
+   `continue` + `passthrough` auth and preserved client `Authorization`.
 10. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once when
    needed, applies transforms in order, re-serializes only if mutated:
    allow-list check → routing rule evaluation → alias resolution → system
    prompt injection → request size limits. Routing rules are ordered,
-   first-match-wins, and currently support `noop`, `rewrite_model`, `reject`, and
+   first-match-wins, and currently support `continue`, `rewrite_model`, `reject`, and
    per-rule auth mode (`require_key` or `passthrough`). Pre-auth passthrough
    routing only evaluates passthrough rules without API-key matchers. Normal
    key-auth requests authenticate before body parsing unless an enabled
@@ -424,7 +424,7 @@ peers:
 **Proxy-layer specifics:**
 
 - Explicit routing rules should match `/v1/messages` and `/v1/messages/count_tokens`,
-  use `noop` + `passthrough` auth, and preserve the client `Authorization` header.
+  use `continue` + `passthrough` auth, and preserve the client `Authorization` header.
 - Response content-encoding strip (`src/server/proxy/handler.ts` —
   `STRIP_RESPONSE_HEADERS`). Node's fetch auto-decompresses upstream bodies
   when consumed as a stream, so forwarding `content-encoding: gzip|br` would

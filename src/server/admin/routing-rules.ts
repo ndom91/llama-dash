@@ -20,6 +20,14 @@ function parseJson<T>(raw: string, schemaType: v.GenericSchema<T>): T {
   return v.parse(schemaType, JSON.parse(raw))
 }
 
+function parseRoutingAction(raw: string): RoutingRule['action'] {
+  const parsed = JSON.parse(raw) as unknown
+  if (parsed && typeof parsed === 'object' && 'type' in parsed && parsed.type === 'noop') {
+    return { type: 'continue' }
+  }
+  return v.parse(RoutingActionSchema, parsed)
+}
+
 function toApiShape(row: schema.RoutingRule): RoutingRule {
   return {
     id: row.id,
@@ -27,7 +35,7 @@ function toApiShape(row: schema.RoutingRule): RoutingRule {
     enabled: row.enabled,
     order: row.order,
     match: parseJson(row.matchJson, RoutingMatchSchema),
-    action: parseJson(row.actionJson, RoutingActionSchema),
+    action: parseRoutingAction(row.actionJson),
     target: parseJson(row.targetJson, RoutingTargetSchema),
     authMode: row.authMode,
     preserveAuthorization: row.preserveAuthorization,
@@ -154,7 +162,7 @@ export type RoutingDecision =
     }
   | {
       matchedRule: RoutingRule
-      action: { type: 'rewrite_model'; model: string } | { type: 'reject'; reason: string } | { type: 'noop' }
+      action: { type: 'rewrite_model'; model: string } | { type: 'reject'; reason: string } | { type: 'continue' }
       target: RoutingRule['target']
       authMode: RoutingRule['authMode']
       preserveAuthorization: boolean
@@ -202,8 +210,8 @@ export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext):
     if (rule.action.type === 'rewrite_model') {
       return { matchedRule: rule, action: { type: 'rewrite_model', model: rule.action.model }, ...meta }
     }
-    if (rule.action.type === 'noop') {
-      return { matchedRule: rule, action: { type: 'noop' }, ...meta }
+    if (rule.action.type === 'continue') {
+      return { matchedRule: rule, action: { type: 'continue' }, ...meta }
     }
     return { matchedRule: rule, action: { type: 'reject', reason: rule.action.reason }, ...meta }
   }

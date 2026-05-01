@@ -113,10 +113,10 @@ describe('applyTransforms', () => {
     }
   })
 
-  it('records noop routing metadata without mutating the body', () => {
+  it('records continue routing metadata without mutating the body', () => {
     vi.mocked(evaluateRoutingRules).mockReturnValueOnce({
       matchedRule: {
-        id: 'rrl_noop',
+        id: 'rrl_continue',
         name: 'Continue rule',
         enabled: true,
         order: 1,
@@ -128,14 +128,14 @@ describe('applyTransforms', () => {
           minEstimatedPromptTokens: '',
           maxEstimatedPromptTokens: '',
         },
-        action: { type: 'noop' },
+        action: { type: 'continue' },
         target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
         authMode: 'passthrough',
         preserveAuthorization: true,
         createdAt: new Date(0).toISOString(),
         updatedAt: new Date(0).toISOString(),
       },
-      action: { type: 'noop' },
+      action: { type: 'continue' },
       target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
       authMode: 'passthrough',
       preserveAuthorization: true,
@@ -151,7 +151,7 @@ describe('applyTransforms', () => {
       expect(result.mutated).toBe(false)
       expect(result.body?.model).toBe('gpt-4')
       expect(result.routing.ruleName).toBe('Continue rule')
-      expect(result.routing.actionType).toBe('noop')
+      expect(result.routing.actionType).toBe('continue')
       expect(result.routing.authMode).toBe('passthrough')
       expect(result.routing.preserveAuthorization).toBe(true)
       expect(result.routing.targetType).toBe('direct')
