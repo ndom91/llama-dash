@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import type { ApiKeyCreated } from '../../lib/api'
+import { cn } from '../../lib/cn'
 import { useApiKeys } from '../../lib/queries'
 import { CreateKeyForm } from './CreateKeyForm'
 import { KeyCreatedBanner } from './KeyCreatedBanner'
@@ -45,7 +46,12 @@ export function KeysPage() {
             />
           ) : null}
 
-          <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+          <section
+            className={cn(
+              'panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 !bg-surface-1',
+              showCreate && 'border-t',
+            )}
+          >
             {isLoading ? (
               <KeysPageSkeleton />
             ) : !keys || keys.length === 0 ? (
