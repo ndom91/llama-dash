@@ -15,10 +15,10 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
                     ▼
               llama-dash :5173
       dashboard · auth · logs · routing · metrics
-              │                    │
-              ▼                    ▼
-      llama-swap :8080      direct /v1 upstreams
-      llama.cpp models      OpenAI · Anthropic · peers
+             │                     │
+             ▼                     ▼
+      llama-swap :8080         direct /v1 upstreams
+  llama.cpp models · peers      OpenAI · Anthropic
 ```
 
 ## What it adds
