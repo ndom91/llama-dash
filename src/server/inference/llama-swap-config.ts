@@ -3,9 +3,9 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { config } from '../config.ts'
 
 function readParsedConfig(): unknown {
-  if (!config.llamaSwapConfigFile) return null
+  if (!config.inferenceConfigFile) return null
   try {
-    return parseYaml(readFileSync(config.llamaSwapConfigFile, 'utf-8'))
+    return parseYaml(readFileSync(config.inferenceConfigFile, 'utf-8'))
   } catch {
     return null
   }

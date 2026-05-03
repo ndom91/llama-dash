@@ -1,15 +1,23 @@
 import * as v from 'valibot'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../../lib/schemas/config'
 import { config } from '../../config.ts'
+import { inferenceBackend } from '../../inference/backend.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from '../config.ts'
 import { error, json, readJsonBody, type Route } from './types.ts'
+
+function ensureConfigSupported() {
+  if (!inferenceBackend.info.capabilities.config) return error(501, 'Inference backend does not support config editing')
+  if (!config.inferenceConfigFile) return error(404, 'INFERENCE_CONFIG_FILE is not set')
+  return null
+}
 
 export const configRoutes: Route[] = [
   {
     method: 'GET',
     pattern: /^\/api\/config$/,
     handler: async () => {
-      if (!config.llamaSwapConfigFile) return error(404, 'LLAMASWAP_CONFIG_FILE is not set')
+      const unsupported = ensureConfigSupported()
+      if (unsupported) return unsupported
       try {
         return json(200, readConfig())
       } catch (err) {
@@ -21,7 +29,8 @@ export const configRoutes: Route[] = [
     method: 'PUT',
     pattern: /^\/api\/config$/,
     handler: async (request) => {
-      if (!config.llamaSwapConfigFile) return error(404, 'LLAMASWAP_CONFIG_FILE is not set')
+      const unsupported = ensureConfigSupported()
+      if (unsupported) return unsupported
       const parsed = await readJsonBody(request)
       if (!parsed.ok) return error(400, 'Invalid JSON body')
       const result = v.safeParse(ConfigSaveBodySchema, parsed.value)
@@ -38,6 +47,8 @@ export const configRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/config\/validate$/,
     handler: async (request) => {
+      const unsupported = ensureConfigSupported()
+      if (unsupported) return unsupported
       const parsed = await readJsonBody(request)
       if (!parsed.ok) return error(400, 'Invalid JSON body')
       const result = v.safeParse(ConfigValidateBodySchema, parsed.value)

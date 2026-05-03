@@ -6,9 +6,10 @@ import { handleProxyRequest } from './handler'
 
 vi.mock('../config.ts', () => ({
   config: {
-    llamaSwapUrl: 'http://llama-swap.test',
-    llamaSwapInsecure: false,
-    llamaSwapConfigFile: '',
+    inferenceBackend: 'llama-swap',
+    inferenceBaseUrl: 'http://llama-swap.test',
+    inferenceInsecure: false,
+    inferenceConfigFile: '',
     databasePath: ':memory:',
   },
 }))

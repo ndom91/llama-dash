@@ -78,12 +78,13 @@ src/
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
     auth.ts               — Better Auth dashboard session config + first-user signup guard + passkeys
-    config.ts             — env-var loader (LLAMASWAP_URL, DATABASE_PATH, …)
+    config.ts             — env-var loader (INFERENCE_BASE_URL, DATABASE_PATH, …)
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings
+    inference/            — selected inference backend facade plus backend-specific adapters and hints
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
     metrics.ts            — Prometheus text exporter for /metrics
@@ -321,10 +322,10 @@ sort lexicographically by creation time).
 
 ## Dev environment
 
-- Copy `.env.example` to `.env` and set `LLAMASWAP_URL` to point at your
+- Copy `.env.example` to `.env` and set `INFERENCE_BASE_URL` to point at your
   llama-swap instance. Default is `http://localhost:8080`.
 - If your upstream uses HTTPS with a self-signed cert, set
-  `LLAMASWAP_INSECURE=true` so Node accepts it (it sets
+  `INFERENCE_INSECURE=true` so Node accepts it (it sets
   `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot). Off by default.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.

@@ -38,7 +38,7 @@ export const systemRoutes: Route[] = [
         proxy: {
           upstreamBaseUrl: backend.upstreamBaseUrl,
           upstreamHost: backend.upstreamHost,
-          insecureTls: config.llamaSwapInsecure,
+          insecureTls: config.inferenceInsecure,
           directTargets: DIRECT_TARGETS,
         },
         inference: {

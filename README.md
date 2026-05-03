@@ -140,7 +140,7 @@ docker compose -f docker-compose.nvidia.yaml up -d
 ### Install
 
 ```bash
-cp .env.example .env   # edit LLAMASWAP_URL to point at your instance
+cp .env.example .env   # edit INFERENCE_BASE_URL to point at your instance
 pnpm install
 pnpm db:migrate        # creates data/dash.db
 pnpm dev               # http://localhost:5173
@@ -152,9 +152,10 @@ Copy `.env.example` to `.env` and fill in the values.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `LLAMASWAP_URL` | `http://localhost:8080` | Upstream llama-swap base URL. No trailing slash. |
-| `LLAMASWAP_INSECURE` | `false` | Skip TLS verification for upstream with self-signed certs. |
-| `LLAMASWAP_CONFIG_FILE` | (empty) | Absolute path to llama-swap's `config.yaml`. Required for config editor. |
+| `INFERENCE_BACKEND` | `llama-swap` | Active inference backend. Only `llama-swap` is currently implemented. |
+| `INFERENCE_BASE_URL` | `http://localhost:8080` | Inference backend base URL. No trailing slash. |
+| `INFERENCE_INSECURE` | `false` | Skip TLS verification for inference backend with self-signed certs. |
+| `INFERENCE_CONFIG_FILE` | (empty) | Absolute path to the backend config file. Required for the llama-swap config editor. |
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
 | `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
@@ -165,7 +166,8 @@ Copy `.env.example` to `.env` and fill in the values.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, settings, and system health.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not `/v1/*`. Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and feeds dashboard/System GPU details. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
-- `src/server/model-watcher.ts` — polls llama-swap `/running` every 15s, diffs state, writes load/unload events to `model_events` table.
+- `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table.
+- `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.

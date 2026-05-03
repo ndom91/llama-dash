@@ -9,6 +9,10 @@ import {
 
 export type InferenceBackendKind = 'llama-swap'
 
+if (config.inferenceBackend !== 'llama-swap') {
+  throw new Error(`Unsupported INFERENCE_BACKEND "${config.inferenceBackend}". Supported backends: llama-swap`)
+}
+
 export type InferenceBackendInfo = {
   kind: InferenceBackendKind
   label: string
@@ -106,18 +110,18 @@ function mapLlamaSwapRunningModel(model: RunningModel): BackendRunningModel {
 }
 
 function getLlamaSwapInfo(): InferenceBackendInfo {
-  const upstreamUrl = new URL(config.llamaSwapUrl)
+  const upstreamUrl = new URL(config.inferenceBaseUrl)
   return {
     kind: 'llama-swap',
     label: 'llama-swap',
-    upstreamBaseUrl: config.llamaSwapUrl,
+    upstreamBaseUrl: config.inferenceBaseUrl,
     upstreamHost: upstreamUrl.host,
     capabilities: {
       models: true,
       runningModels: true,
       lifecycle: true,
       logs: true,
-      config: Boolean(config.llamaSwapConfigFile),
+      config: true,
       metrics: true,
     },
   }
@@ -150,9 +154,9 @@ export const inferenceBackend: InferenceBackend = {
     }
   },
   defaultProxyUpstream(pathname, search) {
-    return `${config.llamaSwapUrl}${pathname}${search}`
+    return `${config.inferenceBaseUrl}${pathname}${search}`
   },
-  eventStreamUrl: `${config.llamaSwapUrl}/api/events`,
+  eventStreamUrl: `${config.inferenceBaseUrl}/api/events`,
   async listModels() {
     const models = await llamaSwap.listModels()
     return models.data.map(mapLlamaSwapModel)

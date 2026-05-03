@@ -11,7 +11,7 @@ import {
 export type { OpenAiModel, RunningModel }
 
 const callText = async (path: string, init?: RequestInit): Promise<string> => {
-  const res = await fetch(`${config.llamaSwapUrl}${path}`, init)
+  const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`llama-swap ${path} -> ${res.status}: ${body.slice(0, 200)}`)
@@ -24,7 +24,7 @@ const callJson = async <T>(
   schema: v.BaseSchema<unknown, T, v.BaseIssue<unknown>>,
   init?: RequestInit,
 ): Promise<T> => {
-  const res = await fetch(`${config.llamaSwapUrl}${path}`, init)
+  const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`llama-swap ${path} -> ${res.status}: ${body.slice(0, 200)}`)

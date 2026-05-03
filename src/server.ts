@@ -2,7 +2,7 @@ import { createStartHandler, defaultStreamHandler } from '@tanstack/react-start/
 import { createServerEntry } from '@tanstack/react-start/server-entry'
 import { config } from './server/config.ts'
 
-if (config.llamaSwapInsecure) {
+if (config.inferenceInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 }
 

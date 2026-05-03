@@ -20,8 +20,9 @@ services:
     ports:
       - '3000:3000'
     environment:
-      LLAMASWAP_URL: http://llama-swap:8080
-      LLAMASWAP_CONFIG_FILE: /config/config.yaml
+      INFERENCE_BACKEND: llama-swap
+      INFERENCE_BASE_URL: http://llama-swap:8080
+      INFERENCE_CONFIG_FILE: /config/config.yaml
       DATABASE_PATH: /data/dash.db
     volumes:
       - ./config:/config

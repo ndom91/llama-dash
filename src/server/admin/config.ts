@@ -8,8 +8,8 @@ let cachedValidator: ValidateFunction | null = null
 const SCHEMA_URL = 'https://raw.githubusercontent.com/mostlygeek/llama-swap/refs/heads/main/config-schema.json'
 
 function configPath(): string {
-  const p = config.llamaSwapConfigFile
-  if (!p) throw new Error('LLAMASWAP_CONFIG_FILE is not set')
+  const p = config.inferenceConfigFile
+  if (!p) throw new Error('INFERENCE_CONFIG_FILE is not set')
   return p
 }
 

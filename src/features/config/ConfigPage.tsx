@@ -4,6 +4,7 @@ import { parseDocument } from 'yaml'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import { api, type ApiConfigSaveResult } from '../../lib/api'
+import { useSystemStatus } from '../../lib/queries'
 import { YamlEditor } from './YamlEditor'
 
 type LoadState =
@@ -13,6 +14,7 @@ type LoadState =
   | { status: 'ready'; original: string; modifiedAt: number }
 
 export function ConfigPage() {
+  const { data: system } = useSystemStatus()
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' })
   const [content, setContent] = useState('')
   const [saving, setSaving] = useState(false)
@@ -26,8 +28,13 @@ export function ConfigPage() {
   }, [content])
 
   const isDirty = loadState.status === 'ready' && content !== loadState.original
+  const configUnsupported = system?.inference.capabilities.config === false
 
   const load = useCallback(async () => {
+    if (configUnsupported) {
+      setLoadState({ status: 'unavailable' })
+      return
+    }
     setLoadState({ status: 'loading' })
     setSaveResult(null)
     setValidation(null)
@@ -37,10 +44,10 @@ export function ConfigPage() {
       setLoadState({ status: 'ready', original: data.content, modifiedAt: data.modifiedAt })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (msg.includes('404')) setLoadState({ status: 'unavailable' })
+      if (msg.includes('404') || msg.includes('501')) setLoadState({ status: 'unavailable' })
       else setLoadState({ status: 'error', message: msg })
     }
-  }, [])
+  }, [configUnsupported])
 
   useEffect(() => {
     load()
@@ -126,7 +133,11 @@ export function ConfigPage() {
           <PageHeader
             kicker="dsh · config"
             title="Configuration"
-            subtitle="edit the llama-swap configuration"
+            subtitle={
+              configUnsupported
+                ? `${system.inference.label} does not expose editable runtime configuration through llama-dash.`
+                : 'edit the inference backend configuration'
+            }
             variant="integrated"
             action={
               loadState.status === 'ready' ? (
@@ -189,8 +200,14 @@ export function ConfigPage() {
             <div className="empty-state px-6 max-md:px-3">loading config…</div>
           ) : loadState.status === 'unavailable' ? (
             <div className="empty-state px-6 max-md:px-3">
-              <code>LLAMASWAP_CONFIG_FILE</code> is not set. Set it to the path of your llama-swap config.yaml to enable
-              editing.
+              {configUnsupported ? (
+                'The active inference backend does not support config editing yet.'
+              ) : (
+                <>
+                  <code>INFERENCE_CONFIG_FILE</code> is not set. Set it to the path of your backend config file to
+                  enable editing.
+                </>
+              )}
             </div>
           ) : loadState.status === 'error' ? (
             <div className="err-banner mx-6 mt-3 max-md:mx-3">{loadState.message}</div>

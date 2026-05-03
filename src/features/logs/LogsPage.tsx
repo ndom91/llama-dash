@@ -5,6 +5,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import { TopBar } from '../../components/TopBar'
 import { cn } from '../../lib/cn'
+import { useSystemStatus } from '../../lib/queries'
 import { useLlamaSwapLogs } from '../../lib/use-llama-swap-logs'
 import { HighlightedText } from './HighlightedText'
 
@@ -15,6 +16,33 @@ function escapeRegex(s: string) {
 }
 
 export function LogsPage() {
+  const { data: system } = useSystemStatus()
+
+  if (system?.inference.capabilities.logs === false) {
+    return (
+      <div className="main-col">
+        <TopBar />
+        <div className="content">
+          <div className="page min-h-full flex-1 bg-surface-1">
+            <PageHeader
+              kicker="log · stream"
+              title="Logs"
+              subtitle={`${system.inference.label} does not expose runtime logs through llama-dash.`}
+              variant="integrated"
+            />
+            <div className="empty-state px-6 max-md:px-3">
+              The active inference backend does not support live log streaming yet.
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <LlamaSwapLogsPage />
+}
+
+function LlamaSwapLogsPage() {
   const { lines, connected, clear } = useLlamaSwapLogs()
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
