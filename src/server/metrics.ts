@@ -1,6 +1,6 @@
 import { count, gte, sql } from 'drizzle-orm'
 import { getGpuSnapshot } from './gpu-poller.ts'
-import { llamaSwap } from './llama-swap/client.ts'
+import { inferenceBackend } from './inference/backend.ts'
 import { getRequestLogQueueStats } from './proxy/log.ts'
 import { db, schema } from './db/index.ts'
 
@@ -63,13 +63,8 @@ function percentile(values: number[], p: number): number {
 }
 
 async function upstreamMetrics(): Promise<{ reachable: number; latencySeconds: number }> {
-  const start = performance.now()
-  try {
-    await llamaSwap.health()
-    return { reachable: 1, latencySeconds: (performance.now() - start) / 1_000 }
-  } catch {
-    return { reachable: 0, latencySeconds: 0 }
-  }
+  const health = await inferenceBackend.ping()
+  return { reachable: health.reachable ? 1 : 0, latencySeconds: (health.latencyMs ?? 0) / 1_000 }
 }
 
 export async function renderPrometheusMetrics(): Promise<string> {
@@ -109,7 +104,7 @@ export async function renderPrometheusMetrics(): Promise<string> {
   const gpu = getGpuSnapshot()
   const [upstream, runningModels] = await Promise.all([
     upstreamMetrics(),
-    llamaSwap.listRunning().then(
+    (inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] })).then(
       (result) => result.running.length,
       () => 0,
     ),

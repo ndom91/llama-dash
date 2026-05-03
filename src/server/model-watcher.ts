@@ -1,7 +1,7 @@
 import { desc } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import { db, schema } from './db/index.ts'
-import { llamaSwap } from './llama-swap/client.ts'
+import { inferenceBackend } from './inference/backend.ts'
 
 const POLL_INTERVAL_MS = 15_000
 
@@ -24,8 +24,10 @@ function seedFromDb() {
 }
 
 async function diffRunning() {
+  if (!inferenceBackend.listRunning) return
+
   try {
-    const { running } = await llamaSwap.listRunning()
+    const { running } = await inferenceBackend.listRunning()
     const current = new Set(running.map((r) => r.model))
 
     const now = new Date()

@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { useMobileMenu } from '../lib/use-mobile-menu'
-import { useGpu, useModels, useRunningModels } from '../lib/queries'
+import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
 import { useColorTheme } from '../lib/use-color-theme'
 import { StatusDot, stateTone } from './StatusDot'
 import { Logo } from './Logo'
@@ -91,6 +91,7 @@ export function Sidebar() {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
+  const { data: system } = useSystemStatus()
   const { data: session } = authClient.useSession()
   const colorTheme = useColorTheme()
   const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
@@ -206,6 +207,9 @@ export function Sidebar() {
         <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
           <div className="flex justify-between items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
             <span className="text-fg-muted">{gpuCard?.powerW ?? '-'} W</span>
+            <span className="border border-border/70 bg-surface-3 px-1.5 py-0.5 text-[9px] text-fg-muted">
+              {system?.inference.label ?? 'backend'}
+            </span>
             <span className="text-fg-muted">
               {hasVram
                 ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`

@@ -1,6 +1,6 @@
 import { config } from '../../config.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
-import { llamaSwap } from '../../llama-swap/client.ts'
+import { inferenceBackend } from '../../inference/backend.ts'
 import {
   buildApiModel,
   extractModelConfig,
@@ -18,7 +18,10 @@ export const modelRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/models$/,
     handler: async () => {
-      const [models, running] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
+      const [models, running] = await Promise.all([
+        inferenceBackend.listModels(),
+        inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] }),
+      ])
       const runningById = new Map(running.running.map((r) => [r.model, r]))
       const configContextLengths = getConfigContextLengths()
       const rows = models.data.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths))
@@ -30,7 +33,10 @@ export const modelRoutes: Route[] = [
     pattern: /^\/api\/models\/([^/]+)$/,
     handler: async (_request, match) => {
       const id = decodeURIComponent(match[1])
-      const [modelsRes, runningRes] = await Promise.all([llamaSwap.listModels(), llamaSwap.listRunning()])
+      const [modelsRes, runningRes] = await Promise.all([
+        inferenceBackend.listModels(),
+        inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] }),
+      ])
       const configContextLengths = getConfigContextLengths()
       const modelData = modelsRes.data.find((m) => m.id === id)
       if (!modelData) return error(404, `Model ${id} not found`)
@@ -53,8 +59,9 @@ export const modelRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/models\/([^/]+)\/load$/,
     handler: async (_request, match) => {
+      if (!inferenceBackend.loadModel) return error(501, 'Inference backend does not support model loading')
       const id = decodeURIComponent(match[1])
-      await llamaSwap.loadModel(id)
+      await inferenceBackend.loadModel(id)
       return json(200, { ok: true })
     },
   },
@@ -62,8 +69,9 @@ export const modelRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/models\/([^/]+)\/unload$/,
     handler: async (_request, match) => {
+      if (!inferenceBackend.unloadModel) return error(501, 'Inference backend does not support model unloading')
       const id = decodeURIComponent(match[1])
-      await llamaSwap.unloadModel(id)
+      await inferenceBackend.unloadModel(id)
       return json(200, { ok: true })
     },
   },
@@ -71,7 +79,8 @@ export const modelRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/models\/unload$/,
     handler: async () => {
-      await llamaSwap.unloadAll()
+      if (!inferenceBackend.unloadAll) return error(501, 'Inference backend does not support unloading all models')
+      await inferenceBackend.unloadAll()
       return json(200, { ok: true })
     },
   },

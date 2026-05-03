@@ -17,6 +17,18 @@ export const ApiSystemStatusSchema = v.object({
     insecureTls: v.boolean(),
     directTargets: v.array(v.string()),
   }),
+  inference: v.object({
+    kind: v.literal('llama-swap'),
+    label: v.string(),
+    capabilities: v.object({
+      models: v.boolean(),
+      runningModels: v.boolean(),
+      lifecycle: v.boolean(),
+      logs: v.boolean(),
+      config: v.boolean(),
+      metrics: v.boolean(),
+    }),
+  }),
   logging: v.object({
     queued: v.number(),
     dropped: v.number(),

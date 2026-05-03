@@ -138,6 +138,7 @@ export function SystemPage() {
   const primaryGpu = data.gpu.gpus[0] ?? null
   const components = [
     { label: 'control bus', age: 'now', tone: 'ok' as const },
+    { label: 'backend', age: data.inference.label, tone: 'ok' as const },
     { label: 'logging queue', age: 'live', tone: queueTone },
     { label: 'gpu poller', age: formatAge(data.gpu.ageMs), tone: gpuTone },
     { label: 'database', age: data.database.specialPath ? 'special' : 'file', tone: 'ok' as const },
@@ -181,18 +182,34 @@ export function SystemPage() {
                   <StatTile
                     label="proxy"
                     value={data.proxy.upstreamHost}
-                    meta={data.proxy.insecureTls ? 'insecure tls' : 'tls normal'}
+                    meta={`${data.inference.label} · ${data.proxy.insecureTls ? 'insecure tls' : 'tls normal'}`}
                     tone="ok"
                   />
                 </div>
 
                 <SystemPanel title="Control Bus" aside="configured" className="!border-t-0">
+                  <MetaRow label="backend" value={data.inference.label} />
                   <MetaRow label="upstream" value={<span className="break-all">{data.proxy.upstreamBaseUrl}</span>} />
                   <MetaRow label="host" value={data.proxy.upstreamHost} />
                   <MetaRow label="auth" value={data.proxy.insecureTls ? 'insecure tls enabled' : 'standard tls'} />
                   <MetaRow label="metrics" value="/metrics" />
                   <MetaRow label="direct targets" value={data.proxy.directTargets.length} />
                   <DirectTargets targets={data.proxy.directTargets} />
+                </SystemPanel>
+
+                <SystemPanel title="Inference Backend" aside={data.inference.kind}>
+                  <MetaRow label="runtime" value={data.inference.label} />
+                  <MetaRow label="models" value={data.inference.capabilities.models ? 'supported' : 'unsupported'} />
+                  <MetaRow
+                    label="running"
+                    value={data.inference.capabilities.runningModels ? 'supported' : 'unsupported'}
+                  />
+                  <MetaRow
+                    label="lifecycle"
+                    value={data.inference.capabilities.lifecycle ? 'supported' : 'unsupported'}
+                  />
+                  <MetaRow label="logs" value={data.inference.capabilities.logs ? 'supported' : 'unsupported'} />
+                  <MetaRow label="config" value={data.inference.capabilities.config ? 'supported' : 'unsupported'} />
                 </SystemPanel>
 
                 <div className="grid border-t border-border xl:grid-cols-2">
