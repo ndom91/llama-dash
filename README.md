@@ -5,9 +5,9 @@
 
 <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
 
-llama-dash turns a self-hosted [llama-swap](https://github.com/mostlygeek/llama-swap) box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup.
+llama-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. The implemented inference backend is currently [llama-swap](https://github.com/mostlygeek/llama-swap) over llama.cpp.
 
-It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, and routing; llama-swap owns local model processes and inference when traffic is routed to local models.
+It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, routing, and backend normalization; the selected inference backend owns local model processes and inference when traffic is routed to local models.
 
 ```text
 OpenAI SDK / Claude Code / Continue / Open WebUI
@@ -35,6 +35,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Prometheus metrics** — `/metrics` exposes proxy request, token, latency-window, queue, upstream, running-model, and GPU gauges.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
+- **Inference backend facade** — backend health, model list/running state, lifecycle actions, logs, and config are capability-driven so future runtimes can be added without weakening the llama-swap experience.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Open WebUI, and more.
 - **Playground** — supports chat, image, speech and transcribe.
 
@@ -159,6 +160,8 @@ Copy `.env.example` to `.env` and fill in the values.
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
 | `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
+
+See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md) for the backend abstraction, capability model, and future Ollama notes.
 
 ## ⚙️ How it's wired
 

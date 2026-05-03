@@ -4,36 +4,41 @@ Notes for agents (and humans operating as agents) working on this repo.
 
 ## What this is
 
-llama-dash is a sidecar in front of [llama-swap](https://github.com/mostlygeek/llama-swap):
-a dashboard UI plus a logging, auth-ready proxy for llama-swap's `/v1/*`
-OpenAI/Anthropic-compatible endpoint. Feature ideas and prioritization
-live in [`next-plan.md`](./next-plan.md).
+llama-dash is a dashboard UI plus a logging, auth-ready proxy for a local
+inference backend. The implemented backend is currently
+[llama-swap](https://github.com/mostlygeek/llama-swap), fronting llama.cpp
+models through its `/v1/*` OpenAI/Anthropic-compatible endpoint. Feature ideas
+and prioritization live in [`next-plan.md`](./next-plan.md).
 
 Short version of goals:
 
 - Single-pane dashboard for a self-hosted llama-swap stack.
 - Add proxy features llama-swap doesn't have: API keys, quotas, filters, logging.
 - Model lifecycle (load / unload / configure / hot-reload) driven from the UI.
+- Keep inference backend integration capability-driven so future runtimes like
+  Ollama can be added without weakening the llama-swap/GGUF path.
 - Eventually shipped as a Docker Compose stack; llama-swap hidden internally.
 
 Short version of non-goals:
 
-- We do not run inference. That's llama-swap + llama.cpp.
+- We do not run inference. That's the selected inference backend, currently
+  llama-swap + llama.cpp.
 - Not a multi-tenant SaaS. Single team, single box.
 - No distributed deployment.
 
 ## Architecture
 
 ```
-client ──► llama-dash :8080 ──► llama-swap (internal) ──► llama-server procs
+client ──► llama-dash :8080 ──► inference backend ──► model server procs
            │
            ├─ UI (/)
            ├─ Admin API (/api/*)
            └─ Proxy (/v1/*)  ← also what clients hit
 ```
 
-One public port. llama-swap is not exposed on the host. The proxy layer is
-where auth, ACL, rate-limiting, policies/filters, and logging all hang off.
+One public port. The inference backend is not exposed on the host in the bundled
+compose setup. The proxy layer is where auth, ACL, rate-limiting,
+policies/filters, and logging all hang off.
 
 ## Repo layout
 
@@ -122,7 +127,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
-4. Admin API:
+4. Inference backend facade (`src/server/inference/*`). The selected singleton
+   backend currently supports `llama-swap` only and normalizes model list,
+   running-model state, health, proxy upstream selection, lifecycle actions,
+   logs, config snippets, config-derived context hints, and model log-name hints.
+   Backend support is capability-driven; unsupported operations should return a
+   structured `501` and UI routes should hide links or show direct-navigation
+   fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md).
+5. Admin API:
    Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
    `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
    - `/api/models` — list models (merged with running state + peer info)
@@ -144,14 +156,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/routing-rules` — CRUD + reorder for ordered routing rules
    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
-5. `/metrics` — Prometheus text exporter with low-cardinality request, token,
+6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    latency-window, queue, upstream, running-model, and GPU metrics.
-6. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
+7. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
-7. Model watcher: polls llama-swap `/running` every 15s, diffs against
-   known state, inserts `load`/`unload` events into SQLite.
-8. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
+8. Model watcher: polls the selected backend's running-model capability every
+   15s, diffs against known state, inserts `load`/`unload` events into SQLite.
+9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     DB, proxy, queue, and GPU poller/device status), Playground
@@ -164,7 +176,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, and direct upstream target controls), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
-9. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
+10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model allow-lists.
@@ -176,7 +188,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `continue` + `passthrough` auth and preserved client `Authorization`.
-10. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
+11. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once when
    needed, applies transforms in order, re-serializes only if mutated:
    allow-list check → routing rule evaluation → alias resolution → system
@@ -193,12 +205,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
    by endpoint: `/v1/chat/completions` prepends a `system` message to
    `messages[]`; `/v1/messages` prepends to the top-level `system` field
    (string or content-block array, preserved shape).
-11. Request logs persist routing and attribution context. Request detail shows
+12. Request logs persist routing and attribution context. Request detail shows
      matched routing rule/action/auth mode plus client, end-user, and session metadata.
     Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
-12. Feature-local UI structure under `src/features/*`. Route files are thin
+13. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
 
