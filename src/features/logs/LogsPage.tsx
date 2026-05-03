@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import { TopBar } from '../../components/TopBar'
+import { cn } from '../../lib/cn'
 import { useLlamaSwapLogs } from '../../lib/use-llama-swap-logs'
 import { HighlightedText } from './HighlightedText'
 
@@ -17,7 +18,7 @@ export function LogsPage() {
   const { lines, connected, clear } = useLlamaSwapLogs()
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
-  const [wrap, setWrap] = useState(false)
+  const [wrap, setWrap] = useState(true)
   const [search, setSearch] = useState('')
   const [useRegex, setUseRegex] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -200,11 +201,7 @@ export function LogsPage() {
                     return (
                       <div
                         key={line.id}
-                        className={
-                          wrap
-                            ? 'px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted whitespace-pre-wrap break-all hover:bg-surface-3 max-md:px-3'
-                            : 'px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted whitespace-pre hover:bg-surface-3 max-md:px-3'
-                        }
+                        className="flex items-start px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted hover:bg-surface-3 max-md:px-3"
                         data-index={vi.index}
                         ref={measureRow}
                         style={{
@@ -224,7 +221,16 @@ export function LogsPage() {
                         >
                           {line.source === 'upstream' ? 'up' : 'px'}
                         </span>
-                        <HighlightedText text={line.text} pattern={searchRe} />
+                        <span
+                          className={cn(
+                            'block',
+                            wrap
+                              ? 'min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]'
+                              : 'min-w-max flex-none whitespace-pre',
+                          )}
+                        >
+                          <HighlightedText text={line.text} pattern={searchRe} />
+                        </span>
                       </div>
                     )
                   })}
