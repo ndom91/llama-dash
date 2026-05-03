@@ -12,10 +12,13 @@ import { config } from './config.ts'
 const passkeyOrigin = config.authUrl ? new URL(config.authUrl).origin : undefined
 const passkeyRpId = config.authUrl ? new URL(config.authUrl).hostname : undefined
 
+const trustedOrigins = [config.authUrl, config.internalOrigin].filter((v): v is string => Boolean(v))
+
 export const auth = betterAuth({
   basePath: '/api/auth',
   baseURL: config.authUrl || undefined,
   secret: config.authSecret || undefined,
+  trustedOrigins: trustedOrigins.length > 0 ? trustedOrigins : undefined,
   database: drizzleAdapter(db, {
     provider: 'sqlite',
     schema,

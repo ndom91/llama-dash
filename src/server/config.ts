@@ -13,4 +13,5 @@ export const config = {
   databasePath: process.env.DATABASE_PATH ?? 'data/dash.db',
   authSecret: process.env.BETTER_AUTH_SECRET ?? '',
   authUrl: process.env.BETTER_AUTH_URL ? stripTrailingSlash(process.env.BETTER_AUTH_URL) : '',
+  internalOrigin: process.env.INTERNAL_ORIGIN ? stripTrailingSlash(process.env.INTERNAL_ORIGIN) : '',
 }
