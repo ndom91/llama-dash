@@ -18,6 +18,25 @@ function escapeRegex(s: string) {
 export function LogsPage() {
   const { data: system } = useSystemStatus()
 
+  if (!system) {
+    return (
+      <div className="main-col">
+        <TopBar />
+        <div className="content">
+          <div className="page min-h-full flex-1 bg-surface-1">
+            <PageHeader
+              kicker="log · stream"
+              title="Logs"
+              subtitle="checking backend log support…"
+              variant="integrated"
+            />
+            <div className="empty-state px-6 max-md:px-3">loading backend capabilities…</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (system?.inference.capabilities.logs === false) {
     return (
       <div className="main-col">

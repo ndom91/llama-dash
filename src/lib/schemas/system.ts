@@ -18,7 +18,7 @@ export const ApiSystemStatusSchema = v.object({
     directTargets: v.array(v.string()),
   }),
   inference: v.object({
-    kind: v.literal('llama-swap'),
+    kind: v.string(),
     label: v.string(),
     capabilities: v.object({
       models: v.boolean(),
