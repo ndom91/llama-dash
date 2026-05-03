@@ -76,7 +76,7 @@ function ComponentRail({ components }: { components: Array<{ label: string; age:
         {components.map((item) => (
           <div
             key={item.label}
-            className="grid items-center gap-2 border-l-2 border-transparent px-4 py-2.5 first:border-l-accent first:bg-surface-2/65 [grid-template-columns:12px_minmax(0,1fr)_auto]"
+            className="grid items-center gap-2 px-4 py-2.5 [grid-template-columns:12px_minmax(0,1fr)_auto]"
           >
             <StatusDot tone={item.tone} />
             <span className="truncate font-mono text-[11px] text-fg-muted">{item.label}</span>
@@ -90,7 +90,7 @@ function ComponentRail({ components }: { components: Array<{ label: string; age:
 
 function DirectTargets({ targets }: { targets: string[] }) {
   return (
-    <div className="mt-3 flex flex-col items-end gap-2 border-t border-border/45 pt-3">
+    <div className="mt-3 flex flex-col items-end gap-2">
       <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         whitelisted direct upstream hosts
       </div>
@@ -164,7 +164,7 @@ export function SystemPage() {
                   <StatTile
                     label="runtime"
                     value={formatUptime(data.runtime.uptimeSec)}
-                    meta={data.runtime.nodeVersion}
+                    meta={`Node ${data.runtime.nodeVersion}`}
                     tone="ok"
                   />
                   <StatTile
@@ -187,7 +187,7 @@ export function SystemPage() {
                   />
                 </div>
 
-                <SystemPanel title="Control Bus" aside="configured" className="!border-t-0">
+                <SystemPanel title="Control Bus" className="!border-t-0">
                   <MetaRow label="backend" value={data.inference.label} />
                   <MetaRow label="upstream" value={<span className="break-all">{data.proxy.upstreamBaseUrl}</span>} />
                   <MetaRow label="host" value={data.proxy.upstreamHost} />
@@ -197,7 +197,7 @@ export function SystemPage() {
                   <DirectTargets targets={data.proxy.directTargets} />
                 </SystemPanel>
 
-                <SystemPanel title="Inference Backend" aside={data.inference.kind}>
+                <SystemPanel title="Inference Backend">
                   <MetaRow label="runtime" value={data.inference.label} />
                   <MetaRow label="models" value={data.inference.capabilities.models ? 'supported' : 'unsupported'} />
                   <MetaRow

@@ -216,9 +216,6 @@ export function Sidebar() {
         <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
           <div className="flex justify-between items-center gap-2 text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
             <span className="text-fg-muted">{gpuCard?.powerW ?? '-'} W</span>
-            <span className="border border-border/70 bg-surface-3 px-1.5 py-0.5 text-[9px] text-fg-muted">
-              {system?.inference.label ?? 'backend'}
-            </span>
             <span className="text-fg-muted">
               {hasVram
                 ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`
@@ -247,10 +244,7 @@ export function Sidebar() {
                   {resident.id}
                 </span>
               </div>
-              <div className="font-mono text-[10px] text-fg-dim">
-                {resident.state}
-                {resident.ttl != null ? ` · ttl=${resident.ttl}` : ''}
-              </div>
+              <div className="font-mono text-[10px] text-fg-dim">{system?.inference.label ?? 'backend'}</div>
             </div>
           ) : (
             <>
