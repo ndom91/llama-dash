@@ -1,5 +1,11 @@
 import { config } from '../config.ts'
 import { llamaSwap } from '../llama-swap/client.ts'
+import type { OpenAiModel, RunningModel } from '../llama-swap/client.ts'
+import {
+  getLlamaSwapConfigContextLengths,
+  getLlamaSwapModelConfigSnippet,
+  getLlamaSwapModelLogNames,
+} from './llama-swap-config.ts'
 
 export type InferenceBackendKind = 'llama-swap'
 
@@ -27,17 +33,76 @@ export type InferenceHealth = {
   error?: string
 }
 
+export type BackendModel = {
+  id: string
+  name: string
+  kind: 'local' | 'peer'
+  peerId: string | null
+  contextLength: number | null
+}
+
+export type BackendRunningModel = {
+  model: string
+  state: string
+  ttl: number | null
+  contextLength: number | null
+}
+
 export type InferenceBackend = {
   info: InferenceBackendInfo
   ping(): Promise<{ reachable: boolean; latencyMs?: number }>
   health(): Promise<InferenceHealth>
   defaultProxyUpstream(pathname: string, search: string): string
   eventStreamUrl?: string
-  listModels: typeof llamaSwap.listModels
-  listRunning?: typeof llamaSwap.listRunning
+  listModels(): Promise<Array<BackendModel>>
+  listRunning?(): Promise<Array<BackendRunningModel>>
+  modelLogNames?(modelId: string): Array<string>
+  modelConfigSnippet?(modelId: string): string | null
+  modelContextLengthHints?(): Map<string, number>
   loadModel?: typeof llamaSwap.loadModel
   unloadModel?: typeof llamaSwap.unloadModel
   unloadAll?: typeof llamaSwap.unloadAll
+}
+
+function pickLlamaSwapModelContextLength(model: OpenAiModel): number | null {
+  return (
+    model.context_length ??
+    model.contextLength ??
+    model.n_ctx ??
+    model.meta?.context_length ??
+    model.meta?.contextLength ??
+    model.meta?.n_ctx ??
+    model.meta?.llamaswap?.context_length ??
+    model.meta?.llamaswap?.contextLength ??
+    model.meta?.llamaswap?.n_ctx ??
+    null
+  )
+}
+
+function extractCtxSize(value: unknown): number | null {
+  if (typeof value !== 'string') return null
+  const match = value.match(/--ctx-size(?:\s+|=)(\d+)/)
+  return match ? Number(match[1]) : null
+}
+
+function mapLlamaSwapModel(model: OpenAiModel): BackendModel {
+  const peerId = model.meta?.llamaswap?.peerID ?? null
+  return {
+    id: model.id,
+    name: model.name ?? model.id,
+    kind: peerId ? 'peer' : 'local',
+    peerId,
+    contextLength: pickLlamaSwapModelContextLength(model),
+  }
+}
+
+function mapLlamaSwapRunningModel(model: RunningModel): BackendRunningModel {
+  return {
+    model: model.model,
+    state: model.state,
+    ttl: model.ttl ?? null,
+    contextLength: extractCtxSize(model.cmd),
+  }
 }
 
 function getLlamaSwapInfo(): InferenceBackendInfo {
@@ -88,8 +153,17 @@ export const inferenceBackend: InferenceBackend = {
     return `${config.llamaSwapUrl}${pathname}${search}`
   },
   eventStreamUrl: `${config.llamaSwapUrl}/api/events`,
-  listModels: llamaSwap.listModels,
-  listRunning: llamaSwap.listRunning,
+  async listModels() {
+    const models = await llamaSwap.listModels()
+    return models.data.map(mapLlamaSwapModel)
+  },
+  async listRunning() {
+    const { running } = await llamaSwap.listRunning()
+    return running.map(mapLlamaSwapRunningModel)
+  },
+  modelLogNames: getLlamaSwapModelLogNames,
+  modelConfigSnippet: getLlamaSwapModelConfigSnippet,
+  modelContextLengthHints: getLlamaSwapConfigContextLengths,
   loadModel: llamaSwap.loadModel,
   unloadModel: llamaSwap.unloadModel,
   unloadAll: llamaSwap.unloadAll,

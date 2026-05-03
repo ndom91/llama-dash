@@ -1,61 +1,13 @@
-import { readFileSync } from 'node:fs'
 import { and, asc, desc, eq, gte, inArray, like, lt, or } from 'drizzle-orm'
-import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import type { ApiModel, ApiModelKeyBreakdown, ApiModelStats } from '../../lib/schemas/model'
 import type { ApiRequest } from '../../lib/schemas/request'
-import { config } from '../config.ts'
 import { db, schema } from '../db/index.ts'
-import type { llamaSwap } from '../llama-swap/client.ts'
-
-type LlamaSwapModel = Awaited<ReturnType<typeof llamaSwap.listModels>>['data'][number]
-type LlamaSwapRunningModel = Awaited<ReturnType<typeof llamaSwap.listRunning>>['running'][number]
+import { inferenceBackend } from '../inference/backend.ts'
+import type { BackendModel, BackendRunningModel } from '../inference/backend.ts'
 
 function modelMatch(modelId: string) {
-  const names = getConfigModelLogNames().get(modelId) ?? [modelId]
+  const names = inferenceBackend.modelLogNames?.(modelId) ?? [modelId]
   return or(inArray(schema.requests.model, names), like(schema.requests.model, `%/${modelId}`))
-}
-
-function readParsedConfig(): unknown {
-  if (!config.llamaSwapConfigFile) return null
-  try {
-    return parseYaml(readFileSync(config.llamaSwapConfigFile, 'utf-8'))
-  } catch {
-    return null
-  }
-}
-
-function getConfigModels(parsed: unknown): Record<string, unknown> | null {
-  if (!parsed || typeof parsed !== 'object' || !('models' in parsed)) return null
-  const models = parsed.models
-  return models && typeof models === 'object' ? (models as Record<string, unknown>) : null
-}
-
-function extractModelPath(value: unknown): string | null {
-  const snippet = typeof value === 'string' ? value : value == null ? null : stringifyYaml(value, { indent: 2 })
-  if (typeof snippet !== 'string') return null
-  const match = snippet.match(/--model(?:\s+|=)(?:"([^"]+)"|'([^']+)'|(\S+))/)
-  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null
-}
-
-function basename(path: string): string {
-  return path.split(/[\\/]/).pop() ?? path
-}
-
-function getConfigModelLogNames(): Map<string, Array<string>> {
-  const models = getConfigModels(readParsedConfig())
-  if (!models) return new Map()
-
-  const names = new Map<string, Array<string>>()
-  for (const [modelId, modelConfig] of Object.entries(models)) {
-    const candidates = new Set([modelId])
-    const modelPath = extractModelPath(modelConfig)
-    if (modelPath) {
-      candidates.add(modelPath)
-      candidates.add(basename(modelPath))
-    }
-    names.set(modelId, [...candidates])
-  }
-  return names
 }
 
 export function getModelEvents(modelId: string, windowMs = 86_400_000) {
@@ -224,66 +176,28 @@ export function getModelKeyBreakdown(modelId: string): Array<ApiModelKeyBreakdow
 }
 
 export function extractModelConfig(modelId: string): string | null {
-  const models = getConfigModels(readParsedConfig())
-  if (!models?.[modelId]) return null
-  return stringifyYaml({ [modelId]: models[modelId] }, { indent: 2 })
-}
-
-function pickModelContextLength(model: LlamaSwapModel): number | null {
-  return (
-    model.context_length ??
-    model.contextLength ??
-    model.n_ctx ??
-    model.meta?.context_length ??
-    model.meta?.contextLength ??
-    model.meta?.n_ctx ??
-    model.meta?.llamaswap?.context_length ??
-    model.meta?.llamaswap?.contextLength ??
-    model.meta?.llamaswap?.n_ctx ??
-    null
-  )
-}
-
-function pickRunningContextLength(running: LlamaSwapRunningModel | undefined): number | null {
-  return extractCtxSize(running?.cmd)
+  return inferenceBackend.modelConfigSnippet?.(modelId) ?? null
 }
 
 export function buildApiModel(
-  model: LlamaSwapModel,
-  running: LlamaSwapRunningModel | undefined,
+  model: BackendModel,
+  running: BackendRunningModel | undefined,
   configContextLengths: Map<string, number>,
 ): ApiModel {
-  const peerId = model.meta?.llamaswap?.peerID
-
   return {
     id: model.id,
-    name: model.name ?? model.id,
-    kind: peerId ? 'peer' : 'local',
-    peerId: peerId ?? null,
+    name: model.name,
+    kind: model.kind,
+    peerId: model.peerId,
     contextLength:
-      pickModelContextLength(model) ??
-      (peerId ? null : (pickRunningContextLength(running) ?? configContextLengths.get(model.id) ?? null)),
+      model.contextLength ??
+      (model.kind === 'peer' ? null : (running?.contextLength ?? configContextLengths.get(model.id) ?? null)),
     state: running?.state ?? 'stopped',
     running: Boolean(running),
     ttl: running?.ttl ?? null,
   }
 }
 
-function extractCtxSize(value: unknown): number | null {
-  const snippet = typeof value === 'string' ? value : value == null ? null : stringifyYaml(value, { indent: 2 })
-  if (typeof snippet !== 'string') return null
-  const match = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)
-  return match ? Number(match[1]) : null
-}
-
 export function getConfigContextLengths(): Map<string, number> {
-  const models = getConfigModels(readParsedConfig())
-  if (!models) return new Map()
-
-  const lengths = new Map<string, number>()
-  for (const [modelId, modelConfig] of Object.entries(models)) {
-    const ctxSize = extractCtxSize(modelConfig)
-    if (ctxSize != null) lengths.set(modelId, ctxSize)
-  }
-  return lengths
+  return inferenceBackend.modelContextLengthHints?.() ?? new Map()
 }

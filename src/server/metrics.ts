@@ -104,8 +104,8 @@ export async function renderPrometheusMetrics(): Promise<string> {
   const gpu = getGpuSnapshot()
   const [upstream, runningModels] = await Promise.all([
     upstreamMetrics(),
-    (inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] })).then(
-      (result) => result.running.length,
+    (inferenceBackend.listRunning?.() ?? Promise.resolve([])).then(
+      (result) => result.length,
       () => 0,
     ),
   ])

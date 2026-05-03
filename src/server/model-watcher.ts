@@ -27,7 +27,7 @@ async function diffRunning() {
   if (!inferenceBackend.listRunning) return
 
   try {
-    const { running } = await inferenceBackend.listRunning()
+    const running = await inferenceBackend.listRunning()
     const current = new Set(running.map((r) => r.model))
 
     const now = new Date()

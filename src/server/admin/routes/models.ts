@@ -19,11 +19,11 @@ export const modelRoutes: Route[] = [
     handler: async () => {
       const [models, running] = await Promise.all([
         inferenceBackend.listModels(),
-        inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] }),
+        inferenceBackend.listRunning?.() ?? Promise.resolve([]),
       ])
-      const runningById = new Map(running.running.map((r) => [r.model, r]))
+      const runningById = new Map(running.map((r) => [r.model, r]))
       const configContextLengths = getConfigContextLengths()
-      const rows = models.data.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths))
+      const rows = models.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths))
       return json(200, { models: rows })
     },
   },
@@ -34,13 +34,13 @@ export const modelRoutes: Route[] = [
       const id = decodeURIComponent(match[1])
       const [modelsRes, runningRes] = await Promise.all([
         inferenceBackend.listModels(),
-        inferenceBackend.listRunning?.() ?? Promise.resolve({ running: [] }),
+        inferenceBackend.listRunning?.() ?? Promise.resolve([]),
       ])
       const configContextLengths = getConfigContextLengths()
-      const modelData = modelsRes.data.find((m) => m.id === id)
+      const modelData = modelsRes.find((m) => m.id === id)
       if (!modelData) return error(404, `Model ${id} not found`)
 
-      const runInfo = runningRes.running.find((r) => r.model === id)
+      const runInfo = runningRes.find((r) => r.model === id)
       const model = buildApiModel(modelData, runInfo, configContextLengths)
 
       const [events, stats, requests, keyBreakdown] = await Promise.all([
