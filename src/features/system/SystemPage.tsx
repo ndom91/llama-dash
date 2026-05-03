@@ -43,7 +43,7 @@ function SystemPanel({
   className?: string
 }) {
   return (
-    <section className={cn('panel !rounded-none border-x-0 !bg-surface-1', className)}>
+    <section className={cn('panel border-t border-border !rounded-none border-x-0 !bg-surface-1', className)}>
       <div className="panel-head bg-transparent px-6 max-md:px-4">
         <h2 className="panel-title">{title}</h2>
         {aside ? <span className="panel-sub ml-auto">· {aside}</span> : null}
@@ -212,7 +212,7 @@ export function SystemPage() {
                   <MetaRow label="config" value={data.inference.capabilities.config ? 'supported' : 'unsupported'} />
                 </SystemPanel>
 
-                <div className="grid border-t border-border xl:grid-cols-2">
+                <div className="grid xl:grid-cols-2">
                   <SystemPanel title="Loading Queue" aside={data.logging.dropped > 0 ? 'dropping' : 'ready'}>
                     <MetaRow
                       label="state"
@@ -259,7 +259,7 @@ export function SystemPage() {
                   </SystemPanel>
                 </div>
 
-                <div className="grid border-t border-border xl:grid-cols-2 flex-1">
+                <div className="grid xl:grid-cols-2 flex-1">
                   <SystemPanel title="Runtime">
                     <MetaRow label="uptime" value={formatUptime(data.runtime.uptimeSec)} />
                     <MetaRow label="node" value={data.runtime.nodeVersion} />
