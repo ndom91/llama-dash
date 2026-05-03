@@ -31,6 +31,8 @@ export type InferenceBackend = {
   info: InferenceBackendInfo
   ping(): Promise<{ reachable: boolean; latencyMs?: number }>
   health(): Promise<InferenceHealth>
+  defaultProxyUpstream(pathname: string, search: string): string
+  eventStreamUrl?: string
   listModels: typeof llamaSwap.listModels
   listRunning?: typeof llamaSwap.listRunning
   loadModel?: typeof llamaSwap.loadModel
@@ -82,6 +84,10 @@ export const inferenceBackend: InferenceBackend = {
       }
     }
   },
+  defaultProxyUpstream(pathname, search) {
+    return `${config.llamaSwapUrl}${pathname}${search}`
+  },
+  eventStreamUrl: `${config.llamaSwapUrl}/api/events`,
   listModels: llamaSwap.listModels,
   listRunning: llamaSwap.listRunning,
   loadModel: llamaSwap.loadModel,

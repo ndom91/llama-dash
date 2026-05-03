@@ -1,4 +1,3 @@
-import { config } from '../../config.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
 import {
@@ -102,9 +101,11 @@ export const modelRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/events$/,
     handler: async (request) => {
-      const upstream = await fetch(`${config.llamaSwapUrl}/api/events`)
+      if (!inferenceBackend.eventStreamUrl) return error(501, 'Inference backend does not support event streaming')
+
+      const upstream = await fetch(inferenceBackend.eventStreamUrl)
       if (!upstream.ok || !upstream.body) {
-        return error(502, 'Failed to connect to llama-swap event stream')
+        return error(502, 'Failed to connect to inference backend event stream')
       }
       const upstreamReader = upstream.body.getReader()
       const body = new ReadableStream<Uint8Array>({

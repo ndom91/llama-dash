@@ -1,5 +1,5 @@
-import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
+import { inferenceBackend } from '../inference/backend.ts'
 import { getAttributionSettings, getPrivacySettings } from '../admin/settings.ts'
 import { extractAttribution } from './attribution.ts'
 import {
@@ -40,7 +40,7 @@ export type ProxyContext = {
 export function createProxyContext(request: Request): ProxyContext {
   const method = request.method.toUpperCase()
   const url = new URL(request.url)
-  const defaultUpstream = `${config.llamaSwapUrl}${url.pathname}${url.search}`
+  const defaultUpstream = inferenceBackend.defaultProxyUpstream(url.pathname, url.search)
   return {
     request,
     startedAt: Date.now(),

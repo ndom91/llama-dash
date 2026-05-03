@@ -154,14 +154,14 @@ export async function renderPrometheusMetrics(): Promise<string> {
   lines.push('# TYPE llama_dash_log_queue_dropped_total counter')
   lines.push(metricLine('llama_dash_log_queue_dropped_total', queue.dropped))
 
-  lines.push('# HELP llama_dash_upstream_reachable Whether llama-swap health is reachable.')
+  lines.push('# HELP llama_dash_upstream_reachable Whether inference backend health is reachable.')
   lines.push('# TYPE llama_dash_upstream_reachable gauge')
   lines.push(metricLine('llama_dash_upstream_reachable', upstream.reachable))
-  lines.push('# HELP llama_dash_upstream_latency_seconds llama-swap health check latency.')
+  lines.push('# HELP llama_dash_upstream_latency_seconds Inference backend health check latency.')
   lines.push('# TYPE llama_dash_upstream_latency_seconds gauge')
   lines.push(metricLine('llama_dash_upstream_latency_seconds', upstream.latencySeconds))
 
-  lines.push('# HELP llama_dash_models_running Current count of running models reported by llama-swap.')
+  lines.push('# HELP llama_dash_models_running Current count of running models reported by the inference backend.')
   lines.push('# TYPE llama_dash_models_running gauge')
   lines.push(metricLine('llama_dash_models_running', runningModels))
 

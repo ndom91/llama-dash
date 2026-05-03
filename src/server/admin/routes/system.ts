@@ -14,7 +14,7 @@ export const systemRoutes: Route[] = [
     handler: async () => {
       const health = await inferenceBackend.health()
       return json(200, {
-        upstream: { ...health, host: inferenceBackend.info.upstreamHost },
+        upstream: { ...health, backend: inferenceBackend.info.label, host: inferenceBackend.info.upstreamHost },
       })
     },
   },

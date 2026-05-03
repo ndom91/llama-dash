@@ -103,8 +103,17 @@ export function Sidebar() {
     activeTheme.status.warn,
   ]
 
+  const capabilities = system?.inference.capabilities
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
+  const visibleSections = SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => {
+      if (item.to === '/logs') return capabilities?.logs !== false
+      if (item.to === '/config') return capabilities?.config !== false
+      return true
+    }),
+  })).filter((section) => section.items.length > 0 || section.future?.length)
 
   const [visibleIdx, setVisibleIdx] = useState(0)
   const [slide, setSlide] = useState<'out' | 'in' | null>(null)
@@ -165,7 +174,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-col p-2 gap-px flex-1 overflow-y-auto" aria-label="Primary">
-        {SECTIONS.map((section) => (
+        {visibleSections.map((section) => (
           <div key={section.title}>
             <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint px-2.5 pt-3 pb-1.5">
               {section.title}

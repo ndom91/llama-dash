@@ -34,6 +34,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
 
   const reachable = health?.upstream.reachable === true
   const version = health?.upstream.reachable === true ? health.upstream.version : null
+  const backendLabel = health?.upstream.backend ?? 'backend'
 
   const [now, setNow] = useState(() => new Date())
   const [mounted, setMounted] = useState(false)
@@ -64,7 +65,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
 
       <span
         className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
-        title={reachable ? 'llama-swap reachable' : 'llama-swap unreachable'}
+        title={reachable ? `${backendLabel} reachable` : `${backendLabel} unreachable`}
       >
         <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
         <span>upstream</span>
