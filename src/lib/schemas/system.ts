@@ -50,6 +50,7 @@ export const LoginMetaSchema = v.object({
   uptimeLabel: v.string(),
   commitLabel: v.string(),
   tlsLabel: v.string(),
+  signupAllowed: v.boolean(),
 })
 
 export type LoginMeta = v.InferOutput<typeof LoginMetaSchema>

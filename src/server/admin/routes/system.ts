@@ -1,3 +1,4 @@
+import { hasDashboardUsers } from '../../auth.ts'
 import { config } from '../../config.ts'
 import { databasePathInfo } from '../../db/index.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
@@ -68,6 +69,7 @@ export const systemRoutes: Route[] = [
         uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
         commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
         tlsLabel: publicUrl.protocol === 'https:' ? 'https · tls' : 'http · no tls',
+        signupAllowed: !hasDashboardUsers(),
       })
     },
   },

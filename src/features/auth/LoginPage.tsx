@@ -1,5 +1,6 @@
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Eye, Moon, Sun } from 'lucide-react'
+import type * as React from 'react'
 import { type SyntheticEvent, useEffect, useState } from 'react'
 import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
@@ -15,6 +16,7 @@ export function LoginPage() {
   const { data: meta } = useLoginMeta()
   const [dashHost, setDashHost] = useState('local instance')
   const commit = meta?.commitLabel ?? 'unknown'
+  const signupAllowed = meta?.signupAllowed ?? false
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,7 +24,6 @@ export function LoginPage() {
   const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
-  const [passkeyPending, setPasskeyPending] = useState(false)
   const [mode, setMode] = useState<AuthMode>('sign-in')
 
   useEffect(() => {
@@ -64,20 +65,6 @@ export function LoginPage() {
 
     if (result.error) {
       setError(result.error.message || 'Invalid username or password')
-      return
-    }
-
-    await navigate({ to: safeRedirect(search.redirect) })
-  }
-
-  async function onPasskeySignIn() {
-    setError(null)
-    setPasskeyPending(true)
-    const result = await authClient.signIn.passkey()
-    setPasskeyPending(false)
-
-    if (result.error) {
-      setError(result.error.message || 'Passkey sign-in failed')
       return
     }
 
@@ -126,8 +113,8 @@ export function LoginPage() {
               password={password}
               remember={remember}
               pending={pending}
-              passkeyPending={passkeyPending}
               error={error}
+              signupAllowed={signupAllowed}
               setUsername={setUsername}
               setPassword={setPassword}
               setRemember={setRemember}
@@ -137,17 +124,26 @@ export function LoginPage() {
                 setMode('sign-up')
               }}
               onSubmit={(event) => onSubmit(event, 'sign-in')}
-              onPasskeySignIn={onPasskeySignIn}
             />
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
             <span>
-              llama-dash · <span className="text-accent">{commit}</span>
+              llama-dash ·{' '}
+              <a
+                href="https://github.com/ndom91/llama-dash"
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent transition-opacity hover:opacity-80"
+              >
+                {commit}
+              </a>
             </span>
             <span>
               press <span className="text-accent">↵</span>
             </span>
-            <span>docs</span>
+            <span>
+              clears <span className="text-accent">esc</span>
+            </span>
           </div>
         </div>
       </section>
@@ -217,8 +213,8 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
 
       <div className="mt-auto space-y-2 font-mono text-[11px] text-fg-dim max-lg:hidden">
         <div className="max-lg:hidden">
-          <MetaLine label="commit" value={commit} />
-          <MetaLine label="tls" value={tls} highlight />
+          <MetaLine label="commit" value={commit} href="https://github.com/ndom91/llama-dash" />
+          <MetaLine label="tls" value={tls} valueClassName={tls.includes('no tls') ? 'text-warn' : 'text-ok'} />
         </div>
         <div className="flex items-center gap-2 pt-5 max-lg:hidden">
           {colorTheme.themes.map((theme) => (
@@ -228,14 +224,19 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               onClick={() => colorTheme.select(theme.id)}
               aria-label={`Use ${theme.name} accent theme`}
               aria-pressed={colorTheme.themeId === theme.id}
-              className="-m-2 inline-flex size-6.5 items-center justify-center rounded-full transition-transform hover:scale-110"
+              className="group -m-2 inline-flex size-6.5 items-center justify-center rounded-full"
             >
               <span
                 className={cn(
-                  'size-2.5 rounded-full border',
+                  'size-2.5 rounded-full border transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
                   colorTheme.themeId === theme.id ? 'border-fg' : 'border-transparent',
                 )}
-                style={{ backgroundColor: theme.accent['500'] }}
+                style={
+                  {
+                    backgroundColor: theme.accent['500'],
+                    '--theme-glow': `${theme.accent['500']}40`,
+                  } as React.CSSProperties
+                }
               />
             </button>
           ))}
@@ -282,11 +283,28 @@ function applyThemeMode(mode: LoginThemeMode) {
   window.localStorage.setItem('theme', mode)
 }
 
-function MetaLine({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function MetaLine({
+  label,
+  value,
+  href,
+  valueClassName,
+}: {
+  label: string
+  value: string
+  href?: string
+  valueClassName?: string
+}) {
+  const cls = valueClassName ?? 'text-accent'
   return (
     <div className="flex justify-between border-b border-dashed border-border pt-1">
       <span>{label}</span>
-      <span className={highlight ? 'text-warn' : 'text-fg'}>{value}</span>
+      {href ? (
+        <a href={href} target="_blank" rel="noreferrer" className={cn(cls, 'transition-opacity hover:opacity-80')}>
+          {value}
+        </a>
+      ) : (
+        <span className={cls}>{value}</span>
+      )}
     </div>
   )
 }
@@ -296,29 +314,27 @@ function SignInForm({
   password,
   remember,
   pending,
-  passkeyPending,
   error,
+  signupAllowed,
   setUsername,
   setPassword,
   setRemember,
   onResetPassword,
   onSignup,
   onSubmit,
-  onPasskeySignIn,
 }: {
   username: string
   password: string
   remember: boolean
   pending: boolean
-  passkeyPending: boolean
   error: string | null
+  signupAllowed: boolean
   setUsername: (value: string) => void
   setPassword: (value: string) => void
   setRemember: (value: boolean) => void
   onResetPassword: () => void
   onSignup: () => void
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
-  onPasskeySignIn: () => void
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
@@ -332,32 +348,26 @@ function SignInForm({
         action="reset"
         onAction={onResetPassword}
       />
-      <label className="mt-4 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
+      <label className="mt-4 flex cursor-pointer items-center gap-2 font-mono text-[11px] text-fg-muted">
         <input
           type="checkbox"
           checked={remember}
           onChange={(event) => setRemember(event.currentTarget.checked)}
-          className="size-3 accent-accent"
+          className="size-3 cursor-pointer accent-accent"
         />
         remember this browser · 30 days
       </label>
       {error ? <ErrorBox error={error} /> : null}
       <SubmitButton pending={pending} label="Sign in" pendingLabel="Signing in..." />
-      <button
-        type="button"
-        onClick={onPasskeySignIn}
-        disabled={passkeyPending || pending}
-        className="mt-3 h-9 w-full rounded border border-border bg-surface-1 font-mono text-xs font-semibold text-fg transition-[border-color,color,transform] hover:border-accent hover:text-accent active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {passkeyPending ? 'Waiting for passkey...' : 'Use passkey'}
-      </button>
-      <button
-        type="button"
-        onClick={onSignup}
-        className="mt-4 block font-mono text-[11px] text-fg-dim hover:text-accent"
-      >
-        {'Signup ->'}
-      </button>
+      {signupAllowed ? (
+        <button
+          type="button"
+          onClick={onSignup}
+          className="mt-4 block font-mono text-[11px] text-fg-dim hover:text-accent"
+        >
+          {'Signup ->'}
+        </button>
+      ) : null}
     </form>
   )
 }
