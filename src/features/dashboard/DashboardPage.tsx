@@ -11,7 +11,7 @@ import { formatLatency, formatRate } from './dashboardUtils'
 
 export function DashboardPage() {
   const { data: models } = useModels()
-  const { data: requests } = useRecentRequests(12)
+  const { data: requests } = useRecentRequests(30)
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
