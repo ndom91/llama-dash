@@ -1,8 +1,8 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useCallback } from 'react'
 import { PageHeader } from '../../components/PageHeader'
+import { Tabs } from '../../components/Tabs'
 import { TopBar } from '../../components/TopBar'
-import { cn } from '../../lib/cn'
 import { usePlaygroundChat } from '../../lib/use-playground-chat'
 import { PlaygroundChatTab } from './PlaygroundChatTab'
 import { PlaygroundImage } from './PlaygroundImage'
@@ -43,22 +43,14 @@ export function PlaygroundPage({ searchTab }: Props) {
             variant="integrated"
           />
 
-          <div className="flex gap-0 border-b border-border bg-surface-0 px-6">
-            {PLAYGROUND_TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={cn(
-                  'relative inline-flex items-center gap-1.5 border-b-2 border-transparent px-3.5 py-2.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted transition-colors duration-150 hover:bg-surface-3 hover:text-fg',
-                  tab === item.id && 'z-10 border-accent bg-surface-2 text-accent mb-px shadow-[0_2px_0_var(--accent)]',
-                )}
-                onClick={() => setTab(item.id)}
-              >
-                <item.Icon className="icon-12" strokeWidth={2} />
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <Tabs
+            items={PLAYGROUND_TABS}
+            value={tab}
+            onChange={setTab}
+            variant="accent"
+            className="bg-surface-0 px-6"
+            ariaLabel="Playground modes"
+          />
 
           {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
           {tab === 'image' ? <PlaygroundImage /> : null}

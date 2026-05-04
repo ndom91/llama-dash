@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CopyableCode } from '../../components/CopyableCode'
 import { PageHeader } from '../../components/PageHeader'
+import { Tabs } from '../../components/Tabs'
 import { TopBar } from '../../components/TopBar'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CodeExample } from './CodeExample'
@@ -75,22 +76,7 @@ export function EndpointsPage() {
               <span className="panel-title">Code examples</span>
               <span className="panel-sub">· {ENDPOINT_TABS.find((t) => t.id === tab)?.label}</span>
             </div>
-            <div className="flex border-b border-border overflow-x-auto">
-              {ENDPOINT_TABS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`px-4 py-2 text-xs font-mono cursor-pointer border-b-2 transition-colors ${
-                    tab === t.id
-                      ? 'border-accent text-fg bg-transparent'
-                      : 'border-transparent text-fg-muted bg-transparent hover:text-fg hover:bg-surface-2'
-                  }`}
-                  onClick={() => setTab(t.id)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <Tabs items={ENDPOINT_TABS} value={tab} onChange={setTab} ariaLabel="Endpoint examples" />
             <div className="p-4">
               <CodeExample tab={tab} baseUrl={baseUrl} apiKey={keyDisplay} model={firstModel} />
             </div>

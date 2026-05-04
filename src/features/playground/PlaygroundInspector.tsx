@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Tabs } from '../../components/Tabs'
 import { cn } from '../../lib/cn'
 import { useGpu, useModels } from '../../lib/queries'
 import type { InspectorState } from '../../lib/use-playground-chat'
@@ -56,21 +57,16 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 
   return (
     <aside className="pg-inspector-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-surface-1 px-4 pt-3.5 pb-5">
-      <div className="h-10 -mx-4 -mt-3.5 mb-2 flex gap-0 border-b border-border bg-surface-1 px-0">
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={cn(
-              'relative inline-flex flex-1 items-center justify-center border-b-2 border-transparent px-3 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] text-fg-dim transition-colors hover:bg-surface-2 hover:text-fg',
-              tab === item.id && 'z-10 border-accent bg-surface-2 text-accent mb-px shadow-[0_2px_0_var(--accent)]',
-            )}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={TABS}
+        value={tab}
+        onChange={setTab}
+        variant="accent"
+        density="compact"
+        equalWidth
+        className="-mx-4 -mt-3.5 mb-2 h-10 bg-surface-1 px-0"
+        ariaLabel="Playground inspector panels"
+      />
 
       <PlaygroundInspectorSection label="active model">
         <div className="grid grid-cols-2 gap-2">

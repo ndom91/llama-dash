@@ -2,6 +2,7 @@ import { Check, Save } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { CodeBlock } from '../../components/CodeBlock'
 import { PageHeader } from '../../components/PageHeader'
+import { Tabs } from '../../components/Tabs'
 import { TopBar } from '../../components/TopBar'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
 
@@ -137,22 +138,12 @@ export function AttributionPage() {
                   </span>
                 </div>
                 <div className="border-border">
-                  <div className="flex overflow-x-auto border-b border-border">
-                    {EXAMPLE_TABS.map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        className={`cursor-pointer border-b-2 bg-transparent px-4 py-2 font-mono text-xs transition-colors ${
-                          exampleTab === tab.id
-                            ? 'border-accent text-fg'
-                            : 'border-transparent text-fg-muted hover:bg-surface-2 hover:text-fg'
-                        }`}
-                        onClick={() => setExampleTab(tab.id)}
-                      >
-                        {tab.title}
-                      </button>
-                    ))}
-                  </div>
+                  <Tabs
+                    items={EXAMPLE_TABS.map((tab) => ({ id: tab.id, label: tab.title }))}
+                    value={exampleTab}
+                    onChange={setExampleTab}
+                    ariaLabel="Attribution setup examples"
+                  />
                   <div className="px-6 py-4 max-md:px-3">
                     <ExampleCard
                       title={activeExample.title}
@@ -283,6 +274,10 @@ function HeaderField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={helper}
+        autoComplete="off"
+        data-1p-ignore
+        data-lpignore="true"
+        data-bwignore="true"
       />
     </label>
   )
