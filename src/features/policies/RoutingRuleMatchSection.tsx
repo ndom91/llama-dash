@@ -2,7 +2,7 @@ import { NumberInput } from '../../components/NumberInput'
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { addMatchValue, asStreamMode, removeMatchValue, setMatchField } from './routing-draft'
-import { TokenInput } from './routing-ui'
+import { segmentedSelectedClass, TokenInput } from './routing-ui'
 
 export function RoutingRuleMatchSection({
   draft,
@@ -73,7 +73,7 @@ export function RoutingRuleMatchSection({
                 onClick={() => onChange(setMatchField(draft, 'stream', asStreamMode(value)))}
                 className={cn(
                   'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-                  draft.match.stream === value && 'bg-surface-1 text-fg',
+                  draft.match.stream === value && segmentedSelectedClass,
                 )}
               >
                 {label}

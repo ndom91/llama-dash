@@ -6,6 +6,9 @@ import { cn } from '../../lib/cn'
 export type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
 export type RoutingActionType = 'rewrite_model' | 'reject' | 'continue'
 
+export const segmentedSelectedClass =
+  'm-0.5 rounded-sm bg-accent/15 text-accent shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_55%,transparent)]'
+
 export function IconButton({
   icon,
   onClick,

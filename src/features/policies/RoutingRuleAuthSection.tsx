@@ -1,6 +1,7 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { setAuthMode, togglePreserveAuthorization } from './routing-draft'
+import { segmentedSelectedClass } from './routing-ui'
 
 export function RoutingRuleAuthSection({
   draft,
@@ -28,7 +29,7 @@ export function RoutingRuleAuthSection({
             onClick={() => onChange(setAuthMode(draft, value === 'passthrough' ? 'passthrough' : 'require_key'))}
             className={cn(
               'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-              draft.authMode === value && 'bg-surface-1 text-fg',
+              draft.authMode === value && segmentedSelectedClass,
             )}
           >
             {label}

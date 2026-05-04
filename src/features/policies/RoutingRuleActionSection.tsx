@@ -1,7 +1,7 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { setActionType, setRejectReason, setRewriteModel } from './routing-draft'
-import type { RoutingActionType } from './routing-ui'
+import { segmentedSelectedClass, type RoutingActionType } from './routing-ui'
 
 export function RoutingRuleActionSection({
   draft,
@@ -31,7 +31,7 @@ export function RoutingRuleActionSection({
               onClick={() => onChange(setActionType(draft, value as RoutingActionType))}
               className={cn(
                 'border-r border-border px-3 py-2.5 transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-                draft.action.type === value && 'bg-surface-1 text-fg',
+                draft.action.type === value && segmentedSelectedClass,
               )}
             >
               {label}
