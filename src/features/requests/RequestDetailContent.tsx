@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Download, LoaderCircle, FlaskConical } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, LoaderCircle } from 'lucide-react'
 import { useMemo } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
@@ -529,12 +529,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
 
           <section className={`${railSectionDivider} grid gap-2`}>
             <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
-            <Link to="/playground" className="btn btn-sm">
-              <FlaskConical className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              Open in Playground
-            </Link>
-            <button type="button" className="btn btn-sm" onClick={() => downloadRequestJsonl(req)}>
-              <Download className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+            <CopyButton
+              text={getRequestDetailUrl()}
+              label="Copy link"
+              variant="button"
+              icon="link"
+              className="btn-sm"
+            />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => downloadRequestJsonl(req)}>
+              <Download className="icon-12" strokeWidth={2} aria-hidden="true" />
               Download .jsonl
             </button>
           </section>
@@ -585,4 +588,8 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
   link.download = `llama-dash-${req.id}.jsonl`
   link.click()
   URL.revokeObjectURL(url)
+}
+
+function getRequestDetailUrl() {
+  return typeof window === 'undefined' ? '' : window.location.href
 }
