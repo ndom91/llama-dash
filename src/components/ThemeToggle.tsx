@@ -1,32 +1,8 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/cn'
+import { applyThemeMode, getStoredThemeMode, persistThemeMode, type ThemeMode } from '../lib/use-color-theme'
 import { Tooltip } from './Tooltip'
-
-type ThemeMode = 'light' | 'dark' | 'auto'
-
-function getInitialMode(): ThemeMode {
-  if (typeof window === 'undefined') return 'auto'
-  const stored = window.localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored
-  return 'auto'
-}
-
-function applyThemeMode(mode: ThemeMode) {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  const resolved = mode === 'auto' ? (prefersDark ? 'dark' : 'light') : mode
-
-  document.documentElement.classList.remove('light', 'dark')
-  document.documentElement.classList.add(resolved)
-
-  if (mode === 'auto') {
-    document.documentElement.removeAttribute('data-theme')
-  } else {
-    document.documentElement.setAttribute('data-theme', mode)
-  }
-
-  document.documentElement.style.colorScheme = resolved
-}
 
 const order: Array<ThemeMode> = ['auto', 'light', 'dark']
 const modeOptions: Array<{ mode: ThemeMode; label: string; Icon: typeof Monitor }> = [
@@ -39,9 +15,10 @@ export function ThemeToggle({ variant = 'icon' }: { variant?: 'icon' | 'segmente
   const [mode, setMode] = useState<ThemeMode>('auto')
 
   useEffect(() => {
-    const initialMode = getInitialMode()
+    const initialMode = getStoredThemeMode()
     setMode(initialMode)
     applyThemeMode(initialMode)
+    persistThemeMode(initialMode)
   }, [])
 
   useEffect(() => {
@@ -55,7 +32,7 @@ export function ThemeToggle({ variant = 'icon' }: { variant?: 'icon' | 'segmente
   function selectMode(next: ThemeMode) {
     setMode(next)
     applyThemeMode(next)
-    window.localStorage.setItem('theme', next)
+    persistThemeMode(next)
   }
 
   function cycle() {
