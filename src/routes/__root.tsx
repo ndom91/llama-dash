@@ -30,6 +30,7 @@ export const Route = createRootRoute({
         search: { redirect: `${location.pathname}${location.searchStr}` },
       })
     }
+    return { session }
   },
   head: () => ({
     meta: [
@@ -92,6 +93,7 @@ function AppShell() {
   const close = useCallback(() => setOpen(false), [])
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
+  const rootContext = matches[0]?.context as { session?: RootSession } | undefined
 
   if (leaf === '/login') return <Outlet />
 
@@ -106,7 +108,7 @@ function AppShell() {
           tabIndex={-1}
           aria-hidden={!open}
         />
-        <Sidebar />
+        <Sidebar initialSession={rootContext?.session ?? null} />
         <div className="main-col">
           <TopBar />
           <Outlet />
@@ -115,3 +117,5 @@ function AppShell() {
     </MobileMenuContext>
   )
 }
+
+type RootSession = Awaited<ReturnType<typeof getSession>>

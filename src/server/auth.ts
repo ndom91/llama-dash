@@ -1,6 +1,7 @@
 import { count } from 'drizzle-orm'
 import { passkey } from '@better-auth/passkey'
-import { betterAuth, type BetterAuthPlugin } from 'better-auth'
+import type { BetterAuthPlugin } from 'better-auth'
+import { betterAuth } from 'better-auth/minimal'
 import { createAuthMiddleware, APIError } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { username } from 'better-auth/plugins'

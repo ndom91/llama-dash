@@ -86,7 +86,13 @@ const NAV_LINK =
   'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
 
-export function Sidebar() {
+type SidebarSession = ReturnType<typeof authClient.useSession>['data']
+
+type SidebarProps = {
+  initialSession?: SidebarSession | null
+}
+
+export function Sidebar({ initialSession }: SidebarProps) {
   const { open, close } = useMobileMenu()
 
   return (
@@ -110,7 +116,7 @@ export function Sidebar() {
       </div>
 
       <SidebarNav onNavigate={close} />
-      <SidebarLiveStatus />
+      <SidebarLiveStatus initialSession={initialSession} />
     </aside>
   )
 }
@@ -172,12 +178,13 @@ function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
   )
 }
 
-function SidebarLiveStatus() {
+function SidebarLiveStatus({ initialSession }: SidebarProps) {
   const { data: running = [] } = useRunningModels()
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
   const { data: system } = useSystemStatus()
-  const { data: session } = authClient.useSession()
+  const { data: clientSession } = authClient.useSession()
+  const session = clientSession ?? initialSession
   const colorTheme = useColorTheme()
   const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
   const avatarColors = [
