@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useDeferredValue, useMemo, useRef } from 'react'
 import { highlightYaml, highlightedToJsx } from './configUtils'
 
 type Props = {
@@ -10,8 +10,9 @@ export function YamlEditor({ value, onChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const preRef = useRef<HTMLPreElement>(null)
 
-  const lineCount = useMemo(() => value.split('\n').length, [value])
-  const highlighted = useMemo(() => highlightYaml(value), [value])
+  const deferredValue = useDeferredValue(value)
+  const lineCount = useMemo(() => countLines(value), [value])
+  const highlighted = useMemo(() => highlightYaml(deferredValue), [deferredValue])
 
   const syncScroll = () => {
     const ta = textareaRef.current
@@ -69,4 +70,12 @@ export function YamlEditor({ value, onChange }: Props) {
       </div>
     </div>
   )
+}
+
+function countLines(value: string) {
+  let lines = 1
+  for (let i = 0; i < value.length; i++) {
+    if (value.charCodeAt(i) === 10) lines++
+  }
+  return lines
 }
