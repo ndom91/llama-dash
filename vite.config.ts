@@ -24,7 +24,24 @@ const config = defineConfig({
     __GIT_COMMIT__: JSON.stringify(gitCommit),
   },
   resolve: { tsconfigPaths: true },
-  plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [
+    devtools({
+      editor: {
+        name: 'macOS open',
+        open: async (path) => {
+          const { spawn } = await import('node:child_process')
+
+          spawn('open', [path], {
+            detached: true,
+            stdio: 'ignore',
+          }).unref()
+        },
+      },
+    }),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
 })
 
 export default config
