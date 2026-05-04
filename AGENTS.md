@@ -272,6 +272,22 @@ paths (proxy will grow middleware; admin will grow CRUD).
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
 
+### UI polish guide
+
+- Use `rounded` for input-like controls and inner stat/detail cards. Reserve
+  `rounded-sm` for tiny badges, chips, and compact inline pills. Full-width
+  integrated page sections may stay square via `!rounded-none`.
+- Prefer shared copy affordances: `CopyableCode` for inline/input-like copied
+  values, `CodeBlock` for multiline examples. Do not add feature-local copy
+  buttons unless the shared components cannot fit.
+- Use the app `Tooltip` component for explanatory hover/focus hints. Avoid
+  browser `title` tooltips except where a third-party component requires it.
+- Keep micro-interactions subtle: short color transitions, `ease-out` for
+  user-triggered feedback, `ease-in-out` for in-place movement, and very small
+  active scale on larger controls.
+- Match adjacent control height, radius, border, and surface color before adding
+  new variants. Tiny mismatches are visible in dense admin pages.
+
 ## Refactor Learnings
 
 - **Thin routes, feature-local UI.** Route files should stay thin entrypoints.
