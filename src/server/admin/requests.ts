@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
-import { db, schema } from '../db/index.ts'
+import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 
@@ -103,66 +103,94 @@ export function getRequestById(id: string): RequestDetail | null {
 
 export type RequestStats = ApiRequestStats
 
+type StatsCache = { at: number; value: RequestStats }
+let statsCache: StatsCache | null = null
+const STATS_CACHE_MS = 1_000
+
 export function getRequestStats(): RequestStats {
   const now = Date.now()
-  const thirtyMinAgo = new Date(now - 30 * 60_000)
+  if (statsCache && now - statsCache.at < STATS_CACHE_MS) return statsCache.value
+
+  const thirtyMinAgoMs = now - 30 * 60_000
   const oneMinAgo = now - 60_000
 
-  const recent = db
-    .select({
-      startedAt: schema.requests.startedAt,
-      durationMs: schema.requests.durationMs,
-      statusCode: schema.requests.statusCode,
-      totalTokens: schema.requests.totalTokens,
-    })
-    .from(schema.requests)
-    .where(gte(schema.requests.startedAt, thirtyMinAgo))
-    .orderBy(asc(schema.requests.startedAt))
-    .all()
+  const summary = sqliteDb
+    .prepare(
+      `select
+        count(*) as total,
+        sum(case when status_code >= 400 then 1 else 0 end) as errors,
+        sum(case when started_at >= ? then 1 else 0 end) as last_minute_total,
+        sum(case when started_at >= ? then coalesce(total_tokens, 0) else 0 end) as last_minute_tokens
+      from requests
+      where started_at >= ?`,
+    )
+    .get(oneMinAgo, oneMinAgo, thirtyMinAgoMs) as {
+    total: number
+    errors: number | null
+    last_minute_total: number | null
+    last_minute_tokens: number | null
+  }
 
-  const lastMinute = recent.filter((r) => r.startedAt.getTime() >= oneMinAgo)
-  const reqPerSec = lastMinute.length / 60
-  const tokPerSec = lastMinute.reduce((s, r) => s + (r.totalTokens ?? 0), 0) / 60
+  const medianOffset = Math.max(0, Math.floor((summary.total || 1) / 2))
+  const median = sqliteDb
+    .prepare(
+      'select duration_ms as durationMs from requests where started_at >= ? order by duration_ms limit 1 offset ?',
+    )
+    .get(thirtyMinAgoMs, medianOffset) as { durationMs: number } | undefined
 
-  const sorted = recent.map((r) => r.durationMs).sort((a, b) => a - b)
-  const p50Latency = sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)] : 0
-
-  const errCount = recent.filter((r) => r.statusCode >= 400).length
-  const errorRate = recent.length > 0 ? (errCount / recent.length) * 100 : 0
-
-  const startBucket = Math.floor(thirtyMinAgo.getTime() / 60_000)
+  const startBucket = Math.floor(thirtyMinAgoMs / 60_000)
   const endBucket = Math.floor(now / 60_000)
   const count = endBucket - startBucket + 1
 
+  const rows = sqliteDb
+    .prepare(
+      `select
+        cast(started_at / 60000 as integer) as bucket,
+        count(*) as reqs,
+        sum(coalesce(total_tokens, 0)) as toks,
+        avg(duration_ms) as latency,
+        sum(case when status_code >= 400 then 1 else 0 end) as errs
+      from requests
+      where started_at >= ?
+      group by bucket
+      order by bucket`,
+    )
+    .all(thirtyMinAgoMs) as Array<{
+    bucket: number
+    reqs: number
+    toks: number | null
+    latency: number | null
+    errs: number | null
+  }>
+
   const reqs = new Array<number>(count).fill(0)
   const toks = new Array<number>(count).fill(0)
-  const latBuckets: Array<Array<number>> = Array.from({ length: count }, () => [])
-  const errs = new Array<number>(count).fill(0)
-  const totals = new Array<number>(count).fill(0)
+  const latency = new Array<number>(count).fill(0)
+  const errors = new Array<number>(count).fill(0)
 
-  for (const r of recent) {
-    const idx = Math.floor(r.startedAt.getTime() / 60_000) - startBucket
-    if (idx >= 0 && idx < count) {
-      reqs[idx]++
-      toks[idx] += r.totalTokens ?? 0
-      latBuckets[idx].push(r.durationMs)
-      totals[idx]++
-      if (r.statusCode >= 400) errs[idx]++
-    }
+  for (const row of rows) {
+    const idx = row.bucket - startBucket
+    if (idx < 0 || idx >= count) continue
+    reqs[idx] = row.reqs
+    toks[idx] = row.toks ?? 0
+    latency[idx] = row.latency ?? 0
+    errors[idx] = row.reqs > 0 ? ((row.errs ?? 0) / row.reqs) * 100 : 0
   }
 
-  return {
-    reqPerSec,
-    tokPerSec,
-    p50Latency,
-    errorRate,
+  const value = {
+    reqPerSec: (summary.last_minute_total ?? 0) / 60,
+    tokPerSec: (summary.last_minute_tokens ?? 0) / 60,
+    p50Latency: median?.durationMs ?? 0,
+    errorRate: summary.total > 0 ? ((summary.errors ?? 0) / summary.total) * 100 : 0,
     sparklines: {
       reqs,
       toks,
-      latency: latBuckets.map((arr) => (arr.length > 0 ? arr.reduce((s, v) => s + v, 0) / arr.length : 0)),
-      errors: errs.map((e, i) => (totals[i] > 0 ? (e / totals[i]) * 100 : 0)),
+      latency,
+      errors,
     },
   }
+  statsCache = { at: now, value }
+  return value
 }
 
 export type HistogramBucket = ApiHistogramBucket
