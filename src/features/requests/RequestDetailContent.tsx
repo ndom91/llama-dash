@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, LoaderCircle, RotateCw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react'
 import { useMemo } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
@@ -103,6 +103,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
+            <CopyButton text={curlCommand} label="copy curl" variant="button" />
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
@@ -175,11 +176,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 )}
               </Tooltip>
             </div>
-            <button type="button" className="btn btn-ghost btn-xs" disabled>
-              <RotateCw className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              replay
-            </button>
-            <CopyButton text={curlCommand} label="copy curl" variant="button" />
           </div>
         }
       />
