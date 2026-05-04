@@ -9,7 +9,7 @@ import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TopBar } from '../components/TopBar'
 import { TooltipProvider } from '../components/Tooltip'
-import { getSession } from '../lib/auth-functions'
+import { getShellContext } from '../lib/auth-functions'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
 
 const queryClient = new QueryClient({
@@ -23,14 +23,14 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     if (location.pathname === '/login') return
-    const session = await getSession().catch(() => null)
-    if (!session) {
+    const shell = await getShellContext().catch(() => null)
+    if (!shell?.session) {
       throw redirect({
         to: '/login',
         search: { redirect: `${location.pathname}${location.searchStr}` },
       })
     }
-    return { session }
+    return shell
   },
   head: () => ({
     meta: [
@@ -93,7 +93,7 @@ function AppShell() {
   const close = useCallback(() => setOpen(false), [])
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
-  const rootContext = matches[0]?.context as { session?: RootSession } | undefined
+  const rootContext = matches[0]?.context as RootShellContext | undefined
 
   if (leaf === '/login') return <Outlet />
 
@@ -108,7 +108,10 @@ function AppShell() {
           tabIndex={-1}
           aria-hidden={!open}
         />
-        <Sidebar initialSession={rootContext?.session ?? null} />
+        <Sidebar
+          initialSession={rootContext?.session ?? null}
+          initialCapabilities={rootContext?.inference.capabilities ?? null}
+        />
         <div className="main-col">
           <TopBar />
           <Outlet />
@@ -118,4 +121,4 @@ function AppShell() {
   )
 }
 
-type RootSession = Awaited<ReturnType<typeof getSession>>
+type RootShellContext = Awaited<ReturnType<typeof getShellContext>>

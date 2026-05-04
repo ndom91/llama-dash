@@ -20,6 +20,7 @@ import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
+import type { ApiSystemStatus } from '../lib/schemas/system'
 import { useColorTheme } from '../lib/use-color-theme'
 import { StatusDot, stateTone } from './StatusDot'
 import { Logo } from './Logo'
@@ -90,9 +91,10 @@ type SidebarSession = ReturnType<typeof authClient.useSession>['data']
 
 type SidebarProps = {
   initialSession?: SidebarSession | null
+  initialCapabilities?: ApiSystemStatus['inference']['capabilities'] | null
 }
 
-export function Sidebar({ initialSession }: SidebarProps) {
+export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
   const { open, close } = useMobileMenu()
 
   return (
@@ -115,17 +117,23 @@ export function Sidebar({ initialSession }: SidebarProps) {
         </a>
       </div>
 
-      <SidebarNav onNavigate={close} />
+      <SidebarNav onNavigate={close} initialCapabilities={initialCapabilities} />
       <SidebarLiveStatus initialSession={initialSession} />
     </aside>
   )
 }
 
-function SidebarNav({ onNavigate }: { onNavigate: () => void }) {
+function SidebarNav({
+  onNavigate,
+  initialCapabilities,
+}: {
+  onNavigate: () => void
+  initialCapabilities?: ApiSystemStatus['inference']['capabilities'] | null
+}) {
   const { data: running = [] } = useRunningModels()
   const { data: system } = useSystemStatus()
 
-  const capabilities = system?.inference.capabilities
+  const capabilities = system?.inference.capabilities ?? initialCapabilities
   const runningCount = running.length
   const visibleSections = SECTIONS.map((section) => ({
     ...section,

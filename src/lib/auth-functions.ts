@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { auth } from '../server/auth'
+import { inferenceBackend } from '../server/inference/backend'
 
 export const getSession = createServerFn({ method: 'GET' }).handler(async () => {
   const headers = getRequestHeaders()
@@ -11,4 +12,15 @@ export const ensureSession = createServerFn({ method: 'GET' }).handler(async () 
   const session = await getSession()
   if (!session) throw new Error('Unauthorized')
   return session
+})
+
+export const getShellContext = createServerFn({ method: 'GET' }).handler(async () => {
+  const headers = getRequestHeaders()
+  const session = await auth.api.getSession({ headers })
+  return {
+    session,
+    inference: {
+      capabilities: inferenceBackend.info.capabilities,
+    },
+  }
 })
