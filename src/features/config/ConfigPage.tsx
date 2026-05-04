@@ -2,6 +2,7 @@ import { AlertTriangle, AlignLeft, Check, Loader2, RefreshCw, Save } from 'lucid
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { parseDocument } from 'yaml'
 import { PageHeader } from '../../components/PageHeader'
+import { RouteError } from '../../components/RouteError'
 import { api, type ApiConfigSaveResult } from '../../lib/api'
 import { useSystemStatus } from '../../lib/queries'
 import { YamlEditor } from './YamlEditor'
@@ -124,6 +125,16 @@ export function ConfigPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [doSave])
 
+  if (loadState.status === 'error') {
+    return (
+      <RouteError
+        kicker="dsh · config"
+        title="Failed to load configuration"
+        message={loadState.message}
+      />
+    )
+  }
+
   return (
     <div className="content">
       <div className="page min-h-full flex-1">
@@ -202,8 +213,6 @@ export function ConfigPage() {
               </>
             )}
           </div>
-        ) : loadState.status === 'error' ? (
-          <div className="err-banner mx-6 mt-3 max-md:mx-3">{loadState.message}</div>
         ) : (
           <>
             {saveResult && 'conflict' in saveResult && saveResult.conflict ? (
