@@ -49,7 +49,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-fg-dim">Name</span>
           <input
-            className="rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
+            className="rounded border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -92,7 +92,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
             </label>
             <NumberInput
               id="create-key-rpm-limit"
-              className="h-9 rounded-sm bg-surface-0 text-[13px]"
+              className="h-9 rounded bg-surface-0 text-[13px]"
               min={1}
               value={rpm}
               onChange={(e) => setRpm(e.target.value)}
@@ -105,7 +105,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
             </label>
             <NumberInput
               id="create-key-tpm-limit"
-              className="h-9 rounded-sm bg-surface-0 text-[13px]"
+              className="h-9 rounded bg-surface-0 text-[13px]"
               min={1}
               value={tpm}
               onChange={(e) => setTpm(e.target.value)}
@@ -118,7 +118,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
           <span className="text-xs font-medium text-fg-dim">Prepend system prompt</span>
           <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
           <textarea
-            className="min-h-[60px] resize-y rounded-sm border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none"
+            className="min-h-[60px] resize-y rounded border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             placeholder="Enter a system prompt..."

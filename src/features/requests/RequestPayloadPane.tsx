@@ -49,7 +49,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">{title}</span>
         <span className="panel-sub">{subtitle}</span>
         <div className="ml-auto" />
-        <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy}>
+        <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy} aria-label={`Copy ${title} payload`}>
           <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
             <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
             <Check className="copy-icon-swap-to icon-btn-12" strokeWidth={2} aria-hidden="true" />

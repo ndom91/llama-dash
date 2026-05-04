@@ -320,7 +320,7 @@ function SignInForm({
         type="button"
         onClick={onPasskeySignIn}
         disabled={passkeyPending || pending}
-        className="mt-3 h-9 w-full border border-border bg-surface-1 font-mono text-xs font-semibold text-fg transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-3 h-9 w-full rounded border border-border bg-surface-1 font-mono text-xs font-semibold text-fg transition-[border-color,color,transform] hover:border-accent hover:text-accent active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {passkeyPending ? 'Waiting for passkey...' : 'Use passkey'}
       </button>
@@ -401,7 +401,7 @@ function Field({
         type={type}
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
-        className="h-10 w-full border border-border bg-surface-1 px-3 font-mono text-sm text-fg outline-none transition-colors focus:border-accent"
+        className="h-10 w-full rounded border border-border bg-surface-1 px-3 font-mono text-sm text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:shadow-focus"
       />
     </label>
   )
@@ -444,7 +444,7 @@ function PasswordField({
           type={visible ? 'text' : 'password'}
           value={value}
           onChange={(event) => onChange(event.currentTarget.value)}
-          className="h-10 w-full border border-border bg-surface-1 px-3 pr-9 font-mono text-sm text-fg outline-none transition-colors focus:border-accent"
+          className="h-10 w-full rounded border border-border bg-surface-1 px-3 pr-9 font-mono text-sm text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:shadow-focus"
         />
         <button
           type="button"
@@ -477,7 +477,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
   return (
     <button
       type="submit"
-      className="mt-5 h-10 w-full bg-accent font-mono text-sm font-bold text-accent-on transition-colors hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60"
+      className="mt-5 h-10 w-full rounded bg-accent font-mono text-sm font-bold text-accent-on transition-[background-color,transform] hover:bg-accent-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
       {pending ? pendingLabel : `${label}  ->`}
@@ -486,7 +486,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
 }
 
 function ErrorBox({ error }: { error: string }) {
-  return <div className="mt-4 border border-err bg-err-bg px-3 py-2 text-xs text-err">{error}</div>
+  return <div className="mt-4 rounded border border-err bg-err-bg px-3 py-2 text-xs text-err">{error}</div>
 }
 
 function safeRedirect(value: string | undefined): string {

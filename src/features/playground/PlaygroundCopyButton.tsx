@@ -12,7 +12,7 @@ export function PlaygroundCopyButton({ text }: Props) {
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
+      className="inline-flex items-center gap-1 rounded-sm border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-[background-color,border-color,color,transform] hover:border-border hover:bg-surface-2 hover:text-fg active:scale-[0.97] focus-visible:outline-none focus-visible:shadow-focus"
       onClick={() => {
         navigator.clipboard.writeText(text).then(() => {
           setCopied(true)
