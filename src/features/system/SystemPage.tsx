@@ -55,7 +55,7 @@ function SystemPanel({
 
 function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
   return (
-    <section className="min-w-0 border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <section className="min-w-0 rounded border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
       <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <StatusDot tone={tone} /> {label}
       </div>
@@ -98,7 +98,7 @@ function DirectTargets({ targets }: { targets: string[] }) {
         {targets.map((target) => (
           <span
             key={target}
-            className="border border-border/70 bg-surface-2 px-2 py-1 font-mono text-[10px] text-fg-dim"
+            className="rounded-sm border border-border/70 bg-surface-2 px-2 py-1 font-mono text-[10px] text-fg-dim"
           >
             {target.replace('https://', '')}
           </span>

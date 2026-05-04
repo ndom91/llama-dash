@@ -278,7 +278,7 @@ function HeaderField({
     <label className="flex flex-col gap-1.5">
       <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">{label}</span>
       <input
-        className="h-9 border border-border bg-surface-3 px-3 font-mono text-xs text-fg"
+        className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:shadow-focus"
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -290,7 +290,7 @@ function HeaderField({
 
 function HeaderConvention({ name, description }: { name: string; description: string }) {
   return (
-    <div className="border border-border bg-surface-0 px-4 py-3">
+    <div className="rounded border border-border bg-surface-0 px-4 py-3">
       <div className="text-accent">{name}</div>
       <div className="mt-2 text-fg-dim">{description}</div>
     </div>
