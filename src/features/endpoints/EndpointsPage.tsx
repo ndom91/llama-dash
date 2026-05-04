@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
+import { CopyableCode } from '../../components/CopyableCode'
 import { PageHeader } from '../../components/PageHeader'
 import { TopBar } from '../../components/TopBar'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CodeExample } from './CodeExample'
-import { CopyBlock } from './CopyBlock'
 import { ENDPOINT_TABS, type EndpointTab } from './snippets'
 
 export function EndpointsPage() {
@@ -36,7 +36,7 @@ export function EndpointsPage() {
                 <span className="panel-title">Base URL</span>
               </div>
               <div className="p-4 flex flex-col gap-3">
-                <CopyBlock text={`${baseUrl}/v1`} inline />
+                <CopyableCode text={`${baseUrl}/v1`} size="l" />
                 <p className="text-xs text-fg-dim font-mono m-0">
                   All OpenAI-compatible endpoints live under <code className="text-fg-muted">/v1</code>. Point any
                   client that speaks the OpenAI API at this URL.

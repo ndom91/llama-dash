@@ -1,4 +1,4 @@
-import { CopyBlock } from './CopyBlock'
+import { CodeBlock } from '../../components/CodeBlock'
 import type { EndpointTab } from './snippets'
 import { useEndpointSnippet } from './snippets'
 
@@ -11,5 +11,5 @@ type Props = {
 
 export function CodeExample({ tab, baseUrl, apiKey, model }: Props) {
   const snippet = useEndpointSnippet(tab, baseUrl, apiKey, model)
-  return <CopyBlock text={snippet.code} filename={snippet.filename} lang={snippet.lang} />
+  return <CodeBlock text={snippet.code} filename={snippet.filename} lang={snippet.lang} />
 }
