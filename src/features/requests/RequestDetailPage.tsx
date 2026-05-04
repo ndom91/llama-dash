@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { TopBar } from '../../components/TopBar'
 import { api } from '../../lib/api'
 import { qk, useRequest } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
@@ -42,31 +41,26 @@ export function RequestDetailPage({ id }: Props) {
   }, [nextId, prevId, qc, req])
 
   return (
-    <div className="main-col">
-      <TopBar />
-      <div className="content">
-        <div className="page min-h-full">
-          {error ? (
-            <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
-          ) : req == null ? (
-            <RequestDetailSkeleton />
-          ) : (
-            <>
-              <RequestDetailContent
-                req={req}
-                prevId={prevId}
-                nextId={nextId}
-                isPrevPending={isPrevPending}
-                isNextPending={isNextPending}
-              />
-              {isFetching && !isTransitioning ? (
-                <div className="mx-6 mt-3 font-mono text-[11px] text-fg-dim max-md:mx-3">
-                  refreshing request detail…
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
+    <div className="content">
+      <div className="page min-h-full">
+        {error ? (
+          <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
+        ) : req == null ? (
+          <RequestDetailSkeleton />
+        ) : (
+          <>
+            <RequestDetailContent
+              req={req}
+              prevId={prevId}
+              nextId={nextId}
+              isPrevPending={isPrevPending}
+              isNextPending={isNextPending}
+            />
+            {isFetching && !isTransitioning ? (
+              <div className="mx-6 mt-3 font-mono text-[11px] text-fg-dim max-md:mx-3">refreshing request detail…</div>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   )

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { CodeBlock } from '../../components/CodeBlock'
 import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
-import { TopBar } from '../../components/TopBar'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
 
 type HighlightLanguage = 'bash' | 'json' | 'jsonc' | 'python' | 'yaml'
@@ -31,131 +30,125 @@ export function AttributionPage() {
   const activeExample = EXAMPLE_TABS.find((tab) => tab.id === exampleTab) ?? EXAMPLE_TABS[0]
 
   return (
-    <div className="main-col">
-      <TopBar />
-      <div className="content">
-        <div className="page min-h-full flex-1 bg-surface-1">
-          <PageHeader
-            kicker="dsh · attribution"
-            title="Attribution"
-            subtitle="capture client, user, and session metadata from request headers"
-            variant="integrated"
-            action={
-              data ? (
-                <div className="flex items-center gap-2">
-                  {update.isSuccess && !isDirty ? (
-                    <span className="inline-flex items-center gap-1 rounded-sm border border-ok bg-ok-bg px-2 py-0.5 font-mono text-[11px] font-medium text-ok">
-                      <Check size={14} strokeWidth={2} /> saved
-                    </span>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    disabled={!isDirty || update.isPending}
-                    onClick={() =>
-                      update.mutate({
-                        clientNameHeader: clientNameHeader.trim() || null,
-                        endUserIdHeader: endUserIdHeader.trim() || null,
-                        sessionIdHeader: sessionIdHeader.trim() || null,
-                      })
-                    }
-                  >
-                    <Save size={14} strokeWidth={2} />
-                    {update.isPending ? 'Saving…' : 'Save'}
-                  </button>
-                </div>
-              ) : null
-            }
-          />
-
-          {isLoading ? (
-            <div className="empty-state px-6 max-md:px-3">loading attribution settings…</div>
-          ) : (
-            <div className="flex flex-col gap-0">
-              <section className="panel !rounded-none !border-x-0 !bg-surface-1">
-                <div className="panel-head bg-transparent px-6 max-md:px-3">
-                  <span className="panel-title">Header mapping</span>
-                  <span className="panel-sub">· map incoming request headers to normalized attribution fields</span>
-                </div>
-                <div className="grid gap-4 px-6 py-4 md:grid-cols-3 max-md:px-3">
-                  <HeaderField
-                    label="Client name"
-                    helper="example: x-client-name"
-                    value={clientNameHeader}
-                    onChange={setClientNameHeader}
-                  />
-                  <HeaderField
-                    label="End-user ID"
-                    helper="example: x-end-user-id"
-                    value={endUserIdHeader}
-                    onChange={setEndUserIdHeader}
-                  />
-                  <HeaderField
-                    label="Session ID"
-                    helper="example: x-session-id"
-                    value={sessionIdHeader}
-                    onChange={setSessionIdHeader}
-                  />
-                </div>
-                <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
-                  Empty fields disable capture for that dimension. Values are trimmed and stored on each request row.
-                  Client name falls back to a best-effort <code>user-agent</code> heuristic when no explicit client
-                  header mapping is set.
-                </div>
-              </section>
-
-              <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
-                <div className="panel-head bg-transparent px-6 max-md:px-3">
-                  <span className="panel-title">Recommended conventions</span>
-                  <span className="panel-sub">· suggested header names for new client setups</span>
-                </div>
-                <div className="grid gap-3 px-6 py-4 font-mono text-xs text-fg md:grid-cols-3 max-md:px-3">
-                  <HeaderConvention
-                    name="x-client-name"
-                    description="stable client/app identifier like claude-code or home-assistant"
-                  />
-                  <HeaderConvention
-                    name="x-end-user-id"
-                    description="end user or account identifier if your client knows it"
-                  />
-                  <HeaderConvention
-                    name="x-session-id"
-                    description="conversation, run, or workflow session identifier"
-                  />
-                </div>
-                <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
-                  If client name is not explicitly mapped, llama-dash will try to infer it from <code>user-agent</code>{' '}
-                  for a few known clients like Claude Code, OpenCode, Open WebUI, Home Assistant, curl, and
-                  python-requests.
-                </div>
-              </section>
-
-              <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
-                <div className="panel-head bg-transparent px-6 max-md:px-3">
-                  <span className="panel-title">Setup examples</span>
-                  <span className="panel-sub">
-                    · add custom headers if your client does not already send suitable metadata
+    <div className="content">
+      <div className="page min-h-full flex-1 bg-surface-1">
+        <PageHeader
+          kicker="dsh · attribution"
+          title="Attribution"
+          subtitle="capture client, user, and session metadata from request headers"
+          variant="integrated"
+          action={
+            data ? (
+              <div className="flex items-center gap-2">
+                {update.isSuccess && !isDirty ? (
+                  <span className="inline-flex items-center gap-1 rounded-sm border border-ok bg-ok-bg px-2 py-0.5 font-mono text-[11px] font-medium text-ok">
+                    <Check size={14} strokeWidth={2} /> saved
                   </span>
-                </div>
-                <div className="border-border">
-                  <Tabs
-                    items={EXAMPLE_TABS.map((tab) => ({ id: tab.id, label: tab.title }))}
-                    value={exampleTab}
-                    onChange={setExampleTab}
-                    ariaLabel="Attribution setup examples"
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={!isDirty || update.isPending}
+                  onClick={() =>
+                    update.mutate({
+                      clientNameHeader: clientNameHeader.trim() || null,
+                      endUserIdHeader: endUserIdHeader.trim() || null,
+                      sessionIdHeader: sessionIdHeader.trim() || null,
+                    })
+                  }
+                >
+                  <Save size={14} strokeWidth={2} />
+                  {update.isPending ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            ) : null
+          }
+        />
+
+        {isLoading ? (
+          <div className="empty-state px-6 max-md:px-3">loading attribution settings…</div>
+        ) : (
+          <div className="flex flex-col gap-0">
+            <section className="panel !rounded-none !border-x-0 !bg-surface-1">
+              <div className="panel-head bg-transparent px-6 max-md:px-3">
+                <span className="panel-title">Header mapping</span>
+                <span className="panel-sub">· map incoming request headers to normalized attribution fields</span>
+              </div>
+              <div className="grid gap-4 px-6 py-4 md:grid-cols-3 max-md:px-3">
+                <HeaderField
+                  label="Client name"
+                  helper="example: x-client-name"
+                  value={clientNameHeader}
+                  onChange={setClientNameHeader}
+                />
+                <HeaderField
+                  label="End-user ID"
+                  helper="example: x-end-user-id"
+                  value={endUserIdHeader}
+                  onChange={setEndUserIdHeader}
+                />
+                <HeaderField
+                  label="Session ID"
+                  helper="example: x-session-id"
+                  value={sessionIdHeader}
+                  onChange={setSessionIdHeader}
+                />
+              </div>
+              <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
+                Empty fields disable capture for that dimension. Values are trimmed and stored on each request row.
+                Client name falls back to a best-effort <code>user-agent</code> heuristic when no explicit client header
+                mapping is set.
+              </div>
+            </section>
+
+            <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
+              <div className="panel-head bg-transparent px-6 max-md:px-3">
+                <span className="panel-title">Recommended conventions</span>
+                <span className="panel-sub">· suggested header names for new client setups</span>
+              </div>
+              <div className="grid gap-3 px-6 py-4 font-mono text-xs text-fg md:grid-cols-3 max-md:px-3">
+                <HeaderConvention
+                  name="x-client-name"
+                  description="stable client/app identifier like claude-code or home-assistant"
+                />
+                <HeaderConvention
+                  name="x-end-user-id"
+                  description="end user or account identifier if your client knows it"
+                />
+                <HeaderConvention name="x-session-id" description="conversation, run, or workflow session identifier" />
+              </div>
+              <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
+                If client name is not explicitly mapped, llama-dash will try to infer it from <code>user-agent</code>{' '}
+                for a few known clients like Claude Code, OpenCode, Open WebUI, Home Assistant, curl, and
+                python-requests.
+              </div>
+            </section>
+
+            <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
+              <div className="panel-head bg-transparent px-6 max-md:px-3">
+                <span className="panel-title">Setup examples</span>
+                <span className="panel-sub">
+                  · add custom headers if your client does not already send suitable metadata
+                </span>
+              </div>
+              <div className="border-border">
+                <Tabs
+                  items={EXAMPLE_TABS.map((tab) => ({ id: tab.id, label: tab.title }))}
+                  value={exampleTab}
+                  onChange={setExampleTab}
+                  ariaLabel="Attribution setup examples"
+                />
+                <div className="px-6 py-4 max-md:px-3">
+                  <ExampleCard
+                    title={activeExample.title}
+                    code={activeExample.code}
+                    language={activeExample.language}
                   />
-                  <div className="px-6 py-4 max-md:px-3">
-                    <ExampleCard
-                      title={activeExample.title}
-                      code={activeExample.code}
-                      language={activeExample.language}
-                    />
-                  </div>
                 </div>
-              </section>
-            </div>
-          )}
-        </div>
+              </div>
+            </section>
+          </div>
+        )}
       </div>
     </div>
   )

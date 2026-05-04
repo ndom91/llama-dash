@@ -2,7 +2,6 @@ import { useNavigate } from '@tanstack/react-router'
 import { useCallback } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
-import { TopBar } from '../../components/TopBar'
 import { usePlaygroundChat } from '../../lib/use-playground-chat'
 import { PlaygroundChatTab } from './PlaygroundChatTab'
 import { PlaygroundImage } from './PlaygroundImage'
@@ -32,31 +31,28 @@ export function PlaygroundPage({ searchTab }: Props) {
   const chat = usePlaygroundChat()
 
   return (
-    <div className="main-col">
-      <TopBar />
-      <div className="content">
-        <div className="page flex-1 min-h-0">
-          <PageHeader
-            kicker={`dsh · playground · ${tab}`}
-            title="Playground"
-            subtitle="Test prompts against loaded models · inspector visible · multi-model"
-            variant="integrated"
-          />
+    <div className="content">
+      <div className="page flex-1 min-h-0">
+        <PageHeader
+          kicker={`dsh · playground · ${tab}`}
+          title="Playground"
+          subtitle="Test prompts against loaded models · inspector visible · multi-model"
+          variant="integrated"
+        />
 
-          <Tabs
-            items={PLAYGROUND_TABS}
-            value={tab}
-            onChange={setTab}
-            variant="accent"
-            className="bg-surface-0 px-6"
-            ariaLabel="Playground modes"
-          />
+        <Tabs
+          items={PLAYGROUND_TABS}
+          value={tab}
+          onChange={setTab}
+          variant="accent"
+          className="bg-surface-0 px-6"
+          ariaLabel="Playground modes"
+        />
 
-          {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
-          {tab === 'image' ? <PlaygroundImage /> : null}
-          {tab === 'speech' ? <PlaygroundSpeech /> : null}
-          {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
-        </div>
+        {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
+        {tab === 'image' ? <PlaygroundImage /> : null}
+        {tab === 'speech' ? <PlaygroundSpeech /> : null}
+        {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
       </div>
     </div>
   )

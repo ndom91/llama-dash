@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
 import { PageHeader } from '../../components/PageHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
-import { TopBar } from '../../components/TopBar'
 import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import { usePrivacySettings, useUpdatePrivacySettings } from '../../lib/queries'
@@ -93,198 +92,195 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="main-col">
-      <TopBar />
-      <div className="content">
-        <div className="page min-h-full px-0">
-          <PageHeader
-            kicker="cfg · settings"
-            title="Settings"
-            subtitle="application preferences and global proxy defaults"
-            variant="integrated"
-          />
+    <div className="content">
+      <div className="page min-h-full px-0">
+        <PageHeader
+          kicker="cfg · settings"
+          title="Settings"
+          subtitle="application preferences and global proxy defaults"
+          variant="integrated"
+        />
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <SettingsPanel title="Appearance" subtitle="theme and display mode">
-              <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="flex flex-col flex-1 items-stretch">
-                  <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
-                    <Monitor className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                    Active theme
-                  </div>
-                  <div className="font-mono text-lg font-semibold text-accent">{activeTheme.name}</div>
-                  <div className="mt-1 font-mono text-xs text-fg-dim">Accent and semantic status colors.</div>
-                  <div className="mt-4 space-y-2 flex-1 flex flex-col justify-end">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">mode</div>
-                    <ThemeToggle variant="segmented" />
-                  </div>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <SettingsPanel title="Appearance" subtitle="theme and display mode">
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div className="flex flex-col flex-1 items-stretch">
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                  <Monitor className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                  Active theme
                 </div>
-
-                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  {colorTheme.themes.map((theme) => {
-                    const selected = theme.id === colorTheme.themeId
-                    return (
-                      <button
-                        key={theme.id}
-                        type="button"
-                        className={cn(
-                          'group min-h-20 cursor-pointer rounded border border-border bg-surface-2 p-3 text-left transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-strong hover:bg-surface-3',
-                          selected && 'border-accent shadow-[inset_2px_0_0_var(--accent)]',
-                        )}
-                        onClick={() => colorTheme.select(theme.id)}
-                      >
-                        <div className="mb-3 flex items-center gap-1.5">
-                          {(['300', '500', '700'] as const).map((step) => (
-                            <span
-                              key={step}
-                              className="size-3 rounded-pill border border-border"
-                              style={{ background: theme.accent[step] }}
-                            />
-                          ))}
-                        </div>
-                        <div className="font-mono text-xs font-semibold text-fg">{theme.name}</div>
-                        <div className="mt-1 font-mono text-[10px] text-fg-faint">
-                          {selected ? 'selected' : 'available'}
-                        </div>
-                      </button>
-                    )
-                  })}
+                <div className="font-mono text-lg font-semibold text-accent">{activeTheme.name}</div>
+                <div className="mt-1 font-mono text-xs text-fg-dim">Accent and semantic status colors.</div>
+                <div className="mt-4 space-y-2 flex-1 flex flex-col justify-end">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">mode</div>
+                  <ThemeToggle variant="segmented" />
                 </div>
               </div>
-            </SettingsPanel>
 
-            <SettingsPanel title="Security" subtitle="dashboard passkeys">
-              <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div>
-                  <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
-                    <KeyRound className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                    Passkeys
-                  </div>
-                  <div className="font-mono text-lg font-semibold text-fg">Passwordless sign-in</div>
-                  <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
-                    Register a passkey after signing in, then use biometrics, a device PIN, or a hardware key on the
-                    login page.
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div className="rounded border border-border bg-surface-2 p-3">
-                    <label className="block font-mono text-xs font-semibold text-fg" htmlFor="passkey-name">
-                      New passkey
-                    </label>
-                    <div className="mt-2 flex gap-2 max-sm:flex-col">
-                      <input
-                        id="passkey-name"
-                        value={passkeyName}
-                        onChange={(event) => setPasskeyName(event.currentTarget.value)}
-                        placeholder="This device"
-                        className="h-9 min-w-0 flex-1 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg outline-none transition-colors focus:border-accent"
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-sm"
-                        disabled={passkeyPending}
-                        onClick={addPasskey}
-                      >
-                        {passkeyPending ? 'Waiting...' : 'Add passkey'}
-                      </button>
-                    </div>
-                    {passkeyError ? <div className="mt-3 err-banner">{passkeyError}</div> : null}
-                  </div>
-
-                  <div className="grid gap-2">
-                    {(passkeys.data ?? []).length === 0 ? (
-                      <div className="rounded border border-dashed border-border bg-surface-2 p-3 font-mono text-xs text-fg-dim">
-                        No passkeys registered.
+              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                {colorTheme.themes.map((theme) => {
+                  const selected = theme.id === colorTheme.themeId
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      className={cn(
+                        'group min-h-20 cursor-pointer rounded border border-border bg-surface-2 p-3 text-left transition-[border-color,background-color,box-shadow] duration-150 hover:border-border-strong hover:bg-surface-3',
+                        selected && 'border-accent shadow-[inset_2px_0_0_var(--accent)]',
+                      )}
+                      onClick={() => colorTheme.select(theme.id)}
+                    >
+                      <div className="mb-3 flex items-center gap-1.5">
+                        {(['300', '500', '700'] as const).map((step) => (
+                          <span
+                            key={step}
+                            className="size-3 rounded-pill border border-border"
+                            style={{ background: theme.accent[step] }}
+                          />
+                        ))}
                       </div>
-                    ) : (
-                      (passkeys.data ?? []).map((passkey) => (
-                        <div
-                          key={passkey.id}
-                          className="flex items-center gap-3 rounded border border-border bg-surface-2 p-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate font-mono text-xs font-semibold text-fg">
-                              {passkey.name || 'Unnamed passkey'}
-                            </div>
-                            <div className="mt-1 font-mono text-[10px] text-fg-dim">
-                              {passkey.deviceType} · {passkey.backedUp ? 'synced' : 'device-bound'}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-icon"
-                            onClick={() => deletePasskey(passkey.id)}
-                            aria-label={`Delete ${passkey.name || 'passkey'}`}
-                          >
-                            <Trash2 className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                      <div className="font-mono text-xs font-semibold text-fg">{theme.name}</div>
+                      <div className="mt-1 font-mono text-[10px] text-fg-faint">
+                        {selected ? 'selected' : 'available'}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </SettingsPanel>
+
+          <SettingsPanel title="Security" subtitle="dashboard passkeys">
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div>
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                  <KeyRound className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                  Passkeys
+                </div>
+                <div className="font-mono text-lg font-semibold text-fg">Passwordless sign-in</div>
+                <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                  Register a passkey after signing in, then use biometrics, a device PIN, or a hardware key on the login
+                  page.
                 </div>
               </div>
-            </SettingsPanel>
 
-            <SettingsPanel title="Logging & Privacy" subtitle="global proxy capture policy">
-              <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div>
-                  <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
-                    <ShieldCheck className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-                    Capture policy
-                  </div>
-                  <div className="font-mono text-lg font-semibold text-fg">Request logs</div>
-                  <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
-                    Controls what prompt and response payloads are retained after proxy requests complete.
-                  </div>
-                </div>
-
-                <div className="grid gap-3 xl:grid-cols-2">
-                  <PrivacyToggle
-                    title="Request bodies"
-                    description="Store forwarded request payloads for request detail inspection. Disable to avoid retaining prompts."
-                    enabled={privacy?.captureRequestBodies ?? false}
-                    disabled={!privacy || isPrivacyMutating}
-                    onToggle={() =>
-                      privacy && updatePrivacySettings.mutate({ captureRequestBodies: !privacy.captureRequestBodies })
-                    }
-                  />
-                  <PrivacyToggle
-                    title="Response bodies"
-                    description="Store upstream response payloads for debugging. Token usage scanning continues even when disabled."
-                    enabled={privacy?.captureResponseBodies ?? false}
-                    disabled={!privacy || isPrivacyMutating}
-                    onToggle={() =>
-                      privacy && updatePrivacySettings.mutate({ captureResponseBodies: !privacy.captureResponseBodies })
-                    }
-                  />
-                  <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
-                    <label className="font-mono text-xs font-semibold text-fg" htmlFor="max-stored-body-bytes">
-                      Max stored body bytes
-                    </label>
-                    <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
-                      Truncates persisted request and response bodies. Set to 0 to store no body text.
-                    </span>
-                    <NumberInput
-                      id="max-stored-body-bytes"
-                      min={0}
-                      max={1024 * 1024}
-                      step={1024}
-                      disabled={!privacy || isPrivacyMutating}
-                      className="max-w-48"
-                      value={privacy?.maxStoredBodyBytes ?? ''}
-                      onChange={(event) => {
-                        const value = Number(event.target.value)
-                        if (!Number.isFinite(value) || value < 0) return
-                        updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
-                      }}
+              <div className="grid gap-3">
+                <div className="rounded border border-border bg-surface-2 p-3">
+                  <label className="block font-mono text-xs font-semibold text-fg" htmlFor="passkey-name">
+                    New passkey
+                  </label>
+                  <div className="mt-2 flex gap-2 max-sm:flex-col">
+                    <input
+                      id="passkey-name"
+                      value={passkeyName}
+                      onChange={(event) => setPasskeyName(event.currentTarget.value)}
+                      placeholder="This device"
+                      className="h-9 min-w-0 flex-1 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg outline-none transition-colors focus:border-accent"
                     />
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      disabled={passkeyPending}
+                      onClick={addPasskey}
+                    >
+                      {passkeyPending ? 'Waiting...' : 'Add passkey'}
+                    </button>
                   </div>
+                  {passkeyError ? <div className="mt-3 err-banner">{passkeyError}</div> : null}
+                </div>
+
+                <div className="grid gap-2">
+                  {(passkeys.data ?? []).length === 0 ? (
+                    <div className="rounded border border-dashed border-border bg-surface-2 p-3 font-mono text-xs text-fg-dim">
+                      No passkeys registered.
+                    </div>
+                  ) : (
+                    (passkeys.data ?? []).map((passkey) => (
+                      <div
+                        key={passkey.id}
+                        className="flex items-center gap-3 rounded border border-border bg-surface-2 p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-mono text-xs font-semibold text-fg">
+                            {passkey.name || 'Unnamed passkey'}
+                          </div>
+                          <div className="mt-1 font-mono text-[10px] text-fg-dim">
+                            {passkey.deviceType} · {passkey.backedUp ? 'synced' : 'device-bound'}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-icon"
+                          onClick={() => deletePasskey(passkey.id)}
+                          aria-label={`Delete ${passkey.name || 'passkey'}`}
+                        >
+                          <Trash2 className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
-            </SettingsPanel>
-          </div>
+            </div>
+          </SettingsPanel>
+
+          <SettingsPanel title="Logging & Privacy" subtitle="global proxy capture policy">
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div>
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                  <ShieldCheck className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                  Capture policy
+                </div>
+                <div className="font-mono text-lg font-semibold text-fg">Request logs</div>
+                <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                  Controls what prompt and response payloads are retained after proxy requests complete.
+                </div>
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-2">
+                <PrivacyToggle
+                  title="Request bodies"
+                  description="Store forwarded request payloads for request detail inspection. Disable to avoid retaining prompts."
+                  enabled={privacy?.captureRequestBodies ?? false}
+                  disabled={!privacy || isPrivacyMutating}
+                  onToggle={() =>
+                    privacy && updatePrivacySettings.mutate({ captureRequestBodies: !privacy.captureRequestBodies })
+                  }
+                />
+                <PrivacyToggle
+                  title="Response bodies"
+                  description="Store upstream response payloads for debugging. Token usage scanning continues even when disabled."
+                  enabled={privacy?.captureResponseBodies ?? false}
+                  disabled={!privacy || isPrivacyMutating}
+                  onToggle={() =>
+                    privacy && updatePrivacySettings.mutate({ captureResponseBodies: !privacy.captureResponseBodies })
+                  }
+                />
+                <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
+                  <label className="font-mono text-xs font-semibold text-fg" htmlFor="max-stored-body-bytes">
+                    Max stored body bytes
+                  </label>
+                  <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
+                    Truncates persisted request and response bodies. Set to 0 to store no body text.
+                  </span>
+                  <NumberInput
+                    id="max-stored-body-bytes"
+                    min={0}
+                    max={1024 * 1024}
+                    step={1024}
+                    disabled={!privacy || isPrivacyMutating}
+                    className="max-w-48"
+                    value={privacy?.maxStoredBodyBytes ?? ''}
+                    onChange={(event) => {
+                      const value = Number(event.target.value)
+                      if (!Number.isFinite(value) || value < 0) return
+                      updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </SettingsPanel>
         </div>
       </div>
     </div>

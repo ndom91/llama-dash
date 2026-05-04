@@ -7,6 +7,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { useCallback, useState } from 'react'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
+import { TopBar } from '../components/TopBar'
 import { TooltipProvider } from '../components/Tooltip'
 import { getSession } from '../lib/auth-functions'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
@@ -106,7 +107,10 @@ function AppShell() {
           aria-hidden={!open}
         />
         <Sidebar />
-        <Outlet />
+        <div className="main-col">
+          <TopBar />
+          <Outlet />
+        </div>
       </div>
     </MobileMenuContext>
   )

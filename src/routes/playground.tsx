@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PlaygroundPage } from '../features/playground/PlaygroundPage'
 
-export const Route = createFileRoute('/playground')({ component: PlaygroundRoute })
+export const Route = createFileRoute('/playground')({ ssr: false, component: PlaygroundRoute })
 
 function PlaygroundRoute() {
   const search = Route.useSearch() as { tab?: string }

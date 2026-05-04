@@ -3,11 +3,9 @@ import { routeTree } from './routeTree.gen'
 
 function NotFound() {
   return (
-    <div className="main-col">
-      <div className="content">
-        <div className="page">
-          <div className="empty-state">page not found</div>
-        </div>
+    <div className="content">
+      <div className="page">
+        <div className="empty-state">page not found</div>
       </div>
     </div>
   )

@@ -29,27 +29,6 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
   const title = resolveTitle(leaf)
-  const { data: health } = useHealth()
-  const { data: counts } = useModelCounts()
-  const { data: stats } = useRequestStats()
-
-  const reachable = health?.upstream.reachable === true
-  const version = health?.upstream.reachable === true ? health.upstream.version : null
-  const backendLabel = health?.upstream.backend ?? 'backend'
-
-  const [now, setNow] = useState(() => new Date())
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const versionLabel = mounted && version ? `v${version}` : '—'
-  const runningLabel = mounted ? (counts?.running ?? '—') : '—'
-  const peerLabel = mounted && counts && counts.peers > 0 ? counts.peers : null
-  const reqRateLabel = mounted && stats ? formatRate(stats.reqPerSec) : '—'
-  const timeLabel = mounted ? formatDatetime(now) : '—'
 
   return (
     <header className="bg-surface-1 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
@@ -63,7 +42,36 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       </button>
       <span className="text-[13px] font-medium -tracking-[0.005em]">{title}</span>
       <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
+      <TopBarLiveStats />
+      <div className="ml-auto flex items-center gap-1.5">
+        {actions}
+        <TopBarClock />
+      </div>
+    </header>
+  )
+}
 
+function TopBarLiveStats() {
+  const { data: health } = useHealth()
+  const { data: counts } = useModelCounts()
+  const { data: stats } = useRequestStats()
+
+  const reachable = health?.upstream.reachable === true
+  const version = health?.upstream.reachable === true ? health.upstream.version : null
+  const backendLabel = health?.upstream.backend ?? 'backend'
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const versionLabel = mounted && version ? `v${version}` : '—'
+  const runningLabel = mounted ? (counts?.running ?? '—') : '—'
+  const peerLabel = mounted && counts && counts.peers > 0 ? counts.peers : null
+  const reqRateLabel = mounted && stats ? formatRate(stats.reqPerSec) : '—'
+
+  return (
+    <>
       <Tooltip label={reachable ? `${backendLabel} reachable` : `${backendLabel} unreachable`} side="bottom">
         <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
           <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
@@ -96,12 +104,23 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
           <span className="font-medium text-fg">{reqRateLabel}</span>
         </span>
       </Tooltip>
+    </>
+  )
+}
 
-      <div className="ml-auto flex items-center gap-1.5">
-        {actions}
-        <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">{timeLabel}</span>
-      </div>
-    </header>
+function TopBarClock() {
+  const [now, setNow] = useState(() => new Date())
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">
+      {mounted ? formatDatetime(now) : '—'}
+    </span>
   )
 }
 

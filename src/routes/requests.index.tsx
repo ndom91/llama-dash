@@ -30,6 +30,7 @@ function asEnum<T extends string>(v: unknown, allowed: ReadonlyArray<T>): T | un
 }
 
 export const Route = createFileRoute('/requests/')({
+  ssr: false,
   component: RequestsRoute,
   validateSearch: (search: Record<string, unknown>): RequestsSearch => ({
     q: asString(search.q),

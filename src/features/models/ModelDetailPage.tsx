@@ -1,4 +1,3 @@
-import { TopBar } from '../../components/TopBar'
 import { useModelDetail } from '../../lib/queries'
 import { ModelDetailContent } from './ModelDetailContent'
 import { ModelDetailSkeleton } from './ModelDetailSkeleton'
@@ -11,18 +10,15 @@ export function ModelDetailPage({ id }: Props) {
   const { data, error } = useModelDetail(id)
 
   return (
-    <div className="main-col">
-      <TopBar />
-      <div className="content">
-        <div className="page detail-page detail-page-sidecar min-h-full">
-          {error ? (
-            <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
-          ) : data == null ? (
-            <ModelDetailSkeleton />
-          ) : (
-            <ModelDetailContent data={data} />
-          )}
-        </div>
+    <div className="content">
+      <div className="page detail-page detail-page-sidecar min-h-full">
+        {error ? (
+          <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
+        ) : data == null ? (
+          <ModelDetailSkeleton />
+        ) : (
+          <ModelDetailContent data={data} />
+        )}
       </div>
     </div>
   )
