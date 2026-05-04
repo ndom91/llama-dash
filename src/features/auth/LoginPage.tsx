@@ -228,13 +228,15 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
             >
               <span
                 className={cn(
-                  'size-2.5 rounded-full border transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
-                  colorTheme.themeId === theme.id ? 'border-fg' : 'border-transparent',
+                  'size-2.5 rounded-full transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
+                  colorTheme.themeId === theme.id &&
+                    'scale-115 shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring)] group-hover:shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring),0_0_6px_0.5px_var(--theme-glow)]',
                 )}
                 style={
                   {
                     backgroundColor: theme.accent['500'],
                     '--theme-glow': `${theme.accent['500']}40`,
+                    '--theme-ring': theme.accent['500'],
                   } as React.CSSProperties
                 }
               />
