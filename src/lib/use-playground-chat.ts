@@ -1,5 +1,4 @@
 import { useCallback, useRef, useState } from 'react'
-import { countTokens } from 'gpt-tokenizer'
 import { type ChatMessage, type MessageMetrics, type StreamEvent, streamChatCompletion } from './stream-chat'
 import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
@@ -40,11 +39,15 @@ function msgId() {
   return `msg_${Date.now()}_${nextId++}`
 }
 
-function estimatePromptTokens(messages: Array<{ role: string; content: string }>) {
-  // `gpt-tokenizer` needs an OpenAI chat model to count structured chat
-  // messages. Our playground models are arbitrary llama.cpp / peer IDs, so
-  // fall back to counting the flattened prompt text as a stable estimate.
-  return countTokens(messages.map((message) => message.content).join('\n\n'))
+async function estimatePromptTokens(messages: Array<{ role: string; content: string }>) {
+  const res = await fetch('/api/playground/count-tokens', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: messages.map((message) => message.content).join('\n\n') }),
+  })
+  if (!res.ok) return 0
+  const body = (await res.json().catch(() => null)) as { tokens?: unknown } | null
+  return typeof body?.tokens === 'number' ? body.tokens : 0
 }
 
 export function usePlaygroundChat() {
@@ -151,7 +154,7 @@ export function usePlaygroundChat() {
 
       try {
         const apiMsgs = buildApiMessages(msgs)
-        estimatedPromptTokens = estimatePromptTokens(apiMsgs)
+        estimatedPromptTokens = await estimatePromptTokens(apiMsgs)
         const activeModel = models?.find((item) => item.id === model)
         const includeTimings = activeModel?.kind !== 'peer'
         const apiKey = await loadApiKey()

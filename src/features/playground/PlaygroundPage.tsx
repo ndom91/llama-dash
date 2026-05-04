@@ -1,13 +1,16 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useCallback } from 'react'
+import { Suspense, lazy, useCallback } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
 import { usePlaygroundChat } from '../../lib/use-playground-chat'
-import { PlaygroundChatTab } from './PlaygroundChatTab'
-import { PlaygroundImage } from './PlaygroundImage'
-import { PlaygroundSpeech } from './PlaygroundSpeech'
 import { PLAYGROUND_TABS, type PlaygroundTab, isPlaygroundTab } from './playground-tabs'
-import { PlaygroundTranscribe } from './PlaygroundTranscribe'
+
+const PlaygroundChatTab = lazy(() => import('./PlaygroundChatTab').then((mod) => ({ default: mod.PlaygroundChatTab })))
+const PlaygroundImage = lazy(() => import('./PlaygroundImage').then((mod) => ({ default: mod.PlaygroundImage })))
+const PlaygroundSpeech = lazy(() => import('./PlaygroundSpeech').then((mod) => ({ default: mod.PlaygroundSpeech })))
+const PlaygroundTranscribe = lazy(() =>
+  import('./PlaygroundTranscribe').then((mod) => ({ default: mod.PlaygroundTranscribe })),
+)
 
 type Props = {
   searchTab?: string
@@ -49,11 +52,21 @@ export function PlaygroundPage({ searchTab }: Props) {
           ariaLabel="Playground modes"
         />
 
-        {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
-        {tab === 'image' ? <PlaygroundImage /> : null}
-        {tab === 'speech' ? <PlaygroundSpeech /> : null}
-        {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
+        <Suspense fallback={<PlaygroundTabPending label={tab} />}>
+          {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
+          {tab === 'image' ? <PlaygroundImage /> : null}
+          {tab === 'speech' ? <PlaygroundSpeech /> : null}
+          {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
+        </Suspense>
       </div>
+    </div>
+  )
+}
+
+function PlaygroundTabPending({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center bg-surface-1 p-6">
+      <div className="font-mono text-xs text-fg-dim">loading {label} workspace...</div>
     </div>
   )
 }

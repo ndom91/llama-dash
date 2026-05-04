@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { countTokens } from 'gpt-tokenizer'
 import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../../lib/schemas/api-key.ts'
 import {
   createApiKey,
@@ -100,6 +101,18 @@ export const keyRoutes: Route[] = [
       const raw = getSystemKeyRaw()
       if (!raw) return error(500, 'System key not available')
       return json(200, { key: raw })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/playground\/count-tokens$/,
+    handler: async (request) => {
+      const parsed = await readJsonBody(request)
+      if (!parsed.ok) return error(400, 'Invalid JSON body')
+      const text =
+        typeof parsed.value === 'object' && parsed.value !== null ? (parsed.value as { text?: unknown }).text : null
+      if (typeof text !== 'string') return error(400, 'Body must have "text" (string)')
+      return json(200, { tokens: countTokens(text) })
     },
   },
 ]
