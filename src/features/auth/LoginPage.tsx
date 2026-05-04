@@ -141,8 +141,12 @@ export function LoginPage() {
             />
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
-            <span>llama-dash · {commit}</span>
-            <span>press ↵</span>
+            <span>
+              llama-dash · <span className="text-accent">{commit}</span>
+            </span>
+            <span>
+              press <span className="text-accent">↵</span>
+            </span>
             <span>docs</span>
           </div>
         </div>
@@ -156,6 +160,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
   const colorTheme = useColorTheme()
   const [themeMode, setThemeMode] = useState<LoginThemeMode>('dark')
   const uptime = data?.uptimeLabel ?? 'checking runtime'
+  const uptimeParts = splitUptimeLabel(uptime)
   const commit = data?.commitLabel ?? 'unknown'
   const tls = data?.tlsLabel ?? 'checking tls'
 
@@ -179,7 +184,14 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
           <span className={cn('size-1.5 shrink-0 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
           <span className="truncate text-sm text-fg">{dashHost}</span>
           <span className="hidden text-[10px] text-fg-dim min-[420px]:inline">
-            {mode === 'sign-up' ? 'first run' : uptime}
+            {mode === 'sign-up' ? (
+              'first run'
+            ) : (
+              <>
+                {uptimeParts.prefix}
+                <span className="text-accent">{uptimeParts.value}</span>
+              </>
+            )}
           </span>
         </div>
       </div>
@@ -190,7 +202,16 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
           <span className={cn('size-1.5 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
           <span className="size-1.5 rounded-full bg-fg-dim" />
-          <span>{mode === 'sign-up' ? 'awaiting first operator' : uptime}</span>
+          <span>
+            {mode === 'sign-up' ? (
+              'awaiting first operator'
+            ) : (
+              <>
+                {uptimeParts.prefix}
+                <span className="text-accent">{uptimeParts.value}</span>
+              </>
+            )}
+          </span>
         </div>
       </div>
 
@@ -239,6 +260,12 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
 }
 
 type LoginThemeMode = 'light' | 'dark'
+
+function splitUptimeLabel(label: string): { prefix: string; value: string } {
+  const idx = label.lastIndexOf(' · ')
+  if (idx === -1) return { prefix: '', value: label }
+  return { prefix: label.slice(0, idx + 3), value: label.slice(idx + 3) }
+}
 
 function getInitialThemeMode(): LoginThemeMode {
   if (typeof window === 'undefined') return 'dark'
