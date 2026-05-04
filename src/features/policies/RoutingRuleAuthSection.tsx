@@ -1,7 +1,7 @@
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { setAuthMode, togglePreserveAuthorization } from './routing-draft'
-import { segmentedSelectedClass } from './routing-ui'
+import { SegmentedControl } from './routing-ui'
 
 export function RoutingRuleAuthSection({
   draft,
@@ -18,24 +18,14 @@ export function RoutingRuleAuthSection({
           · request authentication
         </span>
       </div>
-      <div className="grid grid-cols-2 overflow-hidden rounded border border-border bg-surface-3 text-xs font-mono">
-        {[
-          ['require_key', 'require llama-dash key'],
-          ['passthrough', 'passthrough auth'],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => onChange(setAuthMode(draft, value === 'passthrough' ? 'passthrough' : 'require_key'))}
-            className={cn(
-              'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-              draft.authMode === value && segmentedSelectedClass,
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        options={[
+          { value: 'require_key', label: 'require llama-dash key' },
+          { value: 'passthrough', label: 'passthrough auth' },
+        ]}
+        value={draft.authMode}
+        onChange={(value) => onChange(setAuthMode(draft, value))}
+      />
 
       {draft.authMode === 'passthrough' ? (
         <div className="mt-3 space-y-3">

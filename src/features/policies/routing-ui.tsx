@@ -7,7 +7,54 @@ export type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
 export type RoutingActionType = 'rewrite_model' | 'reject' | 'continue'
 
 export const segmentedSelectedClass =
-  'm-0.5 rounded-sm bg-accent/15 text-accent shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--accent)_55%,transparent)]'
+  'relative z-10 text-fg transition-colors duration-150 hover:bg-accent/10 hover:text-fg'
+
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+  columns,
+}: {
+  options: Array<{ value: T; label: string }>
+  value: T
+  onChange: (value: T) => void
+  columns?: number
+}) {
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((option) => option.value === value),
+  )
+  const count = columns ?? options.length
+
+  return (
+    <div
+      className="relative grid overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs"
+      style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
+    >
+      <span
+        className="pointer-events-none absolute top-0.5 bottom-0.5 rounded-sm border border-accent/75 bg-accent/15 transition-transform duration-150 ease-out"
+        style={{
+          width: `calc((100% - 12px) / ${count})`,
+          transform: `translateX(calc(${activeIndex * 100}% + 6px))`,
+        }}
+        aria-hidden="true"
+      />
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'relative px-3 py-2 text-fg transition-colors hover:bg-surface-2/70 focus-visible:outline-none focus-visible:shadow-focus',
+            value === option.value && segmentedSelectedClass,
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function IconButton({
   icon,

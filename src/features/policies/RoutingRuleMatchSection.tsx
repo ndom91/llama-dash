@@ -1,8 +1,7 @@
 import { NumberInput } from '../../components/NumberInput'
 import type { RoutingRule } from '../../lib/api'
-import { cn } from '../../lib/cn'
 import { addMatchValue, asStreamMode, removeMatchValue, setMatchField } from './routing-draft'
-import { segmentedSelectedClass, TokenInput } from './routing-ui'
+import { SegmentedControl, TokenInput } from './routing-ui'
 
 export function RoutingRuleMatchSection({
   draft,
@@ -61,25 +60,15 @@ export function RoutingRuleMatchSection({
 
         <div className="space-y-1.5">
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Stream</div>
-          <div className="grid grid-cols-3 overflow-hidden rounded border border-border bg-surface-3 text-xs font-mono">
-            {[
-              ['any', 'any'],
-              ['stream', 'stream only'],
-              ['non_stream', 'non-stream only'],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => onChange(setMatchField(draft, 'stream', asStreamMode(value)))}
-                className={cn(
-                  'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-                  draft.match.stream === value && segmentedSelectedClass,
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            options={[
+              { value: 'any', label: 'any' },
+              { value: 'stream', label: 'stream only' },
+              { value: 'non_stream', label: 'non-stream only' },
+            ]}
+            value={draft.match.stream}
+            onChange={(value) => onChange(setMatchField(draft, 'stream', asStreamMode(value)))}
+          />
         </div>
 
         <div className="space-y-1.5">

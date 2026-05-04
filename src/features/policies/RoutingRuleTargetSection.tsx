@@ -1,7 +1,6 @@
 import type { RoutingRule } from '../../lib/api'
-import { cn } from '../../lib/cn'
 import { setDirectTargetBaseUrl, setTargetType } from './routing-draft'
-import { segmentedSelectedClass } from './routing-ui'
+import { SegmentedControl } from './routing-ui'
 
 export function RoutingRuleTargetSection({
   draft,
@@ -16,24 +15,14 @@ export function RoutingRuleTargetSection({
         <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-accent">Target</span>
         <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">· upstream destination</span>
       </div>
-      <div className="grid grid-cols-2 overflow-hidden rounded border border-border bg-surface-3 text-xs font-mono">
-        {[
-          ['llama_swap', 'llama-swap'],
-          ['direct', 'direct upstream'],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => onChange(setTargetType(draft, value === 'direct' ? 'direct' : 'llama_swap'))}
-            className={cn(
-              'border-r border-border px-3 py-2 text-fg-dim transition-colors last:border-r-0 hover:bg-surface-2 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-              draft.target.type === value && segmentedSelectedClass,
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        options={[
+          { value: 'llama_swap', label: 'llama-swap' },
+          { value: 'direct', label: 'direct upstream' },
+        ]}
+        value={draft.target.type}
+        onChange={(value) => onChange(setTargetType(draft, value))}
+      />
 
       {draft.target.type === 'direct' ? (
         <div className="mt-3 space-y-3">
