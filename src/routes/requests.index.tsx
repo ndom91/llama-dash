@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { RoutePending } from '../components/RoutePending'
 import { RequestsPage } from '../features/requests/RequestsPage'
 import type { RoutingFilter, SortDir, SortKey, StatusFilter } from '../features/requests/requestsListUtils'
 
@@ -32,6 +33,7 @@ function asEnum<T extends string>(v: unknown, allowed: ReadonlyArray<T>): T | un
 export const Route = createFileRoute('/requests/')({
   ssr: false,
   component: RequestsRoute,
+  pendingComponent: () => <RoutePending title="Request log" />,
   validateSearch: (search: Record<string, unknown>): RequestsSearch => ({
     q: asString(search.q),
     status: asEnum(search.status, STATUS_VALUES),
