@@ -1,8 +1,9 @@
-import { Check, ChevronRight, Copy, GitBranch, Pencil, RefreshCw } from 'lucide-react'
+import { ChevronRight, GitBranch, Pencil, RefreshCw } from 'lucide-react'
 import { type FormEvent, useCallback, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
+import { CopyButton } from '../../components/CopyButton'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import type { ChatMessage } from '../../lib/stream-chat'
@@ -30,7 +31,6 @@ export function PlaygroundMessage({
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
-  const [copied, setCopied] = useState(false)
   const [reasoningOpen, setReasoningOpen] = useState(false)
 
   const startEdit = useCallback(() => {
@@ -47,12 +47,6 @@ export function PlaygroundMessage({
     },
     [editValue, index, onEdit],
   )
-
-  const copyContent = useCallback(async () => {
-    await navigator.clipboard.writeText(message.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }, [message.content])
 
   const isAssistant = message.role === 'assistant'
   const showActions = !isStreaming || !isLast
@@ -150,17 +144,7 @@ export function PlaygroundMessage({
           <span>{metrics.tokOut != null ? `${metrics.tokOut} out` : '—'}</span>
           <span className="min-w-2" />
           <Tooltip label="Copy">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
-              onClick={copyContent}
-            >
-              <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
-                <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
-              </span>
-              copy
-            </button>
+            <CopyButton text={message.content} />
           </Tooltip>
           <Tooltip label="Regenerate">
             <button
@@ -197,16 +181,7 @@ export function PlaygroundMessage({
             </button>
           </Tooltip>
           <Tooltip label="Copy">
-            <button
-              type="button"
-              className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
-              onClick={copyContent}
-            >
-              <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
-                <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
-              </span>
-            </button>
+            <CopyButton text={message.content} variant="icon" ariaLabel="Copy message" />
           </Tooltip>
         </div>
       ) : null}

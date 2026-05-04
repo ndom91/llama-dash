@@ -1,5 +1,5 @@
-import { Check, Clipboard } from 'lucide-react'
-import { useDeferredValue, useMemo, useState } from 'react'
+import { useDeferredValue, useMemo } from 'react'
+import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import type { ParsedSseStream } from './requestDetailUtils'
 import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
@@ -16,7 +16,6 @@ type Props = {
 }
 
 export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseStream = null }: Props) {
-  const [copied, setCopied] = useState(false)
   const hasBody = body.trim().length > 0
   const deferredBody = useDeferredValue(body)
   const deferredHeaders = useDeferredValue(headers)
@@ -37,25 +36,13 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
   const usesCustomPrettyBody = pretty != null
 
-  const onCopy = () => {
-    navigator.clipboard.writeText(body)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
   return (
     <section className="request-payload-pane flex min-h-0 h-full flex-col border-r border-border last:border-r-0">
       <div className="flex min-h-10 items-center gap-2.5 border-b border-border bg-surface-1 px-4">
         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">{title}</span>
         <span className="panel-sub">{subtitle}</span>
         <div className="ml-auto" />
-        <button type="button" className="btn btn-ghost btn-xs" onClick={onCopy} aria-label={`Copy ${title} payload`}>
-          <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-            <Clipboard className="copy-icon-swap-from icon-btn-12" strokeWidth={2} aria-hidden="true" />
-            <Check className="copy-icon-swap-to icon-btn-12" strokeWidth={2} aria-hidden="true" />
-          </span>
-          {copied ? 'copied' : 'copy'}
-        </button>
+        <CopyButton text={body} variant="button" icon="clipboard" ariaLabel={`Copy ${title} payload`} />
       </div>
       {hasBody ? (
         usesCustomPrettyBody ? (

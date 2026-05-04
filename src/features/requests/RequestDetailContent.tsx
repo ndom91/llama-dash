@@ -1,7 +1,8 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, LoaderCircle, RotateCw } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
@@ -43,7 +44,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           ? '!text-ok'
           : '!text-fg-muted'
   const navigate = useNavigate()
-  const [copiedCurl, setCopiedCurl] = useState(false)
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
@@ -179,17 +179,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               <RotateCw className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
               replay
             </button>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs"
-              onClick={() => {
-                navigator.clipboard.writeText(curlCommand)
-                setCopiedCurl(true)
-                setTimeout(() => setCopiedCurl(false), 1500)
-              }}
-            >
-              {copiedCurl ? 'copied' : 'copy curl'}
-            </button>
+            <CopyButton text={curlCommand} label="copy curl" variant="button" />
           </div>
         }
       />
@@ -546,9 +536,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <Link to="/playground" className="btn btn-sm">
               Open in Playground
             </Link>
-            <button type="button" className="btn btn-sm" onClick={() => navigator.clipboard.writeText(curlCommand)}>
-              Copy as curl
-            </button>
+            <CopyButton text={curlCommand} label="Copy as curl" variant="button" className="btn-sm" />
             <button type="button" className="btn btn-sm" disabled>
               Download .jsonl
             </button>

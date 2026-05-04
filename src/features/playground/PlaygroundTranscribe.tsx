@@ -1,5 +1,6 @@
-import { Check, Copy, FileAudio, Loader2, Mic, Replace, Upload } from 'lucide-react'
+import { FileAudio, Loader2, Mic, Replace, Upload } from 'lucide-react'
 import { type DragEvent, useCallback, useRef, useState } from 'react'
+import { CopyButton } from '../../components/CopyButton'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import { useModels } from '../../lib/queries'
@@ -12,7 +13,6 @@ export function PlaygroundTranscribe() {
   const peerModels = models?.filter((m) => m.kind === 'peer') ?? []
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
-  const [copied, setCopied] = useState(false)
   const transcriptRows = (tx.transcriptData?.segments ?? []).map((segment, index) => ({
     id: segment.id != null ? `segment-${segment.id}` : `segment-${index}`,
     start: typeof segment.start === 'number' ? formatSegmentTime(segment.start) : '—',
@@ -38,13 +38,6 @@ export function PlaygroundTranscribe() {
     },
     [tx.setFile],
   )
-
-  const copyTranscript = useCallback(async () => {
-    if (!tx.transcript) return
-    await navigator.clipboard.writeText(tx.transcript)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }, [tx.transcript])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -177,16 +170,7 @@ export function PlaygroundTranscribe() {
               ))}
               <div className="flex justify-end border-t border-border px-3 py-2.5">
                 <Tooltip label="Copy">
-                  <button
-                    type="button"
-                    className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
-                    onClick={copyTranscript}
-                  >
-                    <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                      <Copy className="copy-icon-swap-from icon-12" strokeWidth={2} />
-                      <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} />
-                    </span>
-                  </button>
+                  <CopyButton text={tx.transcript ?? ''} variant="icon" ariaLabel="Copy transcript" />
                 </Tooltip>
               </div>
             </div>
