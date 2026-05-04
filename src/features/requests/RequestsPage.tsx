@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { RequestsSearch } from '../../routes/requests.index'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
+import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
@@ -261,6 +262,10 @@ export function RequestsPage() {
     endUserFilter !== '' ||
     sessionFilter !== ''
 
+  if (error) {
+    return <RouteError kicker="dsh · requests" title="Failed to load requests" message={error.message} />
+  }
+
   return (
     <div className="content">
       <div className="page flex min-h-full flex-1">
@@ -285,8 +290,6 @@ export function RequestsPage() {
             </div>
           }
         />
-
-        {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
         {isLoading ? (
           <RequestsPageSkeleton />

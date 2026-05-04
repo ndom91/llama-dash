@@ -1,6 +1,7 @@
 import { RefreshCw, PowerOff } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
+import { RouteError } from '../../components/RouteError'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import { useLoadModel, useModels, useUnloadAll, useUnloadModel } from '../../lib/queries'
@@ -14,6 +15,10 @@ export function ModelsPage() {
   const unloadAll = useUnloadAll()
 
   const hasRunning = useMemo(() => models?.some((m) => m.running) ?? false, [models])
+
+  if (error) {
+    return <RouteError kicker="dsh · models" title="Failed to load models" message={error.message} />
+  }
 
   return (
     <div className="content">
@@ -54,8 +59,6 @@ export function ModelsPage() {
             </div>
           }
         />
-
-        {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
 
         <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
           {models == null ? (

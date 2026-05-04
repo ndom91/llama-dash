@@ -1,3 +1,4 @@
+import { RouteError } from '../../components/RouteError'
 import { useKeyDetail } from '../../lib/queries'
 import { KeyDetailContent } from './KeyDetailContent'
 import { KeyDetailSkeleton } from './KeyDetailSkeleton'
@@ -9,16 +10,14 @@ type Props = {
 export function KeyDetailPage({ id }: Props) {
   const { data, error } = useKeyDetail(id)
 
+  if (error) {
+    return <RouteError kicker="dsh · keys" title="Failed to load API key" message={error.message} />
+  }
+
   return (
     <div className="content">
       <div className="page detail-page detail-page-sidecar min-h-full">
-        {error ? (
-          <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
-        ) : data == null ? (
-          <KeyDetailSkeleton />
-        ) : (
-          <KeyDetailContent data={data} />
-        )}
+        {data == null ? <KeyDetailSkeleton /> : <KeyDetailContent data={data} />}
       </div>
     </div>
   )

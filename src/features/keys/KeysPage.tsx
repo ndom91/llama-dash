@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
+import { RouteError } from '../../components/RouteError'
 import type { ApiKeyCreated } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useApiKeys } from '../../lib/queries'
@@ -14,6 +15,10 @@ export function KeysPage() {
   const { data: keys, error, isLoading } = useApiKeys()
   const [showCreate, setShowCreate] = useState(false)
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
+
+  if (error) {
+    return <RouteError kicker="dsh · keys" title="Failed to load API keys" message={error.message} />
+  }
 
   return (
     <div className="content">
@@ -31,7 +36,6 @@ export function KeysPage() {
           }
         />
 
-        {error ? <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div> : null}
         {created ? <KeyCreatedBanner created={created} onDismiss={() => setCreated(null)} /> : null}
         {showCreate ? (
           <CreateKeyForm

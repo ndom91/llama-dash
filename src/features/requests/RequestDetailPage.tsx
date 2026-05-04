@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { RouteError } from '../../components/RouteError'
 import { api } from '../../lib/api'
 import { qk, useRequest } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
@@ -40,12 +41,14 @@ export function RequestDetailPage({ id }: Props) {
     prefetch(nextId)
   }, [nextId, prevId, qc, req])
 
+  if (error) {
+    return <RouteError kicker="dsh · requests" title="Failed to load request" message={error.message} />
+  }
+
   return (
     <div className="content">
       <div className="page min-h-full">
-        {error ? (
-          <div className="err-banner mx-6 mt-3 max-md:mx-3">{error.message}</div>
-        ) : req == null ? (
+        {req == null ? (
           <RequestDetailSkeleton />
         ) : (
           <>

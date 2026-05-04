@@ -126,13 +126,7 @@ export function ConfigPage() {
   }, [doSave])
 
   if (loadState.status === 'error') {
-    return (
-      <RouteError
-        kicker="dsh · config"
-        title="Failed to load configuration"
-        message={loadState.message}
-      />
-    )
+    return <RouteError kicker="dsh · config" title="Failed to load configuration" message={loadState.message} />
   }
 
   return (
