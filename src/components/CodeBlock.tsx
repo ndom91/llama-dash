@@ -7,6 +7,7 @@ import yaml from 'highlight.js/lib/languages/yaml'
 import { Check, Copy, FileCode2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { cn } from '../lib/cn'
+import { Tooltip } from './Tooltip'
 
 hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('json', json)
@@ -83,16 +84,17 @@ export function CodeBlock({ text, title, filename, lang }: Props) {
 
 function CopyButton({ copied, className, onClick }: { copied: boolean; className?: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className={cn(
-        'cursor-pointer rounded border-border p-1 text-fg-muted hover:bg-surface-4 hover:text-fg',
-        className,
-      )}
-      onClick={onClick}
-      title="Copy to clipboard"
-    >
-      {copied ? <Check size={13} strokeWidth={2} className="text-ok" /> : <Copy size={13} strokeWidth={2} />}
-    </button>
+    <Tooltip label={copied ? 'Copied' : 'Copy to clipboard'} side="left">
+      <button
+        type="button"
+        className={cn(
+          'cursor-pointer rounded border-border p-1 text-fg-muted transition-[background-color,color,transform,opacity] duration-120 active:scale-[0.97] hover:bg-surface-4 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+          className,
+        )}
+        onClick={onClick}
+      >
+        {copied ? <Check size={13} strokeWidth={2} className="text-ok" /> : <Copy size={13} strokeWidth={2} />}
+      </button>
+    </Tooltip>
   )
 }

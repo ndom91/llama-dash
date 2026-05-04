@@ -1,4 +1,5 @@
 import { StatusDot } from './StatusDot'
+import { Tooltip } from './Tooltip'
 
 /** Request-row status cell: HTTP code + optional SSE indicator. */
 export function StatusCell({ code, streamed }: { code: number; streamed: boolean }) {
@@ -10,9 +11,9 @@ export function StatusCell({ code, streamed }: { code: number; streamed: boolean
         {code}
       </span>
       {streamed ? (
-        <abbr className="mono tabular-nums text-[10px] text-fg-dim no-underline" title="Server-sent events">
-          SSE
-        </abbr>
+        <Tooltip label="Server-sent events" side="top">
+          <abbr className="mono tabular-nums text-[10px] text-fg-dim no-underline">SSE</abbr>
+        </Tooltip>
       ) : null}
     </span>
   )

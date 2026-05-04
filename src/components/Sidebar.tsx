@@ -272,9 +272,9 @@ export function Sidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">signed in</div>
-            <div className="truncate font-mono text-xs text-fg" title={session?.user.email ?? undefined}>
-              {session?.user.email ?? 'dashboard user'}
-            </div>
+            <Tooltip label={session?.user.email ?? 'dashboard user'} side="top" align="start">
+              <div className="truncate font-mono text-xs text-fg">{session?.user.email ?? 'dashboard user'}</div>
+            </Tooltip>
           </div>
           <Tooltip label="Signout">
             <button type="button" className="btn btn-ghost btn-icon" onClick={signOut} aria-label="Signout">

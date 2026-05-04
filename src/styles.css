@@ -45,11 +45,11 @@
 
   --animate-pulse-ok: pulse-ok 1.6s ease-in-out infinite;
   --animate-pulse-warn: pulse-warn 1.2s ease-in-out infinite;
-  --animate-tooltip-in: tooltip-in 120ms ease-out;
+  --animate-tooltip-in: tooltip-in 120ms var(--ease-out);
   --animate-skel-pulse: skel-pulse 1.5s ease-in-out infinite;
   --animate-pg-pulse: pg-pulse 1s ease-in-out infinite;
-  --animate-ticker-out: ticker-out 300ms ease-in forwards;
-  --animate-ticker-in: ticker-in 300ms ease-out;
+  --animate-ticker-out: ticker-out 300ms var(--ease-in-out) forwards;
+  --animate-ticker-in: ticker-in 300ms var(--ease-out);
 }
 
 @layer components {
@@ -65,7 +65,8 @@
   }
   .btn {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
-    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease,
+    transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease,
+      color var(--duration-normal) ease,
       transform var(--duration-normal) var(--ease-out-micro);
   }
   .btn:hover:not(:disabled) {
@@ -282,6 +283,7 @@
   --ease-out-micro: cubic-bezier(0.22, 0.61, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-linear: linear;
   --duration-micro: 100ms;
   --duration-normal: 150ms;
   --duration-slow: 250ms;

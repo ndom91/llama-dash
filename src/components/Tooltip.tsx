@@ -6,7 +6,11 @@ import type { ReactNode } from 'react'
  * tooltips hide when one becomes visible (radix handles this for us).
  */
 export function TooltipProvider({ children }: { children: ReactNode }) {
-  return <RTooltip.Provider delayDuration={250}>{children}</RTooltip.Provider>
+  return (
+    <RTooltip.Provider delayDuration={180} skipDelayDuration={350}>
+      {children}
+    </RTooltip.Provider>
+  )
 }
 
 type TooltipProps = {

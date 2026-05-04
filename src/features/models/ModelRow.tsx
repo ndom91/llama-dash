@@ -1,6 +1,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Play, Power } from 'lucide-react'
 import { StatusDot, stateTone } from '../../components/StatusDot'
+import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/api'
 
 type Props = {
@@ -46,41 +47,47 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
       <td className="num hide-mobile">
         {model.kind === 'local' ? (
           loading ? (
-            <button type="button" className="btn btn-xs" disabled title={`Loading ${model.id}`}>
-              <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              loading…
-            </button>
+            <Tooltip label={`Loading ${model.id}`} side="left">
+              <button type="button" className="btn btn-xs" disabled>
+                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                loading…
+              </button>
+            </Tooltip>
           ) : unloading ? (
-            <button type="button" className="btn btn-xs" disabled title={`Unloading ${model.id}`}>
-              <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              unloading…
-            </button>
+            <Tooltip label={`Unloading ${model.id}`} side="left">
+              <button type="button" className="btn btn-xs" disabled>
+                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                unloading…
+              </button>
+            </Tooltip>
           ) : model.running ? (
-            <button
-              type="button"
-              className="btn btn-xs"
-              onClick={(e) => {
-                e.stopPropagation()
-                onUnload()
-              }}
-              title={`Unload ${model.id}`}
-            >
-              <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              unload
-            </button>
+            <Tooltip label={`Unload ${model.id}`} side="left">
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onUnload()
+                }}
+              >
+                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                unload
+              </button>
+            </Tooltip>
           ) : (
-            <button
-              type="button"
-              className="btn btn-xs"
-              onClick={(e) => {
-                e.stopPropagation()
-                onLoad()
-              }}
-              title={`Load ${model.id}`}
-            >
-              <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-              load
-            </button>
+            <Tooltip label={`Load ${model.id}`} side="left">
+              <button
+                type="button"
+                className="btn btn-xs"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onLoad()
+                }}
+              >
+                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                load
+              </button>
+            </Tooltip>
           )
         ) : (
           <span className="mono dim" style={{ fontSize: 11 }}>

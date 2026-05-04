@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
+import { Tooltip } from './Tooltip'
 
 function resolveTitle(pathname: string): string {
   const normalized = pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
@@ -63,41 +64,38 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       <span className="text-[13px] font-medium -tracking-[0.005em]">{title}</span>
       <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
 
-      <span
-        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
-        title={reachable ? `${backendLabel} reachable` : `${backendLabel} unreachable`}
-      >
-        <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
-        <span>upstream</span>
-        <span className="text-fg font-medium" translate="no">
-          {versionLabel}
+      <Tooltip label={reachable ? `${backendLabel} reachable` : `${backendLabel} unreachable`} side="bottom">
+        <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
+          <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
+          <span>upstream</span>
+          <span className="font-medium text-fg" translate="no">
+            {versionLabel}
+          </span>
         </span>
-      </span>
+      </Tooltip>
 
-      <span
-        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
-        title="Currently loaded models"
-      >
-        <span>running</span>
-        <span className="text-fg font-medium">{runningLabel}</span>
-        {peerLabel != null ? (
-          <>
-            <span className="text-fg-faint -mx-0.5" aria-hidden="true">
-              ·
-            </span>
-            <span>peer</span>
-            <span className="text-fg font-medium">{peerLabel}</span>
-          </>
-        ) : null}
-      </span>
+      <Tooltip label="Currently loaded models" side="bottom">
+        <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
+          <span>running</span>
+          <span className="font-medium text-fg">{runningLabel}</span>
+          {peerLabel != null ? (
+            <>
+              <span className="-mx-0.5 text-fg-faint" aria-hidden="true">
+                ·
+              </span>
+              <span>peer</span>
+              <span className="font-medium text-fg">{peerLabel}</span>
+            </>
+          ) : null}
+        </span>
+      </Tooltip>
 
-      <span
-        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-sm font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden"
-        title="Requests per second (1 min)"
-      >
-        <span>req/s</span>
-        <span className="text-fg font-medium">{reqRateLabel}</span>
-      </span>
+      <Tooltip label="Requests per second (1 min)" side="bottom">
+        <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
+          <span>req/s</span>
+          <span className="font-medium text-fg">{reqRateLabel}</span>
+        </span>
+      </Tooltip>
 
       <div className="ml-auto flex items-center gap-1.5">
         {actions}

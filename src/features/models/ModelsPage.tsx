@@ -45,16 +45,17 @@ export function ModelsPage() {
             subtitle="available models and their current state"
             variant="integrated"
             action={
-              <button
-                type="button"
-                className="btn btn-danger-ghost btn-xs"
-                onClick={() => unloadAll.mutate()}
-                disabled={!hasRunning || unloadAll.isPending}
-                title="Unload every running model"
-              >
-                <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                {unloadAll.isPending ? 'unloading…' : 'unload all'}
-              </button>
+              <Tooltip label="Unload every running model" side="left">
+                <button
+                  type="button"
+                  className="btn btn-danger-ghost btn-xs"
+                  onClick={() => unloadAll.mutate()}
+                  disabled={!hasRunning || unloadAll.isPending}
+                >
+                  <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  {unloadAll.isPending ? 'unloading…' : 'unload all'}
+                </button>
+              </Tooltip>
             }
           />
 
