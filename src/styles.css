@@ -109,7 +109,7 @@
     @apply bg-err-bg text-err border-transparent;
   }
   .btn-xs {
-    @apply py-1 px-2 text-[11px];
+    @apply h-7 py-1 px-2 text-[11px];
   }
   .btn-sm {
     @apply py-1 px-2 text-[12px];
