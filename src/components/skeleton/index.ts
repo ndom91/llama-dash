@@ -1,4 +1,4 @@
-export { RouteConfigSkeleton } from './ConfigPending'
-export { RouteLogsSkeleton } from './LogsPending'
-export { RoutePlaygroundSkeleton } from './PlaygroundPending'
-export { RouteRequestsSkeleton } from './RequestsPending'
+export { RouteConfigSkeleton } from './RouteConfigSkeleton'
+export { RouteLogsSkeleton } from './RouteLogsSkeleton'
+export { RoutePlaygroundSkeleton } from './RoutePlaygroundSkeleton'
+export { RouteRequestsSkeleton } from './RouteRequestsSkeleton'
