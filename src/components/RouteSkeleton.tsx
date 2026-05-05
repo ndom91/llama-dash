@@ -1,7 +1,4 @@
-import { ConfigPending } from './skeleton/ConfigPending'
-import { LogsPending } from './skeleton/LogsPending'
-import { PlaygroundPending } from './skeleton/PlaygroundPending'
-import { RequestsPending } from './skeleton/RequestsPending'
+import { RouteConfigSkeleton, RouteLogsSkeleton, RoutePlaygroundSkeleton, RouteRequestsSkeleton } from './skeleton'
 
 type RouteSkeletonVariant = 'requests' | 'playground' | 'logs' | 'config'
 
@@ -10,8 +7,8 @@ type RouteSkeletonProps = {
 }
 
 export function RouteSkeleton({ variant }: RouteSkeletonProps) {
-  if (variant === 'requests') return <RequestsPending />
-  if (variant === 'logs') return <LogsPending />
-  if (variant === 'config') return <ConfigPending />
-  return <PlaygroundPending />
+  if (variant === 'requests') return <RouteRequestsSkeleton />
+  if (variant === 'logs') return <RouteLogsSkeleton />
+  if (variant === 'config') return <RouteConfigSkeleton />
+  return <RoutePlaygroundSkeleton />
 }

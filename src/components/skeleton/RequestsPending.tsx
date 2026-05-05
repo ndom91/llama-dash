@@ -1,8 +1,8 @@
-import { PageHeaderSkeleton, SkeletonPageFrame } from './SkeletonFrame'
+import { PageHeaderSkeleton, SkeletonBlock, SkeletonLine, SkeletonPageFrame } from './SkeletonFrame'
 
 const TABLE_ROWS = Array.from({ length: 11 }, (_, index) => `pending-row-${index}`)
 
-export function RequestsPending() {
+export function RouteRequestsSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={104} titleWidth={142} />
@@ -11,7 +11,7 @@ export function RequestsPending() {
           {['Search', 'Status', 'Model', 'Key', 'Routing'].map((label) => (
             <div key={label} className="mb-4 flex flex-col gap-1.5">
               <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">{label}</div>
-              <span className="skel skel-text" style={{ width: '100%', height: 32 }} />
+              <SkeletonLine width="100%" height={32} />
             </div>
           ))}
         </aside>
@@ -23,7 +23,7 @@ export function RequestsPending() {
               <span className="panel-sub">last 60m</span>
             </div>
             <div className="px-4 pb-4">
-              <span className="skel skel-block h-28 rounded-sm" />
+              <SkeletonBlock className="h-28 rounded-sm" />
             </div>
           </section>
 
@@ -49,29 +49,26 @@ export function RequestsPending() {
                 {TABLE_ROWS.map((row, index) => (
                   <tr key={row}>
                     <td className="mono dim">
-                      <span className="skel skel-text" style={{ width: 54 }} />
+                      <SkeletonLine width={54} />
                     </td>
                     <td className="mono">
-                      <span className="skel skel-text" style={{ width: `${58 + (index % 4) * 8}%` }} />
+                      <SkeletonLine width={`${58 + (index % 4) * 8}%`} />
                     </td>
                     <td>
-                      <span className="skel skel-text" style={{ width: `${42 + (index % 3) * 12}%` }} />
+                      <SkeletonLine width={`${42 + (index % 3) * 12}%`} />
                     </td>
                     <td>
-                      <span className="skel skel-text" style={{ width: 44 }} />
+                      <SkeletonLine width={44} />
                     </td>
                     <td className="num">
-                      <span className="skel skel-text" style={{ width: 32 }} />
+                      <SkeletonLine width={32} />
                     </td>
                     <td className="num">
-                      <span className="skel skel-text" style={{ width: 32 }} />
+                      <SkeletonLine width={32} />
                     </td>
                     <td>
                       <div className="h-3 rounded-full bg-surface-2">
-                        <span
-                          className="skel skel-block h-full rounded-full"
-                          style={{ width: `${44 + (index % 4) * 11}%` }}
-                        />
+                        <SkeletonBlock width={`${44 + (index % 4) * 11}%`} className="h-full rounded-full" />
                       </div>
                     </td>
                   </tr>

@@ -1,15 +1,15 @@
-import { PageHeaderSkeleton, SkeletonPageFrame } from './SkeletonFrame'
+import { PageHeaderSkeleton, SkeletonBlock, SkeletonLine, SkeletonPageFrame } from './SkeletonFrame'
 
 const CHAT_ROWS = Array.from({ length: 6 }, (_, index) => `pending-chat-${index}`)
 
-export function PlaygroundPending() {
+export function RoutePlaygroundSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={156} titleWidth={170} />
       <div className="flex gap-2 border-b border-border bg-surface-0 px-6 py-3 max-md:px-3">
         {['Chat', 'Image', 'Speech', 'Transcribe'].map((tab, index) => (
           <div key={tab} className="rounded border border-border bg-surface-1 px-3 py-2">
-            <span className="skel skel-text" style={{ width: index === 3 ? 80 : 46 }} />
+            <SkeletonLine width={index === 3 ? 80 : 46} />
           </div>
         ))}
       </div>
@@ -19,27 +19,27 @@ export function PlaygroundPending() {
             {CHAT_ROWS.map((row, index) => (
               <div key={row} className={index % 2 === 0 ? 'mr-16' : 'ml-16'}>
                 <div className="panel p-4">
-                  <span className="skel skel-text" style={{ width: index % 2 === 0 ? '68%' : '44%' }} />
+                  <SkeletonLine width={index % 2 === 0 ? '68%' : '44%'} />
                   <div className="mt-3 space-y-2">
-                    <span className="skel skel-text block" style={{ width: '92%' }} />
-                    <span className="skel skel-text block" style={{ width: `${54 + (index % 3) * 12}%` }} />
+                    <SkeletonLine width="92%" className="block" />
+                    <SkeletonLine width={`${54 + (index % 3) * 12}%`} className="block" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
           <div className="border-t border-border bg-surface-0 p-4 max-md:p-3">
-            <span className="skel skel-block h-24 rounded" />
+            <SkeletonBlock className="h-24 rounded" />
           </div>
         </div>
         <aside className="hidden min-h-0 flex-col bg-surface-0 p-4 xl:flex">
-          <span className="skel skel-text" style={{ width: 110 }} />
-          <span className="skel skel-block mt-4 h-48 rounded" />
+          <SkeletonLine width={110} />
+          <SkeletonBlock className="mt-4 h-48 rounded" />
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <span className="skel skel-text" style={{ height: 36 }} />
-            <span className="skel skel-text" style={{ height: 36 }} />
-            <span className="skel skel-text" style={{ height: 36 }} />
-            <span className="skel skel-text" style={{ height: 36 }} />
+            <SkeletonLine width="100%" height={36} />
+            <SkeletonLine width="100%" height={36} />
+            <SkeletonLine width="100%" height={36} />
+            <SkeletonLine width="100%" height={36} />
           </div>
         </aside>
       </div>
