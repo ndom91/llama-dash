@@ -142,8 +142,8 @@ export function PlaygroundSpeech() {
                     <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">
                       preview
                     </span>
-                    <div className="flex items-start gap-2">
-                      <div className="text-right font-mono text-[11px] leading-[1.45] text-fg-dim">
+                    <div className="flex items-center gap-2">
+                      <div className="text-right font-mono text-[11px] leading-none text-fg-dim">
                         <span>{entry.voice}</span> ·<span>{durationLabel(entry.audioDurationSec)}</span> ·
                         <span>{renderLabel(entry.renderMs)}</span> ·
                         <span>{ratioLabel(entry.renderMs, entry.audioDurationSec)}</span>
@@ -151,7 +151,7 @@ export function PlaygroundSpeech() {
                       <Tooltip label="Close">
                         <button
                           type="button"
-                          className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+                          className="flex h-4 w-4 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
                           onClick={() => speech.removeEntry(entry.id)}
                           aria-label="Remove speech result"
                         >

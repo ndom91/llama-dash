@@ -51,6 +51,15 @@ export function PlaygroundMessage({
   const isAssistant = message.role === 'assistant'
   const showActions = !isStreaming || !isLast
   const metrics = message.metrics
+  const metricItems = metrics
+    ? [
+        `ttft ${metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}`,
+        `total ${metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}`,
+        `tok/s ${metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'}`,
+        `tokens ${metrics.tokIn != null ? `${metrics.tokIn} in` : '—'}`,
+        metrics.tokOut != null ? `${metrics.tokOut} out` : '—',
+      ]
+    : []
 
   return (
     <div
@@ -136,36 +145,43 @@ export function PlaygroundMessage({
       )}
 
       {isAssistant && metrics && showActions ? (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] text-fg-dim">
-          <span>ttft {metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}</span>
-          <span>total {metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}</span>
-          <span>tok/s {metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'}</span>
-          <span>tokens {metrics.tokIn != null ? `${metrics.tokIn} in` : '—'}</span>
-          <span>{metrics.tokOut != null ? `${metrics.tokOut} out` : '—'}</span>
-          <span className="min-w-2" />
-          <Tooltip label="Copy">
-            <CopyButton text={message.content} />
-          </Tooltip>
-          <Tooltip label="Regenerate">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
-              onClick={() => onRegenerate(index)}
-            >
-              <RefreshCw className="icon-12" strokeWidth={2} />
-              re-run
-            </button>
-          </Tooltip>
-          <Tooltip label="Fork from here">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-[3px] border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-colors hover:border-border hover:bg-surface-2 hover:text-fg"
-              onClick={() => onFork(index)}
-            >
-              <GitBranch className="icon-12" strokeWidth={2} />
-              fork
-            </button>
-          </Tooltip>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 font-mono text-[11px] text-fg-dim">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {metricItems.map((item, itemIndex) => (
+              <span key={item} className="inline-flex items-center gap-1.5">
+                {itemIndex > 0 ? <span className="text-fg-faint">·</span> : null}
+                <span>{item}</span>
+              </span>
+            ))}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <Tooltip label="Copy">
+              <CopyButton
+                text={message.content}
+                className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
+              />
+            </Tooltip>
+            <Tooltip label="Regenerate">
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
+                onClick={() => onRegenerate(index)}
+              >
+                <RefreshCw className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                re-run
+              </button>
+            </Tooltip>
+            <Tooltip label="Fork from here">
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
+                onClick={() => onFork(index)}
+              >
+                <GitBranch className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                fork
+              </button>
+            </Tooltip>
+          </div>
         </div>
       ) : null}
 
