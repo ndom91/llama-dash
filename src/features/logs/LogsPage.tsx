@@ -117,8 +117,11 @@ function LlamaSwapLogsPage() {
   const filtered = useMemo(() => {
     if (!searchRe) return sourceFiltered
     return sourceFiltered.filter((l) => {
+      const { level } = parseLogLevel(l.text)
+      const displayLevel = level ?? (l.source === 'upstream' ? 'DEBUG' : 'INFO')
+      const haystack = `${SOURCE_LABEL[l.source]} ${displayLevel} ${l.text}`
       searchRe.lastIndex = 0
-      return searchRe.test(l.text)
+      return searchRe.test(haystack)
     })
   }, [sourceFiltered, searchRe])
 
