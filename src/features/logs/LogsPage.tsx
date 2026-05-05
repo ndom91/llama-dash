@@ -223,6 +223,20 @@ function LlamaSwapLogsPage() {
               ))}
             </div>
             <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap">
+              <span className="mono text-[11px] text-fg-dim">{filtered.length} lines</span>
+              <button
+                type="button"
+                className={
+                  wrap
+                    ? 'btn btn-ghost btn-xs min-w-[64px] justify-center btn-active'
+                    : 'btn btn-ghost btn-xs min-w-[64px] justify-center'
+                }
+                onClick={() => setWrap(!wrap)}
+                title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
+              >
+                <WrapText className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                wrap
+              </button>
               <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 focus-within:border-accent">
                 <Search className="h-3 w-3 shrink-0 text-fg-dim" strokeWidth={2} aria-hidden="true" />
                 <input
@@ -248,20 +262,6 @@ function LlamaSwapLogsPage() {
                   .*
                 </button>
               </div>
-              <button
-                type="button"
-                className={
-                  wrap
-                    ? 'btn btn-ghost btn-xs min-w-[64px] justify-center btn-active'
-                    : 'btn btn-ghost btn-xs min-w-[64px] justify-center'
-                }
-                onClick={() => setWrap(!wrap)}
-                title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
-              >
-                <WrapText className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
-                wrap
-              </button>
-              <span className="mono text-[11px] text-fg-dim">{filtered.length} lines</span>
             </div>
           </div>
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-surface-1" onScroll={onScroll}>
