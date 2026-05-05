@@ -11,6 +11,7 @@ import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
@@ -18,7 +19,10 @@ import { RequestsRefreshButton } from './RequestsRefreshButton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
+  colWidthsFor,
+  REQUESTS_ALL_COLS,
   REQUESTS_ROW_HEIGHT,
+  type RequestsColKey,
   formatWhen,
   type RoutingFilter,
   sortVal,
@@ -177,6 +181,27 @@ export function RequestsPage() {
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
+  // responsive column visibility — table-layout:fixed so colgroup must match cells
+  const dropCacheCost = useMediaQuery('(max-width: 1280px)')
+  const dropTokens = useMediaQuery('(max-width: 1100px)')
+  const visibleCols = useMemo(() => {
+    const set = new Set<RequestsColKey>(REQUESTS_ALL_COLS)
+    if (dropCacheCost) {
+      set.delete('cache')
+      set.delete('cost')
+    }
+    if (dropTokens) {
+      set.delete('tokIn')
+      set.delete('tokOut')
+    }
+    return set
+  }, [dropCacheCost, dropTokens])
+  const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
+  const showCache = visibleCols.has('cache')
+  const showCost = visibleCols.has('cost')
+  const showTokIn = visibleCols.has('tokIn')
+  const showTokOut = visibleCols.has('tokOut')
+
   const fetchNextRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length })
   fetchNextRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length }
 
@@ -294,7 +319,7 @@ export function RequestsPage() {
         {isLoading ? (
           <RequestsPageSkeleton />
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
+          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
             <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
@@ -532,7 +557,7 @@ export function RequestsPage() {
                 ) : (
                   <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
                     <table className="dtable dtable-virtual">
-                      <RequestsVirtualColgroup />
+                      <RequestsVirtualColgroup widths={colWidths} />
                       <thead>
                         <tr>
                           <RequestsSortHeader
@@ -549,18 +574,20 @@ export function RequestsPage() {
                           <RequestsSortHeader field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
                             status
                           </RequestsSortHeader>
-                          <RequestsSortHeader
-                            field="totalTokens"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="num"
-                          >
-                            tok-in
-                          </RequestsSortHeader>
-                          <th className="num">tok-out</th>
-                          <th className="num">cache</th>
-                          <th className="num">cost</th>
+                          {showTokIn ? (
+                            <RequestsSortHeader
+                              field="totalTokens"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="num"
+                            >
+                              tok-in
+                            </RequestsSortHeader>
+                          ) : null}
+                          {showTokOut ? <th className="num">tok-out</th> : null}
+                          {showCache ? <th className="num">cache</th> : null}
+                          {showCost ? <th className="num">cost</th> : null}
                           <RequestsSortHeader
                             field="durationMs"
                             current={sortKey}
@@ -597,7 +624,7 @@ export function RequestsPage() {
                               }}
                             >
                               <table className="dtable dtable-virtual">
-                                <RequestsVirtualColgroup />
+                                <RequestsVirtualColgroup widths={colWidths} />
                                 <tbody>
                                   <tr>
                                     <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
@@ -638,14 +665,18 @@ export function RequestsPage() {
                                     <td>
                                       <StatusCell code={r.statusCode} streamed={r.streamed} />
                                     </td>
-                                    <td className="num dim">{r.promptTokens ?? '—'}</td>
-                                    <td className="num">{r.completionTokens ?? '—'}</td>
-                                    <td className="num dim">
-                                      {'cacheReadTokens' in r ? (r.cacheReadTokens?.toLocaleString() ?? '—') : '—'}
-                                    </td>
-                                    <td className="num">
-                                      {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
-                                    </td>
+                                    {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
+                                    {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
+                                    {showCache ? (
+                                      <td className="num dim">
+                                        {'cacheReadTokens' in r ? (r.cacheReadTokens?.toLocaleString() ?? '—') : '—'}
+                                      </td>
+                                    ) : null}
+                                    {showCost ? (
+                                      <td className="num">
+                                        {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
+                                      </td>
+                                    ) : null}
                                     <td>
                                       <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
                                     </td>

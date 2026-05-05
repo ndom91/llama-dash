@@ -1,7 +1,39 @@
 import type { ApiRequest } from '../../lib/api'
 
 export const REQUESTS_ROW_HEIGHT = 37
-export const REQUESTS_COL_WIDTHS = [132, '21%', '24%', 70, 80, 80, 80, 80, 110] as const
+
+// columns: t, endpoint, model, status, tok-in, tok-out, cache, cost, duration
+export type RequestsColKey = 't' | 'endpoint' | 'model' | 'status' | 'tokIn' | 'tokOut' | 'cache' | 'cost' | 'duration'
+
+const ALL_COL_WIDTHS: Record<RequestsColKey, number | string> = {
+  t: 132,
+  endpoint: '21%',
+  model: '24%',
+  status: 70,
+  tokIn: 80,
+  tokOut: 80,
+  cache: 80,
+  cost: 80,
+  duration: 110,
+}
+
+export const REQUESTS_ALL_COLS: readonly RequestsColKey[] = [
+  't',
+  'endpoint',
+  'model',
+  'status',
+  'tokIn',
+  'tokOut',
+  'cache',
+  'cost',
+  'duration',
+]
+
+export function colWidthsFor(visible: ReadonlySet<RequestsColKey>): (number | string)[] {
+  return REQUESTS_ALL_COLS.filter((k) => visible.has(k)).map((k) => ALL_COL_WIDTHS[k])
+}
+
+export const REQUESTS_COL_WIDTHS = colWidthsFor(new Set(REQUESTS_ALL_COLS))
 
 export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
 export type SortDir = 'asc' | 'desc'

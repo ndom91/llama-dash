@@ -287,11 +287,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
             </div>
             <div
               className="truncate font-mono text-[10px] text-fg-dim"
-              title={
-                gpuCard
-                  ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}`
-                  : undefined
-              }
+              title={gpuCard ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}` : undefined}
             >
               {gpuCard ? gpuCard.name : 'no models loaded'}
               {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
