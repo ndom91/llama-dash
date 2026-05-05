@@ -56,7 +56,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
   }, [inspector.lastRequestBody, inspector.lastRequestUrl, apiKey])
 
   return (
-    <aside className="pg-inspector-shell flex min-h-0 flex-col gap-0.5 overflow-y-auto bg-surface-1 px-4 pt-3.5 pb-5">
+    <aside className="pg-inspector-shell flex min-h-0 flex-col bg-surface-1">
       <Tabs
         items={TABS}
         value={tab}
@@ -64,128 +64,130 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         variant="accent"
         density="compact"
         equalWidth
-        className="-mx-4 -mt-3.5 mb-2 h-10 bg-surface-1 px-0"
+        className="h-10 shrink-0 bg-surface-1 px-0"
         ariaLabel="Playground inspector panels"
       />
 
-      <PlaygroundInspectorSection label="active model">
-        <div className="grid grid-cols-2 gap-2">
-          <PlaygroundActiveModelCell
-            label="model"
-            value={active?.id ?? model ?? '—'}
-            sub={active ? (active.kind === 'local' ? 'local' : 'peer') : undefined}
-            mono
-          />
-          <PlaygroundActiveModelCell
-            label="context"
-            value={contextLabel ?? '—'}
-            sub={contextLabel ? 'cfg' : undefined}
-          />
-          <PlaygroundActiveModelCell
-            label="resident"
-            value={residentMiB != null ? (residentMiB / 1024).toFixed(1) : '—'}
-            unit="GB"
-          />
-          <PlaygroundActiveModelCell
-            label="ttft"
-            value={inspector.lastMetrics.ttftMs != null ? String(Math.round(inspector.lastMetrics.ttftMs)) : '—'}
-            unit="ms"
-            sub={inspector.lastMetrics.ttftMs != null ? 'last run' : undefined}
-          />
-        </div>
-      </PlaygroundInspectorSection>
-
-      {tab === 'request' ? (
-        <PlaygroundInspectorSection
-          label={`POST ${inspector.lastRequestUrl ?? '/v1/chat/completions'}`}
-          action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}
-        >
-          {inspector.lastRequestUrl ? (
-            <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2">
-              <span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
-                POST
-              </span>
-              <span className="font-mono text-[11px] text-fg-muted">
-                {typeof window !== 'undefined' ? window.location.host : ''}
-                {inspector.lastRequestUrl}
-              </span>
-            </div>
-          ) : null}
-          {requestJson ? (
-            <pre className={inspectorPreClass}>{requestJson}</pre>
-          ) : (
-            <EmptyNote>No request sent yet.</EmptyNote>
-          )}
-        </PlaygroundInspectorSection>
-      ) : null}
-
-      {tab === 'response' ? (
-        <PlaygroundInspectorSection
-          label="response"
-          action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
-        >
-          {inspector.lastResponseText ? (
-            <pre className={inspectorPreClass}>{inspector.lastResponseText}</pre>
-          ) : (
-            <EmptyNote>Run a request to capture its response.</EmptyNote>
-          )}
-        </PlaygroundInspectorSection>
-      ) : null}
-
-      {tab === 'timing' ? (
-        <PlaygroundInspectorSection label="timings">
-          <PlaygroundTimingBars inspector={inspector} />
-          <div className="flex flex-wrap gap-2 font-mono text-[11px] text-fg-dim">
-            {inspector.lastMetrics.totalMs != null ? (
-              <>
-                <span>total {(inspector.lastMetrics.totalMs / 1000).toFixed(2)} s</span>
-                {inspector.lastMetrics.tokOut != null ? <span>· {inspector.lastMetrics.tokOut} tokens</span> : null}
-                {inspector.lastMetrics.tokPerSec != null ? (
-                  <span>· {inspector.lastMetrics.tokPerSec.toFixed(1)} tok/s</span>
-                ) : null}
-              </>
-            ) : (
-              <span className="dim">Run a request to populate timing.</span>
-            )}
+      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-4 pt-2 pb-5">
+        <PlaygroundInspectorSection label="active model">
+          <div className="grid grid-cols-2 gap-2">
+            <PlaygroundActiveModelCell
+              label="model"
+              value={active?.id ?? model ?? '—'}
+              sub={active ? (active.kind === 'local' ? 'local' : 'peer') : undefined}
+              mono
+            />
+            <PlaygroundActiveModelCell
+              label="context"
+              value={contextLabel ?? '—'}
+              sub={contextLabel ? 'cfg' : undefined}
+            />
+            <PlaygroundActiveModelCell
+              label="resident"
+              value={residentMiB != null ? (residentMiB / 1024).toFixed(1) : '—'}
+              unit="GB"
+            />
+            <PlaygroundActiveModelCell
+              label="ttft"
+              value={inspector.lastMetrics.ttftMs != null ? String(Math.round(inspector.lastMetrics.ttftMs)) : '—'}
+              unit="ms"
+              sub={inspector.lastMetrics.ttftMs != null ? 'last run' : undefined}
+            />
           </div>
         </PlaygroundInspectorSection>
-      ) : null}
 
-      {tab === 'events' ? (
-        <PlaygroundInspectorSection label="event tape">
-          {inspector.events.length ? (
-            <div className="flex flex-col gap-1.5">
-              {inspector.events.map((event) => (
-                <div
-                  key={event.id}
-                  className="grid grid-cols-[48px_52px_minmax(0,1fr)] items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-[11px]"
-                >
-                  <span className="font-mono text-fg-dim">{formatClock(event.at)}</span>
-                  <span className={cn('pg-event-tag mt-0.5', `pg-event-tag-${event.tag.toLowerCase()}`)}>
-                    {event.tag}
-                  </span>
-                  <span className="min-w-0 text-fg-muted">{event.text}</span>
-                </div>
-              ))}
+        {tab === 'request' ? (
+          <PlaygroundInspectorSection
+            label={`POST ${inspector.lastRequestUrl ?? '/v1/chat/completions'}`}
+            action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}
+          >
+            {inspector.lastRequestUrl ? (
+              <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2">
+                <span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
+                  POST
+                </span>
+                <span className="font-mono text-[11px] text-fg-muted">
+                  {typeof window !== 'undefined' ? window.location.host : ''}
+                  {inspector.lastRequestUrl}
+                </span>
+              </div>
+            ) : null}
+            {requestJson ? (
+              <pre className={inspectorPreClass}>{requestJson}</pre>
+            ) : (
+              <EmptyNote>No request sent yet.</EmptyNote>
+            )}
+          </PlaygroundInspectorSection>
+        ) : null}
+
+        {tab === 'response' ? (
+          <PlaygroundInspectorSection
+            label="response"
+            action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
+          >
+            {inspector.lastResponseText ? (
+              <pre className={inspectorPreClass}>{inspector.lastResponseText}</pre>
+            ) : (
+              <EmptyNote>Run a request to capture its response.</EmptyNote>
+            )}
+          </PlaygroundInspectorSection>
+        ) : null}
+
+        {tab === 'timing' ? (
+          <PlaygroundInspectorSection label="timings">
+            <PlaygroundTimingBars inspector={inspector} />
+            <div className="flex flex-wrap gap-2 font-mono text-[11px] text-fg-dim">
+              {inspector.lastMetrics.totalMs != null ? (
+                <>
+                  <span>total {(inspector.lastMetrics.totalMs / 1000).toFixed(2)} s</span>
+                  {inspector.lastMetrics.tokOut != null ? <span>· {inspector.lastMetrics.tokOut} tokens</span> : null}
+                  {inspector.lastMetrics.tokPerSec != null ? (
+                    <span>· {inspector.lastMetrics.tokPerSec.toFixed(1)} tok/s</span>
+                  ) : null}
+                </>
+              ) : (
+                <span className="dim">Run a request to populate timing.</span>
+              )}
             </div>
-          ) : (
-            <EmptyNote>Event tape fills while streaming.</EmptyNote>
-          )}
-        </PlaygroundInspectorSection>
-      ) : null}
+          </PlaygroundInspectorSection>
+        ) : null}
 
-      {tab === 'curl' ? (
-        <PlaygroundInspectorSection
-          label="curl"
-          action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
-        >
-          {curlCommand ? (
-            <pre className={inspectorPreClass}>{curlCommand}</pre>
-          ) : (
-            <EmptyNote>Send a request to generate a curl command.</EmptyNote>
-          )}
-        </PlaygroundInspectorSection>
-      ) : null}
+        {tab === 'events' ? (
+          <PlaygroundInspectorSection label="event tape">
+            {inspector.events.length ? (
+              <div className="flex flex-col gap-1.5">
+                {inspector.events.map((event) => (
+                  <div
+                    key={event.id}
+                    className="grid grid-cols-[48px_52px_minmax(0,1fr)] items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-[11px]"
+                  >
+                    <span className="font-mono text-fg-dim">{formatClock(event.at)}</span>
+                    <span className={cn('pg-event-tag mt-0.5', `pg-event-tag-${event.tag.toLowerCase()}`)}>
+                      {event.tag}
+                    </span>
+                    <span className="min-w-0 text-fg-muted">{event.text}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyNote>Event tape fills while streaming.</EmptyNote>
+            )}
+          </PlaygroundInspectorSection>
+        ) : null}
+
+        {tab === 'curl' ? (
+          <PlaygroundInspectorSection
+            label="curl"
+            action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
+          >
+            {curlCommand ? (
+              <pre className={inspectorPreClass}>{curlCommand}</pre>
+            ) : (
+              <EmptyNote>Send a request to generate a curl command.</EmptyNote>
+            )}
+          </PlaygroundInspectorSection>
+        ) : null}
+      </div>
     </aside>
   )
 }
