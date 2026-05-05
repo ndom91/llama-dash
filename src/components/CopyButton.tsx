@@ -45,7 +45,7 @@ export function CopyButton({
       <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
         <Icon
           className={cn('copy-icon-swap-from', icon === 'clipboard' ? 'icon-btn-12' : 'icon-12')}
-          strokeWidth={2}
+          strokeWidth={1}
           aria-hidden="true"
         />
         <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} aria-hidden="true" />

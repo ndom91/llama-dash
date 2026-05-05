@@ -6,9 +6,18 @@ import { cn } from '../lib/cn'
 type NumberInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'prefix'> & {
   prefix?: string
   inputClassName?: string
+  inputSize?: 's' | 'm'
 }
 
-export function NumberInput({ prefix, className, inputClassName, disabled, onChange, ...props }: NumberInputProps) {
+export function NumberInput({
+  prefix,
+  className,
+  inputClassName,
+  disabled,
+  onChange,
+  inputSize = 'm',
+  ...props
+}: NumberInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const step = (direction: 1 | -1) => {
@@ -23,7 +32,9 @@ export function NumberInput({ prefix, className, inputClassName, disabled, onCha
   return (
     <span
       className={cn(
-        'flex h-9 items-stretch overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs transition-[border-color,box-shadow] duration-100 focus-within:border-accent focus-within:shadow-focus',
+        'flex items-stretch overflow-hidden rounded border border-border bg-surface-3 font-mono text-xs transition-[border-color,box-shadow] duration-100 focus-within:border-accent focus-within:shadow-focus',
+        inputSize === 'm' && 'h-9',
+        inputSize === 's' && 'h-6.5 rounded-sm text-[11px]',
         disabled && 'cursor-not-allowed opacity-50',
         className,
       )}
@@ -38,11 +49,19 @@ export function NumberInput({ prefix, className, inputClassName, disabled, onCha
         disabled={disabled}
         onChange={onChange}
         className={cn(
-          'min-w-0 flex-1 appearance-none bg-transparent px-3 text-fg outline-none disabled:cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          'min-w-0 flex-1 appearance-none bg-transparent text-fg outline-none disabled:cursor-not-allowed [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+          inputSize === 'm' && 'px-3',
+          inputSize === 's' && 'px-1.5',
           inputClassName,
         )}
       />
-      <span className="grid w-8 shrink-0 border-l border-border bg-surface-2">
+      <span
+        className={cn(
+          'grid shrink-0 border-l border-border bg-surface-2',
+          inputSize === 'm' && 'w-8',
+          inputSize === 's' && 'w-6',
+        )}
+      >
         <button
           type="button"
           tabIndex={-1}

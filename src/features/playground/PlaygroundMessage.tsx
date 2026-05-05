@@ -72,12 +72,6 @@ export function PlaygroundMessage({
         <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-fg-dim">
           {isAssistant ? 'assistant' : 'you'}
         </span>
-        {isAssistant && metrics?.ttftMs != null ? (
-          <span className="font-mono text-[11px] text-fg-dim">
-            <span>{Math.round(metrics.ttftMs)}ms ttft</span>
-            {metrics.totalMs != null ? <span>→ {(metrics.totalMs / 1000).toFixed(2)}s total</span> : null}
-          </span>
-        ) : null}
       </div>
 
       {isAssistant && message.reasoningContent ? (

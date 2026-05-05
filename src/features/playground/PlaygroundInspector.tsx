@@ -85,7 +85,6 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
             label="resident"
             value={residentMiB != null ? (residentMiB / 1024).toFixed(1) : '—'}
             unit="GB"
-            sub={residentMiB != null ? `${Math.round(residentMiB)} MiB total` : undefined}
           />
           <PlaygroundActiveModelCell
             label="ttft"

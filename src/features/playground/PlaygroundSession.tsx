@@ -198,8 +198,9 @@ export function PlaygroundSession({
           k="n (choices)"
           v={
             <NumberInput
-              className="h-7 w-[76px] rounded-sm bg-surface-2 text-[11px]"
-              inputClassName="px-1.5 text-right"
+              inputSize="s"
+              className="w-[76px] bg-surface-2"
+              inputClassName="text-right"
               min={1}
               max={8}
               value={sampling.n}
