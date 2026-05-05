@@ -61,6 +61,7 @@ function persistThemeId(id: string) {
 }
 
 function writeCookie(name: string, value: string) {
+  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API lacks Safari support
   document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; SameSite=Lax`
 }
 
