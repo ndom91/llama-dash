@@ -153,6 +153,7 @@ export function PlaygroundMessage({
               <CopyButton
                 text={message.content}
                 className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
+                iconStrokeWidth={1.5}
               />
             </Tooltip>
             <Tooltip label="Regenerate">

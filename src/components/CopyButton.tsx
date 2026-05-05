@@ -13,6 +13,7 @@ type Props = {
   variant?: CopyButtonVariant
   icon?: CopyButtonIcon
   className?: string
+  iconStrokeWidth?: number
 }
 
 const variantClasses: Record<CopyButtonVariant, string> = {
@@ -29,6 +30,7 @@ export function CopyButton({
   variant = 'text',
   icon = 'copy',
   className,
+  iconStrokeWidth = 2,
 }: Props) {
   const [copied, setCopied] = useState(false)
   const Icon = icon === 'link' ? Link : Copy
@@ -41,9 +43,9 @@ export function CopyButton({
   }
 
   return (
-    <button type="button" className={cn(variantClasses[variant], className)} onClick={copy} aria-label={ariaLabel}>
+    <button type="button" className={cn(className ?? variantClasses[variant])} onClick={copy} aria-label={ariaLabel}>
       <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-        <Icon className="copy-icon-swap-from size-3 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+        <Icon className="copy-icon-swap-from size-3 shrink-0" strokeWidth={iconStrokeWidth} aria-hidden="true" />
         <Check className="copy-icon-swap-to size-3 shrink-0 text-ok" strokeWidth={2} aria-hidden="true" />
       </span>
       {variant === 'icon' ? null : copied ? copiedLabel : label}
