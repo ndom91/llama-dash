@@ -5,5 +5,5 @@ import { LogsPage } from '../features/logs/LogsPage'
 export const Route = createFileRoute('/logs')({
   ssr: false,
   component: LogsPage,
-  pendingComponent: () => <RoutePending title="Logs" />,
+  pendingComponent: () => <RoutePending variant="logs" />,
 })

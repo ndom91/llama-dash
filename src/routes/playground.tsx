@@ -5,7 +5,7 @@ import { PlaygroundPage } from '../features/playground/PlaygroundPage'
 export const Route = createFileRoute('/playground')({
   ssr: false,
   component: PlaygroundRoute,
-  pendingComponent: () => <RoutePending title="Playground" subtitle="loading chat workspace..." />,
+  pendingComponent: () => <RoutePending variant="playground" />,
 })
 
 function PlaygroundRoute() {
