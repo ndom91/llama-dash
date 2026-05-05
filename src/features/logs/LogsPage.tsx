@@ -145,21 +145,27 @@ function LlamaSwapLogsPage() {
     virtualizer.measure()
   }, [wrap])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: invalidate cached row sizes when filter set changes
+  useEffect(() => {
+    virtualizer.measure()
+  }, [filter, searchRe])
+
+  const wrapRef = useRef(wrap)
+  wrapRef.current = wrap
+
   const measureRow = useCallback(
     (el: HTMLElement | null) => {
-      if (!el) return
       virtualizer.measureElement(el)
-      if (!wrap) {
-        const w = el.scrollWidth
-        if (w > maxWidthRef.current) {
-          maxWidthRef.current = w
-          if (virtualContainerRef.current) {
-            virtualContainerRef.current.style.width = `${w}px`
-          }
+      if (!el || wrapRef.current) return
+      const w = el.scrollWidth
+      if (w > maxWidthRef.current) {
+        maxWidthRef.current = w
+        if (virtualContainerRef.current) {
+          virtualContainerRef.current.style.width = `${w}px`
         }
       }
     },
-    [virtualizer, wrap],
+    [virtualizer],
   )
 
   const onScroll = () => {
@@ -281,7 +287,7 @@ function LlamaSwapLogsPage() {
                   const displayLevel = level ?? (line.source === 'upstream' ? 'DEBUG' : 'INFO')
                   return (
                     <div
-                      key={line.id}
+                      key={vi.key}
                       className="flex items-start px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted hover:bg-surface-3 max-md:px-3"
                       data-index={vi.index}
                       ref={measureRow}
@@ -289,6 +295,7 @@ function LlamaSwapLogsPage() {
                         position: 'absolute',
                         top: 0,
                         left: 0,
+                        width: wrap ? '100%' : 'max-content',
                         minWidth: '100%',
                         transform: `translateY(${vi.start}px)`,
                       }}
