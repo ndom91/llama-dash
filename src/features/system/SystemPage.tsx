@@ -21,6 +21,18 @@ function formatUptime(seconds: number): string {
     .join(' ')
 }
 
+function formatGpuVendor(driver: 'nvidia' | 'amd' | 'apple' | null): string {
+  if (driver === 'nvidia') return 'Nvidia'
+  if (driver === 'amd') return 'AMD'
+  if (driver === 'apple') return 'Apple'
+  return 'offline'
+}
+
+function formatGpuMeta(deviceName: string | null, gpuCount: number, ageMs: number | null): string {
+  const parts = [deviceName, `${gpuCount} ${gpuCount === 1 ? 'device' : 'devices'}`, formatAge(ageMs)]
+  return parts.filter(Boolean).join(' · ')
+}
+
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
@@ -91,7 +103,7 @@ function DirectTargets({ targets }: { targets: string[] }) {
   return (
     <div className="mt-3 flex flex-col items-end gap-2">
       <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
-        whitelisted direct upstream hosts
+        whitelisted direct upstream targets
       </div>
       <div className="flex flex-wrap justify-end gap-2">
         {targets.map((target) => (
@@ -135,6 +147,8 @@ export function SystemPage() {
   const queueTone: Tone = data.logging.dropped > 0 ? 'err' : data.logging.queued > 0 ? 'warn' : 'ok'
   const gpuTone: Tone = data.gpu.available ? 'ok' : 'idle'
   const primaryGpu = data.gpu.gpus[0] ?? null
+  const gpuVendor = formatGpuVendor(data.gpu.driver)
+  const gpuModel = primaryGpu?.name ?? null
   const components = [
     { label: 'control bus', age: 'now', tone: 'ok' as const },
     { label: 'backend', age: data.inference.label, tone: 'ok' as const },
@@ -172,8 +186,8 @@ export function SystemPage() {
                 />
                 <StatTile
                   label="gpu"
-                  value={data.gpu.driver ?? 'offline'}
-                  meta={`${data.gpu.gpuCount} device · ${formatAge(data.gpu.ageMs)}`}
+                  value={gpuVendor}
+                  meta={formatGpuMeta(gpuModel, data.gpu.gpuCount, data.gpu.ageMs)}
                   tone={gpuTone}
                 />
                 <StatTile
