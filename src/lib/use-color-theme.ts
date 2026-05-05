@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { writeClientCookie } from './cookies'
 import {
   COLOR_THEME_COOKIE,
   COLOR_THEME_STORAGE_KEY,
@@ -52,17 +53,12 @@ export function applyThemeMode(mode: ThemeMode) {
 
 export function persistThemeMode(mode: ThemeMode) {
   window.localStorage.setItem(THEME_MODE_STORAGE_KEY, mode)
-  writeCookie(THEME_MODE_COOKIE, mode)
+  writeClientCookie(THEME_MODE_COOKIE, mode)
 }
 
 function persistThemeId(id: string) {
   window.localStorage.setItem(COLOR_THEME_STORAGE_KEY, id)
-  writeCookie(COLOR_THEME_COOKIE, id)
-}
-
-function writeCookie(name: string, value: string) {
-  // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store API lacks Safari support
-  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; SameSite=Lax`
+  writeClientCookie(COLOR_THEME_COOKIE, id)
 }
 
 export function useColorTheme() {

@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RoutePending } from '../components/RoutePending'
+import { RouteSkeleton } from '../components/RouteSkeleton'
 import { PlaygroundPage } from '../features/playground/PlaygroundPage'
 
 export const Route = createFileRoute('/playground')({
   ssr: false,
   component: PlaygroundRoute,
-  pendingComponent: () => <RoutePending variant="playground" />,
+  pendingComponent: () => <RouteSkeleton variant="playground" />,
 })
 
 function PlaygroundRoute() {

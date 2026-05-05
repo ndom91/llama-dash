@@ -3,13 +3,13 @@ import { LogsPending } from './skeleton/LogsPending'
 import { PlaygroundPending } from './skeleton/PlaygroundPending'
 import { RequestsPending } from './skeleton/RequestsPending'
 
-type RoutePendingVariant = 'requests' | 'playground' | 'logs' | 'config'
+type RouteSkeletonVariant = 'requests' | 'playground' | 'logs' | 'config'
 
-type RoutePendingProps = {
-  variant: RoutePendingVariant
+type RouteSkeletonProps = {
+  variant: RouteSkeletonVariant
 }
 
-export function RoutePending({ variant }: RoutePendingProps) {
+export function RouteSkeleton({ variant }: RouteSkeletonProps) {
   if (variant === 'requests') return <RequestsPending />
   if (variant === 'logs') return <LogsPending />
   if (variant === 'config') return <ConfigPending />
