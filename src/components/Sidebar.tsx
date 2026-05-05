@@ -285,7 +285,14 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
               <StatusDot tone="idle" />
               <span style={{ marginLeft: 6 }}>idle</span>
             </div>
-            <div className="font-mono text-[10px] text-fg-dim">
+            <div
+              className="truncate font-mono text-[10px] text-fg-dim"
+              title={
+                gpuCard
+                  ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}`
+                  : undefined
+              }
+            >
               {gpuCard ? gpuCard.name : 'no models loaded'}
               {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
             </div>
