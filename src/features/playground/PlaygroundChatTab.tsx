@@ -190,7 +190,7 @@ export function PlaygroundChatTab({ chat }: Props) {
                   className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-err bg-err-bg px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-err hover:bg-err-bg active:scale-95"
                   onClick={chat.stopStreaming}
                 >
-                  <Square className="icon-12" strokeWidth={2} />
+                  <Square className="size-3 shrink-0" strokeWidth={2} />
                   stop
                 </button>
               </Tooltip>
@@ -201,7 +201,7 @@ export function PlaygroundChatTab({ chat }: Props) {
                   className="flex size-8.5 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!chat.model || !draft.trim()}
                 >
-                  <Send className="icon-14" strokeWidth={2} />
+                  <Send className="size-3.5 shrink-0" strokeWidth={2} />
                 </button>
               </Tooltip>
             )}

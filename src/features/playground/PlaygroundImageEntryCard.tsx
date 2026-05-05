@@ -25,7 +25,7 @@ export function PlaygroundImageEntryCard({ entry, onDownload }: Props) {
                 className="absolute top-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded bg-surface-0/85 text-fg opacity-0 transition-opacity group-hover:opacity-100 hover:bg-surface-0"
                 onClick={() => onDownload(image.url, index)}
               >
-                <Download className="icon-14" strokeWidth={2} />
+                <Download className="size-3.5 shrink-0" strokeWidth={2} />
               </button>
             </Tooltip>
           </div>

@@ -199,7 +199,7 @@ function LlamaSwapLogsPage() {
                   resetWidth()
                 }}
               >
-                <Eraser className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <Eraser className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 clear
               </button>
             </div>
@@ -234,7 +234,7 @@ function LlamaSwapLogsPage() {
                 onClick={() => setWrap(!wrap)}
                 title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
               >
-                <WrapText className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <WrapText className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 wrap
               </button>
               <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 focus-within:border-accent">

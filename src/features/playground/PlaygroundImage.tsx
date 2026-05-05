@@ -99,7 +99,7 @@ export function PlaygroundImage() {
                 className="ml-auto flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-90"
                 onClick={img.clearEntries}
               >
-                <Trash2 className="icon-14" strokeWidth={2} />
+                <Trash2 className="size-3.5 shrink-0" strokeWidth={2} />
               </button>
             </Tooltip>
           ) : null}
@@ -147,9 +147,9 @@ export function PlaygroundImage() {
               disabled={!img.model || !img.prompt.trim() || img.loading}
             >
               {img.loading ? (
-                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+                <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} />
               ) : (
-                <ImageIcon className="icon-14" strokeWidth={2} />
+                <ImageIcon className="size-3.5 shrink-0" strokeWidth={2} />
               )}
               <span>generate</span>
             </button>

@@ -24,7 +24,7 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
         <span className="panel-sub">{subtitle}</span>
         <Link to="/models" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">
           manage
-          <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          <ChevronRight className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {total == null ? (

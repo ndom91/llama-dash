@@ -57,7 +57,7 @@ export function Tabs<T extends string>({
             )}
             onClick={() => onChange(item.id)}
           >
-            {Icon ? <Icon className="icon-12" strokeWidth={2} aria-hidden /> : null}
+            {Icon ? <Icon className="size-3 shrink-0" strokeWidth={2} aria-hidden /> : null}
             {item.label}
           </button>
         )

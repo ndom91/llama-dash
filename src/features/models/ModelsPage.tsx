@@ -39,7 +39,7 @@ export function ModelsPage() {
                   aria-label="Refresh models"
                 >
                   <RefreshCw
-                    className={cn('icon-14', isRefetching && 'animate-spin')}
+                    className={cn('size-3.5 shrink-0', isRefetching && 'animate-spin')}
                     strokeWidth={1.75}
                     aria-hidden="true"
                   />
@@ -52,7 +52,7 @@ export function ModelsPage() {
                   onClick={() => unloadAll.mutate()}
                   disabled={!hasRunning || unloadAll.isPending}
                 >
-                  <PowerOff className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  <PowerOff className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                   {unloadAll.isPending ? 'unloading…' : 'unload all'}
                 </button>
               </Tooltip>

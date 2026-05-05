@@ -82,7 +82,7 @@ export function PlaygroundMessage({
             onClick={() => setReasoningOpen(!reasoningOpen)}
           >
             <ChevronRight
-              className={cn('icon-12 transition-transform duration-150', reasoningOpen && 'rotate-90')}
+              className={cn('size-3 shrink-0 transition-transform duration-150', reasoningOpen && 'rotate-90')}
               strokeWidth={2}
             />
             <span>reasoning</span>
@@ -161,7 +161,7 @@ export function PlaygroundMessage({
                 className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
                 onClick={() => onRegenerate(index)}
               >
-                <RefreshCw className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <RefreshCw className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 re-run
               </button>
             </Tooltip>
@@ -171,7 +171,7 @@ export function PlaygroundMessage({
                 className="btn btn-ghost btn-xs font-mono text-[11px] font-normal text-fg-dim"
                 onClick={() => onFork(index)}
               >
-                <GitBranch className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <GitBranch className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 fork
               </button>
             </Tooltip>
@@ -187,7 +187,7 @@ export function PlaygroundMessage({
               className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
               onClick={startEdit}
             >
-              <Pencil className="icon-12" strokeWidth={2} />
+              <Pencil className="size-3 shrink-0" strokeWidth={2} />
             </button>
           </Tooltip>
           <Tooltip label="Copy">

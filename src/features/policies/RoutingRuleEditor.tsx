@@ -32,7 +32,7 @@ export function RoutingRuleEditor({
     <section className="rounded-lg border border-accent/60 bg-surface-0/80 px-5 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
-          <Circle className="mr-2 inline-block icon-btn-12 fill-current" strokeWidth={0} aria-hidden="true" />
+          <Circle className="mr-2 inline-block size-3 shrink-0 fill-current" strokeWidth={0} aria-hidden="true" />
           editing · rule {String(draft.order).padStart(2, '0')} · {draft.action.type.replace(/_/g, ' ')}
         </div>
         <div className="flex justify-end gap-2">

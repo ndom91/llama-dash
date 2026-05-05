@@ -43,7 +43,7 @@ export function ModelDetailContent({ data }: Props) {
                   onClick={() => unloadModel.mutate(model.id)}
                   disabled={unloadModel.isPending}
                 >
-                  <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  <Power className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                   {unloadModel.isPending ? 'unloading…' : 'unload'}
                 </button>
               ) : (
@@ -53,7 +53,7 @@ export function ModelDetailContent({ data }: Props) {
                   onClick={() => loadModel.mutate(model.id)}
                   disabled={loadModel.isPending}
                 >
-                  <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                  <Play className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                   {loadModel.isPending ? 'loading…' : 'load'}
                 </button>
               )

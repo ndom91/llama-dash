@@ -43,12 +43,8 @@ export function CopyButton({
   return (
     <button type="button" className={cn(variantClasses[variant], className)} onClick={copy} aria-label={ariaLabel}>
       <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-        <Icon
-          className={cn('copy-icon-swap-from', icon === 'clipboard' ? 'icon-btn-12' : 'icon-12')}
-          strokeWidth={1}
-          aria-hidden="true"
-        />
-        <Check className="copy-icon-swap-to icon-12 text-ok" strokeWidth={2} aria-hidden="true" />
+        <Icon className="copy-icon-swap-from size-3 shrink-0" strokeWidth={1.75} aria-hidden="true" />
+        <Check className="copy-icon-swap-to size-3 shrink-0 text-ok" strokeWidth={2} aria-hidden="true" />
       </span>
       {variant === 'icon' ? null : copied ? copiedLabel : label}
     </button>

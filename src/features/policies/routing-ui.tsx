@@ -135,7 +135,7 @@ export function TokenInput({
           >
             {renderValue ? renderValue(value) : value}
             <button type="button" className="text-fg-dim hover:text-fg" onClick={() => onRemove(value)}>
-              <X className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+              <X className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
             </button>
           </span>
         ))}

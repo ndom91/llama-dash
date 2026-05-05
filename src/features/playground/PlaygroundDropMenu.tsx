@@ -30,7 +30,7 @@ export function PlaygroundDropMenu({ label, icon, items, onSelect, onDelete, onA
       <button type="button" className="btn btn-ghost btn-xs" onClick={() => setOpen(!open)}>
         {icon}
         {label}
-        <ChevronDown className="icon-10" strokeWidth={2} />
+        <ChevronDown className="size-2.5 shrink-0" strokeWidth={2} />
       </button>
       {open ? (
         <div className="absolute top-[calc(100%+4px)] right-0 z-20 min-w-[260px] rounded border border-border bg-surface-1 p-1.5 shadow-[0_6px_20px_-6px_rgba(0,0,0,0.4)]">
@@ -67,7 +67,7 @@ export function PlaygroundDropMenu({ label, icon, items, onSelect, onDelete, onA
                     onClick={() => onDelete(it.id)}
                     aria-label={`Delete ${it.label}`}
                   >
-                    <X className="icon-10" strokeWidth={2.5} />
+                    <X className="size-2.5 shrink-0" strokeWidth={2.5} />
                   </button>
                 </div>
               ))

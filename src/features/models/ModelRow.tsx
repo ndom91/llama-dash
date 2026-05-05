@@ -49,14 +49,14 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
           loading ? (
             <Tooltip label={`Loading ${model.id}`} side="left">
               <button type="button" className="btn btn-xs" disabled>
-                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <Play className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 loading…
               </button>
             </Tooltip>
           ) : unloading ? (
             <Tooltip label={`Unloading ${model.id}`} side="left">
               <button type="button" className="btn btn-xs" disabled>
-                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <Power className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 unloading…
               </button>
             </Tooltip>
@@ -70,7 +70,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
                   onUnload()
                 }}
               >
-                <Power className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <Power className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 unload
               </button>
             </Tooltip>
@@ -84,7 +84,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
                   onLoad()
                 }}
               >
-                <Play className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                <Play className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 load
               </button>
             </Tooltip>

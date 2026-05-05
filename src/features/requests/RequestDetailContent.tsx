@@ -537,7 +537,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               className="btn-sm"
             />
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => downloadRequestJsonl(req)}>
-              <Download className="icon-12" strokeWidth={2} aria-hidden="true" />
+              <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
               Download .jsonl
             </button>
           </section>

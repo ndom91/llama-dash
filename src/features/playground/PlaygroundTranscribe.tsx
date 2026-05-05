@@ -106,7 +106,7 @@ export function PlaygroundTranscribe() {
             <div className="mx-auto w-full max-w-[686px]">
               <div className="flex items-center justify-between gap-4 rounded border border-border bg-surface-2 px-4 py-3.5">
                 <div className="flex min-w-0 items-center gap-3">
-                  <FileAudio className="icon-16" strokeWidth={1.75} />
+                  <FileAudio className="size-4 shrink-0" strokeWidth={1.75} />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium text-fg">{tx.file.name}</div>
                     <div className="font-mono text-[11px] text-fg-dim">
@@ -116,7 +116,7 @@ export function PlaygroundTranscribe() {
                 </div>
                 <div className="inline-flex gap-2">
                   <button type="button" className="btn btn-ghost btn-xs" onClick={() => fileInputRef.current?.click()}>
-                    <Replace className="icon-12" strokeWidth={2} />
+                    <Replace className="size-3 shrink-0" strokeWidth={2} />
                     replace
                   </button>
                   <button type="button" className="btn btn-danger btn-xs" onClick={tx.clear}>
@@ -185,7 +185,7 @@ export function PlaygroundTranscribe() {
             </button>
           ) : (
             <button type="button" className="btn btn-md btn-ghost" onClick={tx.startRecording} disabled={tx.loading}>
-              <Mic className="icon-14" strokeWidth={2} />
+              <Mic className="size-3.5 shrink-0" strokeWidth={2} />
               record
             </button>
           )}
@@ -198,9 +198,9 @@ export function PlaygroundTranscribe() {
               onClick={tx.transcribe}
             >
               {tx.loading ? (
-                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+                <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} />
               ) : (
-                <FileAudio className="icon-14" strokeWidth={2} />
+                <FileAudio className="size-3.5 shrink-0" strokeWidth={2} />
               )}
               <span>transcribe</span>
             </button>

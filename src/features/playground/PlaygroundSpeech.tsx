@@ -155,7 +155,7 @@ export function PlaygroundSpeech() {
                           onClick={() => speech.removeEntry(entry.id)}
                           aria-label="Remove speech result"
                         >
-                          <X className="icon-12" strokeWidth={2} />
+                          <X className="size-3 shrink-0" strokeWidth={2} />
                         </button>
                       </Tooltip>
                     </div>
@@ -197,9 +197,9 @@ export function PlaygroundSpeech() {
               disabled={!speech.model || !speech.text.trim() || speech.loading}
             >
               {speech.loading ? (
-                <Loader2 className="icon-14 animate-spin" strokeWidth={2} />
+                <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} />
               ) : (
-                <Volume2 className="icon-14" strokeWidth={2} />
+                <Volume2 className="size-3.5 shrink-0" strokeWidth={2} />
               )}
               <span>speak</span>
             </button>

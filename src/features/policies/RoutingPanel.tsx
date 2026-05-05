@@ -140,7 +140,7 @@ export function RoutingPanel() {
           · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
         </span>
         <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
-          <Plus className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
           new rule
         </button>
       </div>
@@ -159,7 +159,7 @@ export function RoutingPanel() {
                 </div>
                 <div className="mt-4 flex gap-2">
                   <button type="button" className="btn btn-primary btn-xs" onClick={createRule} disabled={isMutating}>
-                    <Plus className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+                    <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                     create first rule
                   </button>
                 </div>

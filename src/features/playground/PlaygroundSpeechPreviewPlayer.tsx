@@ -218,7 +218,11 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
           onClick={togglePlayback}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
-          {isPlaying ? <Pause className="icon-14" strokeWidth={2.5} /> : <Play className="icon-14" strokeWidth={2.5} />}
+          {isPlaying ? (
+            <Pause className="size-3.5 shrink-0" strokeWidth={2.5} />
+          ) : (
+            <Play className="size-3.5 shrink-0" strokeWidth={2.5} />
+          )}
         </button>
         <span className="mono text-[11px] text-fg-dim">{formatSpeechClock(currentTime)}</span>
         <div
@@ -242,7 +246,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
             className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-90"
             onClick={onDownload}
           >
-            <Download className="icon-14" strokeWidth={2} />
+            <Download className="size-3.5 shrink-0" strokeWidth={2} />
           </button>
         </Tooltip>
       </div>

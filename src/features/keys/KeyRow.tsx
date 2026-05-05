@@ -60,7 +60,7 @@ export function KeyRow({ apiKey }: Props) {
               }}
               disabled={deleteKey.isPending}
             >
-              <Trash2 className="icon-btn-12" strokeWidth={2} />
+              <Trash2 className="size-3 shrink-0" strokeWidth={2} />
               delete
             </button>
           </Tooltip>

@@ -47,7 +47,7 @@ export function PlaygroundSession({
             className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-err bg-err-bg px-2.5 py-[7px] text-xs text-err transition-colors hover:border-err hover:bg-err-bg disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onStop}
           >
-            <Square className="icon-12" strokeWidth={2} />
+            <Square className="size-3 shrink-0" strokeWidth={2} />
             stop
           </button>
         ) : (
@@ -57,7 +57,7 @@ export function PlaygroundSession({
             onClick={onClear}
             disabled={!hasMessages}
           >
-            <Plus className="icon-12" strokeWidth={2} />
+            <Plus className="size-3 shrink-0" strokeWidth={2} />
             new chat
           </button>
         )}
@@ -113,7 +113,7 @@ export function PlaygroundSession({
               onClick={() => setSampling(DEFAULT_SAMPLING)}
               aria-label="Reset Sampling Settings"
             >
-              <RotateCcw className="icon-12" strokeWidth={2} />
+              <RotateCcw className="size-3 shrink-0" strokeWidth={2} />
             </button>
           </Tooltip>
         }

@@ -105,24 +105,24 @@ export function RoutingRuleRow({
 
         <div className="flex shrink-0 items-center gap-1 self-start">
           <IconButton
-            icon={<ArrowUp className="icon-btn-12" strokeWidth={2} />}
+            icon={<ArrowUp className="size-3 shrink-0" strokeWidth={2} />}
             disabled={index === 0}
             busy={reorderPending}
             onClick={() => onMove(rule.id, -1)}
           />
           <IconButton
-            icon={<ArrowDown className="icon-btn-12" strokeWidth={2} />}
+            icon={<ArrowDown className="size-3 shrink-0" strokeWidth={2} />}
             disabled={index === totalRules - 1}
             busy={reorderPending}
             onClick={() => onMove(rule.id, 1)}
           />
           <IconButton
-            icon={<PenLine className="icon-btn-12" strokeWidth={2} />}
+            icon={<PenLine className="size-3 shrink-0" strokeWidth={2} />}
             busy={updatePending && editingRuleId === rule.id}
             onClick={() => onEdit(rule)}
           />
           <IconButton
-            icon={<X className="icon-btn-12" strokeWidth={2} />}
+            icon={<X className="size-3 shrink-0" strokeWidth={2} />}
             busy={deletePending}
             onClick={() => onDelete(rule.id)}
           />

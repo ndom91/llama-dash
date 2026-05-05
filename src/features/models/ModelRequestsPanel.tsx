@@ -27,7 +27,7 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
           style={{ marginLeft: 'auto' }}
         >
           view all
-          <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          <ChevronRight className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {rows.length === 0 ? (

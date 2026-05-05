@@ -24,7 +24,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
         </span>
         <Link to="/requests" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">
           view all
-          <ChevronRight className="icon-btn-12" strokeWidth={2} aria-hidden="true" />
+          <ChevronRight className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
         </Link>
       </div>
       {requests == null ? (
