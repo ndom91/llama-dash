@@ -534,9 +534,13 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               label="Copy link"
               variant="button"
               icon="link"
-              className="btn-sm"
+              className="btn btn-ghost btn-sm w-full justify-start"
             />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => downloadRequestJsonl(req)}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm w-full justify-start"
+              onClick={() => downloadRequestJsonl(req)}
+            >
               <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
               Download .jsonl
             </button>
