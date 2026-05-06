@@ -373,23 +373,23 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                   </span>
                 </div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1500px]:border-b max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>status</div>
                 <div className={`${endpointMetricValue} ${statusColor}`}>{req.statusCode}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-r-0 max-[1024px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1500px]:border-b max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-in</div>
                 <div className={endpointMetricValue}>{req.promptTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b">
+              <div className="px-4 py-4 border-border max-[1500px]:border-b max-[1024px]:border-r min-[1500px]:border-r max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-out</div>
                 <div className={endpointMetricValue}>{req.completionTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1024px]:border-r-0 max-[1024px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>total</div>
                 <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1024px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>duration</div>
                 <div className={endpointMetricValue}>{formatDuration(req.durationMs)}</div>
               </div>

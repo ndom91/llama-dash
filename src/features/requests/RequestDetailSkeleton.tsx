@@ -37,7 +37,7 @@ export function RequestDetailSkeleton() {
               {['status', 'tok-in', 'tok-out', 'total', 'duration', 'tok/s'].map((label, index) => (
                 <div
                   key={label}
-                  className={`px-4 py-4 ${index < 5 ? 'border-r border-border' : ''} max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r max-[1024px]:border-border'}`}
+                  className={`px-4 py-4 ${index % 3 !== 2 ? 'border-r border-border' : ''} ${index < 5 ? 'max-[1500px]:border-b' : ''} ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r max-[1024px]:border-border'} max-[1024px]:border-b`}
                 >
                   <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">{label}</span>
                   <span className="mt-2 block skel skel-text" style={{ width: 48, height: 22 }} />
