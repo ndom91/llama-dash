@@ -37,10 +37,12 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
   const usesCustomPrettyBody = pretty != null
 
   return (
-    <section className="request-payload-pane flex min-h-0 h-full flex-col border-r border-border last:border-r-0">
-      <div className="flex min-h-10 items-center gap-2.5 border-b border-border bg-surface-1 px-4">
-        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">{title}</span>
-        <span className="panel-sub">{subtitle}</span>
+    <section className="request-payload-pane flex h-full min-h-0 min-w-0 flex-col border-r border-border last:border-r-0">
+      <div className="flex min-h-10 min-w-0 items-center gap-2.5 border-b border-border bg-surface-1 px-4 max-[1200px]:px-3">
+        <span className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">
+          {title}
+        </span>
+        <span className="panel-sub min-w-0 truncate">{subtitle}</span>
         <div className="ml-auto" />
         <CopyButton text={body} variant="button" icon="clipboard" ariaLabel={`Copy ${title} payload`} />
       </div>

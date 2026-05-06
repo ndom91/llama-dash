@@ -610,16 +610,16 @@
 }
 
 .detail-meta-list > div {
-  @apply grid items-center gap-2;
-  grid-template-columns: 85px 1fr;
+  @apply grid min-w-0 items-start gap-2;
+  grid-template-columns: minmax(58px, 31%) minmax(0, 1fr);
 }
 
 .detail-meta-list dt {
-  @apply font-mono text-[11px] text-fg-dim;
+  @apply min-w-0 truncate font-mono text-[11px] text-fg-dim;
 }
 
 .detail-meta-list dd {
-  @apply m-0 inline-flex items-center gap-1.5 text-xs text-fg;
+  @apply m-0 inline-flex min-w-0 flex-wrap items-center gap-1.5 wrap-anywhere text-xs text-fg;
 }
 
 .detail-meta-links {
@@ -961,10 +961,11 @@
   padding-right: calc(0.75rem + var(--headers-scroll-gutter, 10px));
 }
 .dtable tbody td.header-key {
-  white-space: nowrap;
-  width: 34%;
+  width: clamp(8rem, 42%, 13rem);
   color: var(--accent);
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .dtable tbody td.header-value {
   padding-right: calc(0.25rem + var(--headers-scroll-gutter, 10px));
@@ -972,6 +973,40 @@
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+@media (max-width: 1200px) and (min-width: 1025px) {
+  .headers-table,
+  .headers-table tbody,
+  .headers-table tr,
+  .headers-table td {
+    display: block;
+  }
+
+  .headers-table tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .headers-table tr:last-child {
+    border-bottom: 0;
+  }
+
+  .headers-table tbody td.header-key,
+  .headers-table tbody td.header-value {
+    width: auto;
+    border-bottom: 0;
+    padding-block: 0;
+    text-align: left;
+  }
+
+  .headers-table tbody td.header-key {
+    padding-top: 0.625rem;
+  }
+
+  .headers-table tbody td.header-value {
+    padding-top: 0.25rem;
+    padding-bottom: 0.625rem;
+  }
 }
 
 /* JSON syntax highlighting */
@@ -1833,6 +1868,17 @@ a,
   color: var(--fg-dim);
 }
 
+@media (max-width: 1024px) {
+  .request-payload-pane {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .request-payload-pane:last-child {
+    border-bottom: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .request-detail-column {
     gap: 12px;
@@ -1841,15 +1887,6 @@ a,
   .request-detail-shell,
   .request-workspace-grid {
     grid-template-columns: 1fr;
-  }
-
-  .request-payload-pane {
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .request-payload-pane:last-child {
-    border-bottom: 0;
   }
 }
 

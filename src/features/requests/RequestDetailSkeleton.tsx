@@ -17,17 +17,17 @@ export function RequestDetailSkeleton() {
         }
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)_280px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-        <aside className="border-r border-border bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+      <div className="grid min-h-0 flex-1 grid-cols-[clamp(188px,21vw,275px)_minmax(0,1fr)_clamp(190px,19vw,260px)] items-stretch gap-0 max-[1200px]:grid-cols-[clamp(164px,19vw,220px)_minmax(0,1fr)_clamp(172px,18vw,220px)] max-[1024px]:grid-cols-[minmax(0,1fr)]">
+        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <DetailRailSection title="Summary" rows={6} />
           <DetailRailSection title="Model" rows={3} divider />
           <DetailRailSection title="Timing" rows={5} divider />
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-b border-border bg-surface-1 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[900px]:grid-cols-2">
-              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:col-span-2">
+          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
+            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:col-span-2">
                 <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">endpoint</div>
                 <div className="mt-2 flex items-center gap-3">
                   <span className="skel skel-text" style={{ width: 58, height: 28 }} />
@@ -37,7 +37,7 @@ export function RequestDetailSkeleton() {
               {['status', 'tok-in', 'tok-out', 'total', 'duration', 'tok/s'].map((label, index) => (
                 <div
                   key={label}
-                  className={`px-4 py-4 ${index < 5 ? 'border-r border-border' : ''} max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:border-b ${index % 2 === 1 ? 'max-[900px]:border-r-0' : 'max-[900px]:border-r border-border'}`}
+                  className={`px-4 py-4 ${index < 5 ? 'border-r border-border' : ''} max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r max-[1024px]:border-border'}`}
                 >
                   <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">{label}</span>
                   <span className="mt-2 block skel skel-text" style={{ width: 48, height: 22 }} />
@@ -67,7 +67,7 @@ export function RequestDetailSkeleton() {
               </span>
             </div>
 
-            <div className="grid min-h-0 grid-cols-2 max-[900px]:grid-cols-1">
+            <div className="grid min-h-0 grid-cols-2 max-[1024px]:grid-cols-1">
               <div>
                 <RequestBodySkeleton title="Request" />
               </div>
@@ -78,7 +78,7 @@ export function RequestDetailSkeleton() {
           </section>
         </div>
 
-        <aside className="detail-sidecar bg-surface-2 border-l border-border">
+        <aside className="detail-sidecar min-w-0 bg-surface-2 max-[1024px]:border-t max-[1024px]:border-t-border">
           <section className="detail-sidecar-section">
             <div className="detail-sidecar-title">Response</div>
             <div className="space-y-2 rounded border border-border bg-surface-1 px-3 py-3">

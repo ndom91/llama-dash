@@ -180,8 +180,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         }
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[275px_minmax(0,1fr)_260px] items-stretch gap-0 max-[1200px]:grid-cols-[168px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-        <aside className="border-r border-border bg-surface-1 px-3.5 py-4 max-[900px]:border-r-0 max-[900px]:border-b">
+      <div className="grid min-h-0 flex-1 grid-cols-[clamp(188px,21vw,275px)_minmax(0,1fr)_clamp(190px,19vw,260px)] items-stretch gap-0 max-[1200px]:grid-cols-[clamp(164px,19vw,220px)_minmax(0,1fr)_clamp(172px,18vw,220px)] max-[1024px]:grid-cols-[minmax(0,1fr)]">
+        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <div>
             <div className={railSectionTitle}>Summary</div>
             <dl className="detail-meta-list">
@@ -362,34 +362,34 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-b border-border bg-surface-1 max-[1200px]:border-r-0 max-[900px]:border-t max-[900px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[900px]:grid-cols-2">
-              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:col-span-2">
+          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
+            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:col-span-2">
                 <div className={endpointMetricLabel}>Endpoint</div>
-                <div className="mt-2 flex flex-wrap wrap-anywhere items-baseline gap-x-3 gap-y-1 font-mono">
+                <div className="mt-2 flex min-w-0 flex-wrap wrap-anywhere items-baseline gap-x-3 gap-y-1 font-mono">
                   <span className="text-[22px] font-semibold tracking-[-0.04em] text-fg">{req.method}</span>
                   <span className="text-[22px] font-semibold tracking-[-0.04em] text-info" translate="no">
                     {req.endpoint}
                   </span>
                 </div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>status</div>
                 <div className={`${endpointMetricValue} ${statusColor}`}>{req.statusCode}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:border-r-0 max-[900px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-in</div>
                 <div className={endpointMetricValue}>{req.promptTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[900px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-out</div>
                 <div className={endpointMetricValue}>{req.completionTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[900px]:border-r-0 max-[900px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>total</div>
                 <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[900px]:border-b">
+              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>duration</div>
                 <div className={endpointMetricValue}>{formatDuration(req.durationMs)}</div>
               </div>
@@ -427,7 +427,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               <span className="panel-sub">request • response</span>
               <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
             </div>
-            <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[900px]:grid-cols-1">
+            <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
               <RequestPayloadPane
                 key={`${req.id}-request`}
                 title="Request"
@@ -449,19 +449,19 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           </section>
         </div>
 
-        <aside className="bg-surface-2 px-3.5 py-3 max-[1200px]:col-span-full max-[1200px]:border-t max-[1200px]:border-t-border">
+        <aside className="min-w-0 bg-surface-2 px-3.5 py-3 max-[1200px]:px-3 max-[1024px]:border-t max-[1024px]:border-t-border">
           <section>
             <div className={railSectionTitle}>Tokens</div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 max-[1200px]:grid-cols-1 max-[1024px]:grid-cols-2">
               <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">in</div>
-                <div className="mt-2 font-mono text-[28px] font-semibold tracking-[-0.03em] text-fg">
+                <div className="mt-2 truncate font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
                   {req.promptTokens?.toLocaleString() ?? '—'}
                 </div>
               </div>
               <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">out</div>
-                <div className="mt-2 font-mono text-[28px] font-semibold tracking-[-0.03em] text-fg">
+                <div className="mt-2 truncate font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
                   {req.completionTokens?.toLocaleString() ?? '—'}
                 </div>
               </div>
@@ -524,7 +524,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
 
           <section className={railSectionDivider}>
             <div className={railSectionTitle}>Request ID</div>
-            <div className="mono text-xs text-fg">{req.id}</div>
+            <div className="mono wrap-anywhere text-xs text-fg">{req.id}</div>
           </section>
 
           <section className={`${railSectionDivider} grid gap-2`}>
