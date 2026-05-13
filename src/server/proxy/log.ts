@@ -57,6 +57,7 @@ export type RequestLogInput = {
   routingPreserveAuthorization: boolean
   routingTargetType: string | null
   routingTargetBaseUrl: string | null
+  routingTargetCredentialId: string | null
   routingRequestedModel: string | null
   routingRoutedModel: string | null
   routingRejectReason: string | null
@@ -143,6 +144,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
       routingPreserveAuthorization: row.routingPreserveAuthorization,
       routingTargetType: row.routingTargetType,
       routingTargetBaseUrl: row.routingTargetBaseUrl,
+      routingTargetCredentialId: row.routingTargetCredentialId,
       routingRequestedModel: row.routingRequestedModel,
       routingRoutedModel: row.routingRoutedModel,
       routingRejectReason: row.routingRejectReason,

@@ -15,6 +15,7 @@ import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms } from './transforms.ts'
+import { getCredentialAuthorizationHeader } from '../admin/upstream-credentials.ts'
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
   const ctx = createProxyContext(request)
@@ -98,6 +99,37 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
     delete ctx.reqHeaders.authorization
+  }
+
+  if (ctx.routingOutcome.targetCredentialId) {
+    const authorization = getCredentialAuthorizationHeader(
+      ctx.routingOutcome.targetCredentialId,
+      process.env.CREDENTIAL_ENCRYPTION_KEY ?? '',
+    )
+    if (!authorization) {
+      const message = `Upstream credential ${ctx.routingOutcome.targetCredentialId} not found`
+      writeProxyLog({
+        startedAt: ctx.startedAt,
+        status: 502,
+        method: ctx.method,
+        endpoint: ctx.endpoint,
+        usage: nullUsage(ctx.body?.reqModel),
+        streamed: false,
+        error: message,
+        reqHeaders: loggedRequestHeaders(ctx),
+        reqBody: loggedRequestBody(ctx),
+        resHeaders: null,
+        resBody: null,
+        keyId: ctx.keyId,
+        reqModel: ctx.body?.reqModel ?? null,
+        attribution: ctx.attribution,
+        routing: ctx.routingOutcome,
+      })
+      return Response.json(toErrorBody(ctx.endpoint, { error: { message, type: 'upstream_credential_missing' } }), {
+        status: 502,
+      })
+    }
+    ctx.reqHeaders.authorization = authorization
   }
 
   const reqHeadersJson = loggedRequestHeaders(ctx)

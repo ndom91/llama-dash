@@ -37,6 +37,7 @@ export const requests = sqliteTable(
       .default(false),
     routingTargetType: text('routing_target_type'),
     routingTargetBaseUrl: text('routing_target_base_url'),
+    routingTargetCredentialId: text('routing_target_credential_id'),
     routingRequestedModel: text('routing_requested_model'),
     routingRoutedModel: text('routing_routed_model'),
     routingRejectReason: text('routing_reject_reason'),
@@ -213,6 +214,19 @@ export const routingRules = sqliteTable('routing_rules', {
 
 export type RoutingRule = typeof routingRules.$inferSelect
 export type NewRoutingRule = typeof routingRules.$inferInsert
+
+export const upstreamCredentials = sqliteTable('upstream_credentials', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  type: text('type', { enum: ['bearer'] }).notNull(),
+  encryptedValue: text('encrypted_value').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),
+})
+
+export type UpstreamCredential = typeof upstreamCredentials.$inferSelect
+export type NewUpstreamCredential = typeof upstreamCredentials.$inferInsert
 
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),

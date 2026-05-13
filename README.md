@@ -29,7 +29,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
-- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough and direct HTTPS `/v1` upstream targets for bearer/OAuth flows, per-key system prompt injection, and global request size limits.
+- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, encrypted upstream credential injection, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **Prometheus metrics** — `/metrics` exposes proxy request, token, latency-window, queue, upstream, running-model, and GPU gauges.
@@ -160,13 +160,14 @@ Copy `.env.example` to `.env` and fill in the values.
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
 | `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
+| `CREDENTIAL_ENCRYPTION_KEY` | | 32+ character secret used to encrypt stored upstream provider credentials. Required before creating or injecting upstream credentials. |
 
 See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md) for the backend abstraction, capability model, and future Ollama notes.
 
 ## ⚙️ How it's wired
 
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
-- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, settings, and system health.
+- `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, upstream credentials, settings, and system health.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not `/v1/*`. Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and feeds dashboard/System GPU details. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table.

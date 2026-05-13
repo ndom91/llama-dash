@@ -129,14 +129,14 @@ describe('applyTransforms', () => {
           maxEstimatedPromptTokens: '',
         },
         action: { type: 'continue' },
-        target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
+        target: { type: 'direct', baseUrl: 'https://api.openai.com/v1', credentialId: 'ucr_test' },
         authMode: 'passthrough',
         preserveAuthorization: true,
         createdAt: new Date(0).toISOString(),
         updatedAt: new Date(0).toISOString(),
       },
       action: { type: 'continue' },
-      target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
+      target: { type: 'direct', baseUrl: 'https://api.openai.com/v1', credentialId: 'ucr_test' },
       authMode: 'passthrough',
       preserveAuthorization: true,
     })
@@ -156,6 +156,7 @@ describe('applyTransforms', () => {
       expect(result.routing.preserveAuthorization).toBe(true)
       expect(result.routing.targetType).toBe('direct')
       expect(result.routing.targetBaseUrl).toBe('https://api.openai.com/v1')
+      expect(result.routing.targetCredentialId).toBe('ucr_test')
     }
   })
 })

@@ -9,6 +9,7 @@ import { RoutingRuleTargetSection } from './RoutingRuleTargetSection'
 
 export function RoutingRuleEditor({
   draft,
+  credentials,
   keyMap,
   keys,
   modelOptions,
@@ -19,6 +20,7 @@ export function RoutingRuleEditor({
   onSave,
 }: {
   draft: RoutingRule
+  credentials: Array<{ id: string; name: string; type: string }>
   keyMap: Map<string, string>
   keys: Array<{ id: string }>
   modelOptions: string[]
@@ -90,7 +92,7 @@ export function RoutingRuleEditor({
         <div className="space-y-5 border-t border-border pt-5 xl:border-l xl:border-t-0 xl:pl-5 xl:pt-0">
           <RoutingRuleActionSection draft={draft} modelOptions={modelOptions} onChange={onChange} />
           <RoutingRuleAuthSection draft={draft} onChange={onChange} />
-          <RoutingRuleTargetSection draft={draft} onChange={onChange} />
+          <RoutingRuleTargetSection draft={draft} credentials={credentials} onChange={onChange} />
           <RoutingRulePreview draft={draft} keyMap={keyMap} />
         </div>
       </div>

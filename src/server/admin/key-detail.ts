@@ -103,6 +103,7 @@ export function getKeyRequests(
       routingPreserveAuthorization: r.routingPreserveAuthorization,
       routingTargetType: r.routingTargetType,
       routingTargetBaseUrl: r.routingTargetBaseUrl,
+      routingTargetCredentialId: r.routingTargetCredentialId,
       routingRoutedModel: r.routingRoutedModel,
     }))
 

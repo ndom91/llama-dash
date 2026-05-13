@@ -40,6 +40,10 @@ vi.mock('../admin/routing-rules.ts', async () => {
   }
 })
 
+vi.mock('../admin/upstream-credentials.ts', () => ({
+  getCredentialAuthorizationHeader: () => null,
+}))
+
 const apiKeysMock = vi.hoisted(() => ({
   hasAnyUserKeys: vi.fn(() => true),
   findKeyByHash: vi.fn<(hash: string) => ApiKey | undefined>(() => undefined),

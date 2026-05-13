@@ -65,6 +65,7 @@ function row(overrides: Partial<RequestLogInput> = {}): RequestLogInput {
     routingPreserveAuthorization: false,
     routingTargetType: null,
     routingTargetBaseUrl: null,
+    routingTargetCredentialId: null,
     routingRequestedModel: null,
     routingRoutedModel: null,
     routingRejectReason: null,

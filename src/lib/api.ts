@@ -3,6 +3,7 @@ import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
+import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
 import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
 import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
@@ -42,6 +43,7 @@ export type {
 export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
+export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 
@@ -138,6 +140,12 @@ export const api = {
     sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
+  listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
+  createUpstreamCredential: (body: { name: string; type: 'bearer'; value: string }) =>
+    sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
+  updateUpstreamCredential: (id: string, body: { name?: string; value?: string }) =>
+    sendJson(`/api/upstream-credentials/${id}`, UpstreamCredentialSchema, { method: 'PATCH', body }),
+  deleteUpstreamCredential: (id: string) => sendEmpty(`/api/upstream-credentials/${id}`, OkSchema, 'DELETE'),
   createRoutingRule: (body: {
     name: string
     enabled: boolean

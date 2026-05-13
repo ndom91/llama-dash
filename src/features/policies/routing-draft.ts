@@ -50,7 +50,19 @@ export function setTargetType(draft: RoutingRule, type: RoutingRule['target']['t
 }
 
 export function setDirectTargetBaseUrl(draft: RoutingRule, baseUrl: string): RoutingRule {
-  return { ...draft, target: { type: 'direct', baseUrl } }
+  return {
+    ...draft,
+    target: {
+      type: 'direct',
+      baseUrl,
+      credentialId: draft.target.type === 'direct' ? draft.target.credentialId : null,
+    },
+  }
+}
+
+export function setDirectTargetCredential(draft: RoutingRule, credentialId: string | null): RoutingRule {
+  if (draft.target.type !== 'direct') return draft
+  return { ...draft, target: { ...draft.target, credentialId } }
 }
 
 export function asStreamMode(value: string): RoutingStreamMode {

@@ -20,6 +20,7 @@ export type RoutingOutcome = {
   preserveAuthorization: boolean
   targetType: 'llama_swap' | 'direct' | null
   targetBaseUrl: string | null
+  targetCredentialId: string | null
   requestedModel: string | null
   routedModel: string | null
   rejectReason: string | null
@@ -125,6 +126,7 @@ export function emptyRoutingOutcome(): RoutingOutcome {
     preserveAuthorization: false,
     targetType: null,
     targetBaseUrl: null,
+    targetCredentialId: null,
     requestedModel: null,
     routedModel: null,
     rejectReason: null,
@@ -144,6 +146,7 @@ export function routingOutcomeFromDecision(
     preserveAuthorization: decision.authMode === 'passthrough' && decision.preserveAuthorization,
     targetType: decision.target.type,
     targetBaseUrl: decision.target.type === 'direct' ? decision.target.baseUrl : null,
+    targetCredentialId: decision.target.type === 'direct' ? (decision.target.credentialId ?? null) : null,
     requestedModel,
     routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
     rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,

@@ -1,0 +1,137 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { desc, eq } from 'drizzle-orm'
+import { ulid } from 'ulidx'
+import type {
+  CreateUpstreamCredentialBody,
+  UpdateUpstreamCredentialBody,
+  UpstreamCredential,
+} from '../../lib/schemas/upstream-credential.ts'
+import { db, schema } from '../db/index.ts'
+
+type EncryptedPayload = {
+  v: 1
+  alg: 'aes-256-gcm'
+  iv: string
+  tag: string
+  data: string
+}
+
+export function isCredentialVaultEnabled(): boolean {
+  return isCredentialVaultKeyEnabled(getCredentialEncryptionKey())
+}
+
+export function isCredentialVaultKeyEnabled(key: string): boolean {
+  return key.length >= 32
+}
+
+function getCredentialEncryptionKey(): string {
+  return process.env.CREDENTIAL_ENCRYPTION_KEY ?? ''
+}
+
+export function getCredentialVaultStatus(
+  key = getCredentialEncryptionKey(),
+): 'ready' | 'missing_key' | 'key_too_short' {
+  if (!key) return 'missing_key'
+  if (!isCredentialVaultKeyEnabled(key)) return 'key_too_short'
+  return 'ready'
+}
+
+function requireVaultKey(key = getCredentialEncryptionKey()): Buffer {
+  if (!isCredentialVaultKeyEnabled(key)) {
+    const detail = getCredentialVaultStatus(key) === 'missing_key' ? 'is not set' : 'must be at least 32 characters'
+    throw new Error(`CREDENTIAL_ENCRYPTION_KEY ${detail} before using upstream credentials`)
+  }
+  return createHash('sha256').update(key).digest()
+}
+
+function encryptSecret(value: string, encryptionKey?: string): string {
+  const key = requireVaultKey(encryptionKey)
+  const iv = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', key, iv)
+  const data = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()])
+  const payload: EncryptedPayload = {
+    v: 1,
+    alg: 'aes-256-gcm',
+    iv: iv.toString('base64url'),
+    tag: cipher.getAuthTag().toString('base64url'),
+    data: data.toString('base64url'),
+  }
+  return JSON.stringify(payload)
+}
+
+function decryptSecret(raw: string, encryptionKey?: string): string {
+  const key = requireVaultKey(encryptionKey)
+  const payload = JSON.parse(raw) as EncryptedPayload
+  if (payload.v !== 1 || payload.alg !== 'aes-256-gcm') throw new Error('Unsupported credential payload')
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(payload.iv, 'base64url'))
+  decipher.setAuthTag(Buffer.from(payload.tag, 'base64url'))
+  return Buffer.concat([decipher.update(Buffer.from(payload.data, 'base64url')), decipher.final()]).toString('utf8')
+}
+
+function toApiShape(row: schema.UpstreamCredential): UpstreamCredential {
+  return {
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+  }
+}
+
+export function listUpstreamCredentials(): UpstreamCredential[] {
+  return db
+    .select()
+    .from(schema.upstreamCredentials)
+    .orderBy(desc(schema.upstreamCredentials.createdAt))
+    .all()
+    .map(toApiShape)
+}
+
+export function createUpstreamCredential(
+  input: CreateUpstreamCredentialBody,
+  encryptionKey?: string,
+): UpstreamCredential {
+  const id = `ucr_${ulid()}`
+  const now = new Date()
+  db.insert(schema.upstreamCredentials)
+    .values({
+      id,
+      name: input.name,
+      type: input.type,
+      encryptedValue: encryptSecret(input.value, encryptionKey),
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run()
+  return toApiShape(db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()!)
+}
+
+export function updateUpstreamCredential(
+  id: string,
+  input: UpdateUpstreamCredentialBody,
+  encryptionKey?: string,
+): UpstreamCredential | null {
+  const set: Partial<schema.NewUpstreamCredential> = { updatedAt: new Date() }
+  if (input.name !== undefined) set.name = input.name
+  if (input.value !== undefined) set.encryptedValue = encryptSecret(input.value, encryptionKey)
+  const result = db.update(schema.upstreamCredentials).set(set).where(eq(schema.upstreamCredentials.id, id)).run()
+  if (result.changes === 0) return null
+  const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
+  return row ? toApiShape(row) : null
+}
+
+export function deleteUpstreamCredential(id: string): boolean {
+  return db.delete(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).run().changes > 0
+}
+
+export function getCredentialAuthorizationHeader(id: string, encryptionKey?: string): string | null {
+  const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
+  if (!row) return null
+  db.update(schema.upstreamCredentials)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(schema.upstreamCredentials.id, id))
+    .run()
+  if (row.type === 'bearer') return `Bearer ${decryptSecret(row.encryptedValue, encryptionKey)}`
+  return null
+}

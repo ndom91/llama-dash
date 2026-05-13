@@ -27,6 +27,7 @@ export const ApiRequestSchema = v.object({
   routingPreserveAuthorization: v.boolean(),
   routingTargetType: v.nullable(v.string()),
   routingTargetBaseUrl: v.nullable(v.string()),
+  routingTargetCredentialId: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
 })
 
@@ -49,6 +50,7 @@ export const ApiRequestDetailSchema = v.object({
   routingPreserveAuthorization: v.boolean(),
   routingTargetType: v.nullable(v.string()),
   routingTargetBaseUrl: v.nullable(v.string()),
+  routingTargetCredentialId: v.nullable(v.string()),
   routingRequestedModel: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
   routingRejectReason: v.nullable(v.string()),

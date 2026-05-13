@@ -7,6 +7,7 @@ import { routingRoutes } from './routes/routing.ts'
 import { settingRoutes } from './routes/settings.ts'
 import { systemRoutes } from './routes/system.ts'
 import { error, type Route } from './routes/types.ts'
+import { upstreamCredentialRoutes } from './routes/upstream-credentials.ts'
 
 const routes: Route[] = [
   ...modelRoutes,
@@ -16,6 +17,7 @@ const routes: Route[] = [
   ...aliasRoutes,
   ...settingRoutes,
   ...keyRoutes,
+  ...upstreamCredentialRoutes,
   ...systemRoutes,
 ]
 

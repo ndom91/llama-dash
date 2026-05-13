@@ -3,11 +3,14 @@ import { useMemo, useState } from 'react'
 import type { RoutingRule } from '../../lib/api'
 import {
   useApiKeys,
+  useCreateUpstreamCredential,
   useCreateRoutingRule,
   useDeleteRoutingRule,
+  useDeleteUpstreamCredential,
   useModels,
   useReorderRoutingRules,
   useRoutingRules,
+  useUpstreamCredentials,
   useUpdateRoutingRule,
 } from '../../lib/queries'
 import { RoutingRuleEditor } from './RoutingRuleEditor'
@@ -46,7 +49,10 @@ export function RoutingPanel() {
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
+  const { data: credentialState } = useUpstreamCredentials()
   const createRuleMutation = useCreateRoutingRule()
+  const createCredentialMutation = useCreateUpstreamCredential()
+  const deleteCredentialMutation = useDeleteUpstreamCredential()
   const updateRuleMutation = useUpdateRoutingRule()
   const deleteRuleMutation = useDeleteRoutingRule()
   const reorderRulesMutation = useReorderRoutingRules()
@@ -54,6 +60,7 @@ export function RoutingPanel() {
   const [draft, setDraft] = useState<RoutingRule | null>(null)
 
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
+  const credentials = credentialState?.credentials ?? []
   const modelOptions = models.map((model) => model.id)
 
   const enabledCount = rules.filter((rule) => rule.enabled).length
@@ -61,7 +68,9 @@ export function RoutingPanel() {
     createRuleMutation.isPending ||
     updateRuleMutation.isPending ||
     deleteRuleMutation.isPending ||
-    reorderRulesMutation.isPending
+    reorderRulesMutation.isPending ||
+    createCredentialMutation.isPending ||
+    deleteCredentialMutation.isPending
 
   const startEdit = (rule: RoutingRule) => {
     setEditingRuleId(rule.id)
@@ -185,6 +194,7 @@ export function RoutingPanel() {
                   <>
                     <RoutingRuleEditor
                       draft={draft}
+                      credentials={credentials}
                       keyMap={keyMap}
                       keys={keys}
                       modelOptions={modelOptions}
@@ -222,6 +232,7 @@ export function RoutingPanel() {
             <>
               <RoutingRuleEditor
                 draft={draft}
+                credentials={credentials}
                 keyMap={keyMap}
                 keys={keys}
                 modelOptions={modelOptions}
@@ -240,8 +251,108 @@ export function RoutingPanel() {
             </>
           ) : null}
 
-          {!draft ? <ObservabilityPanel /> : null}
+          <CredentialVaultPanel
+            credentials={credentials}
+            vaultEnabled={credentialState?.vaultEnabled ?? false}
+            vaultStatus={credentialState?.vaultStatus ?? 'missing_key'}
+            createPending={createCredentialMutation.isPending}
+            deletePending={deleteCredentialMutation.isPending}
+            onCreate={(body) => createCredentialMutation.mutate(body)}
+            onDelete={(id) => deleteCredentialMutation.mutate(id)}
+          />
         </div>
+      </div>
+    </section>
+  )
+}
+
+function CredentialVaultPanel({
+  credentials,
+  vaultEnabled,
+  vaultStatus,
+  createPending,
+  deletePending,
+  onCreate,
+  onDelete,
+}: {
+  credentials: Array<{ id: string; name: string; type: 'bearer'; lastUsedAt: string | null }>
+  vaultEnabled: boolean
+  vaultStatus: 'ready' | 'missing_key' | 'key_too_short'
+  createPending: boolean
+  deletePending: boolean
+  onCreate: (body: { name: string; type: 'bearer'; value: string }) => void
+  onDelete: (id: string) => void
+}) {
+  const [name, setName] = useState('')
+  const [value, setValue] = useState('')
+
+  const submit = () => {
+    if (!name.trim() || !value.trim()) return
+    onCreate({ name: name.trim(), type: 'bearer', value: value.trim() })
+    setName('')
+    setValue('')
+  }
+  const statusText = vaultEnabled
+    ? 'encrypted at rest'
+    : vaultStatus === 'key_too_short'
+      ? 'disabled · CREDENTIAL_ENCRYPTION_KEY must be 32+ chars'
+      : 'disabled · set CREDENTIAL_ENCRYPTION_KEY and restart'
+
+  return (
+    <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Upstream credential vault</span>
+        <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">· {statusText}</span>
+      </div>
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto]">
+        <input
+          type="text"
+          className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
+          placeholder="Credential name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          disabled={!vaultEnabled}
+        />
+        <input
+          type="password"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
+          className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
+          placeholder="Bearer token"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          disabled={!vaultEnabled}
+        />
+        <button
+          type="button"
+          className="btn btn-primary h-9 px-3 text-xs"
+          onClick={submit}
+          disabled={!vaultEnabled || createPending || !name.trim() || !value.trim()}
+        >
+          add credential
+        </button>
+      </div>
+      <div className="mt-4 divide-y divide-border rounded border border-border bg-surface-1">
+        {credentials.length === 0 ? (
+          <div className="px-3 py-3 text-fg-faint">No upstream credentials stored.</div>
+        ) : (
+          credentials.map((credential) => (
+            <div key={credential.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
+              <span className="text-fg">{credential.name}</span>
+              <span className="text-fg-faint">{credential.type}</span>
+              <span className="text-fg-faint">last used {credential.lastUsedAt ?? 'never'}</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs ml-auto"
+                onClick={() => onDelete(credential.id)}
+                disabled={deletePending}
+              >
+                delete
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </section>
   )
@@ -293,6 +404,7 @@ function ObservabilityPreview({
     ['authorization', rule.preserveAuthorization ? 'preserved' : 'default'],
     ['target', rule.target.type],
     ['upstream', rule.target.type === 'direct' ? rule.target.baseUrl : '—'],
+    ['credential', rule.target.type === 'direct' ? (rule.target.credentialId ?? '—') : '—'],
     ['endpoint', rule.match.endpoints[0] ?? '—'],
     ['evaluation order', `evaluated ${rule.order} of ${totalRules} rules`],
   ]

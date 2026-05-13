@@ -103,6 +103,7 @@ export function writeProxyLog(input: ProxyLogInput) {
     routingPreserveAuthorization: input.routing.preserveAuthorization,
     routingTargetType: input.routing.targetType,
     routingTargetBaseUrl: input.routing.targetBaseUrl,
+    routingTargetCredentialId: input.routing.targetCredentialId,
     routingRequestedModel: input.routing.requestedModel,
     routingRoutedModel: input.routing.routedModel,
     routingRejectReason: input.routing.rejectReason,

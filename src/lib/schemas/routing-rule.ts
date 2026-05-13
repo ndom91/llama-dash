@@ -69,6 +69,7 @@ export const DirectTargetSchema = v.pipe(
   v.object({
     type: v.literal('direct'),
     baseUrl: v.pipe(v.string(), v.url(), v.maxLength(500)),
+    credentialId: v.optional(v.nullable(v.string())),
   }),
   v.check((target) => {
     try {

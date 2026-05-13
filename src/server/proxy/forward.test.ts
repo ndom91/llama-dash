@@ -44,6 +44,7 @@ function input(overrides: Partial<ProxyLogInput> = {}): ProxyLogInput {
       preserveAuthorization: false,
       targetType: null,
       targetBaseUrl: null,
+      targetCredentialId: null,
       requestedModel: null,
       routedModel: null,
       rejectReason: null,

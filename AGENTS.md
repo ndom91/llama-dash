@@ -107,12 +107,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## What's shipped
 
 1. TanStack Start app on `:5173`.
-2. SQLite (`data/dash.db`) + Drizzle. Ten tables plus query indexes for common
+2. SQLite (`data/dash.db`) + Drizzle. Runtime tables plus query indexes for common
    request/model-event lookups: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt), `model_aliases` (global model name mapping),
-   `routing_rules` (ordered request routing rules), `settings` (key-value
+   `routing_rules` (ordered request routing rules), `upstream_credentials`
+   (encrypted direct-upstream bearer credentials), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
    `user`, `session`, `account`, and `verification` tables for dashboard sessions.
 3. `/v1/*` pass-through proxy that streams SSE unchanged and queues one log row
@@ -152,9 +153,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
    - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `systemPrompt`
-   - `/api/aliases` — CRUD for model aliases (global model name mapping)
-   - `/api/routing-rules` — CRUD + reorder for ordered routing rules
-   - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+    - `/api/aliases` — CRUD for model aliases (global model name mapping)
+    - `/api/routing-rules` — CRUD + reorder for ordered routing rules
+    - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing
+    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    latency-window, queue, upstream, running-model, and GPU metrics.
@@ -185,6 +187,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    client's `Authorization` header for upstream OAuth/API-key validation.
    Routing rules can also target a configured direct HTTPS `/v1` upstream,
    bypassing llama-swap for that matched request while keeping proxy logging.
+   Direct targets can reference encrypted upstream bearer credentials; the
+   admin API never returns secret values, and the proxy injects the credential
+   immediately before forwarding. Stored credentials require
+   `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `continue` + `passthrough` auth and preserved client `Authorization`.

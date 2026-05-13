@@ -28,6 +28,7 @@ import {
   type ModelAliasItem,
   type PrivacySettings,
   type RoutingRule,
+  type UpstreamCredential,
   type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
@@ -66,6 +67,7 @@ export const qk = {
   keyDetail: (id: string) => ['keys', id] as const,
   aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
+  upstreamCredentials: ['upstream-credentials'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
@@ -195,6 +197,17 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
     placeholderData: keepPreviousData,
+  })
+}
+
+export function useUpstreamCredentials(): UseQueryResult<{
+  credentials: Array<UpstreamCredential>
+  vaultEnabled: boolean
+  vaultStatus: 'ready' | 'missing_key' | 'key_too_short'
+}> {
+  return useQuery({
+    queryKey: qk.upstreamCredentials,
+    queryFn: () => api.listUpstreamCredentials(),
   })
 }
 
@@ -479,6 +492,38 @@ export function useCreateRoutingRule(): UseMutationResult<RoutingRule, Error, Cr
     },
     onError: (e) => {
       toastMutationError('Failed to create routing rule', e)
+    },
+  })
+}
+
+export function useCreateUpstreamCredential(): UseMutationResult<
+  UpstreamCredential,
+  Error,
+  { name: string; type: 'bearer'; value: string }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.createUpstreamCredential(body),
+    onSuccess: () => {
+      toast.success('Upstream credential created')
+      invalidateKeys(qc, [qk.upstreamCredentials])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to create upstream credential', e)
+    },
+  })
+}
+
+export function useDeleteUpstreamCredential(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => api.deleteUpstreamCredential(id),
+    onSuccess: () => {
+      toast.success('Upstream credential deleted')
+      invalidateKeys(qc, [qk.upstreamCredentials])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to delete upstream credential', e)
     },
   })
 }

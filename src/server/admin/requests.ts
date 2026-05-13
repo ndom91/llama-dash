@@ -46,6 +46,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
     routingPreserveAuthorization: r.routingPreserveAuthorization,
     routingTargetType: r.routingTargetType,
     routingTargetBaseUrl: r.routingTargetBaseUrl,
+    routingTargetCredentialId: r.routingTargetCredentialId,
     routingRoutedModel: r.routingRoutedModel,
   }))
 }
@@ -95,6 +96,7 @@ export function getRequestById(id: string): RequestDetail | null {
     routingPreserveAuthorization: r.routingPreserveAuthorization,
     routingTargetType: r.routingTargetType,
     routingTargetBaseUrl: r.routingTargetBaseUrl,
+    routingTargetCredentialId: r.routingTargetCredentialId,
     routingRequestedModel: r.routingRequestedModel,
     routingRoutedModel: r.routingRoutedModel,
     routingRejectReason: r.routingRejectReason,

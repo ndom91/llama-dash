@@ -24,7 +24,10 @@ export function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>
     rule.authMode === 'passthrough'
       ? `passthrough auth${rule.preserveAuthorization ? ' · keep Authorization' : ''}`
       : 'require llama-dash key'
-  const target = rule.target.type === 'direct' ? `direct upstream ${rule.target.baseUrl}` : 'llama-swap'
+  const target =
+    rule.target.type === 'direct'
+      ? `direct upstream ${rule.target.baseUrl}${rule.target.credentialId ? ' · inject credential' : ''}`
+      : 'llama-swap'
 
   return {
     when: whenBits.length > 0 ? whenBits : ['matches any request'],
