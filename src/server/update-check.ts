@@ -8,7 +8,7 @@ export type UpdateCheck = {
   checkedAt: number | null
 }
 
-const RELEASES_URL = 'https://api.github.com/repos/ndom91/llama-dash/releases/latest'
+const BRANCH_URL = 'https://api.github.com/repos/ndom91/llama-dash/branches/main'
 const CACHE_MS = 60 * 60 * 1000
 
 let cached: UpdateCheck | null = null
@@ -25,15 +25,15 @@ export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
   }
 
   try {
-    const res = await fetch(RELEASES_URL, {
+    const res = await fetch(BRANCH_URL, {
       headers: { accept: 'application/vnd.github+json', 'user-agent': 'llama-dash-update-check' },
     })
     if (!res.ok) throw new Error(`GitHub returned ${res.status}`)
-    const body = (await res.json()) as { tag_name?: unknown; html_url?: unknown }
-    const latest = typeof body.tag_name === 'string' ? body.tag_name : null
-    const url = typeof body.html_url === 'string' ? body.html_url : null
+    const body = (await res.json()) as { commit?: { sha?: unknown; html_url?: unknown } }
+    const latest = typeof body.commit?.sha === 'string' ? body.commit.sha : null
+    const url = typeof body.commit?.html_url === 'string' ? body.commit.html_url : null
     cached = {
-      status: latest && normalizeVersion(latest) !== normalizeVersion(current) ? 'available' : 'current',
+      status: latest && !sameCommit(latest, current) ? 'available' : 'current',
       current,
       latest,
       url,
@@ -46,6 +46,8 @@ export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
   return cached
 }
 
-function normalizeVersion(value: string) {
-  return value.trim().replace(/^v/i, '')
+function sameCommit(remoteSha: string, current: string) {
+  const normalizedRemote = remoteSha.trim().toLowerCase()
+  const normalizedCurrent = current.trim().toLowerCase()
+  return normalizedRemote === normalizedCurrent || normalizedRemote.startsWith(normalizedCurrent)
 }

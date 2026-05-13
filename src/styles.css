@@ -1360,42 +1360,8 @@ a,
   overflow: visible;
   animation: tooltip-in 120ms ease-out;
 }
-.llama-tooltip::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: #05070a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  transform: rotate(45deg);
-}
-.llama-tooltip[data-side='top']::after {
-  bottom: -4px;
-  left: 50%;
-  margin-left: -4px;
-  border-top: none;
-  border-left: none;
-}
-.llama-tooltip[data-side='bottom']::after {
-  top: -4px;
-  left: 50%;
-  margin-left: -4px;
-  border-bottom: none;
-  border-right: none;
-}
-.llama-tooltip[data-side='left']::after {
-  right: -5px;
-  top: 50%;
-  margin-top: -4px;
-  border-bottom: none;
-  border-left: none;
-}
-.llama-tooltip[data-side='right']::after {
-  left: -5px;
-  top: 50%;
-  margin-top: -4px;
-  border-top: none;
-  border-right: none;
+.llama-tooltip-arrow {
+  fill: rgba(255, 255, 255, 0.12);
 }
 .tooltip-kbd {
   display: inline-block;

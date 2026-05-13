@@ -113,13 +113,15 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
         <div className="ml-auto flex items-center gap-1.5">
           {updateAvailable ? (
             <Tooltip label="Update available" side="bottom" align="end">
-              <button
-                type="button"
-                className="inline-flex size-4 items-center justify-center rounded-sm text-warn/80"
+              <a
+                href="https://github.com/ndom91/llama-dash"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex size-4 items-center justify-center rounded-sm text-warn/80 transition-[color,filter] duration-150 hover:text-warn hover:drop-shadow-[0_0_6px_color-mix(in_srgb,var(--warn)_65%,transparent)]"
                 aria-label="Update available"
               >
                 <TriangleAlert className="size-3" strokeWidth={1.75} aria-hidden="true" />
-              </button>
+              </a>
             </Tooltip>
           ) : null}
           <a

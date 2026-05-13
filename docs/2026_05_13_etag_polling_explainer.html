@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ETag Polling Explainer</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #070809;
+        --panel: #101315;
+        --panel-2: #15191c;
+        --line: #2a3035;
+        --fg: #e8ecef;
+        --muted: #9aa3aa;
+        --faint: #68727a;
+        --accent: #7dd3fc;
+        --good: #a3e635;
+        --warn: #fbbf24;
+        --bad: #fb7185;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(125, 211, 252, 0.14), transparent 34rem),
+          linear-gradient(135deg, rgba(163, 230, 53, 0.05), transparent 28rem), var(--bg);
+        color: var(--fg);
+        font-family: var(--sans);
+        line-height: 1.5;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      a:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0 64px;
+      }
+
+      header {
+        display: grid;
+        gap: 14px;
+        margin-bottom: 26px;
+      }
+
+      .eyebrow,
+      .kicker,
+      .code-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--faint);
+      }
+
+      h1 {
+        max-width: 820px;
+        margin: 0;
+        font-size: clamp(34px, 6vw, 72px);
+        line-height: 0.94;
+        letter-spacing: -0.07em;
+      }
+
+      h2,
+      h3 {
+        margin: 0;
+        letter-spacing: -0.035em;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .lede {
+        max-width: 760px;
+        color: var(--muted);
+        font-size: 18px;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(16, 19, 21, 0.74);
+        padding: 6px 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(16, 19, 21, 0.86);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+        overflow: hidden;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        border-bottom: 1px solid var(--line);
+        padding: 16px 18px;
+      }
+
+      .card-body {
+        padding: 18px;
+      }
+
+      .metric {
+        display: grid;
+        gap: 6px;
+      }
+
+      .metric strong {
+        font-family: var(--mono);
+        font-size: 30px;
+        line-height: 1;
+        letter-spacing: -0.06em;
+      }
+
+      .metric span,
+      .muted {
+        color: var(--muted);
+      }
+
+      .good {
+        color: var(--good);
+      }
+
+      .warn {
+        color: var(--warn);
+      }
+
+      .bad {
+        color: var(--bad);
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .node {
+        min-height: 92px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--panel-2);
+        padding: 14px;
+      }
+
+      .node strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .node span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .arrow {
+        color: var(--faint);
+        font-family: var(--mono);
+      }
+
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: rgba(21, 25, 28, 0.88);
+        padding: 12px;
+      }
+
+      .num {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(125, 211, 252, 0.12);
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      .status {
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        padding: 5px 9px;
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .code {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #07090a;
+        padding: 14px;
+        overflow: auto;
+        color: #d6dde3;
+        font-family: var(--mono);
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .mini-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      .mini-table th,
+      .mini-table td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 0;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .mini-table th {
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+
+      .controls {
+        display: grid;
+        gap: 14px;
+      }
+
+      .slider-row {
+        display: grid;
+        grid-template-columns: 170px minmax(0, 1fr) 80px;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      input[type="range"] {
+        width: 100%;
+      }
+
+      .bar-track {
+        height: 12px;
+        border-radius: 999px;
+        background: #080a0b;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+
+      .bar {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--accent), var(--good));
+      }
+
+      .callout {
+        border: 1px solid rgba(125, 211, 252, 0.36);
+        border-radius: 18px;
+        background: rgba(125, 211, 252, 0.08);
+        padding: 18px;
+      }
+
+      details {
+        border-top: 1px solid var(--line);
+        padding: 14px 18px;
+      }
+
+      summary {
+        cursor: pointer;
+        color: var(--fg);
+        font-weight: 650;
+      }
+
+      .footnote {
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          width: min(100% - 22px, 1180px);
+          padding-top: 24px;
+        }
+
+        .cols-2,
+        .cols-3,
+        .compare,
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .arrow {
+          text-align: center;
+          transform: rotate(90deg);
+        }
+
+        .step,
+        .slider-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          color: black;
+        }
+
+        .card,
+        .callout,
+        .node,
+        .step,
+        .code {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="eyebrow">llama-dash · admin polling</div>
+        <h1>ETags make our existing dashboard polling cheap when nothing changed.</h1>
+        <p class="lede">
+          Before this change, every 5-second poll downloaded and parsed full JSON even when the dashboard data was
+          identical. Now the server fingerprints JSON responses, the browser asks "same as last time?", and unchanged
+          polls come back as tiny <code>304 Not Modified</code> responses.
+        </p>
+        <div class="pill-row">
+          <span class="pill">server: src/server/admin/handler.ts</span>
+          <span class="pill">client: src/lib/api.ts</span>
+          <span class="pill">benefits existing React Query polling</span>
+        </div>
+      </header>
+
+      <section class="grid cols-3" aria-label="Summary metrics">
+        <article class="card metric card-body">
+          <span class="kicker">what changed</span>
+          <strong>headers</strong>
+          <span>Same routes, same schemas, same polling cadence. The contract gained <code>ETag</code> and <code>If-None-Match</code>.</span>
+        </article>
+        <article class="card metric card-body">
+          <span class="kicker">what shrinks</span>
+          <strong class="good">body bytes</strong>
+          <span>Unchanged responses send no JSON body, so repeated dashboard polls stop moving duplicate payloads.</span>
+        </article>
+        <article class="card metric card-body">
+          <span class="kicker">what stays</span>
+          <strong>freshness</strong>
+          <span>Routes still run and compare the latest body, so the UI updates as soon as the payload changes.</span>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 16px">
+        <div class="card-head">
+          <div>
+            <div class="kicker">Before vs after</div>
+            <h2>Same polling loop, different response shape</h2>
+          </div>
+        </div>
+        <div class="card-body compare">
+          <article>
+            <h3>Before: every poll pays full price</h3>
+            <div class="flow" style="margin-top: 14px">
+              <div class="node"><strong>React Query</strong><span>Refetches dashboard query every 5s.</span></div>
+              <div class="arrow">→</div>
+              <div class="node"><strong>Admin route</strong><span>Builds JSON response.</span></div>
+              <div class="arrow">→</div>
+              <div class="node"><strong>Browser</strong><span>Downloads and parses full JSON every time.</span></div>
+            </div>
+          </article>
+          <article>
+            <h3>After: unchanged polls short-circuit the payload</h3>
+            <div class="flow" style="margin-top: 14px">
+              <div class="node"><strong>Client cache</strong><span>Sends last ETag as <code>If-None-Match</code>.</span></div>
+              <div class="arrow">→</div>
+              <div class="node"><strong>Admin dispatcher</strong><span>Hashes latest JSON and compares tags.</span></div>
+              <div class="arrow">→</div>
+              <div class="node"><strong>304 or 200</strong><span>Reuses cached payload or accepts new JSON.</span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="grid cols-2" style="margin-top: 16px">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">Request lifecycle</div>
+              <h2>One unchanged poll</h2>
+            </div>
+          </div>
+          <div class="card-body timeline">
+            <div class="step">
+              <span class="num">1</span>
+              <div><strong>First poll</strong><br /><span class="muted">Client receives JSON and stores the response ETag by URL.</span></div>
+              <span class="status good">200</span>
+            </div>
+            <div class="step">
+              <span class="num">2</span>
+              <div><strong>Next poll</strong><br /><span class="muted">Client sends <code>If-None-Match: W/&quot;...&quot;</code>.</span></div>
+              <span class="status warn">check</span>
+            </div>
+            <div class="step">
+              <span class="num">3</span>
+              <div><strong>Server compares</strong><br /><span class="muted">The admin dispatcher hashes the latest JSON body.</span></div>
+              <span class="status warn">ETag</span>
+            </div>
+            <div class="step">
+              <span class="num">4</span>
+              <div><strong>No change</strong><br /><span class="muted">Server returns only headers. Client validates and reuses cached data.</span></div>
+              <span class="status good">304</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">Code path</div>
+              <h2>Where the mechanism lives</h2>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="code-label">server</div>
+            <pre class="code">GET /api/system
+  route builds JSON
+  admin dispatcher computes weak ETag
+  if If-None-Match matches:
+    return 304 + ETag + Cache-Control
+  else:
+    return 200 + JSON + ETag</pre>
+            <div class="code-label" style="margin-top: 14px">client</div>
+            <pre class="code">getJson(url, schema)
+  cached = jsonCache.get(url)
+  fetch(url, { If-None-Match: cached.etag })
+  if 304:
+    return parse(schema, cached.data)
+  if 200:
+    cache { etag, data }
+    return parse(schema, data)</pre>
+          </div>
+        </article>
+      </section>
+
+      <section class="card" style="margin-top: 16px">
+        <div class="card-head">
+          <div>
+            <div class="kicker">Interactive estimate</div>
+            <h2>Payload avoided per minute</h2>
+          </div>
+          <span class="footnote no-print">Adjust assumptions</span>
+        </div>
+        <div class="card-body grid cols-2">
+          <div class="controls no-print">
+            <label class="slider-row">
+              <span>polled queries</span>
+              <input id="queries" type="range" min="1" max="12" value="8" />
+              <strong id="queriesOut">8</strong>
+            </label>
+            <label class="slider-row">
+              <span>avg JSON size</span>
+              <input id="size" type="range" min="2" max="120" value="24" />
+              <strong id="sizeOut">24 KB</strong>
+            </label>
+            <label class="slider-row">
+              <span>unchanged polls</span>
+              <input id="unchanged" type="range" min="0" max="100" value="75" />
+              <strong id="unchangedOut">75%</strong>
+            </label>
+            <p class="muted">Assumes the current 5-second polling cadence, or 12 polls per minute per query.</p>
+          </div>
+          <div class="grid">
+            <div class="metric">
+              <span class="kicker">estimated avoided transfer</span>
+              <strong id="saved" class="good">1.7 MB/min</strong>
+              <span id="savedMeta" class="muted">Unchanged responses become header-only 304s.</span>
+            </div>
+            <div>
+              <div class="bar-track"><div id="savedBar" class="bar" style="width: 75%"></div></div>
+              <p class="footnote" style="margin-top: 10px">This is a directional model, not telemetry. The real win depends on route payload size and how often data changes.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid cols-2" style="margin-top: 16px">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">Why it fits llama-dash</div>
+              <h2>High-frequency, low-change data</h2>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="mini-table">
+              <thead><tr><th>Route family</th><th>Why ETag helps</th></tr></thead>
+              <tbody>
+                <tr><td><code>/api/models</code></td><td>Model state often stays stable between polls.</td></tr>
+                <tr><td><code>/api/gpu</code></td><td>Still changes often, but unchanged static fields do not matter; full payload is skipped when identical.</td></tr>
+                <tr><td><code>/api/system</code></td><td>Most runtime metadata is stable except uptime and poll age, so this may change frequently.</td></tr>
+                <tr><td><code>/api/requests/stats</code></td><td>Useful during idle periods when traffic metrics repeat.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <div class="kicker">Tradeoffs</div>
+              <h2>What this does not optimize</h2>
+            </div>
+          </div>
+          <div class="card-body">
+            <table class="mini-table">
+              <thead><tr><th>Cost</th><th>Current behavior</th></tr></thead>
+              <tbody>
+                <tr><td>Route computation</td><td>The server still builds the JSON before it can hash and compare it.</td></tr>
+                <tr><td>Volatile fields</td><td>Fields like uptime make ETags change often, reducing 304 hits for that route.</td></tr>
+                <tr><td>Mutation invalidation</td><td>Mutations still rely on React Query invalidation; ETags only optimize GET transfer.</td></tr>
+                <tr><td>Cross-tab cache</td><td>The cache is in-memory per browser tab, not shared storage.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="callout" style="margin-top: 16px">
+        <h2>Plain-English summary</h2>
+        <p class="muted" style="margin-top: 8px">
+          We kept polling because operational dashboards need fresh state. ETags make that polling less wasteful: if the
+          server's latest JSON is byte-for-byte equivalent to what the client already has, the server says "not modified"
+          and the client reuses its validated cached object. The UI stays just as fresh, but quiet periods stop sending the
+          same JSON over and over.
+        </p>
+      </section>
+
+      <section class="card" style="margin-top: 16px">
+        <details>
+          <summary>Why weak ETags?</summary>
+          <p class="muted" style="margin-top: 10px">
+            The implementation uses weak ETags because this is a semantic cache validator for JSON API payloads, not a byte
+            serving mechanism for files or ranges. We only need to know whether the response representation is unchanged
+            enough for the dashboard to reuse the previous parsed value.
+          </p>
+        </details>
+        <details>
+          <summary>Why put it in the admin dispatcher?</summary>
+          <p class="muted" style="margin-top: 10px">
+            Most admin routes already return through the shared <code>json()</code> helper and dispatcher. Adding the
+            comparison at the dispatcher means existing and future JSON GET routes benefit without adding duplicate ETag
+            logic to every handler.
+          </p>
+        </details>
+        <details>
+          <summary>Why still parse cached data through Valibot on 304?</summary>
+          <p class="muted" style="margin-top: 10px">
+            The cached value came from a previous validated response, but parsing it again keeps the fetch helper's contract
+            simple: callers always receive schema-validated data, regardless of whether the network response was 200 or 304.
+          </p>
+        </details>
+      </section>
+
+      <p class="footnote" style="margin-top: 18px">
+        Source context: current llama-dash implementation in <code>src/server/admin/handler.ts</code> and <code>src/lib/api.ts</code>.
+      </p>
+    </main>
+
+    <script>
+      const queries = document.querySelector('#queries')
+      const size = document.querySelector('#size')
+      const unchanged = document.querySelector('#unchanged')
+      const queriesOut = document.querySelector('#queriesOut')
+      const sizeOut = document.querySelector('#sizeOut')
+      const unchangedOut = document.querySelector('#unchangedOut')
+      const saved = document.querySelector('#saved')
+      const savedMeta = document.querySelector('#savedMeta')
+      const savedBar = document.querySelector('#savedBar')
+
+      function formatBytes(kb) {
+        if (kb >= 1024) return `${(kb / 1024).toFixed(1)} MB/min`
+        return `${Math.round(kb)} KB/min`
+      }
+
+      function updateEstimate() {
+        const q = Number(queries.value)
+        const kb = Number(size.value)
+        const rate = Number(unchanged.value)
+        const savedKb = q * 12 * kb * (rate / 100)
+        queriesOut.textContent = String(q)
+        sizeOut.textContent = `${kb} KB`
+        unchangedOut.textContent = `${rate}%`
+        saved.textContent = formatBytes(savedKb)
+        savedMeta.textContent = `${q} queries × 12 polls/min × ${kb} KB × ${rate}% unchanged`
+        savedBar.style.width = `${Math.max(4, rate)}%`
+      }
+
+      for (const input of [queries, size, unchanged]) input.addEventListener('input', updateEstimate)
+      updateEstimate()
+    </script>
+  </body>
+</html>

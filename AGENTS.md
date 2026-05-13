@@ -220,7 +220,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     hashes successful JSON bodies, returns `304` for matching `If-None-Match`,
     and the client fetch helper reuses the cached parsed payload for unchanged
     dashboard polls.
-14. System update checks use GitHub releases with a short in-memory cache and
+14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
