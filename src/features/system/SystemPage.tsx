@@ -33,6 +33,26 @@ function formatGpuMeta(deviceName: string | null, gpuCount: number, ageMs: numbe
   return parts.filter(Boolean).join(' · ')
 }
 
+function formatUpdateStatus(update: {
+  status: 'unknown' | 'current' | 'available' | 'error'
+  latest: string | null
+  url: string | null
+}) {
+  if (update.status === 'available') {
+    const label = update.latest ? `update available · ${update.latest}` : 'update available'
+    return update.url ? (
+      <a className="text-accent hover:underline" href={update.url} target="_blank" rel="noreferrer">
+        {label}
+      </a>
+    ) : (
+      label
+    )
+  }
+  if (update.status === 'current') return update.latest ? `current · ${update.latest}` : 'current'
+  if (update.status === 'error') return 'check failed'
+  return 'unknown'
+}
+
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
@@ -275,6 +295,7 @@ export function SystemPage() {
                   <MetaRow label="uptime" value={formatUptime(data.runtime.uptimeSec)} />
                   <MetaRow label="node" value={data.runtime.nodeVersion} />
                   <MetaRow label="commit" value={data.runtime.gitCommit} />
+                  <MetaRow label="updates" value={formatUpdateStatus(data.runtime.update)} />
                 </SystemPanel>
 
                 <SystemPanel title="Database" className="xl:border-l">

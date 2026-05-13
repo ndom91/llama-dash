@@ -148,7 +148,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/health` — upstream reachability, version, latency
    - `/api/model-timeline` — load/unload events for timeline viz
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
-   - `/api/system` — runtime, DB, proxy, log queue, and poller status with GPU device details
+   - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
@@ -168,7 +168,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
-    DB, proxy, queue, and GPU poller/device status), Playground
+    update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; timing
     sidebar shows TTFT, prefill, decode, and stream-close when upstream
     llama.cpp timing metadata is present), Config editor with explicit
@@ -216,7 +216,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
-13. Feature-local UI structure under `src/features/*`. Route files are thin
+13. Admin JSON GET responses support conditional ETag polling. The admin dispatcher
+    hashes successful JSON bodies, returns `304` for matching `If-None-Match`,
+    and the client fetch helper reuses the cached parsed payload for unchanged
+    dashboard polls.
+14. System update checks use GitHub releases with a short in-memory cache and
+    surface current/available/error state in the System runtime panel.
+15. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
 

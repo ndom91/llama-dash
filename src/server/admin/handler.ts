@@ -30,7 +30,7 @@ export async function handleAdminRequest(request: Request): Promise<Response> {
     const match = pathname.match(route.pattern)
     if (!match) continue
     try {
-      return await route.handler(request, match)
+      return withConditionalGet(request, await route.handler(request, match))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       return error(502, message)
@@ -38,4 +38,42 @@ export async function handleAdminRequest(request: Request): Promise<Response> {
   }
 
   return error(404, `No admin route for ${method} ${pathname}`)
+}
+
+async function withConditionalGet(request: Request, response: Response): Promise<Response> {
+  if (request.method.toUpperCase() !== 'GET' || response.status !== 200) return response
+  const contentType = response.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) return response
+
+  const body = await response.text()
+  const etag = makeWeakEtag(body)
+  if (etagMatches(request.headers.get('if-none-match'), etag)) {
+    return new Response(null, {
+      status: 304,
+      headers: { etag, 'cache-control': 'no-cache' },
+    })
+  }
+
+  const headers = new Headers(response.headers)
+  headers.set('etag', etag)
+  headers.set('cache-control', 'no-cache')
+  headers.set('content-length', String(new TextEncoder().encode(body).byteLength))
+  return new Response(body, { status: response.status, statusText: response.statusText, headers })
+}
+
+function makeWeakEtag(body: string) {
+  let hash = 0x811c9dc5
+  for (let i = 0; i < body.length; i += 1) {
+    hash ^= body.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `W/"${body.length.toString(16)}-${(hash >>> 0).toString(16)}"`
+}
+
+function etagMatches(header: string | null, etag: string) {
+  if (!header) return false
+  return header
+    .split(',')
+    .map((value) => value.trim())
+    .some((value) => value === etag || value === '*')
 }

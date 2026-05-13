@@ -6,6 +6,13 @@ export const ApiSystemStatusSchema = v.object({
     uptimeSec: v.number(),
     nodeVersion: v.string(),
     gitCommit: v.string(),
+    update: v.object({
+      status: v.union([v.literal('unknown'), v.literal('current'), v.literal('available'), v.literal('error')]),
+      current: v.string(),
+      latest: v.nullable(v.string()),
+      url: v.nullable(v.string()),
+      checkedAt: v.nullable(v.number()),
+    }),
   }),
   database: v.object({
     path: v.string(),

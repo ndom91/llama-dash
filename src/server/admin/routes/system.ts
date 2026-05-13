@@ -4,6 +4,7 @@ import { databasePathInfo } from '../../db/index.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
 import { getRequestLogQueueStats } from '../../proxy/log.ts'
+import { getUpdateCheck } from '../../update-check.ts'
 import { json, type Route } from './types.ts'
 
 const DIRECT_TARGETS = ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']
@@ -26,11 +27,13 @@ export const systemRoutes: Route[] = [
       const backend = inferenceBackend.info
       const gpu = getGpuSnapshot()
       const now = Date.now()
+      const gitCommit = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
       return json(200, {
         runtime: {
           uptimeSec: Math.round(process.uptime()),
           nodeVersion: process.version,
-          gitCommit: typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown',
+          gitCommit,
+          update: await getUpdateCheck(gitCommit),
         },
         database: {
           path: databasePathInfo.filename,

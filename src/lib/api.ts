@@ -48,21 +48,34 @@ export type { AttributionSettings, PrivacySettings, RequestLimits } from './sche
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
+type CachedJson = { etag: string | null; data: unknown }
+
+const jsonCache = new Map<string, CachedJson>()
 
 const validated =
-  <T extends AnySchema>(schema: T) =>
+  <T extends AnySchema>(schema: T, cacheKey?: string) =>
   async (res: Response): Promise<InferOutput<T>> => {
+    if (res.status === 304 && cacheKey) {
+      const cached = jsonCache.get(cacheKey)
+      if (cached) return v.parse(schema, cached.data)
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
     }
-    return v.parse(schema, await res.json())
+    const data = await res.json()
+    const parsed = v.parse(schema, data)
+    if (cacheKey) jsonCache.set(cacheKey, { etag: res.headers.get('etag'), data })
+    return parsed
   }
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
 function getJson<T extends AnySchema>(url: string, schema: T): Promise<InferOutput<T>> {
-  return fetch(url).then(validated(schema))
+  const cached = jsonCache.get(url)
+  return fetch(url, cached?.etag ? { headers: { 'if-none-match': cached.etag } } : undefined).then(
+    validated(schema, url),
+  )
 }
 
 function sendJson<T extends AnySchema>(
