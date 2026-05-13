@@ -14,6 +14,7 @@ import {
   SlidersHorizontal,
   Shield,
   Terminal,
+  TriangleAlert,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { authClient } from '../lib/auth-client'
@@ -96,6 +97,8 @@ type SidebarProps = {
 
 export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
   const { open, close } = useMobileMenu()
+  const { data: system } = useSystemStatus()
+  const updateAvailable = system?.runtime.update.status === 'available'
 
   return (
     <aside
@@ -107,14 +110,27 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
     >
       <div className="flex items-center gap-2.5 px-4 border-b border-border h-12">
         <Logo />
-        <a
-          href="https://github.com/ndom91/llama-dash"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-mono text-[10px] text-fg-faint ml-auto no-underline hover:text-fg-dim"
-        >
-          {__GIT_COMMIT__}
-        </a>
+        <div className="ml-auto flex items-center gap-1.5">
+          {updateAvailable ? (
+            <Tooltip label="Update available" side="bottom" align="end">
+              <button
+                type="button"
+                className="inline-flex size-4 items-center justify-center rounded-sm text-warn/80"
+                aria-label="Update available"
+              >
+                <TriangleAlert className="size-3" strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </Tooltip>
+          ) : null}
+          <a
+            href="https://github.com/ndom91/llama-dash"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-mono text-[10px] text-fg-faint no-underline hover:text-fg-dim"
+          >
+            {__GIT_COMMIT__}
+          </a>
+        </div>
       </div>
 
       <SidebarNav onNavigate={close} initialCapabilities={initialCapabilities} />
