@@ -13,6 +13,8 @@ export function getModelTimeline(windowMs = 30 * 60_000) {
 
   const modelsInWindow = new Set(inWindow.map((e) => e.modelId))
 
+  // Latest pre-window event per model tells the timeline which models were
+  // already loaded before the visible window began.
   const olderLoads = sqliteDb
     .prepare(
       `select me.id, me.model_id as modelId, me.event, me.timestamp

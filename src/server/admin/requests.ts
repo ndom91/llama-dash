@@ -7,6 +7,70 @@ import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
 
+type RequestSummarySource = Pick<
+  typeof schema.requests.$inferSelect,
+  | 'id'
+  | 'startedAt'
+  | 'durationMs'
+  | 'method'
+  | 'endpoint'
+  | 'model'
+  | 'statusCode'
+  | 'promptTokens'
+  | 'completionTokens'
+  | 'totalTokens'
+  | 'cacheCreationTokens'
+  | 'cacheReadTokens'
+  | 'costUsd'
+  | 'streamed'
+  | 'error'
+  | 'clientHost'
+  | 'clientName'
+  | 'endUserId'
+  | 'sessionId'
+  | 'routingRuleName'
+  | 'routingActionType'
+  | 'routingAuthMode'
+  | 'routingPreserveAuthorization'
+  | 'routingTargetType'
+  | 'routingTargetBaseUrl'
+  | 'routingTargetCredentialId'
+  | 'routingRoutedModel'
+>
+
+export function toRequestRow(row: RequestSummarySource, keyName: string | null): RequestRow {
+  return {
+    id: row.id,
+    startedAt: row.startedAt.toISOString(),
+    durationMs: row.durationMs,
+    method: row.method,
+    endpoint: row.endpoint,
+    model: row.model,
+    statusCode: row.statusCode,
+    promptTokens: row.promptTokens,
+    completionTokens: row.completionTokens,
+    totalTokens: row.totalTokens,
+    cacheCreationTokens: row.cacheCreationTokens,
+    cacheReadTokens: row.cacheReadTokens,
+    costUsd: row.costUsd,
+    streamed: row.streamed,
+    error: row.error,
+    keyName,
+    clientHost: row.clientHost,
+    clientName: row.clientName,
+    endUserId: row.endUserId,
+    sessionId: row.sessionId,
+    routingRuleName: row.routingRuleName,
+    routingActionType: row.routingActionType,
+    routingAuthMode: row.routingAuthMode,
+    routingPreserveAuthorization: row.routingPreserveAuthorization,
+    routingTargetType: row.routingTargetType,
+    routingTargetBaseUrl: row.routingTargetBaseUrl,
+    routingTargetCredentialId: row.routingTargetCredentialId,
+    routingRoutedModel: row.routingRoutedModel,
+  }
+}
+
 export function listRecentRequests(opts: { limit: number; cursor?: string }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
   const rows = db
@@ -48,36 +112,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
 
   const keyMap = getApiKeyNameMap()
 
-  return rows.map((r) => ({
-    id: r.id,
-    startedAt: r.startedAt.toISOString(),
-    durationMs: r.durationMs,
-    method: r.method,
-    endpoint: r.endpoint,
-    model: r.model,
-    statusCode: r.statusCode,
-    promptTokens: r.promptTokens,
-    completionTokens: r.completionTokens,
-    totalTokens: r.totalTokens,
-    cacheCreationTokens: r.cacheCreationTokens,
-    cacheReadTokens: r.cacheReadTokens,
-    costUsd: r.costUsd,
-    streamed: r.streamed,
-    error: r.error,
-    keyName: r.keyId ? (keyMap.get(r.keyId) ?? null) : null,
-    clientHost: r.clientHost,
-    clientName: r.clientName,
-    endUserId: r.endUserId,
-    sessionId: r.sessionId,
-    routingRuleName: r.routingRuleName,
-    routingActionType: r.routingActionType,
-    routingAuthMode: r.routingAuthMode,
-    routingPreserveAuthorization: r.routingPreserveAuthorization,
-    routingTargetType: r.routingTargetType,
-    routingTargetBaseUrl: r.routingTargetBaseUrl,
-    routingTargetCredentialId: r.routingTargetCredentialId,
-    routingRoutedModel: r.routingRoutedModel,
-  }))
+  return rows.map((r) => toRequestRow(r, r.keyId ? (keyMap.get(r.keyId) ?? null) : null))
 }
 
 export function getRequestById(id: string): RequestDetail | null {

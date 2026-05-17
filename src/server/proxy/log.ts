@@ -1,7 +1,8 @@
 import { ulid } from 'ulidx'
-import { getBodyLogLimits } from '../admin/settings.ts'
-import { publishAdminEvent } from '../admin/events.ts'
 import { getApiKeyName } from '../admin/api-keys.ts'
+import { publishAdminEvent } from '../admin/events.ts'
+import { toRequestRow } from '../admin/requests.ts'
+import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
@@ -153,35 +154,37 @@ export function writeRequestLogNow(row: RequestLogInput) {
     })
     .run()
   publishAdminEvent('request.completed', {
-    request: {
-      id,
-      startedAt: new Date(row.startedAt).toISOString(),
-      durationMs: row.durationMs,
-      method: row.method,
-      endpoint: row.endpoint,
-      model: row.model,
-      statusCode: row.statusCode,
-      promptTokens: row.promptTokens,
-      completionTokens: row.completionTokens,
-      totalTokens: row.totalTokens,
-      cacheCreationTokens: row.cacheCreationTokens,
-      cacheReadTokens: row.cacheReadTokens,
-      costUsd,
-      streamed: row.streamed,
-      error: row.error,
-      keyName: row.keyId ? getApiKeyName(row.keyId) : null,
-      clientHost: row.clientHost,
-      clientName: row.clientName,
-      endUserId: row.endUserId,
-      sessionId: row.sessionId,
-      routingRuleName: row.routingRuleName,
-      routingActionType: row.routingActionType,
-      routingAuthMode: row.routingAuthMode,
-      routingPreserveAuthorization: row.routingPreserveAuthorization,
-      routingTargetType: row.routingTargetType,
-      routingTargetBaseUrl: row.routingTargetBaseUrl,
-      routingTargetCredentialId: row.routingTargetCredentialId,
-      routingRoutedModel: row.routingRoutedModel,
-    },
+    request: toRequestRow(
+      {
+        id,
+        startedAt: new Date(row.startedAt),
+        durationMs: row.durationMs,
+        method: row.method,
+        endpoint: row.endpoint,
+        model: row.model,
+        statusCode: row.statusCode,
+        promptTokens: row.promptTokens,
+        completionTokens: row.completionTokens,
+        totalTokens: row.totalTokens,
+        cacheCreationTokens: row.cacheCreationTokens,
+        cacheReadTokens: row.cacheReadTokens,
+        costUsd,
+        streamed: row.streamed,
+        error: row.error,
+        clientHost: row.clientHost,
+        clientName: row.clientName,
+        endUserId: row.endUserId,
+        sessionId: row.sessionId,
+        routingRuleName: row.routingRuleName,
+        routingActionType: row.routingActionType,
+        routingAuthMode: row.routingAuthMode,
+        routingPreserveAuthorization: row.routingPreserveAuthorization,
+        routingTargetType: row.routingTargetType,
+        routingTargetBaseUrl: row.routingTargetBaseUrl,
+        routingTargetCredentialId: row.routingTargetCredentialId,
+        routingRoutedModel: row.routingRoutedModel,
+      },
+      row.keyId ? getApiKeyName(row.keyId) : null,
+    ),
   })
 }
