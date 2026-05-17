@@ -8,14 +8,12 @@ import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
-import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
-import { RequestsRefreshButton } from './RequestsRefreshButton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
@@ -36,17 +34,7 @@ const requestsRouteApi = getRouteApi('/requests/')
 export function RequestsPage() {
   const navigate = useNavigate()
   const routeSearch = requestsRouteApi.useSearch()
-  const {
-    data,
-    error,
-    isLoading,
-    isRefetching,
-    refetch,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-    dataUpdatedAt,
-  } = useRequestsList()
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -81,7 +69,6 @@ export function RequestsPage() {
   )
 
   const [selectedIdx, setSelectedIdx] = useState(-1)
-  const refreshCycleKey = dataUpdatedAt || 'initial'
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -300,19 +287,10 @@ export function RequestsPage() {
           subtitle="proxied API calls, newest first"
           variant="integrated"
           action={
-            <div className="flex items-center gap-2">
-              <span className="live-badge requests-live-badge">
-                <StatusDot tone="ok" live />
-                live
-              </span>
-              <Tooltip label="Refresh">
-                <RequestsRefreshButton
-                  cycleKey={refreshCycleKey}
-                  isRefetching={isRefetching}
-                  onRefresh={() => refetch()}
-                />
-              </Tooltip>
-            </div>
+            <span className="live-badge requests-live-badge">
+              <StatusDot tone="ok" live />
+              live
+            </span>
           }
         />
 
