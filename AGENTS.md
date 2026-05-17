@@ -148,7 +148,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/:id` — detail with adjacent navigation
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
-    - `/api/events` — SSE stream merging llama-swap log events with llama-dash dashboard invalidation events
+    - `/api/events` — lightweight llama-dash dashboard invalidation/data events
+    - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
@@ -223,10 +224,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
     hashes successful JSON bodies, returns `304` for matching `If-None-Match`,
     and the client fetch helper reuses the cached parsed payload for unchanged
     dashboard polls. Dashboard shells also keep `/api/events` open for SSE-driven
-    query invalidation on request completion, model state changes, GPU changes,
-    and system update status changes; request/model activity keeps a slow polling
-    fallback, while GPU state is pushed directly over SSE and system state
-    refreshes on load plus system-specific dashboard events.
+    query updates on request completion, model state changes, GPU changes, and
+    system update status changes. Request completion events include compact
+    request summaries so list/recent caches update without refetching models.
+    The raw llama-swap log stream is split onto `/api/log-events` and is only
+    subscribed while the Logs page is mounted.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin
