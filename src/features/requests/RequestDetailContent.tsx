@@ -464,14 +464,14 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <div className="grid grid-cols-2 gap-2 max-[1200px]:grid-cols-1 max-[1024px]:grid-cols-2">
               <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">in</div>
-                <div className="mt-2 truncate font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
-                  {req.promptTokens?.toLocaleString() ?? '—'}
+                <div className="mt-2 font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
+                  {formatCompactTokens(req.promptTokens)}
                 </div>
               </div>
               <div className="border border-border bg-surface-1 px-3 py-3">
                 <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">out</div>
-                <div className="mt-2 truncate font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
-                  {req.completionTokens?.toLocaleString() ?? '—'}
+                <div className="mt-2 font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
+                  {formatCompactTokens(req.completionTokens)}
                 </div>
               </div>
             </div>
