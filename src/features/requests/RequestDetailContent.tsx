@@ -39,7 +39,9 @@ const compactTokenFormatter = new Intl.NumberFormat('en', {
 })
 
 function formatCompactTokens(value: number | null | undefined) {
-  return value == null ? '—' : compactTokenFormatter.format(value).toLowerCase()
+  if (value == null) return '—'
+  if (value < 10_000) return value.toLocaleString()
+  return compactTokenFormatter.format(value).toLowerCase()
 }
 
 export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
