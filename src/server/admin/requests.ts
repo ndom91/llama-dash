@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, gt, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -199,29 +199,32 @@ export type HistogramBucket = ApiHistogramBucket
 
 export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<HistogramBucket> {
   const now = Date.now()
-  const since = new Date(now - windowMs)
+  const sinceMs = now - windowMs
 
-  const rows = db
-    .select({
-      startedAt: schema.requests.startedAt,
-      statusCode: schema.requests.statusCode,
-    })
-    .from(schema.requests)
-    .where(gte(schema.requests.startedAt, since))
-    .orderBy(asc(schema.requests.startedAt))
-    .all()
+  const rows = sqliteDb
+    .prepare(
+      `select
+        cast(started_at / ? as integer) as bucket,
+        count(*) as total,
+        sum(case when status_code >= 400 then 1 else 0 end) as errors
+      from requests
+      where started_at >= ?
+      group by bucket
+      order by bucket`,
+    )
+    .all(bucketMs, sinceMs) as Array<{ bucket: number; total: number; errors: number | null }>
 
-  const startBucket = Math.floor(since.getTime() / bucketMs)
+  const startBucket = Math.floor(sinceMs / bucketMs)
   const endBucket = Math.floor(now / bucketMs)
   const count = endBucket - startBucket + 1
   const totals = new Array<number>(count).fill(0)
   const errors = new Array<number>(count).fill(0)
 
-  for (const r of rows) {
-    const idx = Math.floor(r.startedAt.getTime() / bucketMs) - startBucket
+  for (const row of rows) {
+    const idx = row.bucket - startBucket
     if (idx >= 0 && idx < count) {
-      totals[idx]++
-      if (r.statusCode >= 400) errors[idx]++
+      totals[idx] = row.total
+      errors[idx] = row.errors ?? 0
     }
   }
 
