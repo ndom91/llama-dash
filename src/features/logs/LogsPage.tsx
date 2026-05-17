@@ -43,7 +43,7 @@ const LEVEL_CLASS: Record<LogLevel, string> = {
   INFO: 'text-info',
   WARN: 'text-warn',
   ERROR: 'text-err',
-  DEBUG: 'text-fg-dim',
+  DEBUG: 'text-ok',
   TRACE: 'text-fg-dim',
 }
 
