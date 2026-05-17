@@ -19,7 +19,7 @@ export function useLlamaSwapLogs() {
   }, [])
 
   useEffect(() => {
-    const es = new EventSource('/api/events')
+    const es = new EventSource('/api/log-events')
 
     es.onopen = () => setConnected(true)
     es.onerror = () => setConnected(false)

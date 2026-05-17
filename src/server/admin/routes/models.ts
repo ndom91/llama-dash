@@ -105,12 +105,6 @@ export const modelRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/events$/,
     handler: async (request) => {
-      if (!inferenceBackend.eventStreamUrl) return error(501, 'Inference backend does not support event streaming')
-
-      const upstream = inferenceBackend.eventStreamUrl
-        ? await fetch(inferenceBackend.eventStreamUrl).catch(() => null)
-        : null
-      const upstreamReader = upstream?.ok && upstream.body ? upstream.body.getReader() : null
       const encoder = new TextEncoder()
       let unsubscribe: (() => void) | null = null
       const body = new ReadableStream<Uint8Array>({
@@ -123,21 +117,46 @@ export const modelRoutes: Route[] = [
               unsubscribe?.()
             }
           })
+        },
+        cancel() {
+          unsubscribe?.()
+        },
+      })
+      request.signal.addEventListener('abort', () => {
+        unsubscribe?.()
+      })
+      return new Response(body, {
+        status: 200,
+        headers: {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache',
+          connection: 'keep-alive',
+        },
+      })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/log-events$/,
+    handler: async (request) => {
+      if (!inferenceBackend.eventStreamUrl) return error(501, 'Inference backend does not support event streaming')
 
-          if (!upstreamReader) return
+      const upstream = await fetch(inferenceBackend.eventStreamUrl).catch(() => null)
+      if (!upstream?.ok || !upstream.body) return error(502, 'Failed to connect to inference backend event stream')
 
+      const upstreamReader = upstream.body.getReader()
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
           void pumpUpstreamEvents(upstreamReader, controller).finally(() => {
             upstreamReader.cancel().catch(() => {})
           })
         },
         cancel() {
-          unsubscribe?.()
-          upstreamReader?.cancel().catch(() => {})
+          upstreamReader.cancel().catch(() => {})
         },
       })
       request.signal.addEventListener('abort', () => {
-        unsubscribe?.()
-        upstreamReader?.cancel().catch(() => {})
+        upstreamReader.cancel().catch(() => {})
       })
       return new Response(body, {
         status: 200,
@@ -162,6 +181,6 @@ async function pumpUpstreamEvents(
       controller.enqueue(value)
     }
   } catch {
-    // The admin event stream remains open even if the upstream log stream drops.
+    // The log stream can end when the upstream connection drops.
   }
 }
