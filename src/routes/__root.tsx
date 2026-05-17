@@ -15,7 +15,14 @@ import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 2_000, retry: 1 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
+  },
 })
 
 import appCss from '../styles.css?url'
