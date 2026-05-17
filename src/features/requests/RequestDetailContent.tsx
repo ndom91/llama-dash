@@ -33,6 +33,15 @@ type Props = {
   isNextPending: boolean
 }
 
+const compactTokenFormatter = new Intl.NumberFormat('en', {
+  maximumFractionDigits: 0,
+  notation: 'compact',
+})
+
+function formatCompactTokens(value: number | null | undefined) {
+  return value == null ? '—' : compactTokenFormatter.format(value).toLowerCase()
+}
+
 export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
@@ -379,15 +388,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               </div>
               <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1500px]:border-b max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-in</div>
-                <div className={endpointMetricValue}>{req.promptTokens?.toLocaleString() ?? '—'}</div>
+                <div className={endpointMetricValue}>{formatCompactTokens(req.promptTokens)}</div>
               </div>
               <div className="px-4 py-4 border-border max-[1500px]:border-b max-[1024px]:border-r min-[1500px]:border-r max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>tok-out</div>
-                <div className={endpointMetricValue}>{req.completionTokens?.toLocaleString() ?? '—'}</div>
+                <div className={endpointMetricValue}>{formatCompactTokens(req.completionTokens)}</div>
               </div>
               <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-r-0 max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>total</div>
-                <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
+                <div className={endpointMetricValue}>{formatCompactTokens(req.totalTokens)}</div>
               </div>
               <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-b">
                 <div className={endpointMetricLabel}>duration</div>
