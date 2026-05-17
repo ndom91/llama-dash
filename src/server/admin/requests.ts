@@ -10,7 +10,36 @@ export type RequestDetail = ApiRequestDetail
 export function listRecentRequests(opts: { limit: number; cursor?: string }): Array<RequestRow> {
   const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
   const rows = db
-    .select()
+    .select({
+      id: schema.requests.id,
+      startedAt: schema.requests.startedAt,
+      durationMs: schema.requests.durationMs,
+      method: schema.requests.method,
+      endpoint: schema.requests.endpoint,
+      model: schema.requests.model,
+      statusCode: schema.requests.statusCode,
+      promptTokens: schema.requests.promptTokens,
+      completionTokens: schema.requests.completionTokens,
+      totalTokens: schema.requests.totalTokens,
+      cacheCreationTokens: schema.requests.cacheCreationTokens,
+      cacheReadTokens: schema.requests.cacheReadTokens,
+      costUsd: schema.requests.costUsd,
+      streamed: schema.requests.streamed,
+      error: schema.requests.error,
+      keyId: schema.requests.keyId,
+      clientHost: schema.requests.clientHost,
+      clientName: schema.requests.clientName,
+      endUserId: schema.requests.endUserId,
+      sessionId: schema.requests.sessionId,
+      routingRuleName: schema.requests.routingRuleName,
+      routingActionType: schema.requests.routingActionType,
+      routingAuthMode: schema.requests.routingAuthMode,
+      routingPreserveAuthorization: schema.requests.routingPreserveAuthorization,
+      routingTargetType: schema.requests.routingTargetType,
+      routingTargetBaseUrl: schema.requests.routingTargetBaseUrl,
+      routingTargetCredentialId: schema.requests.routingTargetCredentialId,
+      routingRoutedModel: schema.requests.routingRoutedModel,
+    })
     .from(schema.requests)
     .where(and(where))
     .orderBy(desc(schema.requests.id))
