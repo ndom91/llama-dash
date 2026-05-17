@@ -25,10 +25,15 @@ export function useAdminEvents() {
 
       const request = result.output.request
       queryClient.invalidateQueries({ queryKey: qk.requestStats })
-      queryClient.setQueriesData<Array<ApiRequest>>({ queryKey: qk.requests, exact: false }, (old) => {
-        if (!old || old.some((row) => row.id === request.id)) return old
-        return [request, ...old]
-      })
+      for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requests, exact: false })) {
+        const queryKey = query.queryKey
+        if (queryKey[0] !== 'requests' || queryKey[1] !== 'recent' || typeof queryKey[2] !== 'number') continue
+        const limit = queryKey[2]
+        queryClient.setQueryData<Array<ApiRequest>>(queryKey, (old) => {
+          if (!old || old.some((row) => row.id === request.id)) return old
+          return [request, ...old].slice(0, limit)
+        })
+      }
       queryClient.setQueryData<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }>(qk.requestsList, (old) => {
         if (!old?.pages[0] || old.pages[0].requests.some((row) => row.id === request.id)) return old
         const firstPage = old.pages[0]
