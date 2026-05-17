@@ -178,7 +178,6 @@ export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<Request
     queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
-    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
