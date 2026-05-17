@@ -11,6 +11,7 @@ import { TopBar } from '../components/TopBar'
 import { TooltipProvider } from '../components/Tooltip'
 import { getShellContext } from '../lib/auth-functions'
 import { THEME_INIT_SCRIPT } from '../lib/theme-init-script'
+import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
 
 const queryClient = new QueryClient({
@@ -104,6 +105,22 @@ function AppShell() {
   const rootContext = matches[0]?.context as RootShellContext | undefined
 
   if (leaf === '/login') return <Outlet />
+
+  return <AuthenticatedShell open={open} toggle={toggle} close={close} rootContext={rootContext} />
+}
+
+function AuthenticatedShell({
+  open,
+  toggle,
+  close,
+  rootContext,
+}: {
+  open: boolean
+  toggle: () => void
+  close: () => void
+  rootContext: RootShellContext | undefined
+}) {
+  useAdminEvents()
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>

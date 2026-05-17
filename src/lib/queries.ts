@@ -41,6 +41,7 @@ import type {
 } from './schemas/settings'
 
 export const POLL_MS = 5_000
+export const FALLBACK_POLL_MS = 60_000
 
 function invalidateKeys(qc: ReturnType<typeof useQueryClient>, keys: ReadonlyArray<readonly unknown[]>) {
   for (const queryKey of keys) qc.invalidateQueries({ queryKey })
@@ -79,7 +80,6 @@ export function useHealth(): UseQueryResult<ApiHealth> {
   return useQuery({
     queryKey: qk.health,
     queryFn: () => api.health(),
-    refetchInterval: POLL_MS,
   })
 }
 
@@ -87,7 +87,6 @@ export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
   return useQuery({
     queryKey: qk.systemStatus,
     queryFn: () => api.systemStatus(),
-    refetchInterval: POLL_MS,
   })
 }
 
@@ -95,7 +94,6 @@ export function useLoginMeta() {
   return useQuery({
     queryKey: ['login-meta'] as const,
     queryFn: () => api.loginMeta(),
-    refetchInterval: POLL_MS,
   })
 }
 
@@ -103,7 +101,7 @@ export function useModels<T = Array<ApiModel>>(select?: (data: Array<ApiModel>) 
   return useQuery({
     queryKey: qk.models,
     queryFn: () => api.listModels().then((r) => mergeModelTransitions(r.models)),
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
     select,
   })
 }
@@ -127,7 +125,7 @@ export function useRequestStats(): UseQueryResult<ApiRequestStats> {
   return useQuery({
     queryKey: qk.requestStats,
     queryFn: () => api.requestStats(),
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
@@ -135,7 +133,7 @@ export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>>
   return useQuery({
     queryKey: qk.requestHistogram,
     queryFn: () => api.requestHistogram().then((r) => r.buckets),
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
@@ -143,7 +141,6 @@ export function useGpu(): UseQueryResult<ApiGpuSnapshot> {
   return useQuery({
     queryKey: qk.gpu,
     queryFn: () => api.gpu(),
-    refetchInterval: POLL_MS,
   })
 }
 
@@ -151,7 +148,7 @@ export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
   return useQuery({
     queryKey: qk.modelTimeline,
     queryFn: () => api.modelTimeline().then((r) => r.events),
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
@@ -167,7 +164,7 @@ export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>>
   return useQuery({
     queryKey: qk.requestsRecent(limit),
     queryFn: () => api.listRequests({ limit }).then((r) => r.requests),
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
@@ -181,7 +178,7 @@ export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<Request
     queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
-    refetchInterval: POLL_MS,
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 

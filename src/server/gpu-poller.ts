@@ -4,6 +4,8 @@ import type { GpuInfo, GpuSnapshot } from '../lib/schemas/gpu'
 
 export type { GpuInfo, GpuSnapshot }
 
+import { publishAdminEvent } from './admin/events.ts'
+
 const POLL_INTERVAL_MS = 10_000
 const EXEC_TIMEOUT_MS = 5_000
 
@@ -11,6 +13,7 @@ type Driver = 'nvidia' | 'amd-top' | 'amd' | 'apple'
 type SchemaDriver = 'nvidia' | 'amd' | 'apple'
 
 let cached: GpuSnapshot = { available: false, driver: null, gpus: [], polledAt: 0 }
+let lastPublishedFingerprint = ''
 let detectedDriver: Driver | null = null
 let started = false
 
@@ -339,9 +342,18 @@ async function poll() {
         break
     }
     cached = { available: true, driver: schemaDriver(detectedDriver), gpus, polledAt: Date.now() }
+    publishGpuUpdateIfChanged(cached)
   } catch {
     cached = { available: false, driver: schemaDriver(detectedDriver), gpus: [], polledAt: Date.now() }
+    publishGpuUpdateIfChanged(cached)
   }
+}
+
+function publishGpuUpdateIfChanged(snapshot: GpuSnapshot) {
+  const fingerprint = JSON.stringify({ available: snapshot.available, driver: snapshot.driver, gpus: snapshot.gpus })
+  if (fingerprint === lastPublishedFingerprint) return
+  lastPublishedFingerprint = fingerprint
+  publishAdminEvent('gpu.updated', snapshot)
 }
 
 export async function startGpuPoller() {

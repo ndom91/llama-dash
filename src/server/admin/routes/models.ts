@@ -10,6 +10,7 @@ import {
   getModelRequests,
 } from '../model-detail.ts'
 import { getModelTimeline } from '../model-events.ts'
+import { formatSseEvent, publishAdminEvent, subscribeAdminEvents } from '../events.ts'
 import { clamp, error, json, type Route } from './types.ts'
 
 export const modelRoutes: Route[] = [
@@ -61,6 +62,7 @@ export const modelRoutes: Route[] = [
       if (!inferenceBackend.loadModel) return error(501, 'Inference backend does not support model loading')
       const id = decodeURIComponent(match[1])
       await inferenceBackend.loadModel(id)
+      publishAdminEvent('model.changed', { modelId: id, action: 'load' })
       return json(200, { ok: true })
     },
   },
@@ -71,6 +73,7 @@ export const modelRoutes: Route[] = [
       if (!inferenceBackend.unloadModel) return error(501, 'Inference backend does not support model unloading')
       const id = decodeURIComponent(match[1])
       await inferenceBackend.unloadModel(id)
+      publishAdminEvent('model.changed', { modelId: id, action: 'unload' })
       return json(200, { ok: true })
     },
   },
@@ -80,6 +83,7 @@ export const modelRoutes: Route[] = [
     handler: async () => {
       if (!inferenceBackend.unloadAll) return error(501, 'Inference backend does not support unloading all models')
       await inferenceBackend.unloadAll()
+      publishAdminEvent('model.changed', { action: 'unload_all' })
       return json(200, { ok: true })
     },
   },
@@ -103,26 +107,37 @@ export const modelRoutes: Route[] = [
     handler: async (request) => {
       if (!inferenceBackend.eventStreamUrl) return error(501, 'Inference backend does not support event streaming')
 
-      const upstream = await fetch(inferenceBackend.eventStreamUrl)
-      if (!upstream.ok || !upstream.body) {
-        return error(502, 'Failed to connect to inference backend event stream')
-      }
-      const upstreamReader = upstream.body.getReader()
+      const upstream = inferenceBackend.eventStreamUrl
+        ? await fetch(inferenceBackend.eventStreamUrl).catch(() => null)
+        : null
+      const upstreamReader = upstream?.ok && upstream.body ? upstream.body.getReader() : null
+      const encoder = new TextEncoder()
+      let unsubscribe: (() => void) | null = null
       const body = new ReadableStream<Uint8Array>({
-        async pull(controller) {
-          const { done, value } = await upstreamReader.read()
-          if (done) {
-            controller.close()
-            return
-          }
-          controller.enqueue(value)
+        start(controller) {
+          controller.enqueue(encoder.encode(': connected\n\n'))
+          unsubscribe = subscribeAdminEvents((event) => {
+            try {
+              controller.enqueue(encoder.encode(formatSseEvent(event)))
+            } catch {
+              unsubscribe?.()
+            }
+          })
+
+          if (!upstreamReader) return
+
+          void pumpUpstreamEvents(upstreamReader, controller).finally(() => {
+            upstreamReader.cancel().catch(() => {})
+          })
         },
         cancel() {
-          upstreamReader.cancel().catch(() => {})
+          unsubscribe?.()
+          upstreamReader?.cancel().catch(() => {})
         },
       })
       request.signal.addEventListener('abort', () => {
-        upstreamReader.cancel().catch(() => {})
+        unsubscribe?.()
+        upstreamReader?.cancel().catch(() => {})
       })
       return new Response(body, {
         status: 200,
@@ -135,3 +150,18 @@ export const modelRoutes: Route[] = [
     },
   },
 ]
+
+async function pumpUpstreamEvents(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+) {
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) return
+      controller.enqueue(value)
+    }
+  } catch {
+    // The admin event stream remains open even if the upstream log stream drops.
+  }
+}

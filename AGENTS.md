@@ -79,7 +79,8 @@ src/
     TopBar.tsx, Tooltip.tsx, ThemeToggle.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
-    queries.ts            — TanStack Query hooks (5s polling, infinite scroll)
+    queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
+    use-admin-events.ts   — EventSource bridge that invalidates query caches from /api/events
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
     auth.ts               — Better Auth dashboard session config + first-user signup guard + passkeys
@@ -88,7 +89,7 @@ src/
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
-    admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings
+    admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
@@ -146,7 +147,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
    - `/api/health` — upstream reachability, version, latency
-   - `/api/model-timeline` — load/unload events for timeline viz
+    - `/api/model-timeline` — load/unload events for timeline viz
+    - `/api/events` — SSE stream merging llama-swap log events with llama-dash dashboard invalidation events
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
@@ -162,9 +164,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    latency-window, queue, upstream, running-model, and GPU metrics.
 7. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
-   Apple). AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
+   Apple), caches snapshots, and publishes GPU-change dashboard events. AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
 8. Model watcher: polls the selected backend's running-model capability every
-   15s, diffs against known state, inserts `load`/`unload` events into SQLite.
+   15s, diffs against known state, inserts `load`/`unload` events into SQLite,
+   and publishes model-change dashboard events.
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
@@ -219,7 +222,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
 13. Admin JSON GET responses support conditional ETag polling. The admin dispatcher
     hashes successful JSON bodies, returns `304` for matching `If-None-Match`,
     and the client fetch helper reuses the cached parsed payload for unchanged
-    dashboard polls.
+    dashboard polls. Dashboard shells also keep `/api/events` open for SSE-driven
+    query invalidation on request completion, model state changes, GPU changes,
+    and system update status changes; request/model activity keeps a slow polling
+    fallback, while GPU state is pushed directly over SSE and system state
+    refreshes on load plus system-specific dashboard events.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin

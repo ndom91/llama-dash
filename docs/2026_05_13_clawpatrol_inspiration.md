@@ -59,10 +59,10 @@ Possible staged approach:
 
 If implemented, keep it as a routing action rather than a separate subsystem.
 
-## 3. Bundled ETag Dashboard Polling
+## 3. Dashboard Polling and SSE Refresh
 
-Goal: reduce recurring dashboard polling overhead by bundling always-visible
-state into one ETagged endpoint.
+Goal: reduce recurring dashboard polling overhead while keeping route-specific
+endpoints separate.
 
 Initial shape:
 
@@ -75,6 +75,18 @@ Initial shape:
 
 This is a performance cleanup and should be done after correctness-sensitive
 credential work.
+
+Shipped 2026-05-17:
+
+- Keep separate route-specific endpoints instead of adding `/api/dashboard-state`.
+- Keep conditional `ETag` support on successful JSON `GET /api/*` responses.
+- Move live dashboard refresh to SSE-driven invalidation and keep request/model
+  ETag polling as a slow fallback instead of the primary update path.
+- Extend `/api/events` so it still passes through llama-swap log events and also
+  streams llama-dash dashboard invalidation events.
+- Publish invalidation events for request completion, model changes, GPU changes,
+  and update-status changes; React Query uses them to refresh affected caches.
+- Polling remains as a fallback when SSE disconnects or is unavailable.
 
 ## 4. Update Indicator
 

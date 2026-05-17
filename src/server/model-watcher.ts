@@ -2,6 +2,7 @@ import { desc } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import { db, schema } from './db/index.ts'
 import { inferenceBackend } from './inference/backend.ts'
+import { publishAdminEvent } from './admin/events.ts'
 
 const POLL_INTERVAL_MS = 15_000
 
@@ -48,6 +49,7 @@ async function diffRunning() {
       for (const row of inserts) {
         db.insert(schema.modelEvents).values(row).run()
       }
+      publishAdminEvent('model.changed', { events: inserts.map((row) => ({ modelId: row.modelId, event: row.event })) })
     }
 
     knownRunning = current

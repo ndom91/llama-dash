@@ -173,7 +173,7 @@ export function SystemPage() {
     { label: 'control bus', age: 'now', tone: 'ok' as const },
     { label: 'backend', age: data.inference.label, tone: 'ok' as const },
     { label: 'logging queue', age: 'live', tone: queueTone },
-    { label: 'gpu poller', age: formatAge(data.gpu.ageMs), tone: gpuTone },
+    { label: 'gpu telemetry', age: formatAge(data.gpu.ageMs), tone: gpuTone },
     { label: 'database', age: data.database.specialPath ? 'special' : 'file', tone: 'ok' as const },
     { label: 'runtime', age: formatUptime(data.runtime.uptimeSec), tone: 'ok' as const },
   ]
@@ -184,7 +184,7 @@ export function SystemPage() {
         <PageHeader
           kicker="sys · system"
           title="System"
-          subtitle="Process health, control-bus state, GPU pollers, and database posture."
+          subtitle="Process health, control-bus state, GPU telemetry, and database posture."
           variant="integrated"
         />
         <div className="flex min-h-0 flex-1">
@@ -257,7 +257,7 @@ export function SystemPage() {
                   <MetaRow label="dropped" value={data.logging.dropped} />
                 </SystemPanel>
 
-                <SystemPanel title="GPU Poller" aside={`${data.gpu.gpuCount} device`} className="xl:border-l">
+                <SystemPanel title="GPU Telemetry" aside={`${data.gpu.gpuCount} device`} className="xl:border-l">
                   <MetaRow
                     label="state"
                     value={
@@ -286,7 +286,6 @@ export function SystemPage() {
                     <MetaRow label="temperature" value={`${primaryGpu.temperatureC}°C`} />
                   ) : null}
                   {primaryGpu?.powerW != null ? <MetaRow label="power" value={`${primaryGpu.powerW} W`} /> : null}
-                  <MetaRow label="last poll" value={formatAge(data.gpu.ageMs)} />
                 </SystemPanel>
               </div>
 

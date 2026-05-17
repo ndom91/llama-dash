@@ -1,3 +1,5 @@
+import { publishAdminEvent } from './admin/events.ts'
+
 type UpdateStatus = 'unknown' | 'current' | 'available' | 'error'
 
 export type UpdateCheck = {
@@ -13,6 +15,7 @@ const CACHE_MS = 60 * 60 * 1000
 
 let cached: UpdateCheck | null = null
 let cachedAt = 0
+let lastPublishedUpdate = ''
 
 export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
   const now = Date.now()
@@ -21,6 +24,7 @@ export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
   if (current === 'unknown') {
     cached = { status: 'unknown', current, latest: null, url: null, checkedAt: null }
     cachedAt = now
+    publishUpdateIfChanged(cached)
     return cached
   }
 
@@ -43,7 +47,20 @@ export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
     cached = { status: 'error', current, latest: null, url: null, checkedAt: now }
   }
   cachedAt = now
+  publishUpdateIfChanged(cached)
   return cached
+}
+
+function publishUpdateIfChanged(update: UpdateCheck) {
+  const fingerprint = JSON.stringify({
+    status: update.status,
+    current: update.current,
+    latest: update.latest,
+    url: update.url,
+  })
+  if (fingerprint === lastPublishedUpdate) return
+  lastPublishedUpdate = fingerprint
+  publishAdminEvent('system.changed', { update: update.status })
 }
 
 function sameCommit(remoteSha: string, current: string) {

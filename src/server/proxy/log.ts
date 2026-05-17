@@ -1,5 +1,6 @@
 import { ulid } from 'ulidx'
 import { getBodyLogLimits } from '../admin/settings.ts'
+import { publishAdminEvent } from '../admin/events.ts'
 import { db, schema } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
@@ -150,4 +151,5 @@ export function writeRequestLogNow(row: RequestLogInput) {
       routingRejectReason: row.routingRejectReason,
     })
     .run()
+  publishAdminEvent('request.completed', { requestId: id })
 }
