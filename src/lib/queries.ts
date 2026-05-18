@@ -101,7 +101,6 @@ export function useModels<T = Array<ApiModel>>(select?: (data: Array<ApiModel>) 
   return useQuery({
     queryKey: qk.models,
     queryFn: () => api.listModels().then((r) => mergeModelTransitions(r.models)),
-    refetchInterval: FALLBACK_POLL_MS,
     select,
   })
 }

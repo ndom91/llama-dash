@@ -10,6 +10,7 @@ import { ApiRequestSchema, type ApiRequest } from './schemas/request'
 type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
+const REQUEST_STATS_INVALIDATE_MS = 1_000
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -50,16 +51,25 @@ export function useAdminEvents() {
 
   useEffect(() => {
     const events = new EventSource('/api/events')
+    let requestStatsTimer: ReturnType<typeof setTimeout> | null = null
+
+    const scheduleRequestStatsInvalidation = () => {
+      if (requestStatsTimer) return
+      requestStatsTimer = setTimeout(() => {
+        requestStatsTimer = null
+        queryClient.invalidateQueries({ queryKey: qk.requestStats })
+      }, REQUEST_STATS_INVALIDATE_MS)
+    }
 
     const updateRequests = (event: MessageEvent) => {
       const data = parseEventData(RequestCompletedEventSchema, event)
       if (!data) {
-        queryClient.invalidateQueries({ queryKey: qk.requestStats })
+        scheduleRequestStatsInvalidation()
         queryClient.invalidateQueries({ queryKey: qk.requests })
         return
       }
 
-      queryClient.invalidateQueries({ queryKey: qk.requestStats })
+      scheduleRequestStatsInvalidation()
       updateRecentRequestCaches(queryClient, data.request)
       updateRequestsListCache(queryClient, data.request)
     }
@@ -85,6 +95,9 @@ export function useAdminEvents() {
     events.addEventListener('gpu.updated', updateGpu)
     events.addEventListener('system.changed', invalidateSystem)
 
-    return () => events.close()
+    return () => {
+      events.close()
+      if (requestStatsTimer) clearTimeout(requestStatsTimer)
+    }
   }, [queryClient])
 }
