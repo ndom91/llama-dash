@@ -3,6 +3,7 @@ import { Eraser, Search, WrapText } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
+import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import { useSystemStatus } from '../../lib/queries'
 import { useLlamaSwapLogs } from '../../lib/use-llama-swap-logs'
@@ -255,18 +256,19 @@ function LlamaSwapLogsPage() {
                   spellCheck={false}
                   autoComplete="off"
                 />
-                <button
-                  type="button"
-                  className={
-                    useRegex
-                      ? 'rounded-sm bg-surface-4 px-1.5 py-px font-mono text-[10px] font-semibold text-accent'
-                      : 'rounded-sm bg-transparent px-1.5 py-px font-mono text-[10px] font-semibold text-fg-dim hover:bg-surface-4 hover:text-fg-muted'
-                  }
-                  onClick={() => setUseRegex(!useRegex)}
-                  title={useRegex ? 'Switch to substring' : 'Switch to regex'}
-                >
-                  .*
-                </button>
+                <Tooltip label={useRegex ? 'Switch to substring' : 'Switch to regex'}>
+                  <button
+                    type="button"
+                    className={
+                      useRegex
+                        ? 'rounded-sm bg-surface-4 px-1.5 py-px font-mono text-[10px] font-semibold text-accent'
+                        : 'rounded-sm bg-transparent px-1.5 py-px font-mono text-[10px] font-semibold text-fg-dim hover:bg-surface-4 hover:text-fg-muted'
+                    }
+                    onClick={() => setUseRegex(!useRegex)}
+                  >
+                    .*
+                  </button>
+                </Tooltip>
               </div>
             </div>
           </div>
