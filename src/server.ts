@@ -12,7 +12,7 @@ const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
 
 const { initializeModelPricing } = await import('./server/pricing.ts')
-await initializeModelPricing()
+void initializeModelPricing()
 
 const { startModelWatcher } = await import('./server/model-watcher.ts')
 startModelWatcher()

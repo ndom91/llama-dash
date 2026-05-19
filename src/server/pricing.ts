@@ -17,8 +17,6 @@ type ModelPricingBuildResult = {
   entries: ModelPricingEntry[]
   skippedRecords: number
   partialCacheRecords: number
-  skippedSamples: string[]
-  partialCacheSamples: string[]
 }
 
 type ModelPricingCandidate = ModelPricingEntry & {
@@ -106,10 +104,6 @@ function shouldReplacePricing(existing: ModelPricingCandidate | undefined, next:
   return existing.score === 0 && next.score > 0
 }
 
-function recordSample(samples: string[], providerId: string, modelId: string, reason: string) {
-  if (samples.length < 20) samples.push(`${providerId}/${modelId}: ${reason}`)
-}
-
 function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
   const root = v.safeParse(ModelsDevResponseSchema, data)
   if (!root.success) throw new PricingCatalogUnavailableError('models.dev response root was not a provider map')
@@ -117,22 +111,18 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
   const byModel = new Map<string, ModelPricingCandidate>()
   let skippedRecords = 0
   let partialCacheRecords = 0
-  const skippedSamples: string[] = []
-  const partialCacheSamples: string[] = []
 
   for (const [providerId, rawProvider] of Object.entries(root.output)) {
     const provider = v.safeParse(ModelsDevProviderSchema, rawProvider)
     if (!provider.success) {
       skippedRecords++
-      recordSample(skippedSamples, providerId, '*', 'invalid provider record')
       continue
     }
 
-    for (const [modelKey, rawModel] of Object.entries(provider.output.models)) {
+    for (const rawModel of Object.values(provider.output.models)) {
       const parsedModel = v.safeParse(ModelsDevModelSchema, rawModel)
       if (!parsedModel.success) {
         skippedRecords++
-        recordSample(skippedSamples, providerId, modelKey, 'invalid model record')
         continue
       }
 
@@ -140,7 +130,6 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
       const cost = model.cost
       if (!cost) {
         skippedRecords++
-        recordSample(skippedSamples, providerId, model.id, 'missing cost')
         continue
       }
 
@@ -148,7 +137,6 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
       const output = toRate(cost.output)
       if (input == null || output == null) {
         skippedRecords++
-        recordSample(skippedSamples, providerId, model.id, 'missing input/output pricing')
         continue
       }
 
@@ -160,7 +148,6 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
       }
       if (pricing.cacheRead == null || pricing.cacheWrite == null) {
         partialCacheRecords++
-        recordSample(partialCacheSamples, providerId, model.id, 'missing cache-specific pricing')
       }
       const candidate: ModelPricingCandidate = {
         model: normalizeModel(model.id),
@@ -183,7 +170,7 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
     .map(({ model, provider, pricing }) => ({ model, provider, pricing }))
     .sort((a, b) => b.model.length - a.model.length)
 
-  return { entries, skippedRecords, partialCacheRecords, skippedSamples, partialCacheSamples }
+  return { entries, skippedRecords, partialCacheRecords }
 }
 
 export function buildModelPricingFromModelsDev(data: unknown): ModelPricingEntry[] {
@@ -224,12 +211,6 @@ export async function initializeModelPricing() {
       `Loaded pricing for ${MODEL_PRICING.length} models from models.dev` +
         ` (${result.skippedRecords} skipped, ${result.partialCacheRecords} missing cache-specific rates)`,
     )
-    if (result.skippedSamples.length > 0) {
-      console.warn('Skipped invalid models.dev pricing records', result.skippedSamples)
-    }
-    if (result.partialCacheSamples.length > 0) {
-      console.info('models.dev records missing cache-specific pricing', result.partialCacheSamples)
-    }
   } catch (err) {
     if (!(err instanceof PricingCatalogUnavailableError)) throw err
 
