@@ -43,7 +43,7 @@ const LEVEL_CLASS: Record<LogLevel, string> = {
   INFO: 'text-info',
   WARN: 'text-warn',
   ERROR: 'text-err',
-  DEBUG: 'text-ok',
+  DEBUG: 'text-fg-dim',
   TRACE: 'text-fg-dim',
 }
 
@@ -306,7 +306,7 @@ function LlamaSwapLogsPage() {
                       <span
                         className={cn(
                           'mr-3 inline-block w-[78px] shrink-0 select-none',
-                          line.source === 'proxy' ? 'text-accent' : 'text-fg-muted',
+                          line.source === 'proxy' ? 'text-accent' : 'text-ok',
                         )}
                       >
                         {SOURCE_LABEL[line.source]}
