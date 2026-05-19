@@ -11,6 +11,9 @@ const { auth, getDashboardSession } = await import('./server/auth.ts')
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
 
+const { initializeModelPricing } = await import('./server/pricing.ts')
+await initializeModelPricing()
+
 const { startModelWatcher } = await import('./server/model-watcher.ts')
 startModelWatcher()
 

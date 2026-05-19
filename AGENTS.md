@@ -125,7 +125,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    updates, `forward.ts` owns upstream fetch, streaming, usage scanning,
    completion/disconnect log enqueueing, and TPM recording, and `log.ts` owns the
    bounded async SQLite write queue.
-   Handles both OpenAI (`/v1/chat/completions`, flat
+   Request cost estimates use a startup-cached `models.dev` pricing catalog;
+   unknown or unavailable pricing records produce `null` cost rather than a
+   guessed value. Handles both OpenAI (`/v1/chat/completions`, flat
    `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
