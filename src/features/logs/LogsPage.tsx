@@ -256,7 +256,7 @@ function LlamaSwapLogsPage() {
                   spellCheck={false}
                   autoComplete="off"
                 />
-                <Tooltip label={useRegex ? 'Switch to substring' : 'Switch to regex'}>
+                <Tooltip label={useRegex ? 'Regex' : 'Plain'}>
                   <button
                     type="button"
                     className={
