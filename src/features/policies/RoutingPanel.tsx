@@ -1,6 +1,7 @@
-import { Eye, EyeOff, Plus } from 'lucide-react'
+import { Eye, EyeOff, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { CopyableCode } from '../../components/CopyableCode'
+import { Tooltip } from '../../components/Tooltip'
 import type { RoutingRule } from '../../lib/api'
 import {
   useApiKeys,
@@ -388,27 +389,55 @@ function CredentialVaultPanel({
           add credential
         </button>
       </div>
-      <div className="mt-4 divide-y divide-border rounded border border-border bg-surface-1">
+      <div className="mt-4 overflow-hidden rounded border border-border bg-surface-1">
         {credentials.length === 0 ? (
           <div className="px-3 py-3 text-fg-faint">No upstream credentials stored.</div>
         ) : (
-          credentials.map((credential) => (
-            <div key={credential.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
-              <span className="text-fg">{credential.name}</span>
-              <span className="text-fg-faint">{credential.slug}</span>
-              <span className="text-fg-faint">{credential.type}</span>
-              <CopyableCode text={`{{llama-dash:credential:${credential.slug}}}`} />
-              <span className="text-fg-faint">last used {credential.lastUsedAt ?? 'never'}</span>
-              <button
-                type="button"
-                className="btn btn-ghost btn-xs ml-auto"
-                onClick={() => onDelete(credential.id)}
-                disabled={deletePending}
-              >
-                delete
-              </button>
+          <div className="divide-y divide-border">
+            <div className="grid grid-cols-[minmax(120px,0.8fr)_minmax(140px,0.8fr)_minmax(420px,1.9fr)_minmax(160px,0.8fr)_40px] items-center gap-x-4 bg-surface-0 px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-fg-faint max-lg:hidden">
+              <span>Name</span>
+              <span>Slug</span>
+              <span>Placeholder</span>
+              <span>Last used</span>
+              <span className="text-center">Action</span>
             </div>
-          ))
+            {credentials.map((credential) => (
+              <div
+                key={credential.id}
+                className="grid gap-2 px-3 py-2.5 lg:grid-cols-[minmax(120px,0.8fr)_minmax(140px,0.8fr)_minmax(420px,1.9fr)_minmax(160px,0.8fr)_40px] lg:items-center lg:gap-x-4"
+              >
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-faint lg:hidden">Name</div>
+                  <div className="truncate text-fg">{credential.name}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-faint lg:hidden">Slug</div>
+                  <div className="truncate text-fg-dim">{credential.slug}</div>
+                </div>
+                <div className="min-w-0">
+                  <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-fg-faint lg:hidden">
+                    Placeholder
+                  </div>
+                  <CopyableCode text={`{{llama-dash:credential:${credential.slug}}}`} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-fg-faint lg:hidden">Last used</div>
+                  <div className="truncate text-fg-faint">{credential.lastUsedAt ?? 'never'}</div>
+                </div>
+                <Tooltip label="Delete Credential" side="top">
+                  <button
+                    type="button"
+                    className="inline-flex size-8 items-center justify-center justify-self-start rounded text-fg-faint transition-colors hover:bg-surface-3 hover:text-err focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-40 lg:justify-self-center"
+                    onClick={() => onDelete(credential.id)}
+                    disabled={deletePending}
+                    aria-label={`Delete credential ${credential.name}`}
+                  >
+                    <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
+                  </button>
+                </Tooltip>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </section>
