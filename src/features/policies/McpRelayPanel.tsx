@@ -160,7 +160,7 @@ export function McpRelayPanel({
         </div>
       </section>
       <CodeBlock
-        title="Claude Code MCP config"
+        title="Example MCP Config"
         lang="json"
         text={claudeCodeMcpConfig(relays[0]?.slug, origin)}
         className="rounded-lg"
