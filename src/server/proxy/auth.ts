@@ -43,7 +43,11 @@ export function authenticateRequest(
 export function authenticateGatewayRequest(request: Request): AuthResult {
   const token = request.headers.get('x-llama-dash-api-key') ?? request.headers.get('x-llama-dash-key')
   if (!hasAnyUserKeys()) {
-    return { ok: true, keyId: null, keyRow: null, preAuthRouting: emptyRoutingOutcome() }
+    return {
+      ok: false,
+      status: 403,
+      body: { error: { message: 'Create an API key before using MCP relays', type: 'gateway_key_required' } },
+    }
   }
   if (!token) {
     return {
