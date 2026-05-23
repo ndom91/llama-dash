@@ -4,6 +4,7 @@ export const ApiRequestSchema = v.object({
   id: v.string(),
   startedAt: v.string(),
   durationMs: v.number(),
+  requestClass: v.picklist(['inference', 'mcp_relay']),
   method: v.string(),
   endpoint: v.string(),
   model: v.nullable(v.string()),

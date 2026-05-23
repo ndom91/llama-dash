@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const settingsMock = vi.hoisted(() => ({
   maxBytes: 32 * 1024,
+  mcpRelayPersistSuccessBodies: false,
 }))
 
 vi.mock('../admin/settings.ts', () => ({
   getBodyLogLimits: () => ({ maxBytes: settingsMock.maxBytes }),
+  getPrivacySettings: () => ({ mcpRelayPersistSuccessBodies: settingsMock.mcpRelayPersistSuccessBodies }),
 }))
 
 const inserts = vi.hoisted(() => ({ values: vi.fn(() => ({ run: vi.fn() })) }))
@@ -37,6 +39,7 @@ function row(overrides: Partial<RequestLogInput> = {}): RequestLogInput {
   return {
     startedAt: Date.now(),
     durationMs: 1,
+    requestClass: 'inference',
     method: 'POST',
     endpoint: '/v1/messages',
     model: 'model',
@@ -77,6 +80,7 @@ describe('request log queue', () => {
   beforeEach(() => {
     resetRequestLogQueueForTest()
     settingsMock.maxBytes = 32 * 1024
+    settingsMock.mcpRelayPersistSuccessBodies = false
     inserts.values.mockClear()
     vi.mocked(storeRecentBodies).mockClear()
   })
@@ -112,5 +116,28 @@ describe('request log queue', () => {
     for (let i = 0; i < 1001; i++) writeRequestLog(row())
 
     expect(getRequestLogQueueStats()).toEqual({ queued: 1000, dropped: 1 })
+  })
+
+  it('stores only metadata for successful MCP relay logs by default', () => {
+    writeRequestLog(
+      row({
+        requestClass: 'mcp_relay',
+        endpoint: '/mcp-relays/github',
+        requestHeaders: '{"content-type":"application/json"}',
+        requestBody: '{"jsonrpc":"2.0"}',
+        responseHeaders: '{"content-type":"application/json"}',
+        responseBody: '{"result":true}',
+      }),
+    )
+    flushRequestLogQueue()
+
+    expect(inserts.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestHeaders: null,
+        requestBody: null,
+        responseHeaders: null,
+        responseBody: null,
+      }),
+    )
   })
 })

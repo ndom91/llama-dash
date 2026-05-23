@@ -3,7 +3,6 @@ import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
-import { isMcpRelayEndpoint } from './mcp-relays'
 import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
@@ -61,7 +60,7 @@ function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) 
 }
 
 function isMcpRelayRequest(request: ApiRequest): boolean {
-  return isMcpRelayEndpoint(request.endpoint)
+  return request.requestClass === 'mcp_relay'
 }
 
 export function useAdminEvents() {

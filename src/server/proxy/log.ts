@@ -1,6 +1,7 @@
 import { ulid } from 'ulidx'
 import { getApiKeyName } from '../admin/api-keys.ts'
 import { publishAdminEvent } from '../admin/events.ts'
+import { getPrivacySettings } from '../admin/settings.ts'
 import { toRequestRow } from '../admin/requests.ts'
 import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
@@ -32,6 +33,7 @@ function truncateBody(body: string | null, maxBytes: number): string | null {
 export type RequestLogInput = {
   startedAt: number
   durationMs: number
+  requestClass: 'inference' | 'mcp_relay'
   method: string
   endpoint: string
   model: string | null
@@ -109,16 +111,23 @@ function scheduleFlush() {
 export function writeRequestLogNow(row: RequestLogInput) {
   const id = `req_${ulid()}`
   const { maxBytes } = getBodyLogLimits()
+  const privacy = getPrivacySettings()
+  const isSuccessfulMcpRelay = row.requestClass === 'mcp_relay' && row.statusCode < 400 && row.error == null
+  const persistBodies = !isSuccessfulMcpRelay || privacy.mcpRelayPersistSuccessBodies
   // Keep full bodies in-memory for recent-debug access; DB keeps truncated.
-  if (maxBytes > 0) storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
-  const requestBody = truncateBody(row.requestBody, maxBytes)
-  const responseBody = truncateBody(row.responseBody, maxBytes)
+  if (persistBodies && maxBytes > 0)
+    storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
+  const requestBody = persistBodies ? truncateBody(row.requestBody, maxBytes) : null
+  const responseBody = persistBodies ? truncateBody(row.responseBody, maxBytes) : null
+  const requestHeaders = persistBodies ? row.requestHeaders : null
+  const responseHeaders = persistBodies ? row.responseHeaders : null
   const costUsd = computeCostUsd(row.model, row)
   db.insert(schema.requests)
     .values({
       id,
       startedAt: new Date(row.startedAt),
       durationMs: row.durationMs,
+      requestClass: row.requestClass,
       method: row.method,
       endpoint: row.endpoint,
       model: row.model,
@@ -131,9 +140,9 @@ export function writeRequestLogNow(row: RequestLogInput) {
       costUsd,
       streamed: row.streamed,
       error: row.error,
-      requestHeaders: row.requestHeaders,
+      requestHeaders,
       requestBody,
-      responseHeaders: row.responseHeaders,
+      responseHeaders,
       responseBody,
       streamCloseMs: row.streamCloseMs,
       keyId: row.keyId,
@@ -161,6 +170,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
         id,
         startedAt: new Date(row.startedAt),
         durationMs: row.durationMs,
+        requestClass: row.requestClass,
         method: row.method,
         endpoint: row.endpoint,
         model: row.model,

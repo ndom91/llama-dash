@@ -9,7 +9,6 @@ import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
-import { isMcpRelayEndpoint } from '../../lib/mcp-relays'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
@@ -699,8 +698,8 @@ export function RequestsPage() {
   )
 }
 
-function isMcpRelayRequest(row: { endpoint: string }): boolean {
-  return isMcpRelayEndpoint(row.endpoint)
+function isMcpRelayRequest(row: { requestClass: string }): boolean {
+  return row.requestClass === 'mcp_relay'
 }
 
 type RequestFilterRow = {

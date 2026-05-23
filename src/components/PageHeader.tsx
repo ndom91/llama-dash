@@ -18,7 +18,7 @@ export function PageHeader({
   const kickerSegments = kicker ? kicker.split(/\s*·\s*/).filter(Boolean) : []
 
   return (
-    <div className={`page-header page-header-${variant} flex items-start justify-between gap-4`}>
+    <div className={`page-header page-header-${variant} flex shrink-0 items-start justify-between gap-4`}>
       <div className="page-header-copy flex flex-1 flex-col gap-0.5">
         {kickerSegments.length > 0 ? (
           <div className="page-header-kicker font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint font-medium flex items-center gap-1.5">

@@ -16,6 +16,7 @@ type Attribution = {
 export type ProxyLogInput = {
   startedAt: number
   status: number
+  requestClass?: 'inference' | 'mcp_relay'
   method: string
   endpoint: string
   usage: UsageWithClose
@@ -76,6 +77,7 @@ export function writeProxyLog(input: ProxyLogInput) {
   writeRequestLog({
     startedAt: input.startedAt,
     durationMs: Date.now() - input.startedAt,
+    requestClass: input.requestClass ?? 'inference',
     method: input.method,
     endpoint: input.endpoint,
     model: loggedModel,
@@ -120,6 +122,7 @@ export async function forwardUpstreamAndLog(input: {
   hasBody: boolean
   startedAt: number
   endpoint: string
+  requestClass?: 'inference' | 'mcp_relay'
   reqModel: string | null
   reqHeadersJson: string
   reqBody: string | null
@@ -155,6 +158,7 @@ export async function forwardUpstreamAndLog(input: {
     writeProxyLog({
       startedAt: input.startedAt,
       status: upstreamResponse.status,
+      requestClass: input.requestClass,
       method: input.method,
       endpoint: input.endpoint,
       usage: nullUsage(input.reqModel),
@@ -209,6 +213,7 @@ export async function forwardUpstreamAndLog(input: {
           writeProxyLog({
             startedAt: input.startedAt,
             status: upstreamResponse.status,
+            requestClass: input.requestClass,
             method: input.method,
             endpoint: input.endpoint,
             usage,
@@ -242,6 +247,7 @@ export async function forwardUpstreamAndLog(input: {
         writeProxyLog({
           startedAt: input.startedAt,
           status: upstreamResponse.status,
+          requestClass: input.requestClass,
           method: input.method,
           endpoint: input.endpoint,
           usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel),
@@ -264,6 +270,7 @@ export async function forwardUpstreamAndLog(input: {
       writeProxyLog({
         startedAt: input.startedAt,
         status: upstreamResponse.status,
+        requestClass: input.requestClass,
         method: input.method,
         endpoint: input.endpoint,
         usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel),

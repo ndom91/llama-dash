@@ -1,5 +1,4 @@
-import { and, asc, desc, eq, gt, lt, notLike } from 'drizzle-orm'
-import { MCP_RELAY_ENDPOINT_LIKE_PATTERN } from '../../lib/mcp-relays.ts'
+import { and, asc, desc, eq, gt, lt, ne } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -13,6 +12,7 @@ type RequestSummarySource = Pick<
   | 'id'
   | 'startedAt'
   | 'durationMs'
+  | 'requestClass'
   | 'method'
   | 'endpoint'
   | 'model'
@@ -45,6 +45,7 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     id: row.id,
     startedAt: row.startedAt.toISOString(),
     durationMs: row.durationMs,
+    requestClass: row.requestClass,
     method: row.method,
     endpoint: row.endpoint,
     model: row.model,
@@ -77,13 +78,14 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
 export function listRecentRequests(opts: { limit: number; cursor?: string; includeMcp?: boolean }): Array<RequestRow> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
-    opts.includeMcp ? undefined : notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN),
+    opts.includeMcp ? undefined : ne(schema.requests.requestClass, 'mcp_relay'),
   )
   const rows = db
     .select({
       id: schema.requests.id,
       startedAt: schema.requests.startedAt,
       durationMs: schema.requests.durationMs,
+      requestClass: schema.requests.requestClass,
       method: schema.requests.method,
       endpoint: schema.requests.endpoint,
       model: schema.requests.model,
@@ -127,10 +129,10 @@ export function countRecentMcpRequests(opts: { cursor?: string }): number {
     .prepare(
       `select count(*) as count
        from requests
-       where endpoint like ?
+       where request_class = 'mcp_relay'
        ${opts.cursor ? 'and id < ?' : ''}`,
     )
-    .get(...(opts.cursor ? [MCP_RELAY_ENDPOINT_LIKE_PATTERN, opts.cursor] : [MCP_RELAY_ENDPOINT_LIKE_PATTERN])) as {
+    .get(...(opts.cursor ? [opts.cursor] : [])) as {
     count: number
   }
   return row.count
@@ -152,6 +154,7 @@ export function getRequestById(id: string): RequestDetail | null {
     id: r.id,
     startedAt: r.startedAt.toISOString(),
     durationMs: r.durationMs,
+    requestClass: r.requestClass,
     method: r.method,
     endpoint: r.endpoint,
     model: r.model,
@@ -329,14 +332,14 @@ export function getAdjacentIds(id: string): { prevId: string | null; nextId: str
   const prev = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(and(gt(schema.requests.id, id), notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN)))
+    .where(and(gt(schema.requests.id, id), ne(schema.requests.requestClass, 'mcp_relay')))
     .orderBy(asc(schema.requests.id))
     .limit(1)
     .get()
   const next = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(and(lt(schema.requests.id, id), notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN)))
+    .where(and(lt(schema.requests.id, id), ne(schema.requests.requestClass, 'mcp_relay')))
     .orderBy(desc(schema.requests.id))
     .limit(1)
     .get()

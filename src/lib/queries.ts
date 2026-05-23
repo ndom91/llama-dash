@@ -678,3 +678,31 @@ export function useUpdatePrivacySettings(): UseMutationResult<PrivacySettings, E
     },
   })
 }
+
+export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.pruneRequestLogs(),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.requests, qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      toast.success('Request log retention applied')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to prune request logs', e)
+    },
+  })
+}
+
+export function useCompactDatabase(): UseMutationResult<unknown, Error, void> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.compactDatabase(),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.systemStatus])
+      toast.success('Database compacted')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to compact database', e)
+    },
+  })
+}

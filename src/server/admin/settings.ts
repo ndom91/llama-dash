@@ -14,6 +14,11 @@ type PrivacySettings = {
   captureRequestBodies: boolean
   captureResponseBodies: boolean
   maxStoredBodyBytes: number
+  mcpRelayPersistSuccessBodies: boolean
+  requestLogRetentionDays: number
+  mcpRelaySuccessRetentionDays: number
+  mcpRelayErrorRetentionDays: number
+  bodyRetentionDays: number
 }
 
 type AttributionSettings = {
@@ -26,6 +31,10 @@ type AttributionSettings = {
 // `data/dash.db` balloon fast. Truncate at this threshold by default; the
 // in-memory ring (recent-bodies.ts) keeps the full payload for live debugging.
 const DEFAULT_MAX_LOGGED_BODY_BYTES = 32 * 1024
+const DEFAULT_REQUEST_LOG_RETENTION_DAYS = 30
+const DEFAULT_MCP_RELAY_SUCCESS_RETENTION_DAYS = 7
+const DEFAULT_MCP_RELAY_ERROR_RETENTION_DAYS = 30
+const DEFAULT_BODY_RETENTION_DAYS = 3
 
 let _limitsCache: RequestLimits | null = null
 let _bodyLimitsCache: BodyLogLimits | null = null
@@ -43,6 +52,11 @@ function parseBooleanSetting(value: string | null, fallback: boolean): boolean {
   if (value === 'true') return true
   if (value === 'false') return false
   return fallback
+}
+
+function parsePositiveIntegerSetting(value: string | null, fallback: number): number {
+  const parsed = value != null ? Number(value) : Number.NaN
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
 }
 
 function getSetting(key: string): string | null {
@@ -91,6 +105,20 @@ export function getPrivacySettings(): PrivacySettings {
     captureResponseBodies: parseBooleanSetting(getSetting('capture_response_bodies'), true),
     maxStoredBodyBytes:
       Number.isFinite(parsedMaxBytes) && parsedMaxBytes >= 0 ? parsedMaxBytes : DEFAULT_MAX_LOGGED_BODY_BYTES,
+    mcpRelayPersistSuccessBodies: parseBooleanSetting(getSetting('mcp_relay_persist_success_bodies'), false),
+    requestLogRetentionDays: parsePositiveIntegerSetting(
+      getSetting('request_log_retention_days'),
+      DEFAULT_REQUEST_LOG_RETENTION_DAYS,
+    ),
+    mcpRelaySuccessRetentionDays: parsePositiveIntegerSetting(
+      getSetting('mcp_relay_success_retention_days'),
+      DEFAULT_MCP_RELAY_SUCCESS_RETENTION_DAYS,
+    ),
+    mcpRelayErrorRetentionDays: parsePositiveIntegerSetting(
+      getSetting('mcp_relay_error_retention_days'),
+      DEFAULT_MCP_RELAY_ERROR_RETENTION_DAYS,
+    ),
+    bodyRetentionDays: parsePositiveIntegerSetting(getSetting('body_retention_days'), DEFAULT_BODY_RETENTION_DAYS),
   }
   return _privacyCache
 }
@@ -137,6 +165,11 @@ export function setPrivacySettings(settings: {
   captureRequestBodies?: boolean
   captureResponseBodies?: boolean
   maxStoredBodyBytes?: number
+  mcpRelayPersistSuccessBodies?: boolean
+  requestLogRetentionDays?: number
+  mcpRelaySuccessRetentionDays?: number
+  mcpRelayErrorRetentionDays?: number
+  bodyRetentionDays?: number
 }) {
   if (settings.captureRequestBodies !== undefined) {
     setSetting('capture_request_bodies', String(settings.captureRequestBodies))
@@ -146,5 +179,20 @@ export function setPrivacySettings(settings: {
   }
   if (settings.maxStoredBodyBytes !== undefined) {
     setSetting('max_logged_body_bytes', String(settings.maxStoredBodyBytes))
+  }
+  if (settings.mcpRelayPersistSuccessBodies !== undefined) {
+    setSetting('mcp_relay_persist_success_bodies', String(settings.mcpRelayPersistSuccessBodies))
+  }
+  if (settings.requestLogRetentionDays !== undefined) {
+    setSetting('request_log_retention_days', String(settings.requestLogRetentionDays))
+  }
+  if (settings.mcpRelaySuccessRetentionDays !== undefined) {
+    setSetting('mcp_relay_success_retention_days', String(settings.mcpRelaySuccessRetentionDays))
+  }
+  if (settings.mcpRelayErrorRetentionDays !== undefined) {
+    setSetting('mcp_relay_error_retention_days', String(settings.mcpRelayErrorRetentionDays))
+  }
+  if (settings.bodyRetentionDays !== undefined) {
+    setSetting('body_retention_days', String(settings.bodyRetentionDays))
   }
 }

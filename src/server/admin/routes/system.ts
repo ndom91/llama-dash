@@ -4,8 +4,9 @@ import { databasePathInfo } from '../../db/index.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
 import { getRequestLogQueueStats } from '../../proxy/log.ts'
+import { compactDatabase, pruneRequestLogs } from '../../request-log-maintenance.ts'
 import { getUpdateCheck } from '../../update-check.ts'
-import { json, type Route } from './types.ts'
+import { error, json, type Route } from './types.ts'
 
 const DIRECT_TARGETS = ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']
 
@@ -18,6 +19,22 @@ export const systemRoutes: Route[] = [
       return json(200, {
         upstream: { ...health, backend: inferenceBackend.info.label, host: inferenceBackend.info.upstreamHost },
       })
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/request-logs\/prune$/,
+    handler: async () => json(200, pruneRequestLogs()),
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/system\/database\/compact$/,
+    handler: async () => {
+      try {
+        return json(200, compactDatabase())
+      } catch (err) {
+        return error(500, err instanceof Error ? err.message : String(err))
+      }
     },
   },
   {

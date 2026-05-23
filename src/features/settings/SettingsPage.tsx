@@ -1,21 +1,36 @@
-import { KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
+import { Database, KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
 import { PageHeader } from '../../components/PageHeader'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
-import { usePrivacySettings, useUpdatePrivacySettings } from '../../lib/queries'
+import {
+  useCompactDatabase,
+  usePrivacySettings,
+  usePruneRequestLogs,
+  useUpdatePrivacySettings,
+} from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
 
-function SettingsPanel({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function SettingsPanel({
+  title,
+  subtitle,
+  children,
+  bodyClassName,
+}: {
+  title: string
+  subtitle: string
+  children: React.ReactNode
+  bodyClassName?: string
+}) {
   return (
-    <section className="panel !rounded-none !border-x-0 border-t-1 first:border-t-0 !bg-surface-1">
+    <section className="panel shrink-0 !rounded-none !border-x-0 border-t-1 first:border-t-0 !bg-surface-1">
       <div className="panel-head bg-transparent px-6 max-md:px-4">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· {subtitle}</span>
       </div>
-      <div className="px-6 py-5 max-md:px-4">{children}</div>
+      <div className={cn('px-6 py-5 max-md:px-4', bodyClassName)}>{children}</div>
     </section>
   )
 }
@@ -65,6 +80,8 @@ export function SettingsPage() {
   const colorTheme = useColorTheme()
   const privacySettings = usePrivacySettings()
   const updatePrivacySettings = useUpdatePrivacySettings()
+  const pruneRequestLogs = usePruneRequestLogs()
+  const compactDatabase = useCompactDatabase()
   const passkeys = authClient.useListPasskeys()
   const [passkeyName, setPasskeyName] = useState('')
   const [passkeyPending, setPasskeyPending] = useState(false)
@@ -72,6 +89,7 @@ export function SettingsPage() {
   const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
   const privacy = privacySettings.data
   const isPrivacyMutating = updatePrivacySettings.isPending
+  const isMaintenanceMutating = pruneRequestLogs.isPending || compactDatabase.isPending
 
   async function addPasskey() {
     setPasskeyError(null)
@@ -92,8 +110,8 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="content">
-      <div className="page min-h-full px-0">
+    <div className="content overflow-hidden">
+      <div className="page h-full min-h-0 px-0">
         <PageHeader
           kicker="cfg · settings"
           title="Settings"
@@ -101,7 +119,7 @@ export function SettingsPage() {
           variant="integrated"
         />
 
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
           <SettingsPanel title="Appearance" subtitle="theme and display mode">
             <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div className="flex flex-col flex-1 items-stretch">
@@ -150,7 +168,7 @@ export function SettingsPage() {
             </div>
           </SettingsPanel>
 
-          <SettingsPanel title="Security" subtitle="dashboard passkeys">
+          <SettingsPanel title="Security" subtitle="dashboard passkeys" bodyClassName="pb-10">
             <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div>
                 <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
@@ -237,7 +255,7 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-2">
+              <div className="grid gap-3 xl:grid-cols-3">
                 <PrivacyToggle
                   title="Request bodies"
                   description="Store forwarded request payloads for request detail inspection. Disable to avoid retaining prompts."
@@ -256,7 +274,19 @@ export function SettingsPage() {
                     privacy && updatePrivacySettings.mutate({ captureResponseBodies: !privacy.captureResponseBodies })
                   }
                 />
-                <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-2">
+                <PrivacyToggle
+                  title="MCP success bodies"
+                  description="Persist request and response snippets for successful MCP relay calls. Disabled by default to reduce DB growth."
+                  enabled={privacy?.mcpRelayPersistSuccessBodies ?? false}
+                  disabled={!privacy || isPrivacyMutating}
+                  onToggle={() =>
+                    privacy &&
+                    updatePrivacySettings.mutate({
+                      mcpRelayPersistSuccessBodies: !privacy.mcpRelayPersistSuccessBodies,
+                    })
+                  }
+                />
+                <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-3">
                   <label className="font-mono text-xs font-semibold text-fg" htmlFor="max-stored-body-bytes">
                     Max stored body bytes
                   </label>
@@ -278,11 +308,102 @@ export function SettingsPage() {
                     }}
                   />
                 </div>
+                <div className="grid gap-3 rounded border border-border bg-surface-2 p-3 xl:col-span-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-2 font-mono text-xs font-semibold text-fg">
+                      <Database className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                      Retention
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] leading-relaxed text-fg-dim">
+                      Automatic pruning runs hourly. Use the buttons to apply retention immediately or reclaim disk
+                      after deletes.
+                    </div>
+                  </div>
+                  <RetentionInput
+                    id="request-log-retention-days"
+                    label="Inference rows"
+                    value={privacy?.requestLogRetentionDays ?? ''}
+                    disabled={!privacy || isPrivacyMutating}
+                    onChange={(value) => updatePrivacySettings.mutate({ requestLogRetentionDays: value })}
+                  />
+                  <RetentionInput
+                    id="mcp-success-retention-days"
+                    label="MCP success rows"
+                    value={privacy?.mcpRelaySuccessRetentionDays ?? ''}
+                    disabled={!privacy || isPrivacyMutating}
+                    onChange={(value) => updatePrivacySettings.mutate({ mcpRelaySuccessRetentionDays: value })}
+                  />
+                  <RetentionInput
+                    id="mcp-error-retention-days"
+                    label="MCP error rows"
+                    value={privacy?.mcpRelayErrorRetentionDays ?? ''}
+                    disabled={!privacy || isPrivacyMutating}
+                    onChange={(value) => updatePrivacySettings.mutate({ mcpRelayErrorRetentionDays: value })}
+                  />
+                  <RetentionInput
+                    id="body-retention-days"
+                    label="Stored body/header text"
+                    value={privacy?.bodyRetentionDays ?? ''}
+                    disabled={!privacy || isPrivacyMutating}
+                    onChange={(value) => updatePrivacySettings.mutate({ bodyRetentionDays: value })}
+                  />
+                  <div className="flex flex-wrap gap-2 sm:col-span-2">
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={isMaintenanceMutating}
+                      onClick={() => pruneRequestLogs.mutate()}
+                    >
+                      Apply retention now
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={isMaintenanceMutating}
+                      onClick={() => compactDatabase.mutate()}
+                    >
+                      Compact database
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </SettingsPanel>
         </div>
       </div>
     </div>
+  )
+}
+
+function RetentionInput({
+  id,
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: number | ''
+  disabled?: boolean
+  onChange: (value: number) => void
+}) {
+  return (
+    <label className="flex flex-col gap-1 font-mono text-[11px] text-fg-dim" htmlFor={id}>
+      {label}
+      <NumberInput
+        id={id}
+        min={1}
+        max={3650}
+        step={1}
+        disabled={disabled}
+        value={value}
+        onChange={(event) => {
+          const next = Number(event.target.value)
+          if (!Number.isInteger(next) || next < 1) return
+          onChange(next)
+        }}
+      />
+    </label>
   )
 }

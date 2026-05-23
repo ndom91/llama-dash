@@ -21,6 +21,9 @@ startModelWatcher()
 const { startGpuPoller } = await import('./server/gpu-poller.ts')
 startGpuPoller()
 
+const { startRequestLogMaintenance } = await import('./server/request-log-maintenance.ts')
+startRequestLogMaintenance()
+
 const ssrHandler = createStartHandler(defaultStreamHandler)
 
 export default createServerEntry({

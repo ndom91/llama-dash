@@ -155,6 +155,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
+   - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
@@ -182,7 +183,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     sidebar shows TTFT, prefill, decode, and stream-close when upstream
     llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls
-    and global proxy/privacy defaults), API Keys (list +
+    and global proxy/privacy/retention defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, direct upstream target controls, credential vault
@@ -229,10 +230,15 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `messages[]`; `/v1/messages` prepends to the top-level `system` field
    (string or content-block array, preserved shape).
 12. Request logs persist routing and attribution context. Request detail shows
-     matched routing rule/action/auth mode plus client, end-user, and session metadata.
+      matched routing rule/action/auth mode plus client, end-user, and session metadata.
     Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
+    Request rows are classified as `inference` or `mcp_relay`; successful MCP relay
+    rows are metadata-only by default, while relay failures keep bounded body/header
+    snippets for debugging. Hourly retention pruning removes old inference rows,
+    short-lived successful relay rows, longer-lived relay failures, and stale body/header
+    text. The Settings page also exposes immediate prune and SQLite compaction actions.
 13. Admin JSON GET responses support conditional ETag polling. The admin dispatcher
     hashes successful JSON bodies, returns `304` for matching `If-None-Match`,
     and the client fetch helper reuses the cached parsed payload for unchanged

@@ -212,5 +212,12 @@ export const api = {
     captureRequestBodies?: boolean
     captureResponseBodies?: boolean
     maxStoredBodyBytes?: number
+    mcpRelayPersistSuccessBodies?: boolean
+    requestLogRetentionDays?: number
+    mcpRelaySuccessRetentionDays?: number
+    mcpRelayErrorRetentionDays?: number
+    bodyRetentionDays?: number
   }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
+  pruneRequestLogs: () => sendJson('/api/system/request-logs/prune', v.any(), { method: 'POST', body: {} }),
+  compactDatabase: () => sendJson('/api/system/database/compact', OkSchema, { method: 'POST', body: {} }),
 }

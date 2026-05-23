@@ -103,6 +103,7 @@ export function getModelRequests(
       id: r.id,
       startedAt: r.startedAt.toISOString(),
       durationMs: r.durationMs,
+      requestClass: r.requestClass,
       method: r.method,
       endpoint: r.endpoint,
       model: r.model,
