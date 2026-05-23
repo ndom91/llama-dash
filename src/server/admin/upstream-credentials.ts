@@ -182,10 +182,11 @@ export type CredentialInjectionSecret = {
 export function getCredentialInjectionSecret(id: string, encryptionKey?: string): CredentialInjectionSecret | null {
   const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
   if (!row) return null
+  const slug = ensureValidSlug(row)
   return {
     id: row.id,
     name: row.name,
-    slug: row.slug,
+    slug,
     type: row.type,
     value: decryptSecret(row.encryptedValue, encryptionKey),
   }
