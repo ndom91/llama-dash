@@ -45,6 +45,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - See which models are running, which clients are using them, and where latency is coming from.
 - Debug slow or failed requests with status, token usage, timing, routing, attribution, and upstream metadata in one place.
 - Enforce model allow-lists, request size limits, model aliases, and routing rules before traffic reaches llama-swap/llama-cpp.
+- Keep provider secrets out of client configs, agent environments, and LLM-visible prompts by injecting encrypted credentials at the gateway.
 - Route Claude Code or other Anthropic clients through one observable gateway while preserving subscription/OAuth bearer flows or injecting stored provider credentials from routing policy.
 - Keep Prometheus metrics and searchable SQLite request history for a single-box self-hosted AI stack.
 
