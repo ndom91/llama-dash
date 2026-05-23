@@ -18,6 +18,7 @@ import {
 } from '../../lib/queries'
 import { CredentialVaultPanel } from './CredentialVaultPanel'
 import { McpRelayPanel } from './McpRelayPanel'
+import type { PolicyTab } from './policy-tabs'
 import { RoutingRuleEditor } from './RoutingRuleEditor'
 import { RoutingRuleRow } from './RoutingRuleRow'
 
@@ -51,7 +52,7 @@ function cloneRule(rule: RoutingRule): RoutingRule {
   return structuredClone(rule)
 }
 
-export function RoutingPanel() {
+export function RoutingPanel({ tab }: { tab: PolicyTab }) {
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
@@ -153,139 +154,166 @@ export function RoutingPanel() {
     if (editingRuleId === id) discardDraft()
   }
 
+  const panelCopy = panelCopyForTab(tab, { rules: rules.length, enabled: enabledCount })
+
   return (
     <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 border-t-0 !bg-surface-1">
       <div className="panel-head shrink-0 bg-transparent px-6 max-md:px-3">
-        <span className="panel-title">Routing</span>
-        <span className="panel-sub">
-          · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
-        </span>
-        <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
-          <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-          new rule
-        </button>
+        <span className="panel-title">{panelCopy.title}</span>
+        <span className="panel-sub">· {panelCopy.subtitle}</span>
+        {tab === 'routing' ? (
+          <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
+            <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+            new rule
+          </button>
+        ) : null}
       </div>
 
       <div className="min-h-0 flex-1">
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-6 py-4 max-md:px-3">
-          <div className="space-y-3">
-            {rules.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
-                <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-faint">
-                  No routing rules yet
+          <div hidden={tab !== 'routing'} className="space-y-4">
+            <div className="space-y-3">
+              {rules.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
+                  <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-faint">
+                    No routing rules yet
+                  </div>
+                  <div className="mt-2 max-w-3xl font-mono text-xs leading-6 text-fg-dim">
+                    Ordered rules will evaluate before forwarding. Use them to rewrite requested models or reject
+                    requests with a clear policy reason.
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button type="button" className="btn btn-primary btn-xs" onClick={createRule} disabled={isMutating}>
+                      <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                      create first rule
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-2 max-w-3xl font-mono text-xs leading-6 text-fg-dim">
-                  Ordered rules will evaluate before forwarding. Use them to rewrite requested models or reject requests
-                  with a clear policy reason.
+              ) : null}
+              {rules.map((rule, index) => (
+                <div key={rule.id} className="space-y-3">
+                  <RoutingRuleRow
+                    rule={rule}
+                    index={index}
+                    totalRules={rules.length}
+                    keyMap={keyMap}
+                    editingRuleId={editingRuleId}
+                    reorderPending={reorderRulesMutation.isPending}
+                    updatePending={updateRuleMutation.isPending}
+                    deletePending={deleteRuleMutation.isPending}
+                    onToggle={toggleRule}
+                    onMove={moveRule}
+                    onEdit={startEdit}
+                    onDelete={deleteRule}
+                  />
+                  {draft?.id === rule.id ? (
+                    <>
+                      <RoutingRuleEditor
+                        draft={draft}
+                        credentials={credentials}
+                        keyMap={keyMap}
+                        keys={keys}
+                        modelOptions={modelOptions}
+                        errorMessage={
+                          createRuleMutation.error?.message ??
+                          updateRuleMutation.error?.message ??
+                          deleteRuleMutation.error?.message ??
+                          reorderRulesMutation.error?.message
+                        }
+                        isMutating={isMutating}
+                        onChange={setDraft}
+                        onDiscard={discardDraft}
+                        onSave={saveDraft}
+                      />
+                      <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
+                    </>
+                  ) : null}
                 </div>
-                <div className="mt-4 flex gap-2">
-                  <button type="button" className="btn btn-primary btn-xs" onClick={createRule} disabled={isMutating}>
-                    <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-                    create first rule
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            {rules.map((rule, index) => (
-              <div key={rule.id} className="space-y-3">
-                <RoutingRuleRow
-                  rule={rule}
-                  index={index}
-                  totalRules={rules.length}
-                  keyMap={keyMap}
-                  editingRuleId={editingRuleId}
-                  reorderPending={reorderRulesMutation.isPending}
-                  updatePending={updateRuleMutation.isPending}
-                  deletePending={deleteRuleMutation.isPending}
-                  onToggle={toggleRule}
-                  onMove={moveRule}
-                  onEdit={startEdit}
-                  onDelete={deleteRule}
-                />
-                {draft?.id === rule.id ? (
-                  <>
-                    <RoutingRuleEditor
-                      draft={draft}
-                      credentials={credentials}
-                      keyMap={keyMap}
-                      keys={keys}
-                      modelOptions={modelOptions}
-                      errorMessage={
-                        createRuleMutation.error?.message ??
-                        updateRuleMutation.error?.message ??
-                        deleteRuleMutation.error?.message ??
-                        reorderRulesMutation.error?.message
-                      }
-                      isMutating={isMutating}
-                      onChange={setDraft}
-                      onDiscard={discardDraft}
-                      onSave={saveDraft}
-                    />
-                    <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
-                  </>
-                ) : null}
-              </div>
-            ))}
-          </div>
-
-          {createRuleMutation.error ||
-          updateRuleMutation.error ||
-          deleteRuleMutation.error ||
-          reorderRulesMutation.error ? (
-            <div className="rounded border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
-              {createRuleMutation.error?.message ??
-                updateRuleMutation.error?.message ??
-                deleteRuleMutation.error?.message ??
-                reorderRulesMutation.error?.message}
+              ))}
             </div>
-          ) : null}
 
-          {draft && !rules.some((rule) => rule.id === draft.id) ? (
-            <>
-              <RoutingRuleEditor
-                draft={draft}
-                credentials={credentials}
-                keyMap={keyMap}
-                keys={keys}
-                modelOptions={modelOptions}
-                errorMessage={
-                  createRuleMutation.error?.message ??
+            {createRuleMutation.error ||
+            updateRuleMutation.error ||
+            deleteRuleMutation.error ||
+            reorderRulesMutation.error ? (
+              <div className="rounded border border-err/40 bg-err/10 px-3 py-2 font-mono text-[11px] text-err">
+                {createRuleMutation.error?.message ??
                   updateRuleMutation.error?.message ??
                   deleteRuleMutation.error?.message ??
-                  reorderRulesMutation.error?.message
-                }
-                isMutating={isMutating}
-                onChange={setDraft}
-                onDiscard={discardDraft}
-                onSave={saveDraft}
-              />
-              <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
-            </>
-          ) : null}
+                  reorderRulesMutation.error?.message}
+              </div>
+            ) : null}
 
-          <CredentialVaultPanel
-            credentials={credentials}
-            vaultEnabled={credentialState?.vaultEnabled ?? false}
-            vaultStatus={credentialState?.vaultStatus ?? 'missing_key'}
-            errorMessage={credentialError?.message}
-            createPending={createCredentialMutation.isPending}
-            deletePending={deleteCredentialMutation.isPending}
-            onCreate={(body) => createCredentialMutation.mutate(body)}
-            onDelete={(id) => deleteCredentialMutation.mutate(id)}
-          />
+            {draft && !rules.some((rule) => rule.id === draft.id) ? (
+              <>
+                <RoutingRuleEditor
+                  draft={draft}
+                  credentials={credentials}
+                  keyMap={keyMap}
+                  keys={keys}
+                  modelOptions={modelOptions}
+                  errorMessage={
+                    createRuleMutation.error?.message ??
+                    updateRuleMutation.error?.message ??
+                    deleteRuleMutation.error?.message ??
+                    reorderRulesMutation.error?.message
+                  }
+                  isMutating={isMutating}
+                  onChange={setDraft}
+                  onDiscard={discardDraft}
+                  onSave={saveDraft}
+                />
+                <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
+              </>
+            ) : null}
+          </div>
 
-          <McpRelayPanel
-            relays={mcpRelays}
-            credentials={credentials}
-            createPending={createMcpRelayMutation.isPending}
-            deletePending={deleteMcpRelayMutation.isPending}
-            onCreate={(body) => createMcpRelayMutation.mutate(body)}
-            onDelete={(id) => deleteMcpRelayMutation.mutate(id)}
-          />
+          <div hidden={tab !== 'credentials'}>
+            <CredentialVaultPanel
+              credentials={credentials}
+              vaultEnabled={credentialState?.vaultEnabled ?? false}
+              vaultStatus={credentialState?.vaultStatus ?? 'missing_key'}
+              errorMessage={credentialError?.message}
+              createPending={createCredentialMutation.isPending}
+              deletePending={deleteCredentialMutation.isPending}
+              onCreate={(body) => createCredentialMutation.mutate(body)}
+              onDelete={(id) => deleteCredentialMutation.mutate(id)}
+            />
+          </div>
+
+          <div hidden={tab !== 'mcp-relays'}>
+            <McpRelayPanel
+              relays={mcpRelays}
+              credentials={credentials}
+              createPending={createMcpRelayMutation.isPending}
+              deletePending={deleteMcpRelayMutation.isPending}
+              onCreate={(body) => createMcpRelayMutation.mutate(body)}
+              onDelete={(id) => deleteMcpRelayMutation.mutate(id)}
+            />
+          </div>
         </div>
       </div>
     </section>
   )
+}
+
+function panelCopyForTab(tab: PolicyTab, counts: { rules: number; enabled: number }) {
+  if (tab === 'credentials') {
+    return {
+      title: 'Credentials',
+      subtitle: 'encrypted provider secrets · placeholders for routing rules and relays',
+    }
+  }
+  if (tab === 'mcp-relays') {
+    return {
+      title: 'MCP Relays',
+      subtitle: 'agent-facing reverse proxies · gateway key required · credential injection at the edge',
+    }
+  }
+  return {
+    title: 'Routing',
+    subtitle: `ordered rules evaluated before forwarding · first match wins · ${counts.rules} rules · ${counts.enabled} enabled`,
+  }
 }
 
 function ObservabilityPanel({
