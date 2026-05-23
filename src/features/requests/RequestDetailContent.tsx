@@ -211,7 +211,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[clamp(188px,21vw,275px)_minmax(0,1fr)_clamp(190px,19vw,260px)] items-stretch gap-0 max-[1200px]:grid-cols-[clamp(164px,19vw,220px)_minmax(0,1fr)_clamp(172px,18vw,220px)] max-[1024px]:grid-cols-[minmax(0,1fr)]">
-        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
+        <aside className="min-h-0 min-w-0 overflow-y-auto border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <div>
             <div className={railSectionTitle}>Summary</div>
             <dl className="detail-meta-list">
