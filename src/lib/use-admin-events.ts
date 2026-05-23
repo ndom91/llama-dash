@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
+import { isMcpRelayEndpoint } from './mcp-relays'
 import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
@@ -11,7 +12,6 @@ type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null; mc
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
-const MCP_RELAY_PREFIX = '/mcp-relays/'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -61,7 +61,7 @@ function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) 
 }
 
 function isMcpRelayRequest(request: ApiRequest): boolean {
-  return request.endpoint.startsWith(MCP_RELAY_PREFIX)
+  return isMcpRelayEndpoint(request.endpoint)
 }
 
 export function useAdminEvents() {

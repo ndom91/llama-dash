@@ -9,6 +9,7 @@ import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
+import { isMcpRelayEndpoint } from '../../lib/mcp-relays'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
@@ -30,7 +31,6 @@ import {
 } from './requestsListUtils'
 
 const requestsRouteApi = getRouteApi('/requests/')
-const MCP_RELAY_PREFIX = '/mcp-relays/'
 
 export function RequestsPage() {
   const navigate = useNavigate()
@@ -704,7 +704,7 @@ export function RequestsPage() {
 }
 
 function isMcpRelayRequest(row: { endpoint: string }): boolean {
-  return row.endpoint.startsWith(MCP_RELAY_PREFIX)
+  return isMcpRelayEndpoint(row.endpoint)
 }
 
 type RequestFilterRow = {

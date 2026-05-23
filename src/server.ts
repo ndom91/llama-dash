@@ -1,5 +1,6 @@
 import { createStartHandler, defaultStreamHandler } from '@tanstack/react-start/server'
 import { createServerEntry } from '@tanstack/react-start/server-entry'
+import { MCP_RELAY_ENDPOINT_PREFIX } from './lib/mcp-relays.ts'
 import { config } from './server/config.ts'
 
 if (config.inferenceInsecure) {
@@ -35,7 +36,7 @@ export default createServerEntry({
       return handleProxyRequest(request)
     }
 
-    if (url.pathname.startsWith('/mcp-relays/')) {
+    if (url.pathname.startsWith(MCP_RELAY_ENDPOINT_PREFIX)) {
       const { handleMcpRelayRequest } = await import('./server/mcp-relay/handler.ts')
       return handleMcpRelayRequest(request)
     }

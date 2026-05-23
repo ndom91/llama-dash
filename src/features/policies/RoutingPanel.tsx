@@ -1,24 +1,15 @@
 import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import type { RoutingRule } from '../../lib/api'
+import type { RoutingRule, UpstreamCredential } from '../../lib/api'
 import {
   useApiKeys,
-  useCreateUpstreamCredential,
-  useCreateMcpRelay,
   useCreateRoutingRule,
-  useDeleteMcpRelay,
   useDeleteRoutingRule,
-  useDeleteUpstreamCredential,
-  useMcpRelays,
   useModels,
   useReorderRoutingRules,
   useRoutingRules,
-  useUpstreamCredentials,
   useUpdateRoutingRule,
 } from '../../lib/queries'
-import { CredentialVaultPanel } from './CredentialVaultPanel'
-import { McpRelayPanel } from './McpRelayPanel'
-import type { PolicyTab } from './policy-tabs'
 import { RoutingRuleEditor } from './RoutingRuleEditor'
 import { RoutingRuleRow } from './RoutingRuleRow'
 
@@ -52,17 +43,11 @@ function cloneRule(rule: RoutingRule): RoutingRule {
   return structuredClone(rule)
 }
 
-export function RoutingPanel({ tab }: { tab: PolicyTab }) {
+export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[] }) {
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
-  const { data: mcpRelays = [] } = useMcpRelays()
-  const { data: credentialState, error: credentialError } = useUpstreamCredentials()
   const createRuleMutation = useCreateRoutingRule()
-  const createCredentialMutation = useCreateUpstreamCredential()
-  const createMcpRelayMutation = useCreateMcpRelay()
-  const deleteMcpRelayMutation = useDeleteMcpRelay()
-  const deleteCredentialMutation = useDeleteUpstreamCredential()
   const updateRuleMutation = useUpdateRoutingRule()
   const deleteRuleMutation = useDeleteRoutingRule()
   const reorderRulesMutation = useReorderRoutingRules()
@@ -70,20 +55,14 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
   const [draft, setDraft] = useState<RoutingRule | null>(null)
 
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
-  const credentials = credentialState?.credentials ?? []
   const modelOptions = models.map((model) => model.id)
-  const credentialUsage = useMemo(() => credentialUsageById(rules, mcpRelays), [rules, mcpRelays])
 
   const enabledCount = rules.filter((rule) => rule.enabled).length
   const isMutating =
     createRuleMutation.isPending ||
     updateRuleMutation.isPending ||
     deleteRuleMutation.isPending ||
-    reorderRulesMutation.isPending ||
-    createCredentialMutation.isPending ||
-    deleteCredentialMutation.isPending ||
-    createMcpRelayMutation.isPending ||
-    deleteMcpRelayMutation.isPending
+    reorderRulesMutation.isPending
 
   const startEdit = (rule: RoutingRule) => {
     setEditingRuleId(rule.id)
@@ -155,24 +134,22 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
     if (editingRuleId === id) discardDraft()
   }
 
-  const panelCopy = panelCopyForTab(tab, { rules: rules.length, enabled: enabledCount })
-
   return (
     <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 border-t-0 !bg-surface-1">
       <div className="panel-head shrink-0 bg-transparent px-6 max-md:px-3">
-        <span className="panel-title">{panelCopy.title}</span>
-        <span className="panel-sub">· {panelCopy.subtitle}</span>
-        {tab === 'routing' ? (
-          <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
-            <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-            new rule
-          </button>
-        ) : null}
+        <span className="panel-title">Routing</span>
+        <span className="panel-sub">
+          · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
+        </span>
+        <button type="button" className="btn btn-ghost btn-xs ml-auto" onClick={createRule} disabled={isMutating}>
+          <Plus className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+          new rule
+        </button>
       </div>
 
       <div className="min-h-0 flex-1">
         <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-6 py-4 max-md:px-3">
-          <div hidden={tab !== 'routing'} className="space-y-4">
+          <div className="space-y-4">
             <div className="space-y-3">
               {rules.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
@@ -208,26 +185,24 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
                     onDelete={deleteRule}
                   />
                   {draft?.id === rule.id ? (
-                    <>
-                      <RoutingRuleEditor
-                        draft={draft}
-                        credentials={credentials}
-                        keyMap={keyMap}
-                        keys={keys}
-                        modelOptions={modelOptions}
-                        errorMessage={
-                          createRuleMutation.error?.message ??
-                          updateRuleMutation.error?.message ??
-                          deleteRuleMutation.error?.message ??
-                          reorderRulesMutation.error?.message
-                        }
-                        isMutating={isMutating}
-                        onChange={setDraft}
-                        onDiscard={discardDraft}
-                        onSave={saveDraft}
-                      />
-                      <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
-                    </>
+                    <RuleDraftEditor
+                      draft={draft}
+                      credentials={credentials}
+                      keyMap={keyMap}
+                      keys={keys}
+                      modelOptions={modelOptions}
+                      errorMessage={
+                        createRuleMutation.error?.message ??
+                        updateRuleMutation.error?.message ??
+                        deleteRuleMutation.error?.message ??
+                        reorderRulesMutation.error?.message
+                      }
+                      isMutating={isMutating}
+                      totalRules={Math.max(rules.length, 1)}
+                      onChange={setDraft}
+                      onDiscard={discardDraft}
+                      onSave={saveDraft}
+                    />
                   ) : null}
                 </div>
               ))}
@@ -246,52 +221,25 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
             ) : null}
 
             {draft && !rules.some((rule) => rule.id === draft.id) ? (
-              <>
-                <RoutingRuleEditor
-                  draft={draft}
-                  credentials={credentials}
-                  keyMap={keyMap}
-                  keys={keys}
-                  modelOptions={modelOptions}
-                  errorMessage={
-                    createRuleMutation.error?.message ??
-                    updateRuleMutation.error?.message ??
-                    deleteRuleMutation.error?.message ??
-                    reorderRulesMutation.error?.message
-                  }
-                  isMutating={isMutating}
-                  onChange={setDraft}
-                  onDiscard={discardDraft}
-                  onSave={saveDraft}
-                />
-                <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={Math.max(rules.length, 1)} />
-              </>
+              <RuleDraftEditor
+                draft={draft}
+                credentials={credentials}
+                keyMap={keyMap}
+                keys={keys}
+                modelOptions={modelOptions}
+                errorMessage={
+                  createRuleMutation.error?.message ??
+                  updateRuleMutation.error?.message ??
+                  deleteRuleMutation.error?.message ??
+                  reorderRulesMutation.error?.message
+                }
+                isMutating={isMutating}
+                totalRules={Math.max(rules.length, 1)}
+                onChange={setDraft}
+                onDiscard={discardDraft}
+                onSave={saveDraft}
+              />
             ) : null}
-          </div>
-
-          <div hidden={tab !== 'credentials'}>
-            <CredentialVaultPanel
-              credentials={credentials}
-              vaultEnabled={credentialState?.vaultEnabled ?? false}
-              vaultStatus={credentialState?.vaultStatus ?? 'missing_key'}
-              errorMessage={credentialError?.message}
-              createPending={createCredentialMutation.isPending}
-              deletePending={deleteCredentialMutation.isPending}
-              usageById={credentialUsage}
-              onCreate={(body) => createCredentialMutation.mutate(body)}
-              onDelete={(id) => deleteCredentialMutation.mutate(id)}
-            />
-          </div>
-
-          <div hidden={tab !== 'mcp-relays'}>
-            <McpRelayPanel
-              relays={mcpRelays}
-              credentials={credentials}
-              createPending={createMcpRelayMutation.isPending}
-              deletePending={deleteMcpRelayMutation.isPending}
-              onCreate={(body) => createMcpRelayMutation.mutate(body)}
-              onDelete={(id) => deleteMcpRelayMutation.mutate(id)}
-            />
           </div>
         </div>
       </div>
@@ -299,44 +247,48 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
   )
 }
 
-function credentialUsageById(
-  rules: RoutingRule[],
-  relays: Array<{ credentialBindings: Array<{ credentialId: string }> }>,
-): Map<string, { routingRules: number; mcpRelays: number }> {
-  const usage = new Map<string, { routingRules: number; mcpRelays: number }>()
-  const record = (credentialId: string, kind: 'routingRules' | 'mcpRelays') => {
-    const current = usage.get(credentialId) ?? { routingRules: 0, mcpRelays: 0 }
-    current[kind] += 1
-    usage.set(credentialId, current)
-  }
-  for (const rule of rules) {
-    const ids = new Set((rule.credentialBindings ?? []).map((binding) => binding.credentialId))
-    if (rule.target.type === 'direct' && rule.target.credentialId) ids.add(rule.target.credentialId)
-    for (const id of ids) record(id, 'routingRules')
-  }
-  for (const relay of relays) {
-    for (const binding of relay.credentialBindings) record(binding.credentialId, 'mcpRelays')
-  }
-  return usage
-}
-
-function panelCopyForTab(tab: PolicyTab, counts: { rules: number; enabled: number }) {
-  if (tab === 'credentials') {
-    return {
-      title: 'Credentials',
-      subtitle: 'encrypted provider secrets · placeholders for routing rules and relays',
-    }
-  }
-  if (tab === 'mcp-relays') {
-    return {
-      title: 'MCP Relays',
-      subtitle: 'agent-facing reverse proxies · gateway key required · credential injection at the edge',
-    }
-  }
-  return {
-    title: 'Routing',
-    subtitle: `ordered rules evaluated before forwarding · first match wins · ${counts.rules} rules · ${counts.enabled} enabled`,
-  }
+function RuleDraftEditor({
+  draft,
+  credentials,
+  keyMap,
+  keys,
+  modelOptions,
+  errorMessage,
+  isMutating,
+  totalRules,
+  onChange,
+  onDiscard,
+  onSave,
+}: {
+  draft: RoutingRule
+  credentials: UpstreamCredential[]
+  keyMap: Map<string, string>
+  keys: Array<{ id: string }>
+  modelOptions: string[]
+  errorMessage?: string
+  isMutating: boolean
+  totalRules: number
+  onChange: (draft: RoutingRule) => void
+  onDiscard: () => void
+  onSave: () => void
+}) {
+  return (
+    <>
+      <RoutingRuleEditor
+        draft={draft}
+        credentials={credentials}
+        keyMap={keyMap}
+        keys={keys}
+        modelOptions={modelOptions}
+        errorMessage={errorMessage}
+        isMutating={isMutating}
+        onChange={onChange}
+        onDiscard={onDiscard}
+        onSave={onSave}
+      />
+      <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={totalRules} />
+    </>
+  )
 }
 
 function ObservabilityPanel({

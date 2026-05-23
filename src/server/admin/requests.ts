@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, lt, notLike } from 'drizzle-orm'
+import { MCP_RELAY_ENDPOINT_LIKE_PATTERN } from '../../lib/mcp-relays.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -73,12 +74,10 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
   }
 }
 
-const MCP_RELAY_ENDPOINT_PATTERN = '/mcp-relays/%'
-
 export function listRecentRequests(opts: { limit: number; cursor?: string; includeMcp?: boolean }): Array<RequestRow> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
-    opts.includeMcp ? undefined : notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_PATTERN),
+    opts.includeMcp ? undefined : notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN),
   )
   const rows = db
     .select({
@@ -131,7 +130,7 @@ export function countRecentMcpRequests(opts: { cursor?: string }): number {
        where endpoint like ?
        ${opts.cursor ? 'and id < ?' : ''}`,
     )
-    .get(...(opts.cursor ? [MCP_RELAY_ENDPOINT_PATTERN, opts.cursor] : [MCP_RELAY_ENDPOINT_PATTERN])) as {
+    .get(...(opts.cursor ? [MCP_RELAY_ENDPOINT_LIKE_PATTERN, opts.cursor] : [MCP_RELAY_ENDPOINT_LIKE_PATTERN])) as {
     count: number
   }
   return row.count
