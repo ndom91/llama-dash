@@ -10,12 +10,17 @@ const forwardMock = vi.hoisted(() => ({
   writeProxyLog: vi.fn(),
 }))
 
+const settingsMock = vi.hoisted(() => ({
+  privacy: { captureRequestBodies: true, captureResponseBodies: true, maxStoredBodyBytes: 32 * 1024 },
+}))
+
 vi.mock('../admin/mcp-relays.ts', () => ({
   getMcpRelayBySlug: relaysMock.getMcpRelayBySlug,
 }))
 
 vi.mock('../admin/settings.ts', () => ({
   getAttributionSettings: () => ({ clientNameHeader: null, endUserIdHeader: null, sessionIdHeader: null }),
+  getPrivacySettings: () => settingsMock.privacy,
 }))
 
 vi.mock('../config.ts', () => ({
@@ -40,6 +45,8 @@ describe('handleMcpRelayRequest', () => {
     relaysMock.getMcpRelayBySlug.mockReset()
     forwardMock.forwardUpstreamAndLog.mockReset()
     forwardMock.writeProxyLog.mockReset()
+    forwardMock.forwardUpstreamAndLog.mockResolvedValue(new Response('{}'))
+    settingsMock.privacy = { captureRequestBodies: true, captureResponseBodies: true, maxStoredBodyBytes: 32 * 1024 }
   })
 
   it('fails closed when relay credential bindings are invalid', async () => {
@@ -67,5 +74,83 @@ describe('handleMcpRelayRequest', () => {
       expect.objectContaining({ status: 404, error: 'MCP relay missing not found' }),
     )
     expect(forwardMock.forwardUpstreamAndLog).not.toHaveBeenCalled()
+  })
+
+  it('captures JSON request bodies for proxied relay requests', async () => {
+    relaysMock.getMcpRelayBySlug.mockReturnValue({
+      id: 'mrl_test',
+      name: 'Example',
+      slug: 'example',
+      targetUrl: 'https://mcp.example.test/mcp',
+      enabled: true,
+      credentialBindings: [],
+    })
+
+    const response = await handleMcpRelayRequest(
+      new Request('http://dash.test/mcp-relays/example', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-llama-dash-api-key': 'sk-test' },
+        body: JSON.stringify({ jsonrpc: '2.0', method: 'tools/list', id: 1 }),
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(forwardMock.forwardUpstreamAndLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasBody: true,
+        reqBody: '{"jsonrpc":"2.0","method":"tools/list","id":1}',
+      }),
+    )
+  })
+
+  it('does not buffer relay bodies when request body capture is disabled', async () => {
+    settingsMock.privacy = { ...settingsMock.privacy, captureRequestBodies: false }
+    relaysMock.getMcpRelayBySlug.mockReturnValue({
+      id: 'mrl_test',
+      name: 'Example',
+      slug: 'example',
+      targetUrl: 'https://mcp.example.test/mcp',
+      enabled: true,
+      credentialBindings: [],
+    })
+
+    await handleMcpRelayRequest(
+      new Request('http://dash.test/mcp-relays/example', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-llama-dash-api-key': 'sk-test' },
+        body: '{"jsonrpc":"2.0"}',
+      }),
+    )
+
+    const input = forwardMock.forwardUpstreamAndLog.mock.calls[0][0]
+    expect(input.reqBody).toBeNull()
+    await expect(new Response(input.body).text()).resolves.toBe('{"jsonrpc":"2.0"}')
+  })
+
+  it('rejects oversized relay bodies before forwarding', async () => {
+    relaysMock.getMcpRelayBySlug.mockReturnValue({
+      id: 'mrl_test',
+      name: 'Example',
+      slug: 'example',
+      targetUrl: 'https://mcp.example.test/mcp',
+      enabled: true,
+      credentialBindings: [],
+    })
+
+    const response = await handleMcpRelayRequest(
+      new Request('http://dash.test/mcp-relays/example', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'content-length': String(10 * 1024 * 1024 + 1),
+          'x-llama-dash-api-key': 'sk-test',
+        },
+        body: '{}',
+      }),
+    )
+
+    expect(response.status).toBe(413)
+    expect(forwardMock.forwardUpstreamAndLog).not.toHaveBeenCalled()
+    expect(forwardMock.writeProxyLog).toHaveBeenCalledWith(expect.objectContaining({ status: 413 }))
   })
 })

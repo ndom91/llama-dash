@@ -1,6 +1,6 @@
 import { config } from '../config.ts'
 import { getMcpRelayBySlug } from '../admin/mcp-relays.ts'
-import { getAttributionSettings } from '../admin/settings.ts'
+import { getAttributionSettings, getPrivacySettings } from '../admin/settings.ts'
 import { extractAttribution } from '../proxy/attribution.ts'
 import { authenticateGatewayRequest } from '../proxy/auth.ts'
 import {
@@ -8,6 +8,7 @@ import {
   auditToJson,
   REDACTED_INJECTED_CREDENTIAL,
 } from '../proxy/credential-placeholders.ts'
+import { MAX_PROXY_BODY_BYTES } from '../proxy/body.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
 import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
@@ -124,18 +125,43 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
     )
   }
 
+  let body: Awaited<ReturnType<typeof relayBody>>
+  try {
+    body = await relayBody(request, method)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    writeProxyLog({
+      startedAt,
+      status: 413,
+      method,
+      endpoint,
+      usage: nullUsage(),
+      streamed: false,
+      error: message,
+      reqHeaders: reqHeadersJson,
+      reqBody: null,
+      resHeaders: null,
+      resBody: null,
+      keyId: auth.keyId,
+      reqModel: null,
+      attribution,
+      routing,
+      credentialInjectionJson,
+    })
+    return Response.json(toErrorBody(endpoint, { error: { message, type: 'request_too_large' } }), { status: 413 })
+  }
   const target = relayTargetUrl(relay.targetUrl, url.search)
   const forwardedResponse = await forwardUpstreamAndLog({
     upstream: target,
     method,
     headers,
-    body: request.body ?? undefined,
-    hasBody: request.body != null && method !== 'GET' && method !== 'HEAD',
+    body: body.forwardBody,
+    hasBody: body.hasBody,
     startedAt,
     endpoint,
     reqModel: null,
     reqHeadersJson,
-    reqBody: null,
+    reqBody: body.loggedBody,
     keyId: auth.keyId,
     keyRow: auth.keyRow,
     attribution,
@@ -153,7 +179,7 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
       streamed: false,
       error: forwardedResponse.upstreamError,
       reqHeaders: reqHeadersJson,
-      reqBody: null,
+      reqBody: body.loggedBody,
       resHeaders: null,
       resBody: null,
       keyId: auth.keyId,
@@ -171,6 +197,65 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   }
 
   return forwardedResponse
+}
+
+async function relayBody(
+  request: Request,
+  method: string,
+): Promise<{
+  forwardBody: ReadableStream<Uint8Array> | BodyInit | undefined
+  hasBody: boolean
+  loggedBody: string | null
+}> {
+  if (!request.body || method === 'GET' || method === 'HEAD') {
+    return { forwardBody: undefined, hasBody: false, loggedBody: null }
+  }
+  assertRelayContentLengthWithinLimit(request)
+  if (!getPrivacySettings().captureRequestBodies) {
+    return { forwardBody: request.body, hasBody: true, loggedBody: null }
+  }
+  const bytes = await readLimitedBody(request)
+  const contentType = request.headers.get('content-type') ?? ''
+  const canDecode = contentType.includes('application/json') || contentType.startsWith('text/')
+  return {
+    forwardBody: bytes,
+    hasBody: true,
+    loggedBody: canDecode ? new TextDecoder().decode(bytes) : null,
+  }
+}
+
+async function readLimitedBody(request: Request): Promise<ArrayBuffer> {
+  assertRelayContentLengthWithinLimit(request)
+  const reader = request.body?.getReader()
+  if (!reader) return new ArrayBuffer(0)
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > MAX_PROXY_BODY_BYTES) {
+      await reader.cancel().catch(() => {})
+      throw new Error(`Request body exceeds ${MAX_PROXY_BODY_BYTES} bytes`)
+    }
+    chunks.push(value)
+  }
+
+  const combined = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    combined.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return combined.buffer
+}
+
+function assertRelayContentLengthWithinLimit(request: Request) {
+  const rawContentLength = request.headers.get('content-length')
+  const contentLength = rawContentLength ? Number(rawContentLength) : null
+  if (contentLength != null && Number.isFinite(contentLength) && contentLength > MAX_PROXY_BODY_BYTES) {
+    throw new Error(`Request body exceeds ${MAX_PROXY_BODY_BYTES} bytes`)
+  }
 }
 
 function relaySlug(pathname: string): string | null {

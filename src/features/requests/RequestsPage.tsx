@@ -49,6 +49,7 @@ export function RequestsPage() {
   const hostFilter: string = routeSearch.host ?? 'all'
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
+  const [searchDraft, setSearchDraft] = useState(search)
 
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
@@ -71,6 +72,16 @@ export function RequestsPage() {
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setSearchDraft(search)
+  }, [search])
+
+  useEffect(() => {
+    if (searchDraft === search) return
+    const timeout = window.setTimeout(() => updateSearch({ q: searchDraft || undefined }), 180)
+    return () => window.clearTimeout(timeout)
+  }, [search, searchDraft, updateSearch])
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
@@ -123,8 +134,8 @@ export function RequestsPage() {
     if (endUserFilter) out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUserFilter.toLowerCase()))
     if (sessionFilter) out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(sessionFilter.toLowerCase()))
 
-    if (search) {
-      const q = search.toLowerCase()
+    if (searchDraft) {
+      const q = searchDraft.toLowerCase()
       out = out.filter(
         (r) =>
           r.endpoint.toLowerCase().includes(q) ||
@@ -149,7 +160,7 @@ export function RequestsPage() {
     hostFilter,
     endUserFilter,
     sessionFilter,
-    search,
+    searchDraft,
   ])
 
   const rows = useMemo(() => {
@@ -264,7 +275,7 @@ export function RequestsPage() {
   }
 
   const hasFilters =
-    search !== '' ||
+    searchDraft !== '' ||
     statusFilter !== 'all' ||
     modelFilter !== 'all' ||
     keyFilter !== 'all' ||
@@ -313,19 +324,22 @@ export function RequestsPage() {
                     type="text"
                     className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
                     placeholder="endpoint, model, status"
-                    value={search}
-                    onChange={(e) => updateSearch({ q: e.target.value })}
+                    value={searchDraft}
+                    onChange={(e) => setSearchDraft(e.target.value)}
                   />
-                  {!search ? (
+                  {!searchDraft ? (
                     <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
                       /
                     </span>
                   ) : null}
-                  {search ? (
+                  {searchDraft ? (
                     <button
                       type="button"
                       className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
-                      onClick={() => updateSearch({ q: undefined })}
+                      onClick={() => {
+                        setSearchDraft('')
+                        updateSearch({ q: undefined })
+                      }}
                       aria-label="Clear search"
                     >
                       <X size={12} strokeWidth={2} />
@@ -475,6 +489,7 @@ export function RequestsPage() {
                   type="button"
                   className="btn btn-ghost btn-xs self-start"
                   onClick={() => {
+                    setSearchDraft('')
                     updateSearch({
                       q: undefined,
                       status: undefined,
