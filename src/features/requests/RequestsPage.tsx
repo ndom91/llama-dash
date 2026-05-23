@@ -30,6 +30,7 @@ import {
 } from './requestsListUtils'
 
 const requestsRouteApi = getRouteApi('/requests/')
+const MCP_RELAY_PREFIX = '/mcp-relays/'
 
 export function RequestsPage() {
   const navigate = useNavigate()
@@ -49,6 +50,7 @@ export function RequestsPage() {
   const hostFilter: string = routeSearch.host ?? 'all'
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
+  const showMcpRelays = routeSearch.mcp === true
   const [searchDraft, setSearchDraft] = useState(search)
 
   const updateSearch = useCallback(
@@ -103,6 +105,42 @@ export function RequestsPage() {
     return Array.from(set).sort()
   }, [allRows])
 
+  const rowsBeforeMcpFilter = useMemo(
+    () =>
+      applyRequestFilters(allRows, {
+        statusFilter,
+        modelFilter,
+        keyFilter,
+        routingFilter,
+        clientFilter,
+        hostFilter,
+        endUserFilter,
+        sessionFilter,
+        search: searchDraft,
+      }),
+    [
+      allRows,
+      statusFilter,
+      modelFilter,
+      keyFilter,
+      routingFilter,
+      clientFilter,
+      hostFilter,
+      endUserFilter,
+      sessionFilter,
+      searchDraft,
+    ],
+  )
+
+  const hiddenMcpCount = useMemo(() => {
+    if (showMcpRelays) return 0
+    return rowsBeforeMcpFilter.filter(isMcpRelayRequest).length
+  }, [rowsBeforeMcpFilter, showMcpRelays])
+  const visibleMcpCount = useMemo(() => {
+    if (!showMcpRelays) return 0
+    return rowsBeforeMcpFilter.filter(isMcpRelayRequest).length
+  }, [rowsBeforeMcpFilter, showMcpRelays])
+
   useEffect(() => {
     if (modelFilter === 'all' || models.length === 0) return
     if (models.includes(modelFilter)) return
@@ -111,57 +149,10 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const filtered = useMemo(() => {
-    let out = allRows
-
-    if (statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
-    else if (statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
-
-    if (modelFilter !== 'all') out = out.filter((r) => r.model === modelFilter)
-
-    if (keyFilter !== 'all') {
-      if (keyFilter === '__none__') out = out.filter((r) => r.keyName == null)
-      else out = out.filter((r) => r.keyName === keyFilter)
-    }
-
-    if (routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
-    else if (routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
-
-    if (clientFilter) out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(clientFilter.toLowerCase()))
-    if (hostFilter !== 'all') {
-      if (hostFilter === '__none__') out = out.filter((r) => r.clientHost == null)
-      else out = out.filter((r) => r.clientHost === hostFilter)
-    }
-    if (endUserFilter) out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUserFilter.toLowerCase()))
-    if (sessionFilter) out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(sessionFilter.toLowerCase()))
-
-    if (searchDraft) {
-      const q = searchDraft.toLowerCase()
-      out = out.filter(
-        (r) =>
-          r.endpoint.toLowerCase().includes(q) ||
-          r.method.toLowerCase().includes(q) ||
-          (r.model?.toLowerCase().includes(q) ?? false) ||
-          (r.clientName?.toLowerCase().includes(q) ?? false) ||
-          (r.clientHost?.toLowerCase().includes(q) ?? false) ||
-          (r.endUserId?.toLowerCase().includes(q) ?? false) ||
-          (r.sessionId?.toLowerCase().includes(q) ?? false) ||
-          String(r.statusCode).includes(q),
-      )
-    }
-
+    let out = rowsBeforeMcpFilter
+    if (!showMcpRelays) out = out.filter((r) => !isMcpRelayRequest(r))
     return out
-  }, [
-    allRows,
-    statusFilter,
-    modelFilter,
-    keyFilter,
-    routingFilter,
-    clientFilter,
-    hostFilter,
-    endUserFilter,
-    sessionFilter,
-    searchDraft,
-  ])
+  }, [rowsBeforeMcpFilter, showMcpRelays])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -178,6 +169,11 @@ export function RequestsPage() {
 
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
+
+  useEffect(() => {
+    if (showMcpRelays || rows.length > 0 || hiddenMcpCount === 0 || !hasNextPage || isFetchingNextPage) return
+    fetchNextPage()
+  }, [showMcpRelays, rows.length, hiddenMcpCount, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
@@ -280,6 +276,7 @@ export function RequestsPage() {
     modelFilter !== 'all' ||
     keyFilter !== 'all' ||
     routingFilter !== 'all' ||
+    showMcpRelays ||
     clientFilter !== '' ||
     hostFilter !== 'all' ||
     endUserFilter !== '' ||
@@ -407,6 +404,21 @@ export function RequestsPage() {
                 </select>
               </div>
 
+              <label className="mb-4 flex cursor-pointer items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-fg-dim transition-colors hover:border-border-strong hover:text-fg">
+                <input
+                  type="checkbox"
+                  className="accent-accent"
+                  checked={showMcpRelays}
+                  onChange={(e) => updateSearch({ mcp: e.target.checked ? true : undefined })}
+                />
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-2 text-fg">
+                  <span className="truncate">Show MCP reqs</span>
+                  <span className="shrink-0 text-fg-faint">
+                    {showMcpRelays ? `${visibleMcpCount} visible` : `${hiddenMcpCount} hidden`}
+                  </span>
+                </span>
+              </label>
+
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Host</div>
                 <select
@@ -496,6 +508,7 @@ export function RequestsPage() {
                       model: undefined,
                       key: undefined,
                       routing: undefined,
+                      mcp: undefined,
                       host: undefined,
                       client: undefined,
                       endUser: undefined,
@@ -695,4 +708,82 @@ export function RequestsPage() {
       </div>
     </div>
   )
+}
+
+function isMcpRelayRequest(row: { endpoint: string }): boolean {
+  return row.endpoint.startsWith(MCP_RELAY_PREFIX)
+}
+
+type RequestFilterRow = {
+  statusCode: number
+  model: string | null
+  keyName: string | null
+  routingActionType: string | null
+  clientName: string | null
+  clientHost: string | null
+  endUserId: string | null
+  sessionId: string | null
+  endpoint: string
+  method: string
+}
+
+function applyRequestFilters<T extends RequestFilterRow>(
+  rows: T[],
+  filters: {
+    statusFilter: StatusFilter
+    modelFilter: string
+    keyFilter: string
+    routingFilter: RoutingFilter
+    clientFilter: string
+    hostFilter: string
+    endUserFilter: string
+    sessionFilter: string
+    search: string
+  },
+) {
+  let out = rows
+
+  if (filters.statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
+  else if (filters.statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
+
+  if (filters.modelFilter !== 'all') out = out.filter((r) => r.model === filters.modelFilter)
+
+  if (filters.keyFilter !== 'all') {
+    if (filters.keyFilter === '__none__') out = out.filter((r) => r.keyName == null)
+    else out = out.filter((r) => r.keyName === filters.keyFilter)
+  }
+
+  if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
+  else if (filters.routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
+
+  if (filters.clientFilter) {
+    out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(filters.clientFilter.toLowerCase()))
+  }
+  if (filters.hostFilter !== 'all') {
+    if (filters.hostFilter === '__none__') out = out.filter((r) => r.clientHost == null)
+    else out = out.filter((r) => r.clientHost === filters.hostFilter)
+  }
+  if (filters.endUserFilter) {
+    out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(filters.endUserFilter.toLowerCase()))
+  }
+  if (filters.sessionFilter) {
+    out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(filters.sessionFilter.toLowerCase()))
+  }
+
+  if (filters.search) {
+    const q = filters.search.toLowerCase()
+    out = out.filter(
+      (r) =>
+        r.endpoint.toLowerCase().includes(q) ||
+        r.method.toLowerCase().includes(q) ||
+        (r.model?.toLowerCase().includes(q) ?? false) ||
+        (r.clientName?.toLowerCase().includes(q) ?? false) ||
+        (r.clientHost?.toLowerCase().includes(q) ?? false) ||
+        (r.endUserId?.toLowerCase().includes(q) ?? false) ||
+        (r.sessionId?.toLowerCase().includes(q) ?? false) ||
+        String(r.statusCode).includes(q),
+    )
+  }
+
+  return out
 }

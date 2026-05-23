@@ -13,6 +13,7 @@ export type RequestsSearch = {
   client?: string
   endUser?: string
   session?: string
+  mcp?: true
   sortKey?: SortKey
   sortDir?: SortDir
 }
@@ -30,6 +31,10 @@ function asEnum<T extends string>(v: unknown, allowed: ReadonlyArray<T>): T | un
   return typeof v === 'string' && (allowed as ReadonlyArray<string>).includes(v) ? (v as T) : undefined
 }
 
+function asTrue(v: unknown): true | undefined {
+  return v === true || v === 'true' ? true : undefined
+}
+
 export const Route = createFileRoute('/requests/')({
   ssr: false,
   component: RequestsRoute,
@@ -44,6 +49,7 @@ export const Route = createFileRoute('/requests/')({
     client: asString(search.client),
     endUser: asString(search.endUser),
     session: asString(search.session),
+    mcp: asTrue(search.mcp),
     sortKey: asEnum(search.sortKey, SORT_KEY_VALUES),
     sortDir: asEnum(search.sortDir, SORT_DIR_VALUES),
   }),
