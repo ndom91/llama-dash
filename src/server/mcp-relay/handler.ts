@@ -23,21 +23,52 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   const slug = relaySlug(url.pathname)
   const endpoint = slug ? `${RELAY_PREFIX}${slug}` : RELAY_PREFIX.slice(0, -1)
   const attribution = extractAttribution(request.headers, getAttributionSettings())
+  const headers = filterRequestHeaders(request.headers)
+  for (const header of GATEWAY_AUTH_HEADERS) deleteHeader(headers, header)
 
-  if (!slug) return errorResponse(404, 'MCP relay not found')
+  if (!slug) {
+    return relayError({
+      startedAt,
+      status: 404,
+      method,
+      endpoint,
+      message: 'MCP relay not found',
+      type: 'mcp_relay_not_found',
+      headers,
+      attribution,
+    })
+  }
 
   let relay: ReturnType<typeof getMcpRelayBySlug>
   try {
     relay = getMcpRelayBySlug(slug)
   } catch (err) {
-    return errorResponse(500, err instanceof Error ? err.message : String(err))
+    return relayError({
+      startedAt,
+      status: 500,
+      method,
+      endpoint,
+      message: err instanceof Error ? err.message : String(err),
+      type: 'mcp_relay_invalid_config',
+      headers,
+      attribution,
+    })
   }
-  if (!relay?.enabled) return errorResponse(404, `MCP relay ${slug} not found`)
+  if (!relay?.enabled) {
+    return relayError({
+      startedAt,
+      status: 404,
+      method,
+      endpoint,
+      message: `MCP relay ${slug} not found`,
+      type: 'mcp_relay_not_found',
+      headers,
+      attribution,
+    })
+  }
 
   const auth = authenticateGatewayRequest(request)
   const routing = relayRoutingOutcome(relay)
-  const headers = filterRequestHeaders(request.headers)
-  for (const header of GATEWAY_AUTH_HEADERS) deleteHeader(headers, header)
 
   if (!auth.ok) {
     writeProxyLog({
@@ -184,6 +215,33 @@ function deleteHeader(headers: Record<string, string>, name: string) {
   }
 }
 
-function errorResponse(status: number, message: string): Response {
-  return Response.json({ error: { message } }, { status })
+function relayError(input: {
+  startedAt: number
+  status: number
+  method: string
+  endpoint: string
+  message: string
+  type: string
+  headers: Record<string, string>
+  attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
+}): Response {
+  const body = { error: { message: input.message, type: input.type } }
+  writeProxyLog({
+    startedAt: input.startedAt,
+    status: input.status,
+    method: input.method,
+    endpoint: input.endpoint,
+    usage: nullUsage(),
+    streamed: false,
+    error: input.message,
+    reqHeaders: JSON.stringify(redactSensitiveHeaders(input.headers)),
+    reqBody: null,
+    resHeaders: null,
+    resBody: JSON.stringify(toErrorBody(input.endpoint, body)),
+    keyId: null,
+    reqModel: null,
+    attribution: input.attribution,
+    routing: emptyRoutingOutcome(),
+  })
+  return Response.json(toErrorBody(input.endpoint, body), { status: input.status })
 }
