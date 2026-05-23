@@ -26,6 +26,7 @@ import {
   type ApiSystemStatus,
   type AttributionSettings,
   type ModelAliasItem,
+  type McpRelay,
   type PrivacySettings,
   type RoutingRule,
   type UpstreamCredential,
@@ -33,6 +34,7 @@ import {
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
+import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
 import type {
   UpdateAttributionSettingsBody,
@@ -68,6 +70,7 @@ export const qk = {
   keyDetail: (id: string) => ['keys', id] as const,
   aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
+  mcpRelays: ['mcp-relays'] as const,
   upstreamCredentials: ['upstream-credentials'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
@@ -436,6 +439,13 @@ export function useRoutingRules(): UseQueryResult<Array<RoutingRule>> {
   })
 }
 
+export function useMcpRelays(): UseQueryResult<Array<McpRelay>> {
+  return useQuery({
+    queryKey: qk.mcpRelays,
+    queryFn: () => api.listMcpRelays().then((r) => r.relays),
+  })
+}
+
 export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, CreateModelAliasBody> {
   const qc = useQueryClient()
   return useMutation({
@@ -505,6 +515,34 @@ export function useCreateUpstreamCredential(): UseMutationResult<
     },
     onError: (e) => {
       toastMutationError('Failed to create upstream credential', e)
+    },
+  })
+}
+
+export function useCreateMcpRelay(): UseMutationResult<McpRelay, Error, CreateMcpRelayBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.createMcpRelay(body),
+    onSuccess: () => {
+      toast.success('MCP relay created')
+      invalidateKeys(qc, [qk.mcpRelays])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to create MCP relay', e)
+    },
+  })
+}
+
+export function useDeleteMcpRelay(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => api.deleteMcpRelay(id),
+    onSuccess: () => {
+      toast.success('MCP relay deleted')
+      invalidateKeys(qc, [qk.mcpRelays])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to delete MCP relay', e)
     },
   })
 }

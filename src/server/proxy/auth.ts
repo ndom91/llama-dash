@@ -3,7 +3,7 @@ import type { ApiKey } from '../db/schema.ts'
 import { findKeyByHash, hasAnyUserKeys } from '../admin/api-keys.ts'
 import { checkRpm, checkTpm } from './rate-limiter.ts'
 import { evaluatePreAuthRouting } from './routing.ts'
-import type { RoutingOutcome } from './transforms.ts'
+import { emptyRoutingOutcome, type RoutingOutcome } from './transforms.ts'
 
 type AuthOk = {
   ok: true
@@ -28,8 +28,8 @@ export function authenticateRequest(
     return { ok: true, keyId: null, keyRow: null, preAuthRouting }
   }
 
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
+  const token = bearerToken(request.headers.get('authorization'))
+  if (!token) {
     return {
       ok: false,
       status: 401,
@@ -37,7 +37,30 @@ export function authenticateRequest(
     }
   }
 
-  const token = authHeader.slice(7)
+  return authenticateApiKeyToken(token, preAuthRouting, true)
+}
+
+export function authenticateGatewayRequest(request: Request): AuthResult {
+  const token = request.headers.get('x-llama-dash-api-key') ?? request.headers.get('x-llama-dash-key')
+  if (!hasAnyUserKeys()) {
+    return { ok: true, keyId: null, keyRow: null, preAuthRouting: emptyRoutingOutcome() }
+  }
+  if (!token) {
+    return {
+      ok: false,
+      status: 401,
+      body: { error: { message: 'Missing x-llama-dash-api-key', type: 'invalid_api_key' } },
+    }
+  }
+
+  return authenticateApiKeyToken(token, emptyRoutingOutcome(), false)
+}
+
+function authenticateApiKeyToken(
+  token: string,
+  preAuthRouting: RoutingOutcome,
+  checkTokenRateLimit: boolean,
+): AuthResult {
   const hash = createHash('sha256').update(token).digest('hex')
   const keyRow = findKeyByHash(hash)
 
@@ -77,7 +100,7 @@ export function authenticateRequest(
     }
   }
 
-  if (keyRow.rateLimitTpm != null) {
+  if (checkTokenRateLimit && keyRow.rateLimitTpm != null) {
     const tpm = checkTpm(keyRow.id, keyRow.rateLimitTpm)
     if (!tpm.allowed) {
       return {
@@ -90,4 +113,9 @@ export function authenticateRequest(
   }
 
   return { ok: true, keyId: keyRow.id, keyRow, preAuthRouting }
+}
+
+function bearerToken(header: string | null): string | null {
+  if (!header?.startsWith('Bearer ')) return null
+  return header.slice(7)
 }

@@ -35,6 +35,11 @@ export default createServerEntry({
       return handleProxyRequest(request)
     }
 
+    if (url.pathname.startsWith('/mcp-relays/')) {
+      const { handleMcpRelayRequest } = await import('./server/mcp-relay/handler.ts')
+      return handleMcpRelayRequest(request)
+    }
+
     if (url.pathname === '/api/login-meta') {
       const { handleAdminRequest } = await import('./server/admin/handler.ts')
       return handleAdminRequest(request)

@@ -94,7 +94,7 @@ export const DirectTargetSchema = v.pipe(
 export const RoutingTargetSchema = v.variant('type', [LlamaSwapTargetSchema, DirectTargetSchema])
 export type RoutingTarget = v.InferOutput<typeof RoutingTargetSchema>
 
-const HeaderNameSchema = v.pipe(v.string(), v.regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/), v.maxLength(100))
+export const HeaderNameSchema = v.pipe(v.string(), v.regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/), v.maxLength(100))
 
 export const CredentialBindingSchema = v.object({
   credentialId: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),

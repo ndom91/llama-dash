@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
+import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
 import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
 import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
@@ -42,6 +43,7 @@ export type {
 } from './schemas/config'
 export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
 export type { ModelAliasItem } from './schemas/model-alias'
+export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
 export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
@@ -154,6 +156,16 @@ export const api = {
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
+  listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
+  createMcpRelay: (body: {
+    name: string
+    slug?: string
+    targetUrl: string
+    credentialId: string
+    headerName?: string
+    headerValueTemplate?: string
+  }) => sendJson('/api/mcp-relays', McpRelaySchema, { method: 'POST', body }),
+  deleteMcpRelay: (id: string) => sendEmpty(`/api/mcp-relays/${id}`, OkSchema, 'DELETE'),
   createUpstreamCredential: (body: { name: string; slug?: string; type: 'bearer'; value: string }) =>
     sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
   updateUpstreamCredential: (id: string, body: { name?: string; slug?: string; value?: string }) =>

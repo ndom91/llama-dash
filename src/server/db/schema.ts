@@ -232,6 +232,20 @@ export const upstreamCredentials = sqliteTable('upstream_credentials', {
 export type UpstreamCredential = typeof upstreamCredentials.$inferSelect
 export type NewUpstreamCredential = typeof upstreamCredentials.$inferInsert
 
+export const mcpRelays = sqliteTable('mcp_relays', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  targetUrl: text('target_url').notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  credentialBindingsJson: text('credential_bindings_json').notNull().default('[]'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type McpRelay = typeof mcpRelays.$inferSelect
+export type NewMcpRelay = typeof mcpRelays.$inferInsert
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

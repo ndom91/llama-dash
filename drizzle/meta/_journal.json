@@ -225,6 +225,13 @@
       "when": 1779494400000,
       "tag": "0031_credential_placeholders",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "6",
+      "when": 1779545171622,
+      "tag": "0032_daily_warstar",
+      "breakpoints": true
     }
   ]
 }

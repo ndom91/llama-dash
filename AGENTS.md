@@ -114,7 +114,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt), `model_aliases` (global model name mapping),
    `routing_rules` (ordered request routing rules), `upstream_credentials`
-   (encrypted direct-upstream bearer credentials), `settings` (key-value
+   (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
+   MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
    `user`, `session`, `account`, and `verification` tables for dashboard sessions.
 3. `/v1/*` pass-through proxy that streams SSE unchanged and queues one log row
@@ -160,7 +161,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `systemPrompt`
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
-    - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing
+    - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
+    - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
     - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
@@ -182,7 +184,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     and global proxy/privacy defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
-    reject, auth passthrough, and direct upstream target controls), Endpoints (connection examples for curl, Python, TS,
+    reject, auth passthrough, direct upstream target controls, credential vault,
+    and MCP relay management), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
@@ -198,9 +201,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
    immediately before forwarding. Routing rules can also bind encrypted
    credentials to outbound headers either by setting the header automatically
    or replacing a namespaced `{{llama-dash:credential:<slug>}}` placeholder;
-   injected values are redacted in request logs and recorded as credential
-   injection metadata. Stored credentials require
-   `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
+    injected values are redacted in request logs and recorded as credential
+    injection metadata. Stored credentials require
+    `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
+   MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
+   when user API keys exist so the client's `Authorization` header can be owned
+   by the upstream provider credential injection.
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `continue` + `passthrough` auth and preserved client `Authorization`.
@@ -362,6 +368,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ModelEvent  | `mev`  |
 | ApiKey      | `key`  |
 | ModelAlias  | `mal`  |
+| McpRelay    | `mrl`  |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:
