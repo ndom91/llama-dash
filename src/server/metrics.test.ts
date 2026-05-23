@@ -40,6 +40,7 @@ vi.mock('./db/index.ts', () => {
       groupBy: () => api,
       where: () => api,
       all: () => result,
+      get: () => result,
     }
     return api
   }
@@ -71,7 +72,8 @@ vi.mock('./db/index.ts', () => {
             },
           ])
         }
-        return chain([{ durationMs: 100 }, { durationMs: 300 }])
+        if (selectCalls === 3) return chain([{ durationMs: 100 }, { durationMs: 300 }])
+        return chain({ success: 2, failure: 1 })
       },
     },
     schema: {
@@ -87,6 +89,7 @@ vi.mock('./db/index.ts', () => {
         totalTokens: 'totalTokens',
         durationMs: 'durationMs',
         startedAt: 'startedAt',
+        credentialInjectionJson: 'credentialInjectionJson',
       },
     },
   }
@@ -104,6 +107,8 @@ describe('renderPrometheusMetrics', () => {
     expect(body).toContain('llama_dash_tokens_total{model="claude-test",type="total"} 18')
     expect(body).toContain('llama_dash_log_queue_depth 3')
     expect(body).toContain('llama_dash_log_queue_dropped_total 1')
+    expect(body).toContain('llama_dash_credential_injections_total{result="success"} 2')
+    expect(body).toContain('llama_dash_credential_injections_total{result="failure"} 1')
     expect(body).toContain('llama_dash_upstream_reachable 1')
     expect(body).toContain('llama_dash_models_running 2')
     expect(body).toContain('llama_dash_gpu_memory_used_bytes{index="0",name="RTX Test",driver="nvidia"} 1073741824')

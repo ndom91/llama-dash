@@ -25,14 +25,14 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 - **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring, SSE-backed live refresh with ETag polling fallback, and update status.
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
-- **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, detail view, and token cost estimates from a startup-cached `models.dev` pricing catalog.
+- **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, detail view, credential injection audit metadata, and token cost estimates from a startup-cached `models.dev` pricing catalog.
 - **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
-- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, MCP relay endpoints, encrypted upstream credential injection, header credential placeholder replacement, per-key system prompt injection, and global request size limits.
+- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, MCP relay endpoints with Claude Code snippets, encrypted upstream credential injection, header credential placeholder replacement, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
-- **Prometheus metrics** — `/metrics` exposes proxy request, token, latency-window, queue, upstream, running-model, and GPU gauges.
+- **Prometheus metrics** — `/metrics` exposes proxy request, token, credential injection, latency-window, queue, upstream, running-model, and GPU gauges.
 - **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
 - **Inference backend facade** — backend health, model list/running state, lifecycle actions, logs, and config are capability-driven so future runtimes can be added without weakening the llama-swap experience.
@@ -216,7 +216,9 @@ For provider-key flows, store the upstream token in the Policies credential
 vault and add a credential binding to the routing rule. Bindings can either
 set an outbound header automatically or replace a client-sent header
 placeholder like `{{llama-dash:credential:anthropic-prod}}`; injected values
-are redacted from request logs.
+are redacted from request logs. The request detail view records non-secret
+credential name/slug metadata for audit, and the credential vault warns before
+deleting credentials still referenced by routing rules or MCP relays.
 
 For remote MCP servers, create an MCP relay in Policies instead of pointing
 Claude Code directly at the provider. Configure Claude with the relay URL and a
@@ -237,7 +239,8 @@ separate llama-dash key header:
 ```
 
 The provider bearer token stays encrypted in llama-dash and is injected only
-when the relay forwards the MCP request upstream.
+when the relay forwards the MCP request upstream. The Policies page shows this
+Claude Code snippet for each configured relay.
 
 ## 🤖 Acknowledgements
 

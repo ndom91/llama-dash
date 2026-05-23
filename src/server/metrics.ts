@@ -21,6 +21,8 @@ type TokenMetricRow = {
   totalTokens: number | null
 }
 
+type CredentialInjectionMetricRow = { success: number | null; failure: number | null }
+
 const ENDPOINT_ALLOWLIST = new Set([
   '/v1/chat/completions',
   '/v1/messages',
@@ -62,6 +64,13 @@ function percentile(values: number[], p: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor((sorted.length - 1) * p))] / 1_000
 }
 
+function credentialInjectionCounts(row: CredentialInjectionMetricRow | undefined): {
+  success: number
+  failure: number
+} {
+  return { success: row?.success ?? 0, failure: row?.failure ?? 0 }
+}
+
 async function upstreamMetrics(): Promise<{ reachable: number; latencySeconds: number }> {
   const health = await inferenceBackend.ping()
   return { reachable: health.reachable ? 1 : 0, latencySeconds: (health.latencyMs ?? 0) / 1_000 }
@@ -99,6 +108,14 @@ export async function renderPrometheusMetrics(): Promise<string> {
     .from(schema.requests)
     .where(gte(schema.requests.startedAt, thirtyMinutesAgo))
     .all()
+
+  const credentialInjectionRow = db
+    .select({
+      success: sql<number>`coalesce(sum(case when ${schema.requests.credentialInjectionJson} is not null and json_valid(${schema.requests.credentialInjectionJson}) then coalesce(json_extract(${schema.requests.credentialInjectionJson}, '$.count'), 0) else 0 end), 0)`,
+      failure: sql<number>`coalesce(sum(case when ${schema.requests.credentialInjectionJson} is not null and (not json_valid(${schema.requests.credentialInjectionJson}) or json_extract(${schema.requests.credentialInjectionJson}, '$.error') is not null) then 1 else 0 end), 0)`,
+    })
+    .from(schema.requests)
+    .get() as CredentialInjectionMetricRow | undefined
 
   const queue = getRequestLogQueueStats()
   const gpu = getGpuSnapshot()
@@ -138,6 +155,12 @@ export async function renderPrometheusMetrics(): Promise<string> {
     lines.push(metricLine('llama_dash_tokens_total', row.cacheReadTokens ?? 0, { model, type: 'cache_read' }))
     lines.push(metricLine('llama_dash_tokens_total', row.totalTokens ?? 0, { model, type: 'total' }))
   }
+
+  const credentialInjections = credentialInjectionCounts(credentialInjectionRow)
+  lines.push('# HELP llama_dash_credential_injections_total Credential injection attempts recorded in request logs.')
+  lines.push('# TYPE llama_dash_credential_injections_total counter')
+  lines.push(metricLine('llama_dash_credential_injections_total', credentialInjections.success, { result: 'success' }))
+  lines.push(metricLine('llama_dash_credential_injections_total', credentialInjections.failure, { result: 'failure' }))
 
   const latencies = latencyRows.map((row) => row.durationMs)
   lines.push('# HELP llama_dash_request_duration_p50_seconds_30m Request duration p50 over the last 30 minutes.')

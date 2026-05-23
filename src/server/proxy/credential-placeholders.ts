@@ -17,7 +17,7 @@ export type CredentialInjectionLocation = {
 
 export type CredentialInjectionAudit = {
   count: number
-  credentials: string[]
+  credentials: Array<{ id: string; name: string; slug: string }>
   locations: CredentialInjectionLocation[]
   error?: string
 }
@@ -137,7 +137,7 @@ function applyBinding(
     }
     markCredentialUsed(secret.id)
     headers[headerKey] = current.split(placeholder).join(secret.value)
-    recordInjection(audit, secret.id, { type: 'header', name: headerName, mode: binding.mode })
+    recordInjection(audit, secret, { type: 'header', name: headerName, mode: binding.mode })
     redactedHeaderNames.add(headerName)
     return { ok: true, audit, redactedHeaderNames }
   }
@@ -154,7 +154,7 @@ function applyBinding(
   }
   markCredentialUsed(secret.id)
   headers[headerKey] = template.replace(placeholder, secret.value)
-  recordInjection(audit, secret.id, { type: 'header', name: headerName, mode: binding.mode })
+  recordInjection(audit, secret, { type: 'header', name: headerName, mode: binding.mode })
   redactedHeaderNames.add(headerName)
   return { ok: true, audit, redactedHeaderNames }
 }
@@ -164,9 +164,15 @@ function defaultHeaderTemplate(secret: CredentialInjectionSecret): string {
   return placeholderForSlug(secret.slug)
 }
 
-function recordInjection(audit: CredentialInjectionAudit, credentialId: string, location: CredentialInjectionLocation) {
+function recordInjection(
+  audit: CredentialInjectionAudit,
+  secret: CredentialInjectionSecret,
+  location: CredentialInjectionLocation,
+) {
   audit.count += 1
-  if (!audit.credentials.includes(credentialId)) audit.credentials.push(credentialId)
+  if (!audit.credentials.some((credential) => credential.id === secret.id)) {
+    audit.credentials.push({ id: secret.id, name: secret.name, slug: secret.slug })
+  }
   audit.locations.push(location)
 }
 

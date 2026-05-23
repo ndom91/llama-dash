@@ -35,13 +35,14 @@ type Props = {
 
 type CredentialInjectionAudit = {
   count: number
-  credentials?: string[]
+  credentials?: Array<string | { id?: string; name?: string; slug?: string }>
   locations?: Array<{ type?: string; name?: string; mode?: string }>
   error?: string
 }
 
 type CredentialInjectionSummary = {
   countLabel: string
+  credentialsLabel: string
   locationsLabel: string
   modesLabel: string
   tooltip: string
@@ -373,6 +374,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                     </dd>
                   </div>
                   <div>
+                    <dt>credentials</dt>
+                    <dd>{credentialInjection.credentialsLabel}</dd>
+                  </div>
+                  <div>
                     <dt>injected</dt>
                     <dd>{credentialInjection.locationsLabel}</dd>
                   </div>
@@ -612,14 +617,15 @@ function parseCredentialInjectionSummary(raw: string | null): CredentialInjectio
     const modes = uniqueLabels(
       locations.map((location) => formatCredentialInjectionMode(location.mode)).filter(isNonEmptyString),
     )
-    const credentialIds = uniqueLabels(audit.credentials ?? [])
+    const credentialLabels = uniqueLabels((audit.credentials ?? []).map(formatCredentialLabel).filter(isNonEmptyString))
     return {
       countLabel: audit.count === 1 ? '1 injected' : `${audit.count} injected`,
+      credentialsLabel: credentialLabels.length > 0 ? credentialLabels.join(', ') : '—',
       locationsLabel: locationNames.length > 0 ? locationNames.join(', ') : '—',
       modesLabel: modes.length > 0 ? modes.join(', ') : '—',
       tooltip: [
         'Credential value was injected by llama-dash after routing policy matched.',
-        credentialIds.length > 0 ? `Credential IDs: ${credentialIds.join(', ')}` : null,
+        credentialLabels.length > 0 ? `Credentials: ${credentialLabels.join(', ')}` : null,
         audit.error ? `Error: ${audit.error}` : null,
       ]
         .filter(isNonEmptyString)
@@ -643,6 +649,12 @@ function formatCredentialInjectionMode(mode: string | undefined): string {
   if (mode === 'set_header') return 'set header'
   if (mode === 'replace_placeholder') return 'replace placeholder'
   return mode ?? ''
+}
+
+function formatCredentialLabel(credential: string | { id?: string; name?: string; slug?: string }): string {
+  if (typeof credential === 'string') return credential
+  if (credential.name && credential.slug) return `${credential.name} (${credential.slug})`
+  return credential.name ?? credential.slug ?? credential.id ?? ''
 }
 
 function uniqueLabels(values: string[]): string[] {

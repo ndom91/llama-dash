@@ -166,7 +166,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
-   latency-window, queue, upstream, running-model, and GPU metrics.
+   credential injection success/failure, latency-window, queue, upstream,
+   running-model, and GPU metrics.
 7. GPU poller: auto-detects NVIDIA (`nvidia-smi`), AMD (`rocm-smi`), or
    Apple Silicon (`system_profiler`). Polls every 10s (static-only for
    Apple), caches snapshots, and publishes GPU-change dashboard events. AMD uses GTT memory (not BIOS-limited VRAM) for APUs.
@@ -184,8 +185,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     and global proxy/privacy defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
-    reject, auth passthrough, direct upstream target controls, credential vault,
-    and MCP relay management), Endpoints (connection examples for curl, Python, TS,
+    reject, auth passthrough, direct upstream target controls, credential vault
+    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
@@ -202,8 +203,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    credentials to outbound headers either by setting the header automatically
    or replacing a namespaced `{{llama-dash:credential:<slug>}}` placeholder;
     injected values are redacted in request logs and recorded as credential
-    injection metadata. Stored credentials require
-    `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
+    injection metadata with non-secret credential name/slug labels. Stored
+    credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
    MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
    when user API keys exist so the client's `Authorization` header can be owned
    by the upstream provider credential injection.

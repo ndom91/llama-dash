@@ -72,6 +72,7 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
   const credentials = credentialState?.credentials ?? []
   const modelOptions = models.map((model) => model.id)
+  const credentialUsage = useMemo(() => credentialUsageById(rules, mcpRelays), [rules, mcpRelays])
 
   const enabledCount = rules.filter((rule) => rule.enabled).length
   const isMutating =
@@ -276,6 +277,7 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
               errorMessage={credentialError?.message}
               createPending={createCredentialMutation.isPending}
               deletePending={deleteCredentialMutation.isPending}
+              usageById={credentialUsage}
               onCreate={(body) => createCredentialMutation.mutate(body)}
               onDelete={(id) => deleteCredentialMutation.mutate(id)}
             />
@@ -295,6 +297,27 @@ export function RoutingPanel({ tab }: { tab: PolicyTab }) {
       </div>
     </section>
   )
+}
+
+function credentialUsageById(
+  rules: RoutingRule[],
+  relays: Array<{ credentialBindings: Array<{ credentialId: string }> }>,
+): Map<string, { routingRules: number; mcpRelays: number }> {
+  const usage = new Map<string, { routingRules: number; mcpRelays: number }>()
+  const record = (credentialId: string, kind: 'routingRules' | 'mcpRelays') => {
+    const current = usage.get(credentialId) ?? { routingRules: 0, mcpRelays: 0 }
+    current[kind] += 1
+    usage.set(credentialId, current)
+  }
+  for (const rule of rules) {
+    const ids = new Set((rule.credentialBindings ?? []).map((binding) => binding.credentialId))
+    if (rule.target.type === 'direct' && rule.target.credentialId) ids.add(rule.target.credentialId)
+    for (const id of ids) record(id, 'routingRules')
+  }
+  for (const relay of relays) {
+    for (const binding of relay.credentialBindings) record(binding.credentialId, 'mcpRelays')
+  }
+  return usage
 }
 
 function panelCopyForTab(tab: PolicyTab, counts: { rules: number; enabled: number }) {

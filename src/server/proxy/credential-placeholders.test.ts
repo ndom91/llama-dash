@@ -65,6 +65,9 @@ describe('applyCredentialInjection', () => {
     expect(headers.authorization).toBe('Bearer sk-real-secret')
     expect(result.ok && result.redactedHeaderNames.has('authorization')).toBe(true)
     expect(result.ok && result.audit?.count).toBe(1)
+    expect(result.ok && result.audit?.credentials).toEqual([
+      { id: 'ucr_anthropic', name: 'Anthropic', slug: 'anthropic-prod' },
+    ])
     expect(credentialMock.markCredentialUsed).toHaveBeenCalledWith('ucr_anthropic')
   })
 

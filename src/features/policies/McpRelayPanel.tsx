@@ -1,5 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
+import { CodeBlock } from '../../components/CodeBlock'
 import { CopyableCode } from '../../components/CopyableCode'
 import { Tooltip } from '../../components/Tooltip'
 
@@ -145,6 +146,9 @@ export function McpRelayPanel({
                       <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
                     </button>
                   </Tooltip>
+                  <div className="min-w-0 lg:col-span-5">
+                    <CodeBlock title="Claude Code MCP config" lang="json" text={claudeCodeMcpConfig(relay.slug)} />
+                  </div>
                 </div>
               )
             })}
@@ -152,5 +156,23 @@ export function McpRelayPanel({
         )}
       </div>
     </section>
+  )
+}
+
+function claudeCodeMcpConfig(slug: string): string {
+  return JSON.stringify(
+    {
+      mcpServers: {
+        [slug]: {
+          type: 'http',
+          url: `http://<llama-dash-host>:5173/mcp-relays/${slug}`,
+          headers: {
+            'x-llama-dash-api-key': 'sk-...',
+          },
+        },
+      },
+    },
+    null,
+    2,
   )
 }
