@@ -104,6 +104,46 @@ describe('applyCredentialInjection', () => {
     expect(result.ok && result.redactedHeaderNames.has('authorization')).toBe(true)
   })
 
+  it('returns a structured error when credential decryption fails', () => {
+    credentialMock.getCredentialInjectionSecret.mockImplementation(() => {
+      throw new Error('Unsupported credential payload')
+    })
+    const headers: Record<string, string> = {}
+
+    const result = applyCredentialInjection({
+      headers,
+      routing: routing({
+        credentialBindings: [{ credentialId: 'ucr_anthropic', mode: 'set_header', headerName: 'authorization' }],
+      }),
+      encryptionKey: 'x'.repeat(32),
+    })
+
+    expect(result.ok).toBe(false)
+    expect(!result.ok && result.type).toBe('credential_injection_failed')
+    expect(!result.ok && result.message).toContain('could not be decrypted')
+    expect(headers.authorization).toBeUndefined()
+  })
+
+  it('returns a structured error when marking usage fails', () => {
+    credentialMock.markCredentialUsed.mockImplementation(() => {
+      throw new Error('database is locked')
+    })
+    const headers: Record<string, string> = {}
+
+    const result = applyCredentialInjection({
+      headers,
+      routing: routing({
+        credentialBindings: [{ credentialId: 'ucr_anthropic', mode: 'set_header', headerName: 'authorization' }],
+      }),
+      encryptionKey: 'x'.repeat(32),
+    })
+
+    expect(result.ok).toBe(false)
+    expect(!result.ok && result.type).toBe('credential_injection_failed')
+    expect(!result.ok && result.message).toContain('could not be injected')
+    expect(headers.authorization).toBeUndefined()
+  })
+
   it('treats direct target credentials as implicit authorization injection', () => {
     const headers: Record<string, string> = {}
 

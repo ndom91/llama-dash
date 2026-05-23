@@ -47,7 +47,17 @@ export function applyCredentialInjection(input: {
   const bindings = credentialBindingsForRouting(input.routing)
 
   for (const binding of bindings) {
-    const secret = getCredentialInjectionSecret(binding.credentialId, input.encryptionKey)
+    let secret: CredentialInjectionSecret | null
+    try {
+      secret = getCredentialInjectionSecret(binding.credentialId, input.encryptionKey)
+    } catch (err) {
+      return injectionError(
+        'credential_injection_failed',
+        `Credential ${binding.credentialId} could not be decrypted: ${errorMessage(err)}`,
+        audit,
+        redactedHeaderNames,
+      )
+    }
     if (!secret) {
       return injectionError(
         'credential_injection_failed',
@@ -57,7 +67,17 @@ export function applyCredentialInjection(input: {
       )
     }
 
-    const result = applyBinding(input.headers, binding, secret, audit, redactedHeaderNames)
+    let result: CredentialInjectionResult
+    try {
+      result = applyBinding(input.headers, binding, secret, audit, redactedHeaderNames)
+    } catch (err) {
+      return injectionError(
+        'credential_injection_failed',
+        `Credential ${secret.id} could not be injected: ${errorMessage(err)}`,
+        audit,
+        redactedHeaderNames,
+      )
+    }
     if (!result.ok) return result
   }
 
@@ -115,8 +135,8 @@ function applyBinding(
       }
       return { ok: true, audit: audit.count > 0 ? audit : null, redactedHeaderNames }
     }
-    headers[headerKey] = current.split(placeholder).join(secret.value)
     markCredentialUsed(secret.id)
+    headers[headerKey] = current.split(placeholder).join(secret.value)
     recordInjection(audit, secret.id, { type: 'header', name: headerName, mode: binding.mode })
     redactedHeaderNames.add(headerName)
     return { ok: true, audit, redactedHeaderNames }
@@ -132,8 +152,8 @@ function applyBinding(
       redactedHeaderNames,
     )
   }
-  headers[headerKey] = template.replace(placeholder, secret.value)
   markCredentialUsed(secret.id)
+  headers[headerKey] = template.replace(placeholder, secret.value)
   recordInjection(audit, secret.id, { type: 'header', name: headerName, mode: binding.mode })
   redactedHeaderNames.add(headerName)
   return { ok: true, audit, redactedHeaderNames }
@@ -161,9 +181,13 @@ function injectionError(
     status: 422,
     message,
     type,
-    audit: audit.count > 0 ? { ...audit, error: message } : { ...audit, error: message },
+    audit: { ...audit, error: message },
     redactedHeaderNames,
   }
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
 }
 
 function findHeaderKey(headers: Record<string, string>, name: string): string | null {
