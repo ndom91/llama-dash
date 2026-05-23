@@ -10,18 +10,13 @@ import { formatLatency, formatRate } from './dashboardUtils'
 
 export function DashboardPage() {
   const { data: models } = useModels()
-  const { data: requests } = useRecentRequests(100)
+  const { data: requests } = useRecentRequests(30)
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
 
   const active = useMemo(() => models?.filter((m) => m.running || m.kind === 'peer') ?? [], [models])
-  const recentRequests = useMemo(
-    () => requests?.filter((request) => !request.endpoint.startsWith('/mcp-relays/')).slice(0, 30),
-    [requests],
-  )
-
   return (
     <div className="content">
       <div className="page min-h-full px-0">
@@ -65,7 +60,7 @@ export function DashboardPage() {
 
             <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
             <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
-            <DashboardRecentRequestsPanel requests={recentRequests ?? null} />
+            <DashboardRecentRequestsPanel requests={requests ?? null} />
           </div>
         </div>
       </div>

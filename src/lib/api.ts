@@ -99,10 +99,11 @@ function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string):
 export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
-  listRequests: (params: { limit?: number; cursor?: string } = {}) => {
+  listRequests: (params: { limit?: number; cursor?: string; includeMcp?: boolean } = {}) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
+    if (params.includeMcp) q.set('includeMcp', 'true')
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
   },

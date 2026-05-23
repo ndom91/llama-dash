@@ -1,4 +1,5 @@
 import {
+  countRecentMcpRequests,
   getAdjacentIds,
   getRequestById,
   getRequestHistogram,
@@ -15,10 +16,12 @@ export const requestRoutes: Route[] = [
       const url = new URL(request.url)
       const limit = clamp(parseInt(url.searchParams.get('limit') ?? '50', 10), 1, 500)
       const cursor = url.searchParams.get('cursor')
-      const rows = listRecentRequests({ limit, cursor: cursor ?? undefined })
+      const includeMcp = url.searchParams.get('includeMcp') === 'true'
+      const rows = listRecentRequests({ limit, cursor: cursor ?? undefined, includeMcp })
       return json(200, {
         requests: rows,
         nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
+        mcpHiddenCount: includeMcp ? 0 : countRecentMcpRequests({ cursor: cursor ?? undefined }),
       })
     },
   },

@@ -7,10 +7,11 @@ import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
+type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null; mcpHiddenCount?: number }
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
+const MCP_RELAY_PREFIX = '/mcp-relays/'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -28,7 +29,9 @@ function updateRecentRequestCaches(queryClient: QueryClient, request: ApiRequest
     const queryKey = query.queryKey
     if (queryKey[0] !== 'requests' || queryKey[1] !== 'recent' || typeof queryKey[2] !== 'number') continue
     const limit = queryKey[2]
+    const includeMcp = queryKey[3] === true
     queryClient.setQueryData<Array<ApiRequest>>(queryKey, (old) => {
+      if (!includeMcp && isMcpRelayRequest(request)) return old
       if (!old || old.some((row) => row.id === request.id)) return old
       return [request, ...old].slice(0, limit)
     })
@@ -36,14 +39,29 @@ function updateRecentRequestCaches(queryClient: QueryClient, request: ApiRequest
 }
 
 function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) {
-  queryClient.setQueryData<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }>(qk.requestsList, (old) => {
-    if (!old?.pages[0] || old.pages[0].requests.some((row) => row.id === request.id)) return old
-    const firstPage = old.pages[0]
-    return {
-      ...old,
-      pages: [{ ...firstPage, requests: [request, ...firstPage.requests] }, ...old.pages.slice(1)],
-    }
-  })
+  for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requestsList, exact: false })) {
+    const queryKey = query.queryKey
+    if (queryKey[0] !== 'requests' || queryKey[1] !== 'list') continue
+    const includeMcp = queryKey[2] === true
+    queryClient.setQueryData<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }>(queryKey, (old) => {
+      if (!old?.pages[0] || old.pages[0].requests.some((row) => row.id === request.id)) return old
+      const firstPage = old.pages[0]
+      if (!includeMcp && isMcpRelayRequest(request)) {
+        return {
+          ...old,
+          pages: [{ ...firstPage, mcpHiddenCount: (firstPage.mcpHiddenCount ?? 0) + 1 }, ...old.pages.slice(1)],
+        }
+      }
+      return {
+        ...old,
+        pages: [{ ...firstPage, requests: [request, ...firstPage.requests] }, ...old.pages.slice(1)],
+      }
+    })
+  }
+}
+
+function isMcpRelayRequest(request: ApiRequest): boolean {
+  return request.endpoint.startsWith(MCP_RELAY_PREFIX)
 }
 
 export function useAdminEvents() {

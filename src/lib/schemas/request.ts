@@ -63,6 +63,7 @@ export type ApiRequestDetail = v.InferOutput<typeof ApiRequestDetailSchema>
 export const RequestsListResponseSchema = v.object({
   requests: v.array(ApiRequestSchema),
   nextCursor: v.nullable(v.string()),
+  mcpHiddenCount: v.optional(v.number()),
 })
 
 export const RequestDetailResponseSchema = v.object({

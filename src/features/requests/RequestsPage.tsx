@@ -35,7 +35,8 @@ const MCP_RELAY_PREFIX = '/mcp-relays/'
 export function RequestsPage() {
   const navigate = useNavigate()
   const routeSearch = requestsRouteApi.useSearch()
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
+  const showMcpRelays = routeSearch.mcp === true
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(showMcpRelays)
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -50,7 +51,6 @@ export function RequestsPage() {
   const hostFilter: string = routeSearch.host ?? 'all'
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
-  const showMcpRelays = routeSearch.mcp === true
   const [searchDraft, setSearchDraft] = useState(search)
 
   const updateSearch = useCallback(
@@ -134,8 +134,8 @@ export function RequestsPage() {
 
   const hiddenMcpCount = useMemo(() => {
     if (showMcpRelays) return 0
-    return rowsBeforeMcpFilter.filter(isMcpRelayRequest).length
-  }, [rowsBeforeMcpFilter, showMcpRelays])
+    return data?.pages[0]?.mcpHiddenCount ?? 0
+  }, [data, showMcpRelays])
   const visibleMcpCount = useMemo(() => {
     if (!showMcpRelays) return 0
     return rowsBeforeMcpFilter.filter(isMcpRelayRequest).length
@@ -149,10 +149,8 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const filtered = useMemo(() => {
-    let out = rowsBeforeMcpFilter
-    if (!showMcpRelays) out = out.filter((r) => !isMcpRelayRequest(r))
-    return out
-  }, [rowsBeforeMcpFilter, showMcpRelays])
+    return rowsBeforeMcpFilter
+  }, [rowsBeforeMcpFilter])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -169,11 +167,6 @@ export function RequestsPage() {
 
   const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
-
-  useEffect(() => {
-    if (showMcpRelays || rows.length > 0 || hiddenMcpCount === 0 || !hasNextPage || isFetchingNextPage) return
-    fetchNextPage()
-  }, [showMcpRelays, rows.length, hiddenMcpCount, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')

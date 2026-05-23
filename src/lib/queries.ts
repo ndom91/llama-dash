@@ -162,22 +162,25 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
   })
 }
 
-export function useRecentRequests(limit = 10): UseQueryResult<Array<ApiRequest>> {
+export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
-    queryKey: qk.requestsRecent(limit),
-    queryFn: () => api.listRequests({ limit }).then((r) => r.requests),
+    queryKey: [...qk.requestsRecent(limit), includeMcp] as const,
+    queryFn: () => api.listRequests({ limit, includeMcp }).then((r) => r.requests),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
 const PAGE_SIZE = 50
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
+type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null; mcpHiddenCount?: number }
 
-export function useRequestsList(): UseInfiniteQueryResult<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }> {
+export function useRequestsList(includeMcp = false): UseInfiniteQueryResult<{
+  pages: Array<RequestsPage>
+  pageParams: Array<unknown>
+}> {
   return useInfiniteQuery({
-    queryKey: qk.requestsList,
-    queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined }),
+    queryKey: [...qk.requestsList, includeMcp] as const,
+    queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })

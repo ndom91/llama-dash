@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt, notLike } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -73,8 +73,13 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
   }
 }
 
-export function listRecentRequests(opts: { limit: number; cursor?: string }): Array<RequestRow> {
-  const where = opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined
+const MCP_RELAY_ENDPOINT_PATTERN = '/mcp-relays/%'
+
+export function listRecentRequests(opts: { limit: number; cursor?: string; includeMcp?: boolean }): Array<RequestRow> {
+  const where = and(
+    opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
+    opts.includeMcp ? undefined : notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_PATTERN),
+  )
   const rows = db
     .select({
       id: schema.requests.id,
@@ -108,7 +113,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
       credentialInjectionJson: schema.requests.credentialInjectionJson,
     })
     .from(schema.requests)
-    .where(and(where))
+    .where(where)
     .orderBy(desc(schema.requests.id))
     .limit(opts.limit)
     .all()
@@ -116,6 +121,20 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
   const keyMap = getApiKeyNameMap()
 
   return rows.map((r) => toRequestRow(r, r.keyId ? (keyMap.get(r.keyId) ?? null) : null))
+}
+
+export function countRecentMcpRequests(opts: { cursor?: string }): number {
+  const row = sqliteDb
+    .prepare(
+      `select count(*) as count
+       from requests
+       where endpoint like ?
+       ${opts.cursor ? 'and id < ?' : ''}`,
+    )
+    .get(...(opts.cursor ? [MCP_RELAY_ENDPOINT_PATTERN, opts.cursor] : [MCP_RELAY_ENDPOINT_PATTERN])) as {
+    count: number
+  }
+  return row.count
 }
 
 export function getRequestById(id: string): RequestDetail | null {
