@@ -5,12 +5,14 @@ import { cn } from '../lib/cn'
 
 type NumberInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'prefix'> & {
   prefix?: string
+  suffix?: string
   inputClassName?: string
   inputSize?: 's' | 'm'
 }
 
 export function NumberInput({
   prefix,
+  suffix,
   className,
   inputClassName,
   disabled,
@@ -55,6 +57,9 @@ export function NumberInput({
           inputClassName,
         )}
       />
+      {suffix ? (
+        <span className="flex items-center border-l border-border bg-surface-1 px-3 text-fg-dim">{suffix}</span>
+      ) : null}
       <span
         className={cn(
           'grid shrink-0 border-l border-border bg-surface-2',

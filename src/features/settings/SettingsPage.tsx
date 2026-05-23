@@ -322,6 +322,7 @@ export function SettingsPage() {
                   <RetentionInput
                     id="request-log-retention-days"
                     label="Inference rows"
+                    description="Delete normal /v1 request rows after this many days."
                     value={privacy?.requestLogRetentionDays ?? ''}
                     disabled={!privacy || isPrivacyMutating}
                     onChange={(value) => updatePrivacySettings.mutate({ requestLogRetentionDays: value })}
@@ -329,6 +330,7 @@ export function SettingsPage() {
                   <RetentionInput
                     id="mcp-success-retention-days"
                     label="MCP success rows"
+                    description="Delete successful MCP relay rows after this many days."
                     value={privacy?.mcpRelaySuccessRetentionDays ?? ''}
                     disabled={!privacy || isPrivacyMutating}
                     onChange={(value) => updatePrivacySettings.mutate({ mcpRelaySuccessRetentionDays: value })}
@@ -336,6 +338,7 @@ export function SettingsPage() {
                   <RetentionInput
                     id="mcp-error-retention-days"
                     label="MCP error rows"
+                    description="Keep failed MCP relay rows longer for investigation."
                     value={privacy?.mcpRelayErrorRetentionDays ?? ''}
                     disabled={!privacy || isPrivacyMutating}
                     onChange={(value) => updatePrivacySettings.mutate({ mcpRelayErrorRetentionDays: value })}
@@ -343,6 +346,7 @@ export function SettingsPage() {
                   <RetentionInput
                     id="body-retention-days"
                     label="Stored body/header text"
+                    description="Clear bulky payload and header snippets from older rows."
                     value={privacy?.bodyRetentionDays ?? ''}
                     disabled={!privacy || isPrivacyMutating}
                     onChange={(value) => updatePrivacySettings.mutate({ bodyRetentionDays: value })}
@@ -378,24 +382,28 @@ export function SettingsPage() {
 function RetentionInput({
   id,
   label,
+  description,
   value,
   disabled,
   onChange,
 }: {
   id: string
   label: string
+  description: string
   value: number | ''
   disabled?: boolean
   onChange: (value: number) => void
 }) {
   return (
     <label className="flex flex-col gap-1 font-mono text-[11px] text-fg-dim" htmlFor={id}>
-      {label}
+      <span className="font-semibold text-fg-dim">{label}</span>
+      <span className="min-h-8 leading-relaxed text-fg-faint">{description}</span>
       <NumberInput
         id={id}
         min={1}
         max={3650}
         step={1}
+        suffix="days"
         disabled={disabled}
         value={value}
         onChange={(event) => {
