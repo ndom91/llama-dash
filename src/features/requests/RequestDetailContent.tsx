@@ -43,7 +43,6 @@ type CredentialInjectionSummary = {
   credentialsLabel: string
   locationsLabel: string
   modesLabel: string
-  tooltip: string
 }
 
 const compactTokenFormatter = new Intl.NumberFormat('en', {
@@ -209,8 +208,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
       />
 
       <div className="grid min-h-0 flex-1 grid-cols-[clamp(188px,21vw,275px)_minmax(0,1fr)_clamp(190px,19vw,260px)] items-stretch gap-0 max-[1200px]:grid-cols-[clamp(164px,19vw,220px)_minmax(0,1fr)_clamp(172px,18vw,220px)] max-[1024px]:grid-cols-[minmax(0,1fr)]">
-        <aside className="min-h-0 min-w-0 overflow-y-auto border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
-          <div>
+        <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
+          <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
             <div className={railSectionTitle}>Summary</div>
             <dl className="detail-meta-list">
               <div>
@@ -246,172 +245,170 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </dl>
           </div>
 
-          {hasAttribution ? (
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 [&>div:first-child]:mt-0 [&>div:first-child]:border-t-0 [&>div:first-child]:pt-0">
+            {hasAttribution ? (
+              <div className={railSectionDivider}>
+                <div className={railSectionTitle}>Attribution</div>
+                <dl className="detail-meta-list">
+                  <div>
+                    <dt>client</dt>
+                    <dd>{req.clientName ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>end user</dt>
+                    <dd>{req.endUserId ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>session</dt>
+                    <dd>
+                      {req.sessionId ? (
+                        <Link
+                          to="/requests"
+                          search={{ session: req.sessionId }}
+                          className="font-mono text-info no-underline hover:text-fg"
+                        >
+                          {req.sessionId}
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>related</dt>
+                    <dd>
+                      {req.sessionId ? (
+                        <Link
+                          to="/requests"
+                          search={{ session: req.sessionId }}
+                          className="font-mono text-info no-underline hover:text-fg"
+                        >
+                          other requests in this session
+                        </Link>
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            ) : null}
+
             <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Attribution</div>
+              <div className={railSectionTitle}>Model</div>
               <dl className="detail-meta-list">
                 <div>
-                  <dt>client</dt>
-                  <dd>{req.clientName ?? '—'}</dd>
+                  <dt>requested</dt>
+                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt>end user</dt>
-                  <dd>{req.endUserId ?? '—'}</dd>
+                  <dt>served</dt>
+                  <dd>{req.routingRoutedModel ?? req.model ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt>session</dt>
+                  <dt>rewrite</dt>
                   <dd>
-                    {req.sessionId ? (
-                      <Link
-                        to="/requests"
-                        search={{ session: req.sessionId }}
-                        className="font-mono text-info no-underline hover:text-fg"
-                      >
-                        {req.sessionId}
-                      </Link>
-                    ) : (
-                      '—'
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt>related</dt>
-                  <dd>
-                    {req.sessionId ? (
-                      <Link
-                        to="/requests"
-                        search={{ session: req.sessionId }}
-                        className="font-mono text-info no-underline hover:text-fg"
-                      >
-                        other requests in this session
-                      </Link>
-                    ) : (
-                      '—'
-                    )}
+                    {deriveRewriteLabel(
+                      req.routingRequestedModel ?? requestPayload.model,
+                      req.routingRoutedModel ?? req.model,
+                      resHeaders,
+                    ) ?? '—'}
                   </dd>
                 </div>
               </dl>
             </div>
-          ) : null}
 
-          <div className={railSectionDivider}>
-            <div className={railSectionTitle}>Model</div>
-            <dl className="detail-meta-list">
-              <div>
-                <dt>requested</dt>
-                <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>served</dt>
-                <dd>{req.routingRoutedModel ?? req.model ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>rewrite</dt>
-                <dd>
-                  {deriveRewriteLabel(
-                    req.routingRequestedModel ?? requestPayload.model,
-                    req.routingRoutedModel ?? req.model,
-                    resHeaders,
-                  ) ?? '—'}
-                </dd>
-              </div>
-            </dl>
-          </div>
+            <div className={railSectionDivider}>
+              <div className={railSectionTitle}>Routing</div>
+              <dl className="detail-meta-list">
+                <div>
+                  <dt>rule</dt>
+                  <dd>{req.routingRuleName ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>action</dt>
+                  <dd>{req.routingActionType ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>auth</dt>
+                  <dd>{req.routingAuthMode ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>authorization</dt>
+                  <dd>
+                    {req.routingAuthMode === 'passthrough' && req.routingPreserveAuthorization
+                      ? 'preserved'
+                      : 'default'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>target</dt>
+                  <dd>{req.routingTargetType ?? 'llama_swap'}</dd>
+                </div>
+                <div>
+                  <dt>upstream</dt>
+                  <dd>{req.routingTargetBaseUrl ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>requested</dt>
+                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>routed</dt>
+                  <dd>{req.routingRoutedModel ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>reject</dt>
+                  <dd>{req.routingRejectReason ?? '—'}</dd>
+                </div>
+                {credentialInjection ? (
+                  <>
+                    <div>
+                      <dt>credential</dt>
+                      <dd>{credentialInjection.countLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>credentials</dt>
+                      <dd>{credentialInjection.credentialsLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>injected</dt>
+                      <dd>{credentialInjection.locationsLabel}</dd>
+                    </div>
+                    <div>
+                      <dt>mode</dt>
+                      <dd>{credentialInjection.modesLabel}</dd>
+                    </div>
+                  </>
+                ) : null}
+              </dl>
+            </div>
 
-          <div className={railSectionDivider}>
-            <div className={railSectionTitle}>Routing</div>
-            <dl className="detail-meta-list">
-              <div>
-                <dt>rule</dt>
-                <dd>{req.routingRuleName ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>action</dt>
-                <dd>{req.routingActionType ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>auth</dt>
-                <dd>{req.routingAuthMode ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>authorization</dt>
-                <dd>
-                  {req.routingAuthMode === 'passthrough' && req.routingPreserveAuthorization ? 'preserved' : 'default'}
-                </dd>
-              </div>
-              <div>
-                <dt>target</dt>
-                <dd>{req.routingTargetType ?? 'llama_swap'}</dd>
-              </div>
-              <div>
-                <dt>upstream</dt>
-                <dd>{req.routingTargetBaseUrl ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>requested</dt>
-                <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>routed</dt>
-                <dd>{req.routingRoutedModel ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>reject</dt>
-                <dd>{req.routingRejectReason ?? '—'}</dd>
-              </div>
-              {credentialInjection ? (
-                <>
-                  <div>
-                    <dt>credential</dt>
-                    <dd>
-                      <Tooltip label={credentialInjection.tooltip} side="right" align="start">
-                        <span className="cursor-help text-info underline decoration-dotted underline-offset-2">
-                          {credentialInjection.countLabel}
-                        </span>
-                      </Tooltip>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>credentials</dt>
-                    <dd>{credentialInjection.credentialsLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>injected</dt>
-                    <dd>{credentialInjection.locationsLabel}</dd>
-                  </div>
-                  <div>
-                    <dt>mode</dt>
-                    <dd>{credentialInjection.modesLabel}</dd>
-                  </div>
-                </>
-              ) : null}
-            </dl>
-          </div>
-
-          <div className={railSectionDivider}>
-            <div className={railSectionTitle}>Timing</div>
-            <dl className="detail-meta-list">
-              <div>
-                <dt>queue</dt>
-                <dd>{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>prefill</dt>
-                <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>ttft</dt>
-                <dd>{timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}</dd>
-              </div>
-              <div>
-                <dt>total</dt>
-                <dd>{formatDuration(req.durationMs)}</dd>
-              </div>
-              <div>
-                <dt>stream close</dt>
-                <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
-              </div>
-            </dl>
+            <div className={railSectionDivider}>
+              <div className={railSectionTitle}>Timing</div>
+              <dl className="detail-meta-list">
+                <div>
+                  <dt>queue</dt>
+                  <dd>{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>prefill</dt>
+                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>ttft</dt>
+                  <dd>{timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>total</dt>
+                  <dd>{formatDuration(req.durationMs)}</dd>
+                </div>
+                <div>
+                  <dt>stream close</dt>
+                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
+                </div>
+              </dl>
+            </div>
           </div>
         </aside>
 
@@ -621,13 +618,6 @@ function parseCredentialInjectionSummary(raw: string | null): CredentialInjectio
       credentialsLabel: credentialLabels.length > 0 ? credentialLabels.join(', ') : '—',
       locationsLabel: locationNames.length > 0 ? locationNames.join(', ') : '—',
       modesLabel: modes.length > 0 ? modes.join(', ') : '—',
-      tooltip: [
-        'Credential value was injected by llama-dash after routing policy matched.',
-        credentialLabels.length > 0 ? `Credentials: ${credentialLabels.join(', ')}` : null,
-        audit.error ? `Error: ${audit.error}` : null,
-      ]
-        .filter(isNonEmptyString)
-        .join('\n'),
     }
   } catch {
     return null
