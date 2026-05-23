@@ -76,7 +76,6 @@ function toApiShape(row: schema.UpstreamCredential): UpstreamCredential {
     name: row.name,
     slug,
     type: row.type,
-    placeholderEnabled: row.placeholderEnabled,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
@@ -135,7 +134,6 @@ export function createUpstreamCredential(
       slug,
       type: input.type,
       encryptedValue: encryptSecret(input.value, encryptionKey),
-      placeholderEnabled: input.placeholderEnabled ?? false,
       createdAt: now,
       updatedAt: now,
     })
@@ -152,7 +150,6 @@ export function updateUpstreamCredential(
   if (input.name !== undefined) set.name = input.name
   if (input.slug !== undefined) set.slug = input.slug
   if (input.value !== undefined) set.encryptedValue = encryptSecret(input.value, encryptionKey)
-  if (input.placeholderEnabled !== undefined) set.placeholderEnabled = input.placeholderEnabled
   const result = db.update(schema.upstreamCredentials).set(set).where(eq(schema.upstreamCredentials.id, id)).run()
   if (result.changes === 0) return null
   const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
@@ -180,7 +177,6 @@ export type CredentialInjectionSecret = {
   slug: string
   type: 'bearer'
   value: string
-  placeholderEnabled: boolean
 }
 
 export function getCredentialInjectionSecret(id: string, encryptionKey?: string): CredentialInjectionSecret | null {
@@ -192,7 +188,6 @@ export function getCredentialInjectionSecret(id: string, encryptionKey?: string)
     slug: row.slug,
     type: row.type,
     value: decryptSecret(row.encryptedValue, encryptionKey),
-    placeholderEnabled: row.placeholderEnabled,
   }
 }
 

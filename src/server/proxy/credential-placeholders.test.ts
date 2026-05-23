@@ -37,7 +37,6 @@ function secret(overrides: Record<string, unknown> = {}) {
     slug: 'anthropic-prod',
     type: 'bearer',
     value: 'sk-real-secret',
-    placeholderEnabled: true,
     ...overrides,
   }
 }
@@ -118,8 +117,7 @@ describe('applyCredentialInjection', () => {
     expect(headers.authorization).toBe('Bearer sk-real-secret')
   })
 
-  it('rejects placeholder replacement when the credential is not placeholder-enabled', () => {
-    credentialMock.getCredentialInjectionSecret.mockReturnValue(secret({ placeholderEnabled: false }))
+  it('allows placeholder replacement based on routing rule binding alone', () => {
     const headers = { authorization: `Bearer ${placeholderForSlug('anthropic-prod')}` }
 
     const result = applyCredentialInjection({
@@ -132,9 +130,8 @@ describe('applyCredentialInjection', () => {
       encryptionKey: 'x'.repeat(32),
     })
 
-    expect(result.ok).toBe(false)
-    expect(!result.ok && result.type).toBe('credential_placeholder_not_allowed')
-    expect(headers.authorization).toContain('{{llama-dash:credential:anthropic-prod}}')
+    expect(result.ok).toBe(true)
+    expect(headers.authorization).toBe('Bearer sk-real-secret')
   })
 
   it('exposes a shared redaction marker', () => {

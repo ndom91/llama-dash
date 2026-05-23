@@ -103,14 +103,6 @@ function applyBinding(
   const placeholder = placeholderForSlug(secret.slug)
 
   if (binding.mode === 'replace_placeholder') {
-    if (!secret.placeholderEnabled) {
-      return injectionError(
-        'credential_placeholder_not_allowed',
-        `Credential ${secret.slug} is not enabled for placeholder replacement`,
-        audit,
-        redactedHeaderNames,
-      )
-    }
     const current = headers[headerKey]
     if (!current?.includes(placeholder)) {
       if (binding.required) {

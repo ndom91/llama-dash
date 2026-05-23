@@ -50,12 +50,7 @@ export const upstreamCredentialRoutes: Route[] = [
       if (!parsed.ok) return error(400, 'Invalid JSON body')
       const result = v.safeParse(UpdateUpstreamCredentialBodySchema, parsed.value)
       if (!result.success) return error(400, 'Invalid upstream credential body')
-      if (
-        result.output.name === undefined &&
-        result.output.slug === undefined &&
-        result.output.value === undefined &&
-        result.output.placeholderEnabled === undefined
-      ) {
+      if (result.output.name === undefined && result.output.slug === undefined && result.output.value === undefined) {
         return error(400, 'At least one field to update is required')
       }
       try {

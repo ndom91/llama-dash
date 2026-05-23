@@ -13,7 +13,6 @@ export const UpstreamCredentialSchema = v.object({
   name: v.string(),
   slug: UpstreamCredentialSlugSchema,
   type: UpstreamCredentialTypeSchema,
-  placeholderEnabled: v.boolean(),
   createdAt: v.string(),
   updatedAt: v.string(),
   lastUsedAt: v.nullable(v.string()),
@@ -31,7 +30,6 @@ export const CreateUpstreamCredentialBodySchema = v.object({
   slug: v.optional(UpstreamCredentialSlugSchema),
   type: UpstreamCredentialTypeSchema,
   value: v.pipe(v.string(), v.minLength(1), v.maxLength(4000)),
-  placeholderEnabled: v.optional(v.boolean()),
 })
 export type CreateUpstreamCredentialBody = v.InferOutput<typeof CreateUpstreamCredentialBodySchema>
 
@@ -39,6 +37,5 @@ export const UpdateUpstreamCredentialBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(200))),
   slug: v.optional(UpstreamCredentialSlugSchema),
   value: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(4000))),
-  placeholderEnabled: v.optional(v.boolean()),
 })
 export type UpdateUpstreamCredentialBody = v.InferOutput<typeof UpdateUpstreamCredentialBodySchema>

@@ -285,7 +285,6 @@ function CredentialVaultPanel({
     name: string
     slug: string
     type: 'bearer'
-    placeholderEnabled: boolean
     lastUsedAt: string | null
   }>
   vaultEnabled: boolean
@@ -293,14 +292,13 @@ function CredentialVaultPanel({
   errorMessage?: string
   createPending: boolean
   deletePending: boolean
-  onCreate: (body: { name: string; slug?: string; type: 'bearer'; value: string; placeholderEnabled?: boolean }) => void
+  onCreate: (body: { name: string; slug?: string; type: 'bearer'; value: string }) => void
   onDelete: (id: string) => void
 }) {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [value, setValue] = useState('')
   const [showValue, setShowValue] = useState(false)
-  const [placeholderEnabled, setPlaceholderEnabled] = useState(false)
 
   const submit = () => {
     if (!name.trim() || !value.trim()) return
@@ -309,13 +307,11 @@ function CredentialVaultPanel({
       slug: slug.trim() || undefined,
       type: 'bearer',
       value: value.trim(),
-      placeholderEnabled,
     })
     setName('')
     setSlug('')
     setValue('')
     setShowValue(false)
-    setPlaceholderEnabled(false)
   }
   const statusText = errorMessage
     ? 'disabled · credential status unavailable'
@@ -392,15 +388,6 @@ function CredentialVaultPanel({
           add credential
         </button>
       </div>
-      <label className="mt-3 flex items-center gap-2 text-[11px] text-fg-faint">
-        <input
-          type="checkbox"
-          checked={placeholderEnabled}
-          onChange={(event) => setPlaceholderEnabled(event.target.checked)}
-          disabled={!vaultEnabled}
-        />
-        allow client-provided `{'{{llama-dash:credential:<slug>}}'}` placeholders for this credential
-      </label>
       <div className="mt-4 divide-y divide-border rounded border border-border bg-surface-1">
         {credentials.length === 0 ? (
           <div className="px-3 py-3 text-fg-faint">No upstream credentials stored.</div>
@@ -410,11 +397,7 @@ function CredentialVaultPanel({
               <span className="text-fg">{credential.name}</span>
               <span className="text-fg-faint">{credential.slug}</span>
               <span className="text-fg-faint">{credential.type}</span>
-              {credential.placeholderEnabled ? (
-                <CopyableCode text={`{{llama-dash:credential:${credential.slug}}}`} />
-              ) : (
-                <span className="text-fg-faint">placeholder off</span>
-              )}
+              <CopyableCode text={`{{llama-dash:credential:${credential.slug}}}`} />
               <span className="text-fg-faint">last used {credential.lastUsedAt ?? 'never'}</span>
               <button
                 type="button"
