@@ -16,6 +16,7 @@ import { preAuthRoutingNeedsBody, preferPostAuthRouting } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
 import { selectUpstream } from './upstream.ts'
+import { REDACTED_INJECTED_CREDENTIAL } from './credential-placeholders.ts'
 
 export type ProxyContext = {
   request: Request
@@ -32,6 +33,8 @@ export type ProxyContext = {
     sessionId: string | null
   }
   routingOutcome: RoutingOutcome
+  credentialInjectionJson: string | null
+  redactedInjectedHeaderNames: Set<string>
   body: ProxyBodySnapshot | null
   keyId: string | null
   keyRow: ApiKey | null
@@ -52,6 +55,8 @@ export function createProxyContext(request: Request): ProxyContext {
     reqHeaders: filterRequestHeaders(request.headers),
     attribution: extractAttribution(request.headers, getAttributionSettings()),
     routingOutcome: emptyRoutingOutcome(),
+    credentialInjectionJson: null,
+    redactedInjectedHeaderNames: new Set(),
     body: null,
     keyId: null,
     keyRow: null,
@@ -95,7 +100,13 @@ export function finalizeRoutingAndBody(ctx: ProxyContext, preAuthRouting: Routin
 }
 
 export function loggedRequestHeaders(ctx: ProxyContext): string {
-  return JSON.stringify(redactSensitiveHeaders(ctx.reqHeaders))
+  const redacted = redactSensitiveHeaders(ctx.reqHeaders)
+  for (const name of ctx.redactedInjectedHeaderNames) {
+    for (const key of Object.keys(redacted)) {
+      if (key.toLowerCase() === name) redacted[key] = REDACTED_INJECTED_CREDENTIAL
+    }
+  }
+  return JSON.stringify(redacted)
 }
 
 export function loggedRequestBody(ctx: ProxyContext): string | null {

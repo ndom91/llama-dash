@@ -7,6 +7,7 @@ import type {
   UpstreamCredential,
 } from '../../lib/schemas/upstream-credential.ts'
 import { db, schema } from '../db/index.ts'
+import { config } from '../config.ts'
 
 type EncryptedPayload = {
   v: 1
@@ -25,7 +26,7 @@ export function isCredentialVaultKeyEnabled(key: string): boolean {
 }
 
 function getCredentialEncryptionKey(): string {
-  return process.env.CREDENTIAL_ENCRYPTION_KEY ?? ''
+  return config.credentialEncryptionKey
 }
 
 export function getCredentialVaultStatus(
@@ -69,14 +70,46 @@ function decryptSecret(raw: string, encryptionKey?: string): string {
 }
 
 function toApiShape(row: schema.UpstreamCredential): UpstreamCredential {
+  const slug = ensureValidSlug(row)
   return {
     id: row.id,
     name: row.name,
+    slug,
     type: row.type,
+    placeholderEnabled: row.placeholderEnabled,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
   }
+}
+
+function slugFromName(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 72)
+  return slug || 'credential'
+}
+
+function isValidSlug(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9_-]{1,80}$/.test(slug)
+}
+
+function uniqueSlug(base: string, id: string, currentId?: string): string {
+  const existing = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.slug, base)).get()
+  if (!existing || existing.id === currentId) return base
+  return `${base.slice(0, 72)}-${id.slice(-6).toLowerCase()}`
+}
+
+function ensureValidSlug(row: schema.UpstreamCredential): string {
+  if (isValidSlug(row.slug)) return row.slug
+  const slug = uniqueSlug(slugFromName(row.name), row.id, row.id)
+  db.update(schema.upstreamCredentials)
+    .set({ slug, updatedAt: new Date() })
+    .where(eq(schema.upstreamCredentials.id, row.id))
+    .run()
+  return slug
 }
 
 export function listUpstreamCredentials(): UpstreamCredential[] {
@@ -94,12 +127,15 @@ export function createUpstreamCredential(
 ): UpstreamCredential {
   const id = `ucr_${ulid()}`
   const now = new Date()
+  const slug = input.slug ?? uniqueSlug(slugFromName(input.name), id)
   db.insert(schema.upstreamCredentials)
     .values({
       id,
       name: input.name,
+      slug,
       type: input.type,
       encryptedValue: encryptSecret(input.value, encryptionKey),
+      placeholderEnabled: input.placeholderEnabled ?? false,
       createdAt: now,
       updatedAt: now,
     })
@@ -114,7 +150,9 @@ export function updateUpstreamCredential(
 ): UpstreamCredential | null {
   const set: Partial<schema.NewUpstreamCredential> = { updatedAt: new Date() }
   if (input.name !== undefined) set.name = input.name
+  if (input.slug !== undefined) set.slug = input.slug
   if (input.value !== undefined) set.encryptedValue = encryptSecret(input.value, encryptionKey)
+  if (input.placeholderEnabled !== undefined) set.placeholderEnabled = input.placeholderEnabled
   const result = db.update(schema.upstreamCredentials).set(set).where(eq(schema.upstreamCredentials.id, id)).run()
   if (result.changes === 0) return null
   const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
@@ -134,4 +172,33 @@ export function getCredentialAuthorizationHeader(id: string, encryptionKey?: str
     .run()
   if (row.type === 'bearer') return `Bearer ${decryptSecret(row.encryptedValue, encryptionKey)}`
   return null
+}
+
+export type CredentialInjectionSecret = {
+  id: string
+  name: string
+  slug: string
+  type: 'bearer'
+  value: string
+  placeholderEnabled: boolean
+}
+
+export function getCredentialInjectionSecret(id: string, encryptionKey?: string): CredentialInjectionSecret | null {
+  const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
+  if (!row) return null
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    type: row.type,
+    value: decryptSecret(row.encryptedValue, encryptionKey),
+    placeholderEnabled: row.placeholderEnabled,
+  }
+}
+
+export function markCredentialUsed(id: string) {
+  db.update(schema.upstreamCredentials)
+    .set({ lastUsedAt: new Date() })
+    .where(eq(schema.upstreamCredentials.id, id))
+    .run()
 }

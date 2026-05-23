@@ -42,6 +42,8 @@ vi.mock('../admin/routing-rules.ts', async () => {
 
 vi.mock('../admin/upstream-credentials.ts', () => ({
   getCredentialAuthorizationHeader: () => null,
+  getCredentialInjectionSecret: () => null,
+  markCredentialUsed: vi.fn(),
 }))
 
 const apiKeysMock = vi.hoisted(() => ({
@@ -86,6 +88,7 @@ function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
     target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
     authMode: 'passthrough',
     preserveAuthorization: true,
+    credentialBindings: [],
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
     ...overrides,

@@ -2,7 +2,12 @@ import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import * as v from 'valibot'
 import type { CreateRoutingRuleBody, RoutingRule, UpdateRoutingRuleBody } from '../../lib/schemas/routing-rule.ts'
-import { RoutingActionSchema, RoutingMatchSchema, RoutingTargetSchema } from '../../lib/schemas/routing-rule.ts'
+import {
+  CredentialBindingSchema,
+  RoutingActionSchema,
+  RoutingMatchSchema,
+  RoutingTargetSchema,
+} from '../../lib/schemas/routing-rule.ts'
 import {
   hasAnyRoutingMatcher,
   isAllowedDirectUpstream,
@@ -39,6 +44,7 @@ function toApiShape(row: schema.RoutingRule): RoutingRule {
     target: parseJson(row.targetJson, RoutingTargetSchema),
     authMode: row.authMode,
     preserveAuthorization: row.preserveAuthorization,
+    credentialBindings: parseJson(row.credentialBindingsJson, v.array(CredentialBindingSchema)),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
@@ -72,6 +78,7 @@ export function createRoutingRule(input: CreateRoutingRuleBody): RoutingRule {
       matchJson: JSON.stringify(input.match),
       actionJson: JSON.stringify(input.action),
       targetJson: JSON.stringify(input.target ?? { type: 'llama_swap' }),
+      credentialBindingsJson: JSON.stringify(input.credentialBindings ?? []),
       authMode: input.authMode ?? 'require_key',
       preserveAuthorization: input.authMode === 'passthrough' ? (input.preserveAuthorization ?? false) : false,
       createdAt: now,
@@ -94,6 +101,7 @@ export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): Ro
   if (fields.match !== undefined) set.matchJson = JSON.stringify(fields.match)
   if (fields.action !== undefined) set.actionJson = JSON.stringify(fields.action)
   if (fields.target !== undefined) set.targetJson = JSON.stringify(fields.target)
+  if (fields.credentialBindings !== undefined) set.credentialBindingsJson = JSON.stringify(fields.credentialBindings)
   if (fields.authMode !== undefined) set.authMode = fields.authMode
   if (fields.preserveAuthorization !== undefined) set.preserveAuthorization = fields.preserveAuthorization
   if (fields.authMode === 'require_key') set.preserveAuthorization = false
@@ -159,6 +167,7 @@ export type RoutingDecision =
       target: { type: 'llama_swap' }
       authMode: 'require_key'
       preserveAuthorization: false
+      credentialBindings?: RoutingRule['credentialBindings']
     }
   | {
       matchedRule: RoutingRule
@@ -166,6 +175,7 @@ export type RoutingDecision =
       target: RoutingRule['target']
       authMode: RoutingRule['authMode']
       preserveAuthorization: boolean
+      credentialBindings?: RoutingRule['credentialBindings']
     }
 
 function matchesStringList(values: string[], current: string | null): boolean {
@@ -206,7 +216,12 @@ export function matchesRoutingRule(rule: RoutingRule, ctx: RoutingContext): bool
 export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext): RoutingDecision {
   for (const rule of rules) {
     if (!matchesRoutingRule(rule, ctx)) continue
-    const meta = { target: rule.target, authMode: rule.authMode, preserveAuthorization: rule.preserveAuthorization }
+    const meta = {
+      target: rule.target,
+      authMode: rule.authMode,
+      preserveAuthorization: rule.preserveAuthorization,
+      credentialBindings: rule.credentialBindings ?? [],
+    }
     if (rule.action.type === 'rewrite_model') {
       return { matchedRule: rule, action: { type: 'rewrite_model', model: rule.action.model }, ...meta }
     }
@@ -221,6 +236,7 @@ export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext):
     target: { type: 'llama_swap' },
     authMode: 'require_key',
     preserveAuthorization: false,
+    credentialBindings: [],
   }
 }
 

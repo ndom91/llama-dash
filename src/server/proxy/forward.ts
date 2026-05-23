@@ -29,6 +29,7 @@ export type ProxyLogInput = {
   reqModel: string | null
   attribution: Attribution
   routing: RoutingOutcome
+  credentialInjectionJson?: string | null
 }
 
 export function formatUpstreamError(err: unknown): string {
@@ -107,6 +108,7 @@ export function writeProxyLog(input: ProxyLogInput) {
     routingRequestedModel: input.routing.requestedModel,
     routingRoutedModel: input.routing.routedModel,
     routingRejectReason: input.routing.rejectReason,
+    credentialInjectionJson: input.credentialInjectionJson ?? null,
   })
 }
 
@@ -125,6 +127,7 @@ export async function forwardUpstreamAndLog(input: {
   keyRow: ApiKey | null
   attribution: Attribution
   routing: RoutingOutcome
+  credentialInjectionJson?: string | null
 }): Promise<Response | { upstreamError: string }> {
   let upstreamResponse: Response
   try {
@@ -165,6 +168,7 @@ export async function forwardUpstreamAndLog(input: {
       reqModel: input.reqModel,
       attribution: input.attribution,
       routing: input.routing,
+      credentialInjectionJson: input.credentialInjectionJson,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
@@ -218,6 +222,7 @@ export async function forwardUpstreamAndLog(input: {
             reqModel: input.reqModel,
             attribution: input.attribution,
             routing: input.routing,
+            credentialInjectionJson: input.credentialInjectionJson,
           })
 
           if (input.keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
@@ -250,6 +255,7 @@ export async function forwardUpstreamAndLog(input: {
           reqModel: input.reqModel,
           attribution: input.attribution,
           routing: input.routing,
+          credentialInjectionJson: input.credentialInjectionJson,
         })
       }
     },
@@ -271,6 +277,7 @@ export async function forwardUpstreamAndLog(input: {
         reqModel: input.reqModel,
         attribution: input.attribution,
         routing: input.routing,
+        credentialInjectionJson: input.credentialInjectionJson,
       })
     },
   })

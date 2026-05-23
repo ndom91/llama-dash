@@ -105,6 +105,7 @@ export function getKeyRequests(
       routingTargetBaseUrl: r.routingTargetBaseUrl,
       routingTargetCredentialId: r.routingTargetCredentialId,
       routingRoutedModel: r.routingRoutedModel,
+      credentialInjectionJson: r.credentialInjectionJson,
     }))
 
   return {

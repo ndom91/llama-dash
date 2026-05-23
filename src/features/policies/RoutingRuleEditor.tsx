@@ -93,6 +93,7 @@ export function RoutingRuleEditor({
           <RoutingRuleActionSection draft={draft} modelOptions={modelOptions} onChange={onChange} />
           <RoutingRuleAuthSection draft={draft} onChange={onChange} />
           <RoutingRuleTargetSection draft={draft} credentials={credentials} onChange={onChange} />
+          <RoutingRuleCredentialSection draft={draft} credentials={credentials} onChange={onChange} />
           <RoutingRulePreview draft={draft} keyMap={keyMap} />
         </div>
       </div>
@@ -102,6 +103,156 @@ export function RoutingRuleEditor({
           {errorMessage}
         </div>
       ) : null}
+    </section>
+  )
+}
+
+function RoutingRuleCredentialSection({
+  draft,
+  credentials,
+  onChange,
+}: {
+  draft: RoutingRule
+  credentials: Array<{ id: string; name: string; slug?: string; type: string }>
+  onChange: (draft: RoutingRule) => void
+}) {
+  const bindings = draft.credentialBindings ?? []
+  const firstCredential = credentials[0]
+
+  const addBinding = () => {
+    if (!firstCredential) return
+    onChange({
+      ...draft,
+      credentialBindings: [
+        ...bindings,
+        {
+          credentialId: firstCredential.id,
+          mode: 'set_header',
+          headerName: 'authorization',
+          headerValueTemplate: firstCredential.slug
+            ? `Bearer {{llama-dash:credential:${firstCredential.slug}}}`
+            : undefined,
+          required: true,
+        },
+      ],
+    })
+  }
+
+  const updateBinding = (index: number, patch: Partial<(typeof bindings)[number]>) => {
+    onChange({
+      ...draft,
+      credentialBindings: bindings.map((binding, i) => (i === index ? { ...binding, ...patch } : binding)),
+    })
+  }
+
+  const removeBinding = (index: number) => {
+    onChange({ ...draft, credentialBindings: bindings.filter((_, i) => i !== index) })
+  }
+
+  return (
+    <section className="rounded border border-border bg-surface-1 p-3 font-mono text-xs text-fg-dim">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Credential injection</div>
+          <div className="mt-1 text-[11px] text-fg-faint">Set or replace outbound headers after policy matches.</div>
+        </div>
+        <button type="button" className="btn btn-ghost btn-xs" onClick={addBinding} disabled={!firstCredential}>
+          add binding
+        </button>
+      </div>
+
+      {bindings.length === 0 ? <div className="text-fg-faint">No credential bindings for this rule.</div> : null}
+
+      <div className="space-y-3">
+        {bindings.map((binding, index) => {
+          const credential = credentials.find((item) => item.id === binding.credentialId) ?? firstCredential
+          return (
+            <div
+              key={`${binding.credentialId}-${binding.headerName}-${binding.mode}`}
+              className="grid gap-2 rounded border border-border bg-surface-0 p-3"
+            >
+              <div className="grid gap-2 md:grid-cols-2">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Credential</span>
+                  <select
+                    className="h-9 rounded border border-border bg-surface-3 px-3 text-fg focus-visible:outline-none focus-visible:shadow-focus"
+                    value={binding.credentialId}
+                    onChange={(event) => {
+                      const next = credentials.find((item) => item.id === event.target.value)
+                      updateBinding(index, {
+                        credentialId: event.target.value,
+                        headerValueTemplate:
+                          binding.mode === 'set_header' && next?.slug
+                            ? `Bearer {{llama-dash:credential:${next.slug}}}`
+                            : binding.headerValueTemplate,
+                      })
+                    }}
+                  >
+                    {credentials.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Mode</span>
+                  <select
+                    className="h-9 rounded border border-border bg-surface-3 px-3 text-fg focus-visible:outline-none focus-visible:shadow-focus"
+                    value={binding.mode}
+                    onChange={(event) =>
+                      updateBinding(index, {
+                        mode: event.target.value as 'replace_placeholder' | 'set_header',
+                        headerValueTemplate:
+                          event.target.value === 'set_header' && credential?.slug
+                            ? `Bearer {{llama-dash:credential:${credential.slug}}}`
+                            : undefined,
+                      })
+                    }
+                  >
+                    <option value="set_header">set header</option>
+                    <option value="replace_placeholder">replace placeholder</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Header name</span>
+                <input
+                  type="text"
+                  className="h-9 rounded border border-border bg-surface-3 px-3 text-fg focus-visible:outline-none focus-visible:shadow-focus"
+                  value={binding.headerName}
+                  onChange={(event) => updateBinding(index, { headerName: event.target.value })}
+                />
+              </label>
+              {binding.mode === 'set_header' ? (
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Header value template</span>
+                  <input
+                    type="text"
+                    className="h-9 rounded border border-border bg-surface-3 px-3 text-fg focus-visible:outline-none focus-visible:shadow-focus"
+                    value={binding.headerValueTemplate ?? ''}
+                    placeholder={credential?.slug ? `Bearer {{llama-dash:credential:${credential.slug}}}` : ''}
+                    onChange={(event) => updateBinding(index, { headerValueTemplate: event.target.value })}
+                  />
+                </label>
+              ) : null}
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex items-center gap-2 text-[11px] text-fg-faint">
+                  <input
+                    type="checkbox"
+                    checked={binding.required ?? false}
+                    onChange={(event) => updateBinding(index, { required: event.target.checked })}
+                  />
+                  required
+                </label>
+                <button type="button" className="btn btn-ghost btn-xs" onClick={() => removeBinding(index)}>
+                  remove
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </section>
   )
 }

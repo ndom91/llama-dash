@@ -195,7 +195,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
    bypassing llama-swap for that matched request while keeping proxy logging.
    Direct targets can reference encrypted upstream bearer credentials; the
    admin API never returns secret values, and the proxy injects the credential
-   immediately before forwarding. Stored credentials require
+   immediately before forwarding. Routing rules can also bind encrypted
+   credentials to outbound headers either by setting the header automatically
+   or replacing a namespaced `{{llama-dash:credential:<slug>}}` placeholder;
+   injected values are redacted in request logs and recorded as credential
+   injection metadata. Stored credentials require
    `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with

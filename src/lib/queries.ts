@@ -494,7 +494,7 @@ export function useCreateRoutingRule(): UseMutationResult<RoutingRule, Error, Cr
 export function useCreateUpstreamCredential(): UseMutationResult<
   UpstreamCredential,
   Error,
-  { name: string; type: 'bearer'; value: string }
+  { name: string; slug?: string; type: 'bearer'; value: string; placeholderEnabled?: boolean }
 > {
   const qc = useQueryClient()
   return useMutation({

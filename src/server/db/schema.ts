@@ -41,6 +41,7 @@ export const requests = sqliteTable(
     routingRequestedModel: text('routing_requested_model'),
     routingRoutedModel: text('routing_routed_model'),
     routingRejectReason: text('routing_reject_reason'),
+    credentialInjectionJson: text('credential_injection_json'),
   },
   (table) => [
     index('idx_requests_started_at').on(table.startedAt),
@@ -204,6 +205,7 @@ export const routingRules = sqliteTable('routing_rules', {
   matchJson: text('match_json').notNull(),
   actionJson: text('action_json').notNull(),
   targetJson: text('target_json').notNull().default('{"type":"llama_swap"}'),
+  credentialBindingsJson: text('credential_bindings_json').notNull().default('[]'),
   authMode: text('auth_mode', { enum: ['require_key', 'passthrough'] })
     .notNull()
     .default('require_key'),
@@ -218,8 +220,10 @@ export type NewRoutingRule = typeof routingRules.$inferInsert
 export const upstreamCredentials = sqliteTable('upstream_credentials', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
   type: text('type', { enum: ['bearer'] }).notNull(),
   encryptedValue: text('encrypted_value').notNull(),
+  placeholderEnabled: integer('placeholder_enabled', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }),

@@ -29,7 +29,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
 - **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
-- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, encrypted upstream credential injection, per-key system prompt injection, and global request size limits.
+- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, encrypted upstream credential injection, header credential placeholder replacement, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
 - **Request auditing** — per-key usage tracking across all proxied calls.
 - **Prometheus metrics** — `/metrics` exposes proxy request, token, latency-window, queue, upstream, running-model, and GPU gauges.
@@ -45,7 +45,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - See which models are running, which clients are using them, and where latency is coming from.
 - Debug slow or failed requests with status, token usage, timing, routing, attribution, and upstream metadata in one place.
 - Enforce model allow-lists, request size limits, model aliases, and routing rules before traffic reaches llama-swap/llama-cpp.
-- Route Claude Code or other Anthropic clients through one observable gateway while preserving subscription/OAuth bearer flows.
+- Route Claude Code or other Anthropic clients through one observable gateway while preserving subscription/OAuth bearer flows or injecting stored provider credentials from routing policy.
 - Keep Prometheus metrics and searchable SQLite request history for a single-box self-hosted AI stack.
 
 <table>
@@ -160,7 +160,7 @@ Copy `.env.example` to `.env` and fill in the values.
 | `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
 | `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
-| `CREDENTIAL_ENCRYPTION_KEY` | | 32+ character secret used to encrypt stored upstream provider credentials. Required before creating or injecting upstream credentials. |
+| `CREDENTIAL_ENCRYPTION_KEY` | | 32+ character secret used to encrypt stored upstream provider credentials. Required before creating, placeholder-replacing, or injecting upstream credentials. |
 
 See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md) for the backend abstraction, capability model, and future Ollama notes.
 
@@ -208,6 +208,12 @@ target path or Claude source model names, using `continue`, `passthrough` auth, 
 `Authorization`, and direct target `https://api.anthropic.com/v1`. This
 will result in all Anthropic requests being transparently proxied through
 while logging all traffic in llama-dash and applying filters.
+
+For provider-key flows, store the upstream token in the Policies credential
+vault and add a credential binding to the routing rule. Bindings can either
+set an outbound header automatically or replace a client-sent header
+placeholder like `{{llama-dash:credential:anthropic-prod}}`; injected values
+are redacted from request logs.
 
 ## 🤖 Acknowledgements
 

@@ -1,5 +1,6 @@
-import { Plus } from 'lucide-react'
+import { Eye, EyeOff, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { CopyableCode } from '../../components/CopyableCode'
 import type { RoutingRule } from '../../lib/api'
 import {
   useApiKeys,
@@ -36,6 +37,7 @@ function emptyRule(order: number): RoutingRule {
     target: { type: 'llama_swap' },
     authMode: 'require_key',
     preserveAuthorization: false,
+    credentialBindings: [],
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   }
@@ -49,7 +51,7 @@ export function RoutingPanel() {
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
-  const { data: credentialState } = useUpstreamCredentials()
+  const { data: credentialState, error: credentialError } = useUpstreamCredentials()
   const createRuleMutation = useCreateRoutingRule()
   const createCredentialMutation = useCreateUpstreamCredential()
   const deleteCredentialMutation = useDeleteUpstreamCredential()
@@ -98,6 +100,7 @@ export function RoutingPanel() {
       target: draft.target,
       authMode: draft.authMode,
       preserveAuthorization: draft.authMode === 'passthrough' && draft.preserveAuthorization,
+      credentialBindings: draft.credentialBindings ?? [],
     }
     const existing = rules.some((rule) => rule.id === draft.id)
     if (existing) {
@@ -255,6 +258,7 @@ export function RoutingPanel() {
             credentials={credentials}
             vaultEnabled={credentialState?.vaultEnabled ?? false}
             vaultStatus={credentialState?.vaultStatus ?? 'missing_key'}
+            errorMessage={credentialError?.message}
             createPending={createCredentialMutation.isPending}
             deletePending={deleteCredentialMutation.isPending}
             onCreate={(body) => createCredentialMutation.mutate(body)}
@@ -270,33 +274,56 @@ function CredentialVaultPanel({
   credentials,
   vaultEnabled,
   vaultStatus,
+  errorMessage,
   createPending,
   deletePending,
   onCreate,
   onDelete,
 }: {
-  credentials: Array<{ id: string; name: string; type: 'bearer'; lastUsedAt: string | null }>
+  credentials: Array<{
+    id: string
+    name: string
+    slug: string
+    type: 'bearer'
+    placeholderEnabled: boolean
+    lastUsedAt: string | null
+  }>
   vaultEnabled: boolean
   vaultStatus: 'ready' | 'missing_key' | 'key_too_short'
+  errorMessage?: string
   createPending: boolean
   deletePending: boolean
-  onCreate: (body: { name: string; type: 'bearer'; value: string }) => void
+  onCreate: (body: { name: string; slug?: string; type: 'bearer'; value: string; placeholderEnabled?: boolean }) => void
   onDelete: (id: string) => void
 }) {
   const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
   const [value, setValue] = useState('')
+  const [showValue, setShowValue] = useState(false)
+  const [placeholderEnabled, setPlaceholderEnabled] = useState(false)
 
   const submit = () => {
     if (!name.trim() || !value.trim()) return
-    onCreate({ name: name.trim(), type: 'bearer', value: value.trim() })
+    onCreate({
+      name: name.trim(),
+      slug: slug.trim() || undefined,
+      type: 'bearer',
+      value: value.trim(),
+      placeholderEnabled,
+    })
     setName('')
+    setSlug('')
     setValue('')
+    setShowValue(false)
+    setPlaceholderEnabled(false)
   }
-  const statusText = vaultEnabled
-    ? 'encrypted at rest'
-    : vaultStatus === 'key_too_short'
-      ? 'disabled · CREDENTIAL_ENCRYPTION_KEY must be 32+ chars'
-      : 'disabled · set CREDENTIAL_ENCRYPTION_KEY and restart'
+  const statusText = errorMessage
+    ? 'disabled · credential status unavailable'
+    : vaultEnabled
+      ? 'encrypted at rest'
+      : vaultStatus === 'key_too_short'
+        ? 'disabled · CREDENTIAL_ENCRYPTION_KEY must be 32+ chars'
+        : 'disabled · set CREDENTIAL_ENCRYPTION_KEY and restart'
 
   return (
     <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
@@ -304,7 +331,12 @@ function CredentialVaultPanel({
         <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Upstream credential vault</span>
         <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">· {statusText}</span>
       </div>
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_minmax(0,1fr)_auto]">
+      {errorMessage ? (
+        <div className="mb-3 rounded border border-err/40 bg-err/10 px-3 py-2 text-[11px] text-err">
+          Failed to load credential vault status: {errorMessage}
+        </div>
+      ) : null}
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,180px)_minmax(0,180px)_minmax(0,1fr)_auto]">
         <input
           type="text"
           className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
@@ -314,16 +346,43 @@ function CredentialVaultPanel({
           disabled={!vaultEnabled}
         />
         <input
-          type="password"
+          type="text"
           data-1p-ignore="true"
           data-lpignore="true"
           data-form-type="other"
           className="h-9 rounded border border-border bg-surface-3 px-3 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
-          placeholder="Bearer token"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
+          placeholder="slug (optional)"
+          value={slug}
+          onChange={(event) => setSlug(event.target.value)}
           disabled={!vaultEnabled}
         />
+        <div className="relative min-w-0">
+          <input
+            type={showValue ? 'text' : 'password'}
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
+            className="h-9 w-full rounded border border-border bg-surface-3 px-3 pr-10 font-mono text-xs text-fg focus-visible:outline-none focus-visible:shadow-focus"
+            placeholder="Bearer token"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            disabled={!vaultEnabled}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r text-fg-faint transition-colors hover:text-fg focus-visible:outline-none focus-visible:shadow-focus disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => setShowValue((visible) => !visible)}
+            disabled={!vaultEnabled || !value}
+            aria-label={showValue ? 'Hide secret value' : 'Show secret value'}
+            aria-pressed={showValue}
+          >
+            {showValue ? (
+              <EyeOff className="size-3.5" strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <Eye className="size-3.5" strokeWidth={2} aria-hidden="true" />
+            )}
+          </button>
+        </div>
         <button
           type="button"
           className="btn btn-primary h-9 px-3 text-xs"
@@ -333,6 +392,15 @@ function CredentialVaultPanel({
           add credential
         </button>
       </div>
+      <label className="mt-3 flex items-center gap-2 text-[11px] text-fg-faint">
+        <input
+          type="checkbox"
+          checked={placeholderEnabled}
+          onChange={(event) => setPlaceholderEnabled(event.target.checked)}
+          disabled={!vaultEnabled}
+        />
+        allow client-provided `{'{{llama-dash:credential:<slug>}}'}` placeholders for this credential
+      </label>
       <div className="mt-4 divide-y divide-border rounded border border-border bg-surface-1">
         {credentials.length === 0 ? (
           <div className="px-3 py-3 text-fg-faint">No upstream credentials stored.</div>
@@ -340,7 +408,13 @@ function CredentialVaultPanel({
           credentials.map((credential) => (
             <div key={credential.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
               <span className="text-fg">{credential.name}</span>
+              <span className="text-fg-faint">{credential.slug}</span>
               <span className="text-fg-faint">{credential.type}</span>
+              {credential.placeholderEnabled ? (
+                <CopyableCode text={`{{llama-dash:credential:${credential.slug}}}`} />
+              ) : (
+                <span className="text-fg-faint">placeholder off</span>
+              )}
               <span className="text-fg-faint">last used {credential.lastUsedAt ?? 'never'}</span>
               <button
                 type="button"

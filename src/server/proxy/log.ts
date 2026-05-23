@@ -64,6 +64,7 @@ export type RequestLogInput = {
   routingRequestedModel: string | null
   routingRoutedModel: string | null
   routingRejectReason: string | null
+  credentialInjectionJson?: string | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -151,6 +152,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
       routingRequestedModel: row.routingRequestedModel,
       routingRoutedModel: row.routingRoutedModel,
       routingRejectReason: row.routingRejectReason,
+      credentialInjectionJson: row.credentialInjectionJson ?? null,
     })
     .run()
   publishAdminEvent('request.completed', {
@@ -183,6 +185,7 @@ export function writeRequestLogNow(row: RequestLogInput) {
         routingTargetBaseUrl: row.routingTargetBaseUrl,
         routingTargetCredentialId: row.routingTargetCredentialId,
         routingRoutedModel: row.routingRoutedModel,
+        credentialInjectionJson: row.credentialInjectionJson ?? null,
       },
       row.keyId ? getApiKeyName(row.keyId) : null,
     ),

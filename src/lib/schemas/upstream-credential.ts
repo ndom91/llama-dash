@@ -3,10 +3,17 @@ import * as v from 'valibot'
 export const UpstreamCredentialTypeSchema = v.picklist(['bearer'])
 export type UpstreamCredentialType = v.InferOutput<typeof UpstreamCredentialTypeSchema>
 
+export const UpstreamCredentialSlugSchema = v.pipe(
+  v.string(),
+  v.regex(/^[a-z0-9][a-z0-9_-]{1,80}$/, 'Use lowercase letters, numbers, dashes, or underscores'),
+)
+
 export const UpstreamCredentialSchema = v.object({
   id: v.string(),
   name: v.string(),
+  slug: UpstreamCredentialSlugSchema,
   type: UpstreamCredentialTypeSchema,
+  placeholderEnabled: v.boolean(),
   createdAt: v.string(),
   updatedAt: v.string(),
   lastUsedAt: v.nullable(v.string()),
@@ -21,13 +28,17 @@ export const UpstreamCredentialListResponseSchema = v.object({
 
 export const CreateUpstreamCredentialBodySchema = v.object({
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
+  slug: v.optional(UpstreamCredentialSlugSchema),
   type: UpstreamCredentialTypeSchema,
   value: v.pipe(v.string(), v.minLength(1), v.maxLength(4000)),
+  placeholderEnabled: v.optional(v.boolean()),
 })
 export type CreateUpstreamCredentialBody = v.InferOutput<typeof CreateUpstreamCredentialBodySchema>
 
 export const UpdateUpstreamCredentialBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(200))),
+  slug: v.optional(UpstreamCredentialSlugSchema),
   value: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(4000))),
+  placeholderEnabled: v.optional(v.boolean()),
 })
 export type UpdateUpstreamCredentialBody = v.InferOutput<typeof UpdateUpstreamCredentialBodySchema>

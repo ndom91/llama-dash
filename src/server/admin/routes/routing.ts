@@ -49,7 +49,8 @@ export const routingRoutes: Route[] = [
         result.output.action === undefined &&
         result.output.target === undefined &&
         result.output.authMode === undefined &&
-        result.output.preserveAuthorization === undefined
+        result.output.preserveAuthorization === undefined &&
+        result.output.credentialBindings === undefined
       ) {
         return error(400, 'At least one field to update is required')
       }

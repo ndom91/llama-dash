@@ -29,6 +29,7 @@ export const ApiRequestSchema = v.object({
   routingTargetBaseUrl: v.nullable(v.string()),
   routingTargetCredentialId: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
+  credentialInjectionJson: v.nullable(v.string()),
 })
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>
@@ -54,6 +55,7 @@ export const ApiRequestDetailSchema = v.object({
   routingRequestedModel: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
   routingRejectReason: v.nullable(v.string()),
+  credentialInjectionJson: v.nullable(v.string()),
 })
 
 export type ApiRequestDetail = v.InferOutput<typeof ApiRequestDetailSchema>

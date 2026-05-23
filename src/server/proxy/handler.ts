@@ -15,7 +15,8 @@ import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms } from './transforms.ts'
-import { getCredentialAuthorizationHeader } from '../admin/upstream-credentials.ts'
+import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
+import { config } from '../config.ts'
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
   const ctx = createProxyContext(request)
@@ -47,6 +48,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       reqModel: ctx.body?.reqModel ?? null,
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
+      credentialInjectionJson: ctx.credentialInjectionJson,
     })
     return new Response(JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)), {
       status: authResult.status,
@@ -88,6 +90,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           reqModel: ctx.body.reqModel,
           attribution: ctx.attribution,
           routing: ctx.routingOutcome,
+          credentialInjectionJson: ctx.credentialInjectionJson,
         })
         return Response.json(toErrorBody(ctx.endpoint, transformResult.body), { status: transformResult.status })
       }
@@ -101,35 +104,38 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     delete ctx.reqHeaders.authorization
   }
 
-  if (ctx.routingOutcome.targetCredentialId) {
-    const authorization = getCredentialAuthorizationHeader(
-      ctx.routingOutcome.targetCredentialId,
-      process.env.CREDENTIAL_ENCRYPTION_KEY ?? '',
+  const credentialInjection = applyCredentialInjection({
+    headers: ctx.reqHeaders,
+    routing: ctx.routingOutcome,
+    encryptionKey: config.credentialEncryptionKey,
+  })
+  ctx.credentialInjectionJson = auditToJson(credentialInjection.audit)
+  ctx.redactedInjectedHeaderNames = credentialInjection.redactedHeaderNames
+  if (!credentialInjection.ok) {
+    writeProxyLog({
+      startedAt: ctx.startedAt,
+      status: credentialInjection.status,
+      method: ctx.method,
+      endpoint: ctx.endpoint,
+      usage: nullUsage(ctx.body?.reqModel),
+      streamed: false,
+      error: credentialInjection.message,
+      reqHeaders: loggedRequestHeaders(ctx),
+      reqBody: loggedRequestBody(ctx),
+      resHeaders: null,
+      resBody: null,
+      keyId: ctx.keyId,
+      reqModel: ctx.body?.reqModel ?? null,
+      attribution: ctx.attribution,
+      routing: ctx.routingOutcome,
+      credentialInjectionJson: ctx.credentialInjectionJson,
+    })
+    return Response.json(
+      toErrorBody(ctx.endpoint, {
+        error: { message: credentialInjection.message, type: credentialInjection.type },
+      }),
+      { status: credentialInjection.status },
     )
-    if (!authorization) {
-      const message = `Upstream credential ${ctx.routingOutcome.targetCredentialId} not found`
-      writeProxyLog({
-        startedAt: ctx.startedAt,
-        status: 502,
-        method: ctx.method,
-        endpoint: ctx.endpoint,
-        usage: nullUsage(ctx.body?.reqModel),
-        streamed: false,
-        error: message,
-        reqHeaders: loggedRequestHeaders(ctx),
-        reqBody: loggedRequestBody(ctx),
-        resHeaders: null,
-        resBody: null,
-        keyId: ctx.keyId,
-        reqModel: ctx.body?.reqModel ?? null,
-        attribution: ctx.attribution,
-        routing: ctx.routingOutcome,
-      })
-      return Response.json(toErrorBody(ctx.endpoint, { error: { message, type: 'upstream_credential_missing' } }), {
-        status: 502,
-      })
-    }
-    ctx.reqHeaders.authorization = authorization
   }
 
   const reqHeadersJson = loggedRequestHeaders(ctx)
@@ -149,6 +155,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     keyRow: ctx.keyRow,
     attribution: ctx.attribution,
     routing: ctx.routingOutcome,
+    credentialInjectionJson: ctx.credentialInjectionJson,
   })
 
   if ('upstreamError' in forwardedResponse) {
@@ -168,6 +175,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       reqModel: ctx.body?.reqModel ?? null,
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
+      credentialInjectionJson: ctx.credentialInjectionJson,
     })
     return Response.json(
       toErrorBody(ctx.endpoint, {
@@ -199,6 +207,7 @@ function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
     reqModel: ctx.body?.reqModel ?? null,
     attribution: ctx.attribution,
     routing: ctx.routingOutcome,
+    credentialInjectionJson: ctx.credentialInjectionJson,
   })
   return Response.json(toErrorBody(ctx.endpoint, body), { status: 413 })
 }

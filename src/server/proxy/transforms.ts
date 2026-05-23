@@ -2,6 +2,7 @@ import { resolveAlias } from '../admin/model-aliases.ts'
 import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
+import type { CredentialBinding } from '../../lib/schemas/routing-rule.ts'
 import { estimatePromptTokens, getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
 
 export type TransformContext = {
@@ -24,6 +25,7 @@ export type RoutingOutcome = {
   requestedModel: string | null
   routedModel: string | null
   rejectReason: string | null
+  credentialBindings: CredentialBinding[]
 }
 
 type TransformOk = { ok: true; body: Record<string, unknown> | null; mutated: boolean; routing: RoutingOutcome }
@@ -53,6 +55,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
         target: { type: 'llama_swap' as const },
         authMode: 'require_key' as const,
         preserveAuthorization: false as const,
+        credentialBindings: [] as CredentialBinding[],
       }
     : evaluateRoutingRules(listRoutingRules(), {
         endpoint: ctx.endpoint,
@@ -130,6 +133,7 @@ export function emptyRoutingOutcome(): RoutingOutcome {
     requestedModel: null,
     routedModel: null,
     rejectReason: null,
+    credentialBindings: [],
   }
 }
 
@@ -150,6 +154,7 @@ export function routingOutcomeFromDecision(
     requestedModel,
     routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,
     rejectReason: decision.action?.type === 'reject' ? decision.action.reason : null,
+    credentialBindings: decision.credentialBindings ?? [],
   }
 }
 

@@ -27,6 +27,7 @@ function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
     target: { type: 'llama_swap' },
     authMode: 'require_key',
     preserveAuthorization: false,
+    credentialBindings: [],
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
     ...overrides,

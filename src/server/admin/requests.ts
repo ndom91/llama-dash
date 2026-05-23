@@ -36,6 +36,7 @@ type RequestSummarySource = Pick<
   | 'routingTargetBaseUrl'
   | 'routingTargetCredentialId'
   | 'routingRoutedModel'
+  | 'credentialInjectionJson'
 >
 
 export function toRequestRow(row: RequestSummarySource, keyName: string | null): RequestRow {
@@ -68,6 +69,7 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     routingTargetBaseUrl: row.routingTargetBaseUrl,
     routingTargetCredentialId: row.routingTargetCredentialId,
     routingRoutedModel: row.routingRoutedModel,
+    credentialInjectionJson: row.credentialInjectionJson,
   }
 }
 
@@ -103,6 +105,7 @@ export function listRecentRequests(opts: { limit: number; cursor?: string }): Ar
       routingTargetBaseUrl: schema.requests.routingTargetBaseUrl,
       routingTargetCredentialId: schema.requests.routingTargetCredentialId,
       routingRoutedModel: schema.requests.routingRoutedModel,
+      credentialInjectionJson: schema.requests.credentialInjectionJson,
     })
     .from(schema.requests)
     .where(and(where))
@@ -164,6 +167,7 @@ export function getRequestById(id: string): RequestDetail | null {
     routingRequestedModel: r.routingRequestedModel,
     routingRoutedModel: r.routingRoutedModel,
     routingRejectReason: r.routingRejectReason,
+    credentialInjectionJson: r.credentialInjectionJson,
   }
 }
 

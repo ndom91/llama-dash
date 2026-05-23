@@ -11,6 +11,7 @@ import {
   listUpstreamCredentials,
   updateUpstreamCredential,
 } from '../upstream-credentials.ts'
+import { config } from '../../config.ts'
 import { error, json, readJsonBody, type Route } from './types.ts'
 
 export const upstreamCredentialRoutes: Route[] = [
@@ -18,7 +19,7 @@ export const upstreamCredentialRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/upstream-credentials$/,
     handler: async () => {
-      const encryptionKey = process.env.CREDENTIAL_ENCRYPTION_KEY ?? ''
+      const encryptionKey = config.credentialEncryptionKey
       return json(200, {
         credentials: listUpstreamCredentials(),
         vaultEnabled: isCredentialVaultKeyEnabled(encryptionKey),
@@ -35,7 +36,7 @@ export const upstreamCredentialRoutes: Route[] = [
       const result = v.safeParse(CreateUpstreamCredentialBodySchema, parsed.value)
       if (!result.success) return error(400, 'Invalid upstream credential body')
       try {
-        return json(201, createUpstreamCredential(result.output, process.env.CREDENTIAL_ENCRYPTION_KEY ?? ''))
+        return json(201, createUpstreamCredential(result.output, config.credentialEncryptionKey))
       } catch (err) {
         return error(400, err instanceof Error ? err.message : String(err))
       }
@@ -49,11 +50,16 @@ export const upstreamCredentialRoutes: Route[] = [
       if (!parsed.ok) return error(400, 'Invalid JSON body')
       const result = v.safeParse(UpdateUpstreamCredentialBodySchema, parsed.value)
       if (!result.success) return error(400, 'Invalid upstream credential body')
-      if (result.output.name === undefined && result.output.value === undefined) {
+      if (
+        result.output.name === undefined &&
+        result.output.slug === undefined &&
+        result.output.value === undefined &&
+        result.output.placeholderEnabled === undefined
+      ) {
         return error(400, 'At least one field to update is required')
       }
       try {
-        const updated = updateUpstreamCredential(match[1], result.output, process.env.CREDENTIAL_ENCRYPTION_KEY ?? '')
+        const updated = updateUpstreamCredential(match[1], result.output, config.credentialEncryptionKey)
         if (!updated) return error(404, `Upstream credential ${match[1]} not found`)
         return json(200, updated)
       } catch (err) {

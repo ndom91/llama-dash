@@ -154,10 +154,17 @@ export const api = {
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
-  createUpstreamCredential: (body: { name: string; type: 'bearer'; value: string }) =>
-    sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
-  updateUpstreamCredential: (id: string, body: { name?: string; value?: string }) =>
-    sendJson(`/api/upstream-credentials/${id}`, UpstreamCredentialSchema, { method: 'PATCH', body }),
+  createUpstreamCredential: (body: {
+    name: string
+    slug?: string
+    type: 'bearer'
+    value: string
+    placeholderEnabled?: boolean
+  }) => sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
+  updateUpstreamCredential: (
+    id: string,
+    body: { name?: string; slug?: string; value?: string; placeholderEnabled?: boolean },
+  ) => sendJson(`/api/upstream-credentials/${id}`, UpstreamCredentialSchema, { method: 'PATCH', body }),
   deleteUpstreamCredential: (id: string) => sendEmpty(`/api/upstream-credentials/${id}`, OkSchema, 'DELETE'),
   createRoutingRule: (body: {
     name: string
@@ -167,6 +174,7 @@ export const api = {
     target?: object
     authMode?: string
     preserveAuthorization?: boolean
+    credentialBindings?: object[]
   }) => sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
   updateRoutingRule: (
     id: string,
@@ -178,6 +186,7 @@ export const api = {
       target?: object
       authMode?: string
       preserveAuthorization?: boolean
+      credentialBindings?: object[]
     },
   ) => sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
   deleteRoutingRule: (id: string) => sendEmpty(`/api/routing-rules/${id}`, OkSchema, 'DELETE'),

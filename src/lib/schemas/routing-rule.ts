@@ -6,6 +6,9 @@ export type RoutingStreamMode = v.InferOutput<typeof RoutingStreamModeSchema>
 export const RoutingAuthModeSchema = v.picklist(['require_key', 'passthrough'])
 export type RoutingAuthMode = v.InferOutput<typeof RoutingAuthModeSchema>
 
+export const CredentialBindingModeSchema = v.picklist(['replace_placeholder', 'set_header'])
+export type CredentialBindingMode = v.InferOutput<typeof CredentialBindingModeSchema>
+
 const NonEmptyStringArraySchema = v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(200)))
 const OptionalPositiveIntStringSchema = v.pipe(v.string(), v.regex(/^\d*$/))
 
@@ -91,6 +94,17 @@ export const DirectTargetSchema = v.pipe(
 export const RoutingTargetSchema = v.variant('type', [LlamaSwapTargetSchema, DirectTargetSchema])
 export type RoutingTarget = v.InferOutput<typeof RoutingTargetSchema>
 
+const HeaderNameSchema = v.pipe(v.string(), v.regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/), v.maxLength(100))
+
+export const CredentialBindingSchema = v.object({
+  credentialId: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),
+  mode: CredentialBindingModeSchema,
+  headerName: HeaderNameSchema,
+  headerValueTemplate: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(1000))),
+  required: v.optional(v.boolean()),
+})
+export type CredentialBinding = v.InferOutput<typeof CredentialBindingSchema>
+
 export const ALLOWED_DIRECT_UPSTREAM_HOSTS = new Set(['api.openai.com', 'api.anthropic.com'])
 
 export function isAllowedDirectUpstream(baseUrl: string): boolean {
@@ -124,6 +138,7 @@ export const RoutingRuleSchema = v.object({
   target: RoutingTargetSchema,
   authMode: RoutingAuthModeSchema,
   preserveAuthorization: v.boolean(),
+  credentialBindings: v.optional(v.array(CredentialBindingSchema)),
   createdAt: v.string(),
   updatedAt: v.string(),
 })
@@ -141,6 +156,7 @@ const CreateRoutingRuleBodyBaseSchema = v.object({
   target: v.optional(RoutingTargetSchema),
   authMode: v.optional(RoutingAuthModeSchema),
   preserveAuthorization: v.optional(v.boolean()),
+  credentialBindings: v.optional(v.array(CredentialBindingSchema)),
 })
 
 export const CreateRoutingRuleBodySchema = v.pipe(
@@ -160,6 +176,7 @@ export const UpdateRoutingRuleBodySchema = v.object({
   target: v.optional(RoutingTargetSchema),
   authMode: v.optional(RoutingAuthModeSchema),
   preserveAuthorization: v.optional(v.boolean()),
+  credentialBindings: v.optional(v.array(CredentialBindingSchema)),
 })
 export type UpdateRoutingRuleBody = v.InferOutput<typeof UpdateRoutingRuleBodySchema>
 

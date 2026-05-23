@@ -48,6 +48,7 @@ function input(overrides: Partial<ProxyLogInput> = {}): ProxyLogInput {
       requestedModel: null,
       routedModel: null,
       rejectReason: null,
+      credentialBindings: [],
     },
     ...overrides,
   }
