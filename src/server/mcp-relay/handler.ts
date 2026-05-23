@@ -26,7 +26,12 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
 
   if (!slug) return errorResponse(404, 'MCP relay not found')
 
-  const relay = getMcpRelayBySlug(slug)
+  let relay: ReturnType<typeof getMcpRelayBySlug>
+  try {
+    relay = getMcpRelayBySlug(slug)
+  } catch (err) {
+    return errorResponse(500, err instanceof Error ? err.message : String(err))
+  }
   if (!relay?.enabled) return errorResponse(404, `MCP relay ${slug} not found`)
 
   const auth = authenticateGatewayRequest(request)

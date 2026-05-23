@@ -61,19 +61,20 @@ function toApiShape(row: schema.McpRelay | schema.NewMcpRelay): McpRelay {
     slug: row.slug,
     targetUrl: row.targetUrl,
     enabled: row.enabled ?? true,
-    credentialBindings: parseCredentialBindings(row.credentialBindingsJson ?? '[]'),
+    credentialBindings: parseCredentialBindings(row.id, row.credentialBindingsJson ?? '[]'),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }
 }
 
-function parseCredentialBindings(value: string): CredentialBinding[] {
+function parseCredentialBindings(relayId: string, value: string): CredentialBinding[] {
   try {
     const result = v.safeParse(v.array(CredentialBindingSchema), JSON.parse(value))
-    return result.success ? result.output : []
+    if (result.success) return result.output
   } catch {
-    return []
+    // Fall through to the fail-closed error below.
   }
+  throw new Error(`Invalid credential bindings for MCP relay ${relayId}`)
 }
 
 function ensureUniqueSlug(input: string): string {
