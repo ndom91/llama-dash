@@ -329,14 +329,14 @@ export function getAdjacentIds(id: string): { prevId: string | null; nextId: str
   const prev = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(gt(schema.requests.id, id))
+    .where(and(gt(schema.requests.id, id), notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN)))
     .orderBy(asc(schema.requests.id))
     .limit(1)
     .get()
   const next = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(lt(schema.requests.id, id))
+    .where(and(lt(schema.requests.id, id), notLike(schema.requests.endpoint, MCP_RELAY_ENDPOINT_LIKE_PATTERN)))
     .orderBy(desc(schema.requests.id))
     .limit(1)
     .get()
