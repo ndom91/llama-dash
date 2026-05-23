@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CodeBlock } from '../../components/CodeBlock'
 import { CopyableCode } from '../../components/CopyableCode'
 import { Tooltip } from '../../components/Tooltip'
@@ -29,7 +29,12 @@ export function McpRelayPanel({
   const [slug, setSlug] = useState('')
   const [targetUrl, setTargetUrl] = useState('')
   const [credentialId, setCredentialId] = useState('')
+  const [origin, setOrigin] = useState('http://<llama-dash-host>:5173')
   const selectedCredentialId = credentialId || credentials[0]?.id || ''
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') setOrigin(window.location.origin)
+  }, [])
 
   const submit = () => {
     if (!name.trim() || !targetUrl.trim() || !selectedCredentialId) return
@@ -157,20 +162,20 @@ export function McpRelayPanel({
       <CodeBlock
         title="Claude Code MCP config"
         lang="json"
-        text={claudeCodeMcpConfig(relays[0]?.slug)}
+        text={claudeCodeMcpConfig(relays[0]?.slug, origin)}
         className="rounded-lg"
       />
     </div>
   )
 }
 
-function claudeCodeMcpConfig(slug = '<relay-slug>'): string {
+function claudeCodeMcpConfig(slug = '<relay-slug>', origin = 'http://<llama-dash-host>:5173'): string {
   return JSON.stringify(
     {
       mcpServers: {
         [slug]: {
           type: 'http',
-          url: `http://<llama-dash-host>:5173/mcp-relays/${slug}`,
+          url: `${origin}/mcp-relays/${slug}`,
           headers: {
             'x-llama-dash-api-key': 'sk-...',
           },
