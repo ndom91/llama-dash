@@ -10,7 +10,7 @@ import {
 } from '../proxy/credential-placeholders.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
-import { filterRequestHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
+import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
 import { emptyRoutingOutcome, type RoutingOutcome } from '../proxy/transforms.ts'
 
 const RELAY_PREFIX = '/mcp-relays/'
@@ -200,13 +200,7 @@ function relayRoutingOutcome(relay: NonNullable<ReturnType<typeof getMcpRelayByS
 }
 
 function loggedHeaders(headers: Record<string, string>, redactedInjectedHeaderNames: Set<string>): string {
-  const redacted = redactSensitiveHeaders(headers)
-  for (const name of redactedInjectedHeaderNames) {
-    for (const key of Object.keys(redacted)) {
-      if (key.toLowerCase() === name) redacted[key] = REDACTED_INJECTED_CREDENTIAL
-    }
-  }
-  return JSON.stringify(redacted)
+  return JSON.stringify(redactInjectedHeaders(headers, redactedInjectedHeaderNames, REDACTED_INJECTED_CREDENTIAL))
 }
 
 function deleteHeader(headers: Record<string, string>, name: string) {

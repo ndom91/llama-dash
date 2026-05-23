@@ -16,7 +16,15 @@ const HOP_BY_HOP = new Set([
 // `content-length` too since the decoded length differs from the upstream header.
 const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
 
-const SENSITIVE_HEADERS = new Set(['authorization', 'x-api-key', 'proxy-authorization', 'cookie', 'set-cookie'])
+const SENSITIVE_HEADERS = new Set([
+  'authorization',
+  'x-api-key',
+  'x-llama-dash-api-key',
+  'x-llama-dash-key',
+  'proxy-authorization',
+  'cookie',
+  'set-cookie',
+])
 
 export function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
@@ -24,6 +32,20 @@ export function redactSensitiveHeaders(headers: Record<string, string>): Record<
     out[key] = SENSITIVE_HEADERS.has(key.toLowerCase()) ? '[redacted]' : value
   }
   return out
+}
+
+export function redactInjectedHeaders(
+  headers: Record<string, string>,
+  redactedInjectedHeaderNames: Set<string>,
+  redactedValue: string,
+): Record<string, string> {
+  const redacted = redactSensitiveHeaders(headers)
+  for (const name of redactedInjectedHeaderNames) {
+    for (const key of Object.keys(redacted)) {
+      if (key.toLowerCase() === name) redacted[key] = redactedValue
+    }
+  }
+  return redacted
 }
 
 export function filterRequestHeaders(headers: Headers): Record<string, string> {

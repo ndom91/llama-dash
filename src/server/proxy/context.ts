@@ -11,7 +11,7 @@ import {
   restoreProxyBodyContentLength,
   type ProxyBodySnapshot,
 } from './body.ts'
-import { filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
+import { filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
 import { preAuthRoutingNeedsBody, preferPostAuthRouting } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
@@ -100,13 +100,9 @@ export function finalizeRoutingAndBody(ctx: ProxyContext, preAuthRouting: Routin
 }
 
 export function loggedRequestHeaders(ctx: ProxyContext): string {
-  const redacted = redactSensitiveHeaders(ctx.reqHeaders)
-  for (const name of ctx.redactedInjectedHeaderNames) {
-    for (const key of Object.keys(redacted)) {
-      if (key.toLowerCase() === name) redacted[key] = REDACTED_INJECTED_CREDENTIAL
-    }
-  }
-  return JSON.stringify(redacted)
+  return JSON.stringify(
+    redactInjectedHeaders(ctx.reqHeaders, ctx.redactedInjectedHeaderNames, REDACTED_INJECTED_CREDENTIAL),
+  )
 }
 
 export function loggedRequestBody(ctx: ProxyContext): string | null {
