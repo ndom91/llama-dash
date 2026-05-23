@@ -105,7 +105,7 @@ export function RequestsPage() {
     return Array.from(set).sort()
   }, [allRows])
 
-  const rowsBeforeMcpFilter = useMemo(
+  const filtered = useMemo(
     () =>
       applyRequestFilters(allRows, {
         statusFilter,
@@ -138,8 +138,8 @@ export function RequestsPage() {
   }, [data, showMcpRelays])
   const visibleMcpCount = useMemo(() => {
     if (!showMcpRelays) return 0
-    return rowsBeforeMcpFilter.filter(isMcpRelayRequest).length
-  }, [rowsBeforeMcpFilter, showMcpRelays])
+    return filtered.filter(isMcpRelayRequest).length
+  }, [filtered, showMcpRelays])
 
   useEffect(() => {
     if (modelFilter === 'all' || models.length === 0) return
@@ -147,10 +147,6 @@ export function RequestsPage() {
     const match = models.find((m) => m === modelFilter || m.endsWith(`/${modelFilter}`))
     if (match) updateSearch({ model: match })
   }, [models, modelFilter, updateSearch])
-
-  const filtered = useMemo(() => {
-    return rowsBeforeMcpFilter
-  }, [rowsBeforeMcpFilter])
 
   const rows = useMemo(() => {
     const sorted = [...filtered]
@@ -735,6 +731,10 @@ function applyRequestFilters<T extends RequestFilterRow>(
   },
 ) {
   let out = rows
+  const client = filters.clientFilter.toLowerCase()
+  const endUser = filters.endUserFilter.toLowerCase()
+  const session = filters.sessionFilter.toLowerCase()
+  const query = filters.search.toLowerCase()
 
   if (filters.statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
   else if (filters.statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
@@ -749,32 +749,31 @@ function applyRequestFilters<T extends RequestFilterRow>(
   if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
   else if (filters.routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
 
-  if (filters.clientFilter) {
-    out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(filters.clientFilter.toLowerCase()))
+  if (client) {
+    out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(client))
   }
   if (filters.hostFilter !== 'all') {
     if (filters.hostFilter === '__none__') out = out.filter((r) => r.clientHost == null)
     else out = out.filter((r) => r.clientHost === filters.hostFilter)
   }
-  if (filters.endUserFilter) {
-    out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(filters.endUserFilter.toLowerCase()))
+  if (endUser) {
+    out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUser))
   }
-  if (filters.sessionFilter) {
-    out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(filters.sessionFilter.toLowerCase()))
+  if (session) {
+    out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(session))
   }
 
-  if (filters.search) {
-    const q = filters.search.toLowerCase()
+  if (query) {
     out = out.filter(
       (r) =>
-        r.endpoint.toLowerCase().includes(q) ||
-        r.method.toLowerCase().includes(q) ||
-        (r.model?.toLowerCase().includes(q) ?? false) ||
-        (r.clientName?.toLowerCase().includes(q) ?? false) ||
-        (r.clientHost?.toLowerCase().includes(q) ?? false) ||
-        (r.endUserId?.toLowerCase().includes(q) ?? false) ||
-        (r.sessionId?.toLowerCase().includes(q) ?? false) ||
-        String(r.statusCode).includes(q),
+        r.endpoint.toLowerCase().includes(query) ||
+        r.method.toLowerCase().includes(query) ||
+        (r.model?.toLowerCase().includes(query) ?? false) ||
+        (r.clientName?.toLowerCase().includes(query) ?? false) ||
+        (r.clientHost?.toLowerCase().includes(query) ?? false) ||
+        (r.endUserId?.toLowerCase().includes(query) ?? false) ||
+        (r.sessionId?.toLowerCase().includes(query) ?? false) ||
+        String(r.statusCode).includes(query),
     )
   }
 

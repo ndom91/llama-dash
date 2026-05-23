@@ -1,4 +1,5 @@
 import type { CredentialBinding } from '../../lib/schemas/routing-rule.ts'
+import type { CredentialInjectionAudit, CredentialInjectionLocation } from '../../lib/schemas/credential-injection.ts'
 import {
   getCredentialInjectionSecret,
   markCredentialUsed,
@@ -8,19 +9,6 @@ import type { RoutingOutcome } from './transforms.ts'
 
 const PLACEHOLDER_RE = /\{\{llama-dash:credential:([a-z0-9][a-z0-9_-]{1,80})\}\}/g
 export const REDACTED_INJECTED_CREDENTIAL = '[redacted injected credential]'
-
-export type CredentialInjectionLocation = {
-  type: 'header'
-  name: string
-  mode: 'replace_placeholder' | 'set_header'
-}
-
-export type CredentialInjectionAudit = {
-  count: number
-  credentials: Array<{ id: string; name: string; slug: string }>
-  locations: CredentialInjectionLocation[]
-  error?: string
-}
 
 export type CredentialInjectionResult =
   | { ok: true; audit: CredentialInjectionAudit | null; redactedHeaderNames: Set<string> }

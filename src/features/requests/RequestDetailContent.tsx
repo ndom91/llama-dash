@@ -2,11 +2,16 @@ import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, Download, LoaderCircle } from 'lucide-react'
 import { useMemo } from 'react'
+import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import {
+  StoredCredentialInjectionAuditSchema,
+  type StoredCredentialInjectionAudit,
+} from '../../lib/schemas/credential-injection'
 import {
   analyzeResponse,
   analyzeTiming,
@@ -31,13 +36,6 @@ type Props = {
   nextId: string | null
   isPrevPending: boolean
   isNextPending: boolean
-}
-
-type CredentialInjectionAudit = {
-  count: number
-  credentials?: Array<string | { id?: string; name?: string; slug?: string }>
-  locations?: Array<{ type?: string; name?: string; mode?: string }>
-  error?: string
 }
 
 type CredentialInjectionSummary = {
@@ -636,10 +634,11 @@ function parseCredentialInjectionSummary(raw: string | null): CredentialInjectio
   }
 }
 
-function parseCredentialInjectionAudit(raw: string | null): CredentialInjectionAudit | null {
+function parseCredentialInjectionAudit(raw: string | null): StoredCredentialInjectionAudit | null {
   if (!raw) return null
   try {
-    return JSON.parse(raw) as CredentialInjectionAudit
+    const result = v.safeParse(StoredCredentialInjectionAuditSchema, JSON.parse(raw))
+    return result.success ? result.output : null
   } catch {
     return null
   }
@@ -651,7 +650,7 @@ function formatCredentialInjectionMode(mode: string | undefined): string {
   return mode ?? ''
 }
 
-function formatCredentialLabel(credential: string | { id?: string; name?: string; slug?: string }): string {
+function formatCredentialLabel(credential: NonNullable<StoredCredentialInjectionAudit['credentials']>[number]): string {
   if (typeof credential === 'string') return credential
   if (credential.name && credential.slug) return `${credential.name} (${credential.slug})`
   return credential.name ?? credential.slug ?? credential.id ?? ''
