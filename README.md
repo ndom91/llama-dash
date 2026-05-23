@@ -75,7 +75,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       <img alt="Dark - Request Details" src="./.github/assets/request-details.png" />
     </td>
     <td valign="top">
-      <img alt="Dark - Logs" src="./.github/assets/logs.png" />
+      <img alt="Dark - Logs" src="./.github/assets/logs_2.png" />
     </td>
   </tr>
   <tr>
@@ -100,7 +100,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       <img alt="Dark - Speech" src="./.github/assets/playground-speech.png" />
     </td>
     <td valign="top">
-      <img alt="Dark - Policies" src="./.github/assets/policies.png" />
+      <img alt="Dark - Policies" src="./.github/assets/policies_2.png" />
     </td>
     <td valign="top">
       <img alt="Dark - Requests" src="./.github/assets/requests.png" />
@@ -194,18 +194,18 @@ Claude Code ──► llama-dash :5173 (log + filter) ──► api.anthropic.co
 **Client config** (`~/.claude/settings.json`):
 
 ```json
-{ 
-  "env": { 
-    "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:3000" 
-  } 
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:3000"
+  }
 }
 ```
 
 Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
 Code manages the bearer itself and llama-dash passes it through unchanged.
 
-In llama-dash, configure an explicit routing rule in Policies for `/v1/*` 
-target path or Claude source model names, using `continue`, `passthrough` auth, preserved client 
+In llama-dash, configure an explicit routing rule in Policies for `/v1/*`
+target path or Claude source model names, using `continue`, `passthrough` auth, preserved client
 `Authorization`, and direct target `https://api.anthropic.com/v1`. This
 will result in all Anthropic requests being transparently proxied through
 while logging all traffic in llama-dash and applying filters.
