@@ -33,6 +33,20 @@ type Props = {
   isNextPending: boolean
 }
 
+type CredentialInjectionAudit = {
+  count: number
+  credentials?: string[]
+  locations?: Array<{ type?: string; name?: string; mode?: string }>
+  error?: string
+}
+
+type CredentialInjectionSummary = {
+  countLabel: string
+  locationsLabel: string
+  modesLabel: string
+  tooltip: string
+}
+
 const compactTokenFormatter = new Intl.NumberFormat('en', {
   maximumFractionDigits: 0,
   notation: 'compact',
@@ -86,6 +100,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     [req.responseBody, req.streamed],
   )
   const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
+  const credentialInjection = useMemo(
+    () => parseCredentialInjectionSummary(req.credentialInjectionJson),
+    [req.credentialInjectionJson],
+  )
   const clientLabel = deriveClientLabel(reqHeaders)
   const kickerParts = ['req', req.id.slice(4, 30)]
   if (clientLabel) kickerParts.push(clientLabel)
@@ -342,6 +360,28 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <dt>reject</dt>
                 <dd>{req.routingRejectReason ?? '—'}</dd>
               </div>
+              {credentialInjection ? (
+                <>
+                  <div>
+                    <dt>credential</dt>
+                    <dd>
+                      <Tooltip label={credentialInjection.tooltip} side="right" align="start">
+                        <span className="cursor-help text-info underline decoration-dotted underline-offset-2">
+                          {credentialInjection.countLabel}
+                        </span>
+                      </Tooltip>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>injected</dt>
+                    <dd>{credentialInjection.locationsLabel}</dd>
+                  </div>
+                  <div>
+                    <dt>mode</dt>
+                    <dd>{credentialInjection.modesLabel}</dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
           </div>
 
@@ -562,6 +602,57 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   )
 }
 
+function parseCredentialInjectionSummary(raw: string | null): CredentialInjectionSummary | null {
+  const audit = parseCredentialInjectionAudit(raw)
+  if (!audit) return null
+  try {
+    if (!audit.count || audit.count <= 0) return null
+    const locations = audit.locations ?? []
+    const locationNames = uniqueLabels(locations.map((location) => location.name).filter(isNonEmptyString))
+    const modes = uniqueLabels(
+      locations.map((location) => formatCredentialInjectionMode(location.mode)).filter(isNonEmptyString),
+    )
+    const credentialIds = uniqueLabels(audit.credentials ?? [])
+    return {
+      countLabel: audit.count === 1 ? '1 injected' : `${audit.count} injected`,
+      locationsLabel: locationNames.length > 0 ? locationNames.join(', ') : '—',
+      modesLabel: modes.length > 0 ? modes.join(', ') : '—',
+      tooltip: [
+        'Credential value was injected by llama-dash after routing policy matched.',
+        credentialIds.length > 0 ? `Credential IDs: ${credentialIds.join(', ')}` : null,
+        audit.error ? `Error: ${audit.error}` : null,
+      ]
+        .filter(isNonEmptyString)
+        .join('\n'),
+    }
+  } catch {
+    return null
+  }
+}
+
+function parseCredentialInjectionAudit(raw: string | null): CredentialInjectionAudit | null {
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as CredentialInjectionAudit
+  } catch {
+    return null
+  }
+}
+
+function formatCredentialInjectionMode(mode: string | undefined): string {
+  if (mode === 'set_header') return 'set header'
+  if (mode === 'replace_placeholder') return 'replace placeholder'
+  return mode ?? ''
+}
+
+function uniqueLabels(values: string[]): string[] {
+  return [...new Set(values)]
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0
+}
+
 function downloadRequestJsonl(req: ApiRequestDetail) {
   const row = {
     id: req.id,
@@ -589,6 +680,7 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
       requestedModel: req.routingRequestedModel,
       routedModel: req.routingRoutedModel,
       rejectReason: req.routingRejectReason,
+      credentialInjection: parseCredentialInjectionAudit(req.credentialInjectionJson),
     },
     attribution: {
       clientName: req.clientName,
