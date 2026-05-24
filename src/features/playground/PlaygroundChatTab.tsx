@@ -170,7 +170,7 @@ export function PlaygroundChatTab({ chat }: Props) {
           <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
-              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 p-2 text-[13px] leading-5 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-10 max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 p-2 text-[13px] leading-5 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
               disabled={!chat.model}
               rows={1}
