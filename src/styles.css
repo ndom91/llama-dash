@@ -1365,7 +1365,7 @@ a,
  */
 .llama-tooltip {
   background: #05070a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid #05070a;
   color: #e6e9ec;
   padding: 4px 8px;
   border-radius: var(--radius);
@@ -1381,7 +1381,7 @@ a,
   animation: tooltip-in 120ms ease-out;
 }
 .llama-tooltip-arrow {
-  fill: rgba(255, 255, 255, 0.12);
+  fill: #05070a;
 }
 .tooltip-kbd {
   display: inline-block;
