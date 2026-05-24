@@ -155,17 +155,20 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         {tab === 'events' ? (
           <PlaygroundInspectorSection label="event tape">
             {inspector.events.length ? (
-              <div className="flex flex-col gap-1.5">
-                {inspector.events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="grid grid-cols-[48px_52px_minmax(0,1fr)] items-start gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-[11px]"
-                  >
-                    <span className="font-mono text-fg-dim">{formatClock(event.at)}</span>
-                    <span className={cn('pg-event-tag mt-0.5', `pg-event-tag-${event.tag.toLowerCase()}`)}>
-                      {event.tag}
-                    </span>
-                    <span className="min-w-0 text-fg-muted">{event.text}</span>
+              <div className="pg-event-timeline">
+                {inspector.events.map((event, index) => (
+                  <div key={event.id} className="pg-event-row">
+                    <div className="pg-event-rail" aria-hidden="true">
+                      <span className={cn('pg-event-node', `pg-event-node-${event.tag.toLowerCase()}`)} />
+                      {index < inspector.events.length - 1 ? <span className="pg-event-line" /> : null}
+                    </div>
+                    <div className="pg-event-card">
+                      <div className="pg-event-meta">
+                        <span className="pg-event-time">{formatClock(event.at)}</span>
+                        <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                      </div>
+                      <div className="pg-event-text">{event.text}</div>
+                    </div>
                   </div>
                 ))}
               </div>
