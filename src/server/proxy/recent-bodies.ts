@@ -29,6 +29,13 @@ export function getRecentBodies(id: string): BodyPair | null {
   return recent.get(id) ?? null
 }
 
+export function deleteRecentBodies(id: string) {
+  const existing = recent.get(id)
+  if (!existing) return
+  recent.delete(id)
+  totalBytes -= pairBytes(existing)
+}
+
 export function clearRecentBodiesForTest() {
   recent.clear()
   totalBytes = 0

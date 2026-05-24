@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt, ne } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -6,6 +6,8 @@ import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
+
+const INFERENCE_REQUEST_SQL = "request_class = 'inference'"
 
 type RequestSummarySource = Pick<
   typeof schema.requests.$inferSelect,
@@ -39,6 +41,10 @@ type RequestSummarySource = Pick<
   | 'routingRoutedModel'
   | 'credentialInjectionJson'
 >
+
+function inferenceRequest() {
+  return eq(schema.requests.requestClass, 'inference')
+}
 
 export function toRequestRow(row: RequestSummarySource, keyName: string | null): RequestRow {
   return {
@@ -78,7 +84,7 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
 export function listRecentRequests(opts: { limit: number; cursor?: string; includeMcp?: boolean }): Array<RequestRow> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
-    opts.includeMcp ? undefined : ne(schema.requests.requestClass, 'mcp_relay'),
+    opts.includeMcp ? undefined : inferenceRequest(),
   )
   const rows = db
     .select({
@@ -213,7 +219,7 @@ export function getRequestStats(): RequestStats {
         sum(case when started_at >= ? then 1 else 0 end) as last_minute_total,
         sum(case when started_at >= ? then coalesce(total_tokens, 0) else 0 end) as last_minute_tokens
       from requests
-      where started_at >= ?`,
+      where ${INFERENCE_REQUEST_SQL} and started_at >= ?`,
     )
     .get(oneMinAgo, oneMinAgo, thirtyMinAgoMs) as {
     total: number
@@ -225,7 +231,11 @@ export function getRequestStats(): RequestStats {
   const medianOffset = Math.max(0, Math.floor((summary.total || 1) / 2))
   const median = sqliteDb
     .prepare(
-      'select duration_ms as durationMs from requests where started_at >= ? order by duration_ms limit 1 offset ?',
+      `select duration_ms as durationMs
+       from requests
+       where ${INFERENCE_REQUEST_SQL} and started_at >= ?
+       order by duration_ms
+       limit 1 offset ?`,
     )
     .get(thirtyMinAgoMs, medianOffset) as { durationMs: number } | undefined
 
@@ -242,7 +252,7 @@ export function getRequestStats(): RequestStats {
         avg(duration_ms) as latency,
         sum(case when status_code >= 400 then 1 else 0 end) as errs
       from requests
-      where started_at >= ?
+      where ${INFERENCE_REQUEST_SQL} and started_at >= ?
       group by bucket
       order by bucket`,
     )
@@ -297,7 +307,7 @@ export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Ar
         count(*) as total,
         sum(case when status_code >= 400 then 1 else 0 end) as errors
       from requests
-      where started_at >= ?
+      where ${INFERENCE_REQUEST_SQL} and started_at >= ?
       group by bucket
       order by bucket`,
     )
@@ -332,14 +342,14 @@ export function getAdjacentIds(id: string): { prevId: string | null; nextId: str
   const prev = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(and(gt(schema.requests.id, id), ne(schema.requests.requestClass, 'mcp_relay')))
+    .where(and(gt(schema.requests.id, id), inferenceRequest()))
     .orderBy(asc(schema.requests.id))
     .limit(1)
     .get()
   const next = db
     .select({ id: schema.requests.id })
     .from(schema.requests)
-    .where(and(lt(schema.requests.id, id), ne(schema.requests.requestClass, 'mcp_relay')))
+    .where(and(lt(schema.requests.id, id), inferenceRequest()))
     .orderBy(desc(schema.requests.id))
     .limit(1)
     .get()
