@@ -91,14 +91,11 @@ export function PlaygroundMessage({
               <span className="dim">{(message.reasoningTimeMs / 1000).toFixed(1)}s</span>
             ) : null}
           </button>
-          <pre
-            className={cn(
-              'm-0 max-h-0 overflow-hidden px-3 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg-dim opacity-0 transition-[max-height,opacity,padding] duration-150 ease-out',
-              reasoningOpen && 'max-h-[300px] overflow-y-auto px-3 py-2.5 opacity-100',
-            )}
-          >
-            {message.reasoningContent}
-          </pre>
+          {reasoningOpen ? (
+            <pre className="m-0 max-h-[300px] overflow-y-auto px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg-dim">
+              {message.reasoningContent}
+            </pre>
+          ) : null}
         </div>
       ) : null}
 
