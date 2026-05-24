@@ -16,7 +16,7 @@ export function RoutePlaygroundSkeleton() {
           </div>
         ))}
       </div>
-      <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_320px] bg-surface-1 max-[1200px]:grid-cols-[260px_minmax(0,1fr)] max-[1200px]:[&>.pg-inspector-skeleton]:hidden max-[900px]:grid-cols-1 max-[900px]:[&>.pg-session-skeleton]:hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_320px] bg-surface-1 max-[1100px]:grid-cols-[260px_minmax(0,1fr)] max-[1100px]:[&>.pg-inspector-skeleton]:hidden max-[900px]:grid-cols-1 max-[900px]:[&>.pg-session-skeleton]:hidden">
         <aside className="pg-session-skeleton flex min-h-0 flex-col gap-2 overflow-hidden border-r border-border bg-surface-1 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
           <SkeletonSessionSection labelWidth={62}>
             <SkeletonLine width="100%" height={32} className="rounded-sm" />

@@ -17,7 +17,7 @@ export function RequestDetailSkeleton() {
         }
       />
 
-      <div className="grid min-h-0 flex-1 grid-cols-[clamp(188px,21vw,275px)_minmax(0,1fr)_clamp(190px,19vw,260px)] items-stretch gap-0 max-[1200px]:grid-cols-[clamp(164px,19vw,220px)_minmax(0,1fr)_clamp(172px,18vw,220px)] max-[1024px]:grid-cols-[minmax(0,1fr)]">
+      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
         <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <DetailRailSection title="Summary" rows={6} />
           <DetailRailSection title="Model" rows={3} divider />
@@ -78,7 +78,7 @@ export function RequestDetailSkeleton() {
           </section>
         </div>
 
-        <aside className="detail-sidecar min-w-0 bg-surface-2 max-[1024px]:border-t max-[1024px]:border-t-border">
+        <aside className="request-detail-sidecar detail-sidecar min-w-0 bg-surface-2">
           <section className="detail-sidecar-section">
             <div className="detail-sidecar-title">Response</div>
             <div className="space-y-2 rounded border border-border bg-surface-1 px-3 py-3">
