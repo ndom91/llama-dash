@@ -8,6 +8,7 @@ export const ApiKeySchema = v.object({
   createdAt: v.string(),
   disabledAt: v.nullable(v.string()),
   allowedModels: v.array(v.string()),
+  allowedMcpRelays: v.array(v.string()),
   rateLimitRpm: v.nullable(v.number()),
   rateLimitTpm: v.nullable(v.number()),
   monthlyTokenQuota: v.nullable(v.number()),
@@ -30,6 +31,7 @@ export type ApiKeyCreated = v.InferOutput<typeof ApiKeyCreatedSchema>
 export const CreateApiKeyBodySchema = v.object({
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
   allowedModels: v.optional(v.array(v.string()), []),
+  allowedMcpRelays: v.optional(v.array(v.string()), []),
   rateLimitRpm: v.optional(v.nullable(v.number())),
   rateLimitTpm: v.optional(v.nullable(v.number())),
   monthlyTokenQuota: v.optional(v.nullable(v.number())),
@@ -41,6 +43,7 @@ export type CreateApiKeyBody = v.InferOutput<typeof CreateApiKeyBodySchema>
 export const UpdateApiKeyBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(100))),
   allowedModels: v.optional(v.array(v.string())),
+  allowedMcpRelays: v.optional(v.array(v.string())),
   systemPrompt: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(10000)))),
 })
 

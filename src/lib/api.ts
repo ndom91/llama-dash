@@ -137,6 +137,7 @@ export const api = {
   createKey: (body: {
     name: string
     allowedModels?: Array<string>
+    allowedMcpRelays?: Array<string>
     rateLimitRpm?: number | null
     rateLimitTpm?: number | null
     monthlyTokenQuota?: number | null
@@ -144,6 +145,8 @@ export const api = {
   renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
   updateKeyModels: (id: string, allowedModels: Array<string>) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedModels } }),
+  updateKeyMcpRelays: (id: string, allowedMcpRelays: Array<string>) =>
+    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedMcpRelays } }),
   updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { systemPrompt } }),
   rotateKey: (id: string) => sendEmpty(`/api/keys/${id}/rotate`, ApiKeyCreatedSchema, 'POST'),

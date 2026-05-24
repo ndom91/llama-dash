@@ -7,6 +7,7 @@ import type { ApiKeyDetail } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useModels, useRenameApiKey, useRevokeApiKey, useRotateApiKey } from '../../lib/queries'
 import { KeyModelAccessPanel } from './KeyModelAccessPanel'
+import { KeyMcpRelayAccessPanel } from './KeyMcpRelayAccessPanel'
 import { KeyRequestsPanel } from './KeyRequestsPanel'
 import { KeyStatsRow } from './KeyStatsRow'
 import { KeySystemPromptPanel } from './KeySystemPromptPanel'
@@ -269,6 +270,7 @@ export function KeyDetailContent({ data }: Props) {
             breakdown={modelBreakdown}
             isRevoked={isRevoked}
           />
+          <KeyMcpRelayAccessPanel keyId={key.id} allowedMcpRelays={key.allowedMcpRelays} isRevoked={isRevoked} />
           <KeyRequestsPanel rows={requests.rows} />
         </div>
 

@@ -14,6 +14,10 @@ const settingsMock = vi.hoisted(() => ({
   privacy: { captureRequestBodies: true, captureResponseBodies: true, maxStoredBodyBytes: 32 * 1024 },
 }))
 
+const authMock = vi.hoisted(() => ({
+  authenticateGatewayRequest: vi.fn(),
+}))
+
 vi.mock('../admin/mcp-relays.ts', () => ({
   getMcpRelayBySlug: relaysMock.getMcpRelayBySlug,
 }))
@@ -28,7 +32,7 @@ vi.mock('../config.ts', () => ({
 }))
 
 vi.mock('../proxy/auth.ts', () => ({
-  authenticateGatewayRequest: () => ({ ok: true, keyId: 'key_test', keyRow: null }),
+  authenticateGatewayRequest: authMock.authenticateGatewayRequest,
 }))
 
 vi.mock('../proxy/forward.ts', async () => {
@@ -46,6 +50,11 @@ describe('handleMcpRelayRequest', () => {
     forwardMock.forwardUpstreamAndLog.mockReset()
     forwardMock.writeProxyLog.mockReset()
     forwardMock.forwardUpstreamAndLog.mockResolvedValue(new Response('{}'))
+    authMock.authenticateGatewayRequest.mockReturnValue({
+      ok: true,
+      keyId: 'key_test',
+      keyRow: { allowedMcpRelays: JSON.stringify(['mrl_test']) },
+    })
     settingsMock.privacy = { captureRequestBodies: true, captureResponseBodies: true, maxStoredBodyBytes: 32 * 1024 }
   })
 
@@ -101,6 +110,31 @@ describe('handleMcpRelayRequest', () => {
         reqBody: '{"jsonrpc":"2.0","method":"tools/list","id":1}',
       }),
     )
+  })
+
+  it('rejects API keys that are not scoped to the relay', async () => {
+    authMock.authenticateGatewayRequest.mockReturnValue({
+      ok: true,
+      keyId: 'key_test',
+      keyRow: { allowedMcpRelays: JSON.stringify(['mrl_other']) },
+    })
+    relaysMock.getMcpRelayBySlug.mockReturnValue({
+      id: 'mrl_test',
+      name: 'Example',
+      slug: 'example',
+      targetUrl: 'https://mcp.example.test/mcp',
+      enabled: true,
+      credentialBindings: [],
+    })
+
+    const response = await handleMcpRelayRequest(
+      new Request('http://dash.test/mcp-relays/example', {
+        headers: { 'x-llama-dash-api-key': 'sk-test' },
+      }),
+    )
+
+    expect(response.status).toBe(403)
+    expect(forwardMock.forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 
   it('does not buffer relay bodies when request body capture is disabled', async () => {

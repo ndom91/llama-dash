@@ -27,6 +27,7 @@ export function getApiKeyById(id: string): ApiKeyItem | null {
 export function createApiKey(input: {
   name: string
   allowedModels?: Array<string>
+  allowedMcpRelays?: Array<string>
   rateLimitRpm?: number | null
   rateLimitTpm?: number | null
   monthlyTokenQuota?: number | null
@@ -46,6 +47,7 @@ export function createApiKey(input: {
     createdAt: now,
     disabledAt: null,
     allowedModels: JSON.stringify(input.allowedModels ?? []),
+    allowedMcpRelays: JSON.stringify(input.allowedMcpRelays ?? []),
     rateLimitRpm: input.rateLimitRpm ?? null,
     rateLimitTpm: input.rateLimitTpm ?? null,
     monthlyTokenQuota: input.monthlyTokenQuota ?? null,
@@ -88,12 +90,14 @@ export function updateApiKey(
   fields: {
     name?: string
     allowedModels?: Array<string>
+    allowedMcpRelays?: Array<string>
     systemPrompt?: string | null
   },
 ): boolean {
   const set: Record<string, unknown> = {}
   if (fields.name != null) set.name = fields.name
   if (fields.allowedModels != null) set.allowedModels = JSON.stringify(fields.allowedModels)
+  if (fields.allowedMcpRelays != null) set.allowedMcpRelays = JSON.stringify(fields.allowedMcpRelays)
   if (fields.systemPrompt !== undefined) set.systemPrompt = fields.systemPrompt
   if (Object.keys(set).length === 0) return false
   const result = db.update(schema.apiKeys).set(set).where(eq(schema.apiKeys.id, id)).run()
@@ -176,6 +180,7 @@ export function ensureSystemKey(): void {
       createdAt: new Date(),
       disabledAt: null,
       allowedModels: '[]',
+      allowedMcpRelays: '[]',
       rateLimitRpm: null,
       rateLimitTpm: null,
       monthlyTokenQuota: null,
@@ -218,6 +223,7 @@ function toApiShape(row: schema.ApiKey): ApiKeyItem {
     createdAt: row.createdAt.toISOString(),
     disabledAt: row.disabledAt?.toISOString() ?? null,
     allowedModels: JSON.parse(row.allowedModels),
+    allowedMcpRelays: JSON.parse(row.allowedMcpRelays),
     rateLimitRpm: row.rateLimitRpm,
     rateLimitTpm: row.rateLimitTpm,
     monthlyTokenQuota: row.monthlyTokenQuota,

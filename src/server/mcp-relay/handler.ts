@@ -14,6 +14,7 @@ import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
 import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
 import { emptyRoutingOutcome, type RoutingOutcome } from '../proxy/transforms.ts'
+import type { ApiKey } from '../db/schema.ts'
 
 const GATEWAY_AUTH_HEADERS = ['x-llama-dash-api-key', 'x-llama-dash-key']
 
@@ -81,6 +82,21 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
       type: auth.body.error.type,
       reqHeadersJson: JSON.stringify(redactSensitiveHeaders(headers)),
       keyId: null,
+      attribution,
+      routing,
+    })
+  }
+
+  if (!isRelayAllowedForKey(auth.keyRow, relay.id)) {
+    return relayFailure({
+      startedAt,
+      status: 403,
+      method,
+      endpoint,
+      message: `API key is not allowed to use MCP relay ${slug}`,
+      type: 'mcp_relay_forbidden',
+      reqHeadersJson: JSON.stringify(redactSensitiveHeaders(headers)),
+      keyId: auth.keyId,
       attribution,
       routing,
     })
@@ -167,6 +183,16 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   }
 
   return forwardedResponse
+}
+
+function isRelayAllowedForKey(keyRow: ApiKey | null, relayId: string): boolean {
+  if (!keyRow) return false
+  try {
+    const allowed = JSON.parse(keyRow.allowedMcpRelays) as unknown
+    return Array.isArray(allowed) && allowed.includes(relayId)
+  } catch {
+    return false
+  }
 }
 
 async function relayBody(

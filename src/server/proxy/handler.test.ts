@@ -11,6 +11,7 @@ vi.mock('../config.ts', () => ({
     inferenceInsecure: false,
     inferenceConfigFile: '',
     databasePath: ':memory:',
+    credentialEncryptionKey: 'x'.repeat(32),
   },
 }))
 
@@ -104,6 +105,7 @@ function makeKey(rawKey: string): ApiKey {
     createdAt: new Date(0),
     disabledAt: null,
     allowedModels: '[]',
+    allowedMcpRelays: '[]',
     rateLimitRpm: null,
     rateLimitTpm: null,
     monthlyTokenQuota: null,
@@ -196,5 +198,31 @@ describe('handleProxyRequest auth/body ordering', () => {
 
     expect(response.status).toBe(200)
     expect(fetch).toHaveBeenCalledWith('http://llama-swap.test/v1/chat/completions', expect.any(Object))
+  })
+
+  it('requires key auth before injecting stored credentials for passthrough rules', async () => {
+    apiKeysMock.hasAnyUserKeys.mockReturnValue(false)
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({
+        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+        target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1', credentialId: 'ucr_anthropic' },
+      }),
+    ])
+    const request = new Request('http://dash.test/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({ model: 'claude-opus-4-6' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({
+      type: 'error',
+      error: {
+        message: 'Stored credential routing requires a llama-dash API key',
+        type: 'credential_key_required',
+      },
+    })
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

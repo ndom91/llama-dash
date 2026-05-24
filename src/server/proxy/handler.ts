@@ -104,6 +104,34 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     delete ctx.reqHeaders.authorization
   }
 
+  if (usesStoredCredentials(ctx) && !ctx.keyId) {
+    const body = {
+      error: {
+        message: 'Stored credential routing requires a llama-dash API key',
+        type: 'credential_key_required',
+      },
+    }
+    writeProxyLog({
+      startedAt: ctx.startedAt,
+      status: 401,
+      method: ctx.method,
+      endpoint: ctx.endpoint,
+      usage: nullUsage(ctx.body?.reqModel),
+      streamed: false,
+      error: body.error.message,
+      reqHeaders: loggedRequestHeaders(ctx),
+      reqBody: loggedRequestBody(ctx),
+      resHeaders: null,
+      resBody: JSON.stringify(toErrorBody(ctx.endpoint, body)),
+      keyId: null,
+      reqModel: ctx.body?.reqModel ?? null,
+      attribution: ctx.attribution,
+      routing: ctx.routingOutcome,
+      credentialInjectionJson: ctx.credentialInjectionJson,
+    })
+    return Response.json(toErrorBody(ctx.endpoint, body), { status: 401 })
+  }
+
   const credentialInjection = applyCredentialInjection({
     headers: ctx.reqHeaders,
     routing: ctx.routingOutcome,
@@ -186,6 +214,10 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   return forwardedResponse
+}
+
+function usesStoredCredentials(ctx: ProxyContext): boolean {
+  return Boolean(ctx.routingOutcome.targetCredentialId) || ctx.routingOutcome.credentialBindings.length > 0
 }
 
 function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {

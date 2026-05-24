@@ -1,6 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { desc, eq } from 'drizzle-orm'
 import { ulid } from 'ulidx'
+import * as v from 'valibot'
 import type {
   CreateUpstreamCredentialBody,
   UpdateUpstreamCredentialBody,
@@ -16,6 +17,14 @@ type EncryptedPayload = {
   tag: string
   data: string
 }
+
+const EncryptedPayloadSchema = v.object({
+  v: v.literal(1),
+  alg: v.literal('aes-256-gcm'),
+  iv: v.pipe(v.string(), v.minLength(1)),
+  tag: v.pipe(v.string(), v.minLength(1)),
+  data: v.pipe(v.string(), v.minLength(1)),
+})
 
 export function isCredentialVaultEnabled(): boolean {
   return isCredentialVaultKeyEnabled(getCredentialEncryptionKey())
@@ -62,11 +71,18 @@ function encryptSecret(value: string, encryptionKey?: string): string {
 
 function decryptSecret(raw: string, encryptionKey?: string): string {
   const key = requireVaultKey(encryptionKey)
-  const payload = JSON.parse(raw) as EncryptedPayload
-  if (payload.v !== 1 || payload.alg !== 'aes-256-gcm') throw new Error('Unsupported credential payload')
+  const payload = parseEncryptedPayload(raw)
   const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(payload.iv, 'base64url'))
   decipher.setAuthTag(Buffer.from(payload.tag, 'base64url'))
   return Buffer.concat([decipher.update(Buffer.from(payload.data, 'base64url')), decipher.final()]).toString('utf8')
+}
+
+function parseEncryptedPayload(raw: string): EncryptedPayload {
+  try {
+    return v.parse(EncryptedPayloadSchema, JSON.parse(raw))
+  } catch {
+    throw new Error('Invalid credential payload')
+  }
 }
 
 function toApiShape(row: schema.UpstreamCredential): UpstreamCredential {

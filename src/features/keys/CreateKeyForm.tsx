@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
 import type { ApiKeyCreated } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useCreateApiKey, useModels } from '../../lib/queries'
+import { useCreateApiKey, useMcpRelays, useModels } from '../../lib/queries'
 
 type Props = {
   onCreated: (r: ApiKeyCreated) => void
@@ -13,8 +13,10 @@ type Props = {
 export function CreateKeyForm({ onCreated, onCancel }: Props) {
   const createKey = useCreateApiKey()
   const { data: models } = useModels()
+  const { data: mcpRelays } = useMcpRelays()
   const [name, setName] = useState('')
   const [allowedModels, setAllowedModels] = useState<Array<string>>([])
+  const [allowedMcpRelays, setAllowedMcpRelays] = useState<Array<string>>([])
   const [rpm, setRpm] = useState('')
   const [tpm, setTpm] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -26,6 +28,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
       {
         name: name.trim(),
         allowedModels,
+        allowedMcpRelays,
         rateLimitRpm: rpm ? Number(rpm) : null,
         rateLimitTpm: tpm ? Number(tpm) : null,
         systemPrompt: systemPrompt.trim() || null,
@@ -36,6 +39,10 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
 
   const toggleModel = (id: string) => {
     setAllowedModels((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]))
+  }
+
+  const toggleMcpRelay = (id: string) => {
+    setAllowedMcpRelays((prev) => (prev.includes(id) ? prev.filter((relayId) => relayId !== id) : [...prev, id]))
   }
 
   return (
@@ -79,6 +86,35 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
                 >
                   {selected ? <Check className="h-3 w-3" strokeWidth={2} aria-hidden="true" /> : null}
                   {m.id}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-col gap-1">
+          <span className="text-xs font-medium text-fg-dim">Allowed MCP relays</span>
+          <span className="text-[11px] text-fg-faint">
+            {allowedMcpRelays.length === 0 ? 'empty = no relay access' : `${allowedMcpRelays.length} selected`}
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {mcpRelays?.length === 0 ? <span className="text-[11px] text-fg-faint">No relays configured.</span> : null}
+            {mcpRelays?.map((relay) => {
+              const selected = allowedMcpRelays.includes(relay.id)
+              return (
+                <button
+                  key={relay.id}
+                  type="button"
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+                    selected &&
+                      'border-accent bg-accent text-accent-on hover:border-accent hover:bg-accent-strong hover:text-accent-on',
+                  )}
+                  aria-pressed={selected}
+                  onClick={() => toggleMcpRelay(relay.id)}
+                >
+                  {selected ? <Check className="h-3 w-3" strokeWidth={2} aria-hidden="true" /> : null}
+                  {relay.name}
                 </button>
               )
             })}

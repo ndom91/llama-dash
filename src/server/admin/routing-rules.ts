@@ -252,7 +252,13 @@ export function hasBodyDependentPreAuthRoutingRule(rules: RoutingRule[]): boolea
 }
 
 function isPreAuthRoutingCandidate(rule: RoutingRule): boolean {
-  return rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0
+  return rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0 && !usesStoredCredentials(rule)
+}
+
+function usesStoredCredentials(rule: RoutingRule): boolean {
+  return (
+    (rule.target.type === 'direct' && Boolean(rule.target.credentialId)) || (rule.credentialBindings ?? []).length > 0
+  )
 }
 
 function needsBodyForPreAuthRouting(rule: RoutingRule): boolean {

@@ -366,6 +366,24 @@ export function useUpdateKeyModels(): UseMutationResult<
   })
 }
 
+export function useUpdateKeyMcpRelays(): UseMutationResult<
+  { ok: true },
+  Error,
+  { id: string; allowedMcpRelays: Array<string> }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, allowedMcpRelays }: { id: string; allowedMcpRelays: Array<string> }) =>
+      api.updateKeyMcpRelays(id, allowedMcpRelays),
+    onSuccess: (_data, { id }) => {
+      invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update MCP relay access', e)
+    },
+  })
+}
+
 export function useUpdateKeySystemPrompt(): UseMutationResult<
   { ok: true },
   Error,

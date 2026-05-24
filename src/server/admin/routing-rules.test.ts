@@ -178,6 +178,24 @@ describe('evaluatePreAuthRoutingRules', () => {
     expect(decision.authMode).toBe('passthrough')
   })
 
+  it('does not consider credential-bearing passthrough rules before key auth', () => {
+    const credentialRule = makeRule({
+      id: 'rrl_credential_passthrough',
+      authMode: 'passthrough',
+      action: { type: 'continue' },
+      target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1', credentialId: 'ucr_anthropic' },
+    })
+    const publicRule = makeRule({
+      id: 'rrl_public_passthrough',
+      authMode: 'passthrough',
+      action: { type: 'continue' },
+    })
+
+    const decision = evaluatePreAuthRoutingRules([credentialRule, publicRule], makeContext())
+
+    expect(decision.matchedRule?.id).toBe('rrl_public_passthrough')
+  })
+
   it('detects whether pre-auth routing needs body fields', () => {
     const endpointOnly = makeRule({
       id: 'rrl_endpoint_only',

@@ -27,7 +27,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Model management** — load/unload models, per-model stats, load history, config snippet.
 - **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, detail view, credential injection audit metadata, retention controls, and token cost estimates from a startup-cached `models.dev` pricing catalog.
 - **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
-- **API keys** — per-key rate limits (RPM/TPM), model allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
+- **API keys** — per-key rate limits (RPM/TPM), model and MCP relay allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
 - **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
 - **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, MCP relay endpoints with Claude Code snippets, encrypted upstream credential injection, header credential placeholder replacement, per-key system prompt injection, and global request size limits.
 - **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
@@ -170,7 +170,7 @@ See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backen
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/pricing.ts` — startup-cached `models.dev` model pricing used to estimate logged request cost from upstream usage counters.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
-- `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key` when user API keys exist, inject stored upstream credentials into outbound headers, stream responses, and log the exchange without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
+- `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not `/v1/*`. Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes GPU-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
@@ -220,6 +220,8 @@ placeholder like `{{llama-dash:credential:anthropic-prod}}`; injected values
 are redacted from request logs. The request detail view records non-secret
 credential name/slug metadata for audit, and the credential vault warns before
 deleting credentials still referenced by routing rules or MCP relays.
+Credential-bearing passthrough rules still require a valid llama-dash API key;
+they are not evaluated as pre-auth public passthrough rules.
 
 For remote MCP servers, create an MCP relay in Policies instead of pointing
 Claude Code directly at the provider. Configure Claude with the relay URL and a
@@ -240,8 +242,9 @@ separate llama-dash key header:
 ```
 
 The provider bearer token stays encrypted in llama-dash and is injected only
-when the relay forwards the MCP request upstream. The Policies page shows this
-Claude Code snippet for each configured relay.
+when an API key that is explicitly allowed to use the relay forwards the MCP
+request upstream. The Policies page shows this Claude Code snippet for each
+configured relay.
 
 ## 🤖 Acknowledgements
 

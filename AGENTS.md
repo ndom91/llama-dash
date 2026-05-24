@@ -112,7 +112,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    request/model-event lookups: `requests` (per-call
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
-   system prompt), `model_aliases` (global model name mapping),
+   system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
    `routing_rules` (ordered request routing rules), `upstream_credentials`
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
    MCP reverse proxies with credential bindings), `settings` (key-value
@@ -159,7 +159,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
-   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `systemPrompt`
+   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `allowedMcpRelays`, `systemPrompt`
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
@@ -192,7 +192,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
-   limiting (in-memory, resets on restart). Per-key model allow-lists.
+   limiting (in-memory, resets on restart). Per-key model allow-lists and MCP relay allow-lists.
    Routing rules can explicitly opt into `passthrough` auth, which skips
    llama-dash key enforcement for matching requests and can preserve the
    client's `Authorization` header for upstream OAuth/API-key validation.
@@ -205,10 +205,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
    or replacing a namespaced `{{llama-dash:credential:<slug>}}` placeholder;
     injected values are redacted in request logs and recorded as credential
     injection metadata with non-secret credential name/slug labels. Stored
-    credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
+   credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
+   Passthrough routing rules can use stored credentials, but credential-bearing
+   rules are never evaluated before llama-dash key auth; callers must present a
+   valid llama-dash API key before any stored credential is injected.
    MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
-   when user API keys exist so the client's `Authorization` header can be owned
-   by the upstream provider credential injection.
+   and the key must explicitly allow that relay so the client's `Authorization`
+   header can be owned by the upstream provider credential injection.
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `continue` + `passthrough` auth and preserved client `Authorization`.
