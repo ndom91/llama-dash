@@ -164,6 +164,7 @@ export function PlaygroundChatTab({ chat }: Props) {
               />
             ))
           )}
+          {chat.messages.length > 0 ? <div className="h-1 shrink-0" aria-hidden="true" /> : null}
         </div>
 
         <div className="border-t border-border bg-surface-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
