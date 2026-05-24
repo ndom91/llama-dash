@@ -22,7 +22,7 @@ export function PlaygroundChatTab({ chat }: Props) {
   const [draft, setDraft] = useState('')
 
   useEffect(() => {
-    fetch('/api/playground-key')
+    fetch('/api/playground-key', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (d?.key) apiKeyRef.current = d.key
@@ -79,7 +79,7 @@ export function PlaygroundChatTab({ chat }: Props) {
   const contextLabel = formatContextLength(activeModel?.contextLength)
 
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_360px] items-stretch gap-0 max-[1200px]:grid-cols-[260px_minmax(0,1fr)] max-[1200px]:[&>.pg-inspector-shell]:hidden max-[900px]:grid-cols-1 max-[900px]:[&>.pg-session-shell]:hidden">
+    <div className="pg-chat-grid grid min-h-0 flex-1 items-stretch gap-0">
       <PlaygroundSession
         model={chat.model}
         setModel={chat.setModel}
@@ -141,7 +141,7 @@ export function PlaygroundChatTab({ chat }: Props) {
 
         <div
           ref={scrollRef}
-          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-surface-0 px-3 pt-2.5 pb-3.5"
+          className="flex flex-1 flex-col gap-3 overflow-y-auto bg-surface-0 px-3 pt-5 pb-3.5"
           onScroll={onScroll}
         >
           {chat.messages.length === 0 ? (
@@ -170,7 +170,7 @@ export function PlaygroundChatTab({ chat }: Props) {
           <form className="flex items-end gap-2 border-b border-border px-4 py-3" onSubmit={handleSubmit}>
             <textarea
               ref={inputRef}
-              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 px-3 py-1.5 text-[13px] leading-5 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              className="max-h-[200px] flex-1 resize-none overflow-hidden rounded border border-border bg-surface-2 p-2 text-[13px] leading-5 text-fg transition-[border-color,box-shadow,background-color] duration-100 ease-out focus:border-accent focus:bg-surface-1 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               placeholder={chat.model ? 'Type a message…' : 'Select a model first…'}
               disabled={!chat.model}
               rows={1}
@@ -187,7 +187,7 @@ export function PlaygroundChatTab({ chat }: Props) {
               <Tooltip label="Stop generation">
                 <button
                   type="button"
-                  className="flex h-9 shrink-0 items-center justify-center gap-1.5 rounded border border-err bg-err-bg px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-err hover:bg-err-bg active:scale-95"
+                  className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded border border-err bg-err-bg px-3 text-xs text-err transition-[border-color,background-color,transform] duration-150 ease-out hover:border-err hover:bg-err-bg active:scale-95"
                   onClick={chat.stopStreaming}
                 >
                   <Square className="size-3 shrink-0" strokeWidth={2} />
@@ -198,10 +198,11 @@ export function PlaygroundChatTab({ chat }: Props) {
               <Tooltip label="Send message">
                 <button
                   type="submit"
-                  className="flex size-8.5 shrink-0 items-center justify-center rounded bg-accent text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded bg-accent px-3 text-xs font-medium text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!chat.model || !draft.trim()}
                 >
                   <Send className="size-3.5 shrink-0" strokeWidth={2} />
+                  send
                 </button>
               </Tooltip>
             )}

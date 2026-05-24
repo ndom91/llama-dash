@@ -44,6 +44,7 @@ export async function handleAdminRequest(request: Request): Promise<Response> {
 
 async function withConditionalGet(request: Request, response: Response): Promise<Response> {
   if (request.method.toUpperCase() !== 'GET' || response.status !== 200) return response
+  if (response.headers.get('cache-control')?.includes('no-store')) return response
   const contentType = response.headers.get('content-type') ?? ''
   if (!contentType.includes('application/json')) return response
 

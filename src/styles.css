@@ -2172,11 +2172,35 @@ a,
 
 /* ── playground 3-col grid ──────────────────────────────── */
 
+.pg-chat-grid {
+  grid-template-columns: 280px minmax(0, 1fr) 360px;
+}
+
 .pg-chat-panel {
   border: none;
   border-radius: 0;
   background: transparent;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+}
+
+@media (max-width: 1200px) {
+  .pg-chat-grid {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .pg-chat-grid > .pg-inspector-shell {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .pg-chat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pg-chat-grid > .pg-session-shell {
+    display: none;
+  }
 }
 
 .pg-rail-slider {
@@ -2188,8 +2212,8 @@ a,
     to right,
     var(--accent) 0%,
     var(--accent) var(--pct, 0%),
-    var(--bg-3) var(--pct, 0%),
-    var(--bg-3) 100%
+    color-mix(in srgb, var(--fg) 18%, var(--bg-3)) var(--pct, 0%),
+    color-mix(in srgb, var(--fg) 18%, var(--bg-3)) 100%
   );
   border-radius: 2px;
   outline: none;

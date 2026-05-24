@@ -44,7 +44,7 @@ export function PlaygroundSession({
         {isStreaming ? (
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-err bg-err-bg px-2.5 py-[7px] text-xs text-err transition-colors hover:border-err hover:bg-err-bg disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-err bg-err-bg px-2.5 text-xs text-err transition-colors hover:border-err hover:bg-err-bg disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onStop}
           >
             <Square className="size-3 shrink-0" strokeWidth={2} />
@@ -53,7 +53,7 @@ export function PlaygroundSession({
         ) : (
           <button
             type="button"
-            className="inline-flex items-center justify-center gap-1.5 rounded-sm border border-border bg-surface-2 px-2.5 py-[7px] text-xs text-fg transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-sm border border-border bg-surface-2 px-2.5 text-xs text-fg transition-colors hover:border-border-strong hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
             onClick={onClear}
             disabled={!hasMessages}
           >

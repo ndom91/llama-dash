@@ -101,7 +101,7 @@ export const keyRoutes: Route[] = [
     handler: async () => {
       const raw = getSystemKeyRaw()
       if (!raw) return error(500, 'System key not available')
-      return json(200, { key: raw })
+      return Response.json({ key: raw }, { headers: { 'cache-control': 'no-store' } })
     },
   },
   {

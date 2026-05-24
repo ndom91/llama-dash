@@ -14,7 +14,7 @@ export function PlaygroundActiveModelCell({ label, value, unit, sub, mono }: Pro
       <div className="mb-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">{label}</div>
       <div className={cn('text-sm font-semibold text-fg', mono && 'font-mono text-[12px]')}>
         {value}
-        {unit ? <span className="ml-1 text-[11px] font-normal text-fg-dim">{unit}</span> : null}
+        {unit ? <span className="ml-1.5 text-[11px] font-normal text-fg-dim">{unit}</span> : null}
       </div>
       {sub ? <div className="mt-1 text-[11px] text-fg-dim">{sub}</div> : null}
     </div>
