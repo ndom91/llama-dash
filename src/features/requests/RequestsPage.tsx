@@ -9,6 +9,7 @@ import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
+import { formatCompactNumber } from '../../lib/format'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
@@ -35,7 +36,7 @@ export function RequestsPage() {
   const navigate = useNavigate()
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(showMcpRelays)
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -131,14 +132,11 @@ export function RequestsPage() {
     ],
   )
 
-  const hiddenMcpCount = useMemo(() => {
-    if (showMcpRelays) return 0
-    return data?.pages[0]?.mcpHiddenCount ?? 0
-  }, [data, showMcpRelays])
-  const visibleMcpCount = useMemo(() => {
-    if (!showMcpRelays) return 0
-    return filtered.filter(isMcpRelayRequest).length
-  }, [filtered, showMcpRelays])
+  const mcpCount = useMemo(() => filtered.filter(isMcpRelayRequest).length, [filtered])
+  const displayed = useMemo(
+    () => (showMcpRelays ? filtered : filtered.filter((r) => !isMcpRelayRequest(r))),
+    [filtered, showMcpRelays],
+  )
 
   useEffect(() => {
     if (modelFilter === 'all' || models.length === 0) return
@@ -148,7 +146,7 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const rows = useMemo(() => {
-    const sorted = [...filtered]
+    const sorted = [...displayed]
     const dir = sortDir === 'asc' ? 1 : -1
     sorted.sort((a, b) => {
       const av = sortVal(a, sortKey)
@@ -158,9 +156,9 @@ export function RequestsPage() {
       return 0
     })
     return sorted
-  }, [filtered, sortKey, sortDir])
+  }, [displayed, sortKey, sortDir])
 
-  const errCount = useMemo(() => filtered.filter((r) => r.statusCode >= 400).length, [filtered])
+  const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
@@ -402,7 +400,7 @@ export function RequestsPage() {
                 <span className="flex min-w-0 flex-1 items-center justify-between gap-2 text-fg">
                   <span className="truncate">Show MCP reqs</span>
                   <span className="shrink-0 text-fg-faint">
-                    {showMcpRelays ? `${visibleMcpCount} visible` : `${hiddenMcpCount} hidden`}
+                    {`${formatCompactNumber(mcpCount)} ${showMcpRelays ? 'visible' : 'hidden'}`}
                   </span>
                 </span>
               </label>
@@ -534,7 +532,7 @@ export function RequestsPage() {
                 <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
-                    {filtered.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                    {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>

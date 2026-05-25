@@ -7,7 +7,7 @@ import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null; mcpHiddenCount?: number }
+type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
@@ -41,16 +41,9 @@ function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) 
   for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requestsList, exact: false })) {
     const queryKey = query.queryKey
     if (queryKey[0] !== 'requests' || queryKey[1] !== 'list') continue
-    const includeMcp = queryKey[2] === true
     queryClient.setQueryData<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }>(queryKey, (old) => {
       if (!old?.pages[0] || old.pages[0].requests.some((row) => row.id === request.id)) return old
       const firstPage = old.pages[0]
-      if (!includeMcp && isMcpRelayRequest(request)) {
-        return {
-          ...old,
-          pages: [{ ...firstPage, mcpHiddenCount: (firstPage.mcpHiddenCount ?? 0) + 1 }, ...old.pages.slice(1)],
-        }
-      }
       return {
         ...old,
         pages: [{ ...firstPage, requests: [request, ...firstPage.requests] }, ...old.pages.slice(1)],

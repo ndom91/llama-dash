@@ -172,15 +172,16 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
 
 const PAGE_SIZE = 50
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null; mcpHiddenCount?: number }
+type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
-export function useRequestsList(includeMcp = false): UseInfiniteQueryResult<{
+export function useRequestsList(): UseInfiniteQueryResult<{
   pages: Array<RequestsPage>
   pageParams: Array<unknown>
 }> {
   return useInfiniteQuery({
-    queryKey: [...qk.requestsList, includeMcp] as const,
-    queryFn: ({ pageParam }) => api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp }),
+    queryKey: qk.requestsList,
+    queryFn: ({ pageParam }) =>
+      api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })
