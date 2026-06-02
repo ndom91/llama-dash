@@ -210,7 +210,7 @@ export function PlaygroundSpeech() {
                   <LinkIcon className="size-3.5" aria-hidden="true" />
                   <label htmlFor="pg-speech-article-url">article url</label>
                 </div>
-                <div className="flex flex-col gap-2 md:flex-row">
+                <div className="flex flex-col gap-2">
                   <input
                     id="pg-speech-article-url"
                     type="url"
@@ -221,31 +221,33 @@ export function PlaygroundSpeech() {
                     disabled={articleLoading || speech.loading}
                     aria-describedby="pg-speech-article-help"
                   />
-                  <button
-                    type="submit"
-                    className="btn btn-secondary btn-md"
-                    disabled={!articleUrl.trim() || articleLoading || speech.loading}
-                  >
-                    {articleLoading ? (
-                      <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                    ) : (
-                      <FileText className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-                    )}
-                    <span>extract</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-md"
-                    disabled={!speech.model || !article || !articleText.trim() || speech.loading || articleLoading}
-                    onClick={handleSpeakArticle}
-                  >
-                    {speech.loading ? (
-                      <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                    ) : (
-                      <Volume2 className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-                    )}
-                    <span>speak article</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="submit"
+                      className="btn btn-secondary btn-md w-full justify-center"
+                      disabled={!articleUrl.trim() || articleLoading || speech.loading}
+                    >
+                      {articleLoading ? (
+                        <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
+                      ) : (
+                        <FileText className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                      )}
+                      <span>Extract text</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-md w-full justify-center"
+                      disabled={!speech.model || !article || !articleText.trim() || speech.loading || articleLoading}
+                      onClick={handleSpeakArticle}
+                    >
+                      {speech.loading ? (
+                        <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
+                      ) : (
+                        <Volume2 className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                      )}
+                      <span>Read aloud</span>
+                    </button>
+                  </div>
                 </div>
                 <p id="pg-speech-article-help" className="text-[12px] leading-5 text-fg-dim">
                   Fetches the page server-side, extracts the readable article body, then lets you edit the text before
