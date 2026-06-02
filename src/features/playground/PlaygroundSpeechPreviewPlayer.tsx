@@ -183,52 +183,13 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
   }, [])
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="rounded border border-border bg-surface-1 p-2.5">
       {/* biome-ignore lint/a11y/useMediaCaption: generated speech preview has no caption source */}
       <audio ref={audioRef} src={src} preload="metadata" className="sr-only" />
-      <div
-        ref={waveformRef}
-        className="relative flex h-18 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-1 px-2 py-2 outline-none"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        role="slider"
-        tabIndex={0}
-        aria-label="Audio timeline"
-        aria-valuemin={0}
-        aria-valuemax={duration || 0}
-        aria-valuenow={currentTime}
-        onKeyDown={(e) => {
-          const audio = audioRef.current
-          if (!audio || duration <= 0) return
-          if (e.key === 'ArrowLeft') {
-            e.preventDefault()
-            audio.currentTime = Math.max(0, audio.currentTime - 2)
-            setCurrentTime(audio.currentTime)
-          }
-          if (e.key === 'ArrowRight') {
-            e.preventDefault()
-            audio.currentTime = Math.min(duration, audio.currentTime + 2)
-            setCurrentTime(audio.currentTime)
-          }
-        }}
-      >
-        {peaks.map((peak) => (
-          <span
-            key={peak.id}
-            className={peak.index < activeBars ? 'bg-accent' : 'bg-fg-faint/40'}
-            style={{ height: `${Math.max(8, peak.value * 60)}px`, width: '4px', borderRadius: '9999px' }}
-          />
-        ))}
-        <span
-          className="pointer-events-none absolute top-0 bottom-0 w-px bg-white/80"
-          style={{ left: `${progress * 100}%` }}
-        />
-      </div>
-
-      <div className="flex items-center gap-3 rounded border border-border bg-surface-1 px-3 py-2">
+      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-3 max-sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
         <button
           type="button"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-on transition-opacity hover:opacity-90"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-on shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_20%,transparent)] transition-[opacity,transform] duration-100 hover:opacity-90 active:scale-95"
           onClick={togglePlayback}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
@@ -238,27 +199,60 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
             <Play className="size-3.5 shrink-0" strokeWidth={2.5} />
           )}
         </button>
-        <span className="mono text-[11px] text-fg-dim">{formatSpeechClock(currentTime)}</span>
+
+        <span className="mono min-w-[6.5rem] text-[11px] text-fg-dim">
+          {formatSpeechClock(currentTime)} / {formatSpeechClock(duration || 0)}
+        </span>
+
         <div
-          className="relative h-2 flex-1 cursor-pointer rounded bg-surface-3"
+          ref={waveformRef}
+          className="relative flex h-16 min-w-0 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-0 px-2 py-2 outline-none transition-[border-color,background-color] duration-100 hover:border-accent/60 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 max-sm:order-5 max-sm:col-span-4"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
+          role="slider"
+          tabIndex={0}
+          aria-label="Audio timeline"
+          aria-valuemin={0}
+          aria-valuemax={duration || 0}
+          aria-valuenow={currentTime}
+          onKeyDown={(e) => {
+            const audio = audioRef.current
+            if (!audio || duration <= 0) return
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault()
+              audio.currentTime = Math.max(0, audio.currentTime - 2)
+              setCurrentTime(audio.currentTime)
+            }
+            if (e.key === 'ArrowRight') {
+              e.preventDefault()
+              audio.currentTime = Math.min(duration, audio.currentTime + 2)
+              setCurrentTime(audio.currentTime)
+            }
+          }}
         >
-          <span className="absolute inset-y-0 left-0 rounded bg-accent" style={{ width: `${progress * 100}%` }} />
+          {peaks.map((peak) => (
+            <span
+              key={peak.id}
+              className={peak.index < activeBars ? 'bg-accent' : 'bg-fg-faint/35'}
+              style={{ height: `${Math.max(8, peak.value * 48)}px`, width: '4px', borderRadius: '9999px' }}
+            />
+          ))}
           <span
-            className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-surface-1 bg-fg"
-            style={{ left: `calc(${progress * 100}% - 6px)` }}
+            className="pointer-events-none absolute top-1.5 bottom-1.5 w-px bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.55)]"
+            style={{ left: `${progress * 100}%` }}
           />
         </div>
-        <span className="mono text-[11px] text-fg-dim">{formatSpeechClock(duration || 0)}</span>
+
         <span className="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">
           mp3
         </span>
+
         <Tooltip label="Download">
           <button
             type="button"
-            className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-90"
+            className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-2 text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-3 hover:text-fg active:scale-90"
             onClick={onDownload}
+            aria-label="Download audio"
           >
             <Download className="size-3.5 shrink-0" strokeWidth={2} />
           </button>
