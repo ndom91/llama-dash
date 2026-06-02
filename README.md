@@ -37,7 +37,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
 - **Inference backend facade** — backend health, model list/running state, lifecycle actions, logs, and config are capability-driven so future runtimes can be added without weakening the llama-swap experience.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Open WebUI, and more.
-- **Playground** — supports chat, image, speech and transcribe.
+- **Playground** — supports chat, image, speech, and transcribe; Speech can turn plain text or a server-extracted article URL into audio with waveform playback.
 
 ## 🎯 Use cases
 
@@ -172,6 +172,7 @@ See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backen
 - `src/server/proxy/*` — the `/v1/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/pricing.ts` — startup-cached `models.dev` model pricing used to estimate logged request cost from upstream usage counters.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
+- `src/server/article-extract.ts` — server-side article URL fetcher for the Speech playground. It validates public HTTP(S) URLs, caps HTML fetch size/time, parses readable article text with Readability, and returns editable text for TTS.
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not `/v1/*`. Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes GPU-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.

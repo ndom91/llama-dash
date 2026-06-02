@@ -156,6 +156,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/gpu` — cached GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
+   - `/api/playground/article-extract` — fetch and Readability-parse an article URL into clean text for Speech playground TTS
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
@@ -179,9 +180,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
     recent requests), Models (list + load/unload + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     update status, DB, proxy, queue, and GPU poller/device status), Playground
-    (chat plus request/response/timing/events/curl inspector tabs; timing
-    sidebar shows TTFT, prefill, decode, and stream-close when upstream
-    llama.cpp timing metadata is present), Config editor with explicit
+    (chat plus request/response/timing/events/curl inspector tabs; speech TTS
+    with plain text or server-extracted article URLs and waveform playback;
+    image and transcription testing; timing sidebar shows TTFT, prefill,
+    decode, and stream-close when upstream llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls
     and global proxy/privacy/retention defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
