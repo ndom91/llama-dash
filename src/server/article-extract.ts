@@ -2,6 +2,7 @@ import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { Readability } from '@mozilla/readability'
 import { JSDOM } from 'jsdom'
+import { Agent, fetch, type Response } from 'undici'
 import type { ArticleExtractResponse } from '../lib/schemas/article.ts'
 
 const MAX_HTML_BYTES = 2 * 1024 * 1024
@@ -22,7 +23,7 @@ export class ArticleExtractError extends Error {
 export async function extractArticleFromUrl(url: string): Promise<ArticleExtractResponse> {
   const startUrl = await assertSafeArticleUrl(url)
   const { html, finalUrl } = await fetchArticleHtml(startUrl)
-  return extractArticleFromHtml(html, startUrl.href, finalUrl.href)
+  return extractArticleFromHtml(html, startUrl.url.href, finalUrl.url.href)
 }
 
 export function extractArticleFromHtml(html: string, url: string, finalUrl = url): ArticleExtractResponse {
@@ -52,7 +53,7 @@ export function extractArticleFromHtml(html: string, url: string, finalUrl = url
   }
 }
 
-export async function assertSafeArticleUrl(value: string): Promise<URL> {
+export async function assertSafeArticleUrl(value: string): Promise<SafeArticleUrl> {
   let url: URL
   try {
     url = new URL(value)
@@ -72,57 +73,87 @@ export async function assertSafeArticleUrl(value: string): Promise<URL> {
   const directIp = isIP(host)
   if (directIp) {
     if (isPrivateIp(host)) throw new ArticleExtractError('Article URL host is not allowed', 400)
-    return url
+    return { url, addresses: [{ address: host, family: directIp === 4 ? 4 : 6 }] }
   }
 
-  let addresses: Array<{ address: string }>
+  let resolved: Array<{ address: string; family: number }>
   try {
-    addresses = await lookup(host, { all: true, verbatim: true })
+    resolved = await lookup(host, { all: true, verbatim: true })
   } catch {
     throw new ArticleExtractError('Could not resolve article URL host', 400)
+  }
+
+  const addresses: SafeArticleUrl['addresses'] = []
+  for (const entry of resolved) {
+    if (entry.family !== 4 && entry.family !== 6) continue
+    addresses.push({ address: entry.address, family: entry.family })
   }
 
   if (addresses.length === 0 || addresses.some((entry) => isPrivateIp(entry.address))) {
     throw new ArticleExtractError('Article URL host is not allowed', 400)
   }
 
-  return url
+  return { url, addresses }
 }
 
-async function fetchArticleHtml(startUrl: URL) {
+async function fetchArticleHtml(startUrl: SafeArticleUrl) {
   let currentUrl = startUrl
 
   for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect += 1) {
-    const res = await fetch(currentUrl, {
+    const dispatcher = createPinnedDispatcher(currentUrl)
+    const res = await fetch(currentUrl.url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      dispatcher,
       headers: {
         accept: 'text/html,application/xhtml+xml',
         'user-agent': 'llama-dash article extractor',
       },
-    }).catch((err) => {
+    }).catch(async (err) => {
+      await dispatcher.close()
       throw new ArticleExtractError(err instanceof Error ? err.message : 'Could not fetch article URL')
     })
 
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location')
+      await res.body?.cancel()
+      await dispatcher.close()
       if (!location) throw new ArticleExtractError('Article URL redirected without a location header')
-      currentUrl = await assertSafeArticleUrl(new URL(location, currentUrl).href)
+      currentUrl = await assertSafeArticleUrl(new URL(location, currentUrl.url).href)
       continue
     }
 
-    if (!res.ok) throw new ArticleExtractError(`Article URL returned HTTP ${res.status}`)
+    if (!res.ok) {
+      await res.body?.cancel()
+      await dispatcher.close()
+      throw new ArticleExtractError(`Article URL returned HTTP ${res.status}`)
+    }
 
     const contentType = res.headers.get('content-type') ?? ''
     if (!isHtmlContentType(contentType)) {
+      await res.body?.cancel()
+      await dispatcher.close()
       throw new ArticleExtractError('Article URL did not return HTML', 422)
     }
 
-    const html = await readLimitedText(res, MAX_HTML_BYTES)
+    const html = await readLimitedText(res, MAX_HTML_BYTES).finally(() => dispatcher.close())
     return { html, finalUrl: currentUrl }
   }
 
   throw new ArticleExtractError('Article URL redirected too many times')
+}
+
+function createPinnedDispatcher(safeUrl: SafeArticleUrl) {
+  const addresses = safeUrl.addresses
+  return new Agent({
+    connect: {
+      lookup: (_hostname, options, callback) => {
+        const first = addresses[0]
+        if (options.all) callback(null, addresses)
+        else callback(null, first.address, first.family)
+      },
+    },
+  })
 }
 
 async function readLimitedText(res: Response, maxBytes: number) {
@@ -153,9 +184,9 @@ async function readLimitedText(res: Response, maxBytes: number) {
   return new TextDecoder().decode(merged)
 }
 
-function isHtmlContentType(contentType: string) {
+export function isHtmlContentType(contentType: string) {
   const type = contentType.toLowerCase().split(';', 1)[0]?.trim()
-  return type === 'text/html' || type === 'application/xhtml+xml' || type === ''
+  return type === 'text/html' || type === 'application/xhtml+xml'
 }
 
 function normalizeArticleText(value: string) {
@@ -187,14 +218,20 @@ function isPrivateIp(value: string) {
 function isPrivateIpv4(value: string) {
   const parts = value.split('.').map((part) => Number(part))
   if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true
-  const [a, b] = parts
+  const [a, b, c] = parts
   return (
     a === 0 ||
     a === 10 ||
     a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+    (a === 192 && b === 88 && c === 99) ||
     (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
     a >= 224
   )
 }
@@ -202,7 +239,23 @@ function isPrivateIpv4(value: string) {
 function isPrivateIpv6(value: string) {
   const normalized = value.toLowerCase()
   if (normalized === '::1' || normalized === '::') return true
-  if (normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) return true
+  if (normalized.startsWith('fc') || normalized.startsWith('fd') || isIpv6LinkLocal(normalized)) return true
+  if (normalized.startsWith('ff')) return true
+  if (normalized.startsWith('2001:db8:') || normalized === '2001:db8::') return true
+  if (normalized.startsWith('2001:2:') || normalized === '2001:2::') return true
+  if (normalized.startsWith('2001:0:') || normalized.startsWith('2001:0000:') || normalized === '2001::') {
+    return true
+  }
   if (normalized.startsWith('::ffff:')) return isPrivateIpv4(normalized.slice('::ffff:'.length))
   return false
+}
+
+function isIpv6LinkLocal(value: string) {
+  const firstHextet = Number.parseInt(value.split(':', 1)[0] ?? '', 16)
+  return Number.isFinite(firstHextet) && (firstHextet & 0xffc0) === 0xfe80
+}
+
+type SafeArticleUrl = {
+  url: URL
+  addresses: Array<{ address: string; family: 4 | 6 }>
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ArticleExtractError, assertSafeArticleUrl, extractArticleFromHtml } from './article-extract'
+import { ArticleExtractError, assertSafeArticleUrl, extractArticleFromHtml, isHtmlContentType } from './article-extract'
 
 describe('assertSafeArticleUrl', () => {
   it('rejects non-http URLs', async () => {
@@ -14,6 +14,33 @@ describe('assertSafeArticleUrl', () => {
     await expect(assertSafeArticleUrl('http://127.0.0.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
     await expect(assertSafeArticleUrl('http://192.168.1.2/post')).rejects.toBeInstanceOf(ArticleExtractError)
     await expect(assertSafeArticleUrl('http://[::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+  })
+
+  it('rejects special-use IPv4 ranges that are not publicly routable', async () => {
+    await expect(assertSafeArticleUrl('http://100.64.0.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://198.18.0.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://192.0.0.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://198.51.100.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://203.0.113.1/post')).rejects.toBeInstanceOf(ArticleExtractError)
+  })
+
+  it('rejects special-use IPv6 ranges that are not publicly routable', async () => {
+    await expect(assertSafeArticleUrl('http://[fc00::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[fe80::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[fe90::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[febf::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[ff02::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[2001:db8::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+  })
+})
+
+describe('isHtmlContentType', () => {
+  it('accepts explicit HTML content types only', () => {
+    expect(isHtmlContentType('text/html; charset=utf-8')).toBe(true)
+    expect(isHtmlContentType('application/xhtml+xml')).toBe(true)
+    expect(isHtmlContentType('')).toBe(false)
+    expect(isHtmlContentType('text/plain')).toBe(false)
+    expect(isHtmlContentType('application/json')).toBe(false)
   })
 })
 
