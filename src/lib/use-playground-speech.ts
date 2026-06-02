@@ -77,60 +77,65 @@ export function usePlaygroundSpeech() {
     localStorage.setItem(LS_VOICE, v)
   }, [])
 
-  const generate = useCallback(async () => {
-    if (!model || !text.trim()) return
-    setLoading(true)
-    setError(null)
+  const generate = useCallback(
+    async (options: GenerateSpeechOptions = {}) => {
+      const input = (options.input ?? text).trim()
+      if (!model || !input) return
 
-    const abort = new AbortController()
-    abortRef.current = abort
+      setLoading(true)
+      setError(null)
 
-    const headers: Record<string, string> = { 'content-type': 'application/json' }
-    if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
+      const abort = new AbortController()
+      abortRef.current = abort
 
-    try {
-      const startedAt = performance.now()
-      const input = text.trim()
-      const body: Record<string, unknown> = { model, input }
-      if (voice.trim()) body.voice = voice.trim()
+      const headers: Record<string, string> = { 'content-type': 'application/json' }
+      if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
 
-      const res = await fetch('/v1/audio/speech', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: abort.signal,
-      })
+      try {
+        const startedAt = performance.now()
+        const body: Record<string, unknown> = { model, input }
+        if (voice.trim()) body.voice = voice.trim()
 
-      if (!res.ok) {
-        const errBody = await res.text().catch(() => '')
-        throw new Error(`${res.status}: ${errBody.slice(0, 300)}`)
+        const res = await fetch('/v1/audio/speech', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(body),
+          signal: abort.signal,
+        })
+
+        if (!res.ok) {
+          const errBody = await res.text().catch(() => '')
+          throw new Error(`${res.status}: ${errBody.slice(0, 300)}`)
+        }
+
+        const blob = await res.blob()
+        const dataUrl = await readBlobAsDataUrl(blob)
+        const renderMs = performance.now() - startedAt
+        const audioDurationSec = await readAudioDuration(dataUrl)
+        const createdAt = Date.now()
+        setEntries((prev) => [
+          {
+            id: `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+            audioUrl: dataUrl,
+            input,
+            voice: voice.trim() || 'default',
+            source: options.source,
+            renderMs,
+            audioDurationSec,
+            createdAt,
+          },
+          ...prev,
+        ])
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setLoading(false)
+        abortRef.current = null
       }
-
-      const blob = await res.blob()
-      const dataUrl = await readBlobAsDataUrl(blob)
-      const renderMs = performance.now() - startedAt
-      const audioDurationSec = await readAudioDuration(dataUrl)
-      const createdAt = Date.now()
-      setEntries((prev) => [
-        {
-          id: `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
-          audioUrl: dataUrl,
-          input,
-          voice: voice.trim() || 'default',
-          renderMs,
-          audioDurationSec,
-          createdAt,
-        },
-        ...prev,
-      ])
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return
-      setError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setLoading(false)
-      abortRef.current = null
-    }
-  }, [model, text, voice])
+    },
+    [model, text, voice],
+  )
 
   const stop = useCallback(() => {
     abortRef.current?.abort()
@@ -162,9 +167,25 @@ type SpeechEntry = {
   audioUrl: string
   input: string
   voice: string
+  source?: SpeechEntrySource
   renderMs: number
   audioDurationSec: number | null
   createdAt?: number
+}
+
+type GenerateSpeechOptions = {
+  input?: string
+  source?: SpeechEntrySource
+}
+
+type SpeechEntrySource = {
+  type: 'article'
+  url: string
+  finalUrl: string
+  title: string | null
+  siteName: string | null
+  wordCount: number
+  truncated: boolean
 }
 
 function readAudioDuration(url: string) {

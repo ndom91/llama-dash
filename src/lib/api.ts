@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
+import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
@@ -48,6 +49,7 @@ export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing
 export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
+export type { ArticleExtractResponse } from './schemas/article'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 type CachedJson = { etag: string | null; data: unknown }
@@ -223,4 +225,6 @@ export const api = {
   }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
   pruneRequestLogs: () => sendJson('/api/system/request-logs/prune', v.any(), { method: 'POST', body: {} }),
   compactDatabase: () => sendJson('/api/system/database/compact', OkSchema, { method: 'POST', body: {} }),
+  extractArticle: (url: string) =>
+    sendJson('/api/playground/article-extract', ArticleExtractResponseSchema, { method: 'POST', body: { url } }),
 }
