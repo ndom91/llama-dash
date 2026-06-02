@@ -1,0 +1,208 @@
+import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
+import { Readability } from '@mozilla/readability'
+import { JSDOM } from 'jsdom'
+import type { ArticleExtractResponse } from '../lib/schemas/article.ts'
+
+const MAX_HTML_BYTES = 2 * 1024 * 1024
+const MAX_ARTICLE_CHARS = 12_000
+const MIN_ARTICLE_CHARS = 80
+const FETCH_TIMEOUT_MS = 8_000
+const MAX_REDIRECTS = 5
+
+export class ArticleExtractError extends Error {
+  constructor(
+    message: string,
+    public readonly status = 502,
+  ) {
+    super(message)
+  }
+}
+
+export async function extractArticleFromUrl(url: string): Promise<ArticleExtractResponse> {
+  const startUrl = await assertSafeArticleUrl(url)
+  const { html, finalUrl } = await fetchArticleHtml(startUrl)
+  return extractArticleFromHtml(html, startUrl.href, finalUrl.href)
+}
+
+export function extractArticleFromHtml(html: string, url: string, finalUrl = url): ArticleExtractResponse {
+  const dom = new JSDOM(html, { url: finalUrl })
+  const reader = new Readability(dom.window.document)
+  const article = reader.parse()
+  const text = normalizeArticleText(article?.textContent ?? '')
+
+  if (!article || text.length < MIN_ARTICLE_CHARS) {
+    throw new ArticleExtractError('Could not find a readable article in that page', 422)
+  }
+
+  const truncated = text.length > MAX_ARTICLE_CHARS
+  const outputText = truncated ? text.slice(0, MAX_ARTICLE_CHARS).trimEnd() : text
+
+  return {
+    url,
+    finalUrl,
+    title: normalizeOptionalText(article.title),
+    byline: normalizeOptionalText(article.byline),
+    siteName: normalizeOptionalText(article.siteName),
+    excerpt: normalizeOptionalText(article.excerpt),
+    text: outputText,
+    wordCount: countWords(outputText),
+    truncated,
+    originalCharCount: text.length,
+  }
+}
+
+export async function assertSafeArticleUrl(value: string): Promise<URL> {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new ArticleExtractError('Invalid article URL', 400)
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new ArticleExtractError('Article URL must use http or https', 400)
+  }
+
+  const host = url.hostname.toLowerCase().replace(/^\[(.*)]$/, '$1')
+  if (!host || host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) {
+    throw new ArticleExtractError('Article URL host is not allowed', 400)
+  }
+
+  const directIp = isIP(host)
+  if (directIp) {
+    if (isPrivateIp(host)) throw new ArticleExtractError('Article URL host is not allowed', 400)
+    return url
+  }
+
+  let addresses: Array<{ address: string }>
+  try {
+    addresses = await lookup(host, { all: true, verbatim: true })
+  } catch {
+    throw new ArticleExtractError('Could not resolve article URL host', 400)
+  }
+
+  if (addresses.length === 0 || addresses.some((entry) => isPrivateIp(entry.address))) {
+    throw new ArticleExtractError('Article URL host is not allowed', 400)
+  }
+
+  return url
+}
+
+async function fetchArticleHtml(startUrl: URL) {
+  let currentUrl = startUrl
+
+  for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect += 1) {
+    const res = await fetch(currentUrl, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: {
+        accept: 'text/html,application/xhtml+xml',
+        'user-agent': 'llama-dash article extractor',
+      },
+    }).catch((err) => {
+      throw new ArticleExtractError(err instanceof Error ? err.message : 'Could not fetch article URL')
+    })
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location')
+      if (!location) throw new ArticleExtractError('Article URL redirected without a location header')
+      currentUrl = await assertSafeArticleUrl(new URL(location, currentUrl).href)
+      continue
+    }
+
+    if (!res.ok) throw new ArticleExtractError(`Article URL returned HTTP ${res.status}`)
+
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!isHtmlContentType(contentType)) {
+      throw new ArticleExtractError('Article URL did not return HTML', 422)
+    }
+
+    const html = await readLimitedText(res, MAX_HTML_BYTES)
+    return { html, finalUrl: currentUrl }
+  }
+
+  throw new ArticleExtractError('Article URL redirected too many times')
+}
+
+async function readLimitedText(res: Response, maxBytes: number) {
+  if (!res.body) return await res.text()
+
+  const reader = res.body.getReader()
+  const chunks: Array<Uint8Array> = []
+  let bytes = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    bytes += value.byteLength
+    if (bytes > maxBytes) {
+      await reader.cancel()
+      throw new ArticleExtractError('Article HTML is too large', 413)
+    }
+    chunks.push(value)
+  }
+
+  const merged = new Uint8Array(bytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    merged.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+
+  return new TextDecoder().decode(merged)
+}
+
+function isHtmlContentType(contentType: string) {
+  const type = contentType.toLowerCase().split(';', 1)[0]?.trim()
+  return type === 'text/html' || type === 'application/xhtml+xml' || type === ''
+}
+
+function normalizeArticleText(value: string) {
+  return value
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function normalizeOptionalText(value: string | null | undefined) {
+  const normalized = value?.replace(/\s+/g, ' ').trim()
+  return normalized ? normalized : null
+}
+
+function countWords(value: string) {
+  const matches = value.trim().match(/\S+/g)
+  return matches?.length ?? 0
+}
+
+function isPrivateIp(value: string) {
+  const ipType = isIP(value)
+  if (ipType === 4) return isPrivateIpv4(value)
+  if (ipType === 6) return isPrivateIpv6(value)
+  return true
+}
+
+function isPrivateIpv4(value: string) {
+  const parts = value.split('.').map((part) => Number(part))
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true
+  const [a, b] = parts
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    a >= 224
+  )
+}
+
+function isPrivateIpv6(value: string) {
+  const normalized = value.toLowerCase()
+  if (normalized === '::1' || normalized === '::') return true
+  if (normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) return true
+  if (normalized.startsWith('::ffff:')) return isPrivateIpv4(normalized.slice('::ffff:'.length))
+  return false
+}

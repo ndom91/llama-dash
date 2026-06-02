@@ -1,3 +1,4 @@
+import { articleRoutes } from './routes/article.ts'
 import { aliasRoutes } from './routes/aliases.ts'
 import { configRoutes } from './routes/config.ts'
 import { keyRoutes } from './routes/keys.ts'
@@ -11,6 +12,7 @@ import { error, type Route } from './routes/types.ts'
 import { upstreamCredentialRoutes } from './routes/upstream-credentials.ts'
 
 const routes: Route[] = [
+  ...articleRoutes,
   ...modelRoutes,
   ...requestRoutes,
   ...configRoutes,
