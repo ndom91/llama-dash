@@ -1,5 +1,7 @@
-import type { ApiKey } from '../db/schema.ts'
+import { Agent } from 'undici'
 import { getPrivacySettings } from '../admin/settings.ts'
+import { config } from '../config.ts'
+import type { ApiKey } from '../db/schema.ts'
 import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -114,6 +116,22 @@ export function writeProxyLog(input: ProxyLogInput) {
   })
 }
 
+// Dedicated undici dispatcher for the upstream proxy fetch only. Raises the
+// default 300s headersTimeout so long non-streaming jobs (image gen, big
+// batches) that send no response headers until done don't get killed and
+// reported as `upstream_unreachable`. Scoped here so other outbound fetches
+// (models.dev pricing, GitHub update check, auth) keep fast-failing defaults.
+let proxyDispatcher: Agent | undefined
+function getProxyDispatcher(): Agent {
+  if (!proxyDispatcher) {
+    proxyDispatcher = new Agent({
+      headersTimeout: config.upstreamHeadersTimeoutMs,
+      bodyTimeout: config.upstreamBodyTimeoutMs,
+    })
+  }
+  return proxyDispatcher
+}
+
 export async function forwardUpstreamAndLog(input: {
   upstream: string
   method: string
@@ -134,14 +152,17 @@ export async function forwardUpstreamAndLog(input: {
 }): Promise<Response | { upstreamError: string }> {
   let upstreamResponse: Response
   try {
-    upstreamResponse = await fetch(input.upstream, {
+    // `duplex` (streaming request bodies) and `dispatcher` (custom undici
+    // timeouts) are not in the standard RequestInit type.
+    const init: RequestInit & { duplex?: 'half'; dispatcher?: Agent } = {
       method: input.method,
       headers: input.headers,
       body: input.body,
-      // @ts-expect-error — Node fetch requires duplex for streaming request bodies
       duplex: input.hasBody ? 'half' : undefined,
+      dispatcher: getProxyDispatcher(),
       redirect: 'manual',
-    })
+    }
+    upstreamResponse = await fetch(input.upstream, init)
   } catch (err) {
     return { upstreamError: formatUpstreamError(err) }
   }

@@ -162,6 +162,8 @@ Copy `.env.example` to `.env` and fill in the values.
 | `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
 | `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
 | `CREDENTIAL_ENCRYPTION_KEY` | | 32+ character secret used to encrypt stored upstream provider credentials. Required before creating, placeholder-replacing, or injecting upstream credentials. |
+| `UPSTREAM_HEADERS_TIMEOUT_MS` | `600000` | Upstream proxy fetch headers timeout (ms); `0` disables. Keep generous for long non-streaming jobs (image gen) that send no response headers until done. |
+| `UPSTREAM_BODY_TIMEOUT_MS` | `0` | Upstream proxy fetch body timeout (ms); `0` disables. |
 
 See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md) for the backend abstraction, capability model, and future Ollama notes.
 

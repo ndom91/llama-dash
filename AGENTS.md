@@ -399,6 +399,11 @@ sort lexicographically by creation time).
 - If your upstream uses HTTPS with a self-signed cert, set
   `INFERENCE_INSECURE=true` so Node accepts it (it sets
   `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot). Off by default.
+- The proxy forward fetch uses a dedicated undici dispatcher (not global) so
+  long non-streaming upstream jobs (image gen) don't trip undici's 300s default
+  `headersTimeout` and get mislabeled `upstream_unreachable`. Tune via
+  `UPSTREAM_HEADERS_TIMEOUT_MS` (default 600000) and `UPSTREAM_BODY_TIMEOUT_MS`
+  (default 0); `0` disables.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.
 
