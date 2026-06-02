@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { writeProxyLog, type ProxyLogInput } from './forward'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { forwardUpstreamAndLog, writeProxyLog, type ProxyLogInput } from './forward'
 
 const writeRequestLog = vi.hoisted(() => vi.fn())
 
@@ -59,6 +59,10 @@ describe('writeProxyLog', () => {
     writeRequestLog.mockClear()
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('logs the requested model instead of the upstream usage filename', () => {
     writeProxyLog(input())
 
@@ -69,5 +73,34 @@ describe('writeProxyLog', () => {
     writeProxyLog(input({ routing: { ...input().routing, routedModel: 'qwen3.6-coder' } }))
 
     expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ model: 'qwen3.6-coder' }))
+  })
+
+  it('lets fetch compute content length for forwarded request bodies', async () => {
+    const fetchMock = vi.fn(async () => Response.json({ ok: true }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/v1/chat/completions',
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'content-length': '2' },
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/chat/completions',
+      reqModel: null,
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://upstream.test/v1/chat/completions',
+      expect.objectContaining({
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
   })
 })

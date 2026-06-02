@@ -132,6 +132,14 @@ function getProxyDispatcher(): Agent {
   return proxyDispatcher
 }
 
+function stripContentLength(headers: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() !== 'content-length') out[key] = value
+  }
+  return out
+}
+
 export async function forwardUpstreamAndLog(input: {
   upstream: string
   method: string
@@ -156,7 +164,7 @@ export async function forwardUpstreamAndLog(input: {
     // timeouts) are not in the standard RequestInit type.
     const init: RequestInit & { duplex?: 'half'; dispatcher?: Agent } = {
       method: input.method,
-      headers: input.headers,
+      headers: stripContentLength(input.headers),
       body: input.body,
       duplex: input.hasBody ? 'half' : undefined,
       dispatcher: getProxyDispatcher(),
