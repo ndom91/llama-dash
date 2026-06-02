@@ -181,7 +181,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
-    with plain text or server-extracted article URLs and waveform playback;
+    with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
     image and transcription testing; timing sidebar shows TTFT, prefill,
     decode, and stream-close when upstream llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls

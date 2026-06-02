@@ -4,8 +4,9 @@ import { Tooltip } from '../../components/Tooltip'
 import { api, type ArticleExtractResponse } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useModels } from '../../lib/queries'
-import { usePlaygroundSpeech } from '../../lib/use-playground-speech'
+import { type SpeechSegment, usePlaygroundSpeech } from '../../lib/use-playground-speech'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
+import { PlaygroundSpeechSegmentedPlayer } from './PlaygroundSpeechSegmentedPlayer'
 import { buildSpeechFilename, formatSpeechClock } from './playgroundSpeechUtils'
 
 type SpeechMode = 'text' | 'article'
@@ -57,7 +58,7 @@ export function PlaygroundSpeech() {
 
   const handleSpeakArticle = useCallback(() => {
     if (!speech.model || !article || !articleText.trim() || speech.loading) return
-    void speech.generate({
+    void speech.generateSegments({
       input: articleText,
       source: {
         type: 'article',
@@ -69,7 +70,7 @@ export function PlaygroundSpeech() {
         truncated: article.truncated,
       },
     })
-  }, [article, articleText, speech.generate, speech.loading, speech.model])
+  }, [article, articleText, speech.generateSegments, speech.loading, speech.model])
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -90,6 +91,13 @@ export function PlaygroundSpeech() {
     const link = document.createElement('a')
     link.href = audioUrl
     link.download = buildSpeechFilename(input, createdAt)
+    link.click()
+  }, [])
+
+  const downloadSegment = useCallback((segment: SpeechSegment, createdAt: number) => {
+    const link = document.createElement('a')
+    link.href = segment.audioUrl
+    link.download = buildSpeechFilename(`segment ${segment.index + 1} ${segment.input}`, createdAt)
     link.click()
   }, [])
 
@@ -300,6 +308,9 @@ export function PlaygroundSpeech() {
             <div className="mx-auto flex w-full max-w-[920px] flex-col gap-4">
               {speech.entries.map((entry) => {
                 const articleSource = entry.source?.type === 'article' ? entry.source : null
+                const segments = entry.segments ?? []
+                const isSegmented = entry.totalSegments != null
+                const audioUrl = entry.audioUrl
                 return (
                   <div key={entry.id} className="flex flex-col gap-3 rounded border border-border bg-surface-2 p-3">
                     <div className="flex items-start justify-between gap-3">
@@ -338,12 +349,21 @@ export function PlaygroundSpeech() {
                     <div className="text-[13px] leading-[1.6] text-fg">
                       {previewSpeechInput(entry.input, !!articleSource)}
                     </div>
-                    <PlaygroundSpeechPreviewPlayer
-                      key={entry.audioUrl}
-                      src={entry.audioUrl}
-                      durationHint={entry.audioDurationSec}
-                      onDownload={() => downloadAudio(entry.audioUrl, entry.input, entry.createdAt ?? Date.now())}
-                    />
+                    {isSegmented ? (
+                      <PlaygroundSpeechSegmentedPlayer
+                        segments={segments}
+                        totalSegments={entry.totalSegments ?? segments.length}
+                        status={entry.status ?? 'complete'}
+                        onDownloadSegment={(segment) => downloadSegment(segment, entry.createdAt ?? Date.now())}
+                      />
+                    ) : audioUrl ? (
+                      <PlaygroundSpeechPreviewPlayer
+                        key={audioUrl}
+                        src={audioUrl}
+                        durationHint={entry.audioDurationSec}
+                        onDownload={() => downloadAudio(audioUrl, entry.input, entry.createdAt ?? Date.now())}
+                      />
+                    ) : null}
                   </div>
                 )
               })}

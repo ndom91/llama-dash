@@ -11,12 +11,15 @@ type Props = {
   src: string
   durationHint: number | null
   onDownload: () => void
+  autoPlay?: boolean
+  onEnded?: () => void
 }
 
-export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }: Props) {
+export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, autoPlay = false, onEnded }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
+  const onEndedRef = useRef(onEnded)
   const [duration, setDuration] = useState(durationHint ?? 0)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -85,6 +88,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
     const onEnded = () => {
       setIsPlaying(false)
       setCurrentTime(audio.duration || 0)
+      onEndedRef.current?.()
     }
 
     audio.addEventListener('loadedmetadata', onLoaded)
@@ -101,6 +105,16 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload }:
       audio.removeEventListener('ended', onEnded)
     }
   }, [])
+
+  useEffect(() => {
+    onEndedRef.current = onEnded
+  }, [onEnded])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || !autoPlay) return
+    audio.play().catch(() => {})
+  }, [autoPlay, src])
 
   useEffect(() => {
     const audio = audioRef.current

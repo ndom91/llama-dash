@@ -37,7 +37,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
 - **Inference backend facade** — backend health, model list/running state, lifecycle actions, logs, and config are capability-driven so future runtimes can be added without weakening the llama-swap experience.
 - **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Open WebUI, and more.
-- **Playground** — supports chat, image, speech, and transcribe; Speech can turn plain text or a server-extracted article URL into audio with waveform playback.
+- **Playground** — supports chat, image, speech, and transcribe; Speech can turn plain text or a server-extracted article URL into audio, with paragraph-chunked article playback for faster starts.
 
 ## 🎯 Use cases
 
