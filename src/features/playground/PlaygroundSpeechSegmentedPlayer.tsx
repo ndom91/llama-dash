@@ -15,12 +15,12 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
   const [activeIndex, setActiveIndex] = useState(0)
   const [autoPlay, setAutoPlay] = useState(() => status === 'generating')
   const [waitingForNext, setWaitingForNext] = useState(false)
-  const activeSegment = segments[activeIndex] ?? segments[0] ?? null
+  const activeSegment = segments.find((segment) => segment.index === activeIndex) ?? null
 
   useEffect(() => {
     if (segments.length === 0) setActiveIndex(0)
-    else if (activeIndex >= segments.length) setActiveIndex(segments.length - 1)
-  }, [activeIndex, segments.length])
+    else if (!segments.some((segment) => segment.index === activeIndex)) setActiveIndex(segments[segments.length - 1].index)
+  }, [activeIndex, segments])
 
   useEffect(() => {
     if (!waitingForNext || activeIndex + 1 >= segments.length) return
@@ -66,12 +66,14 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-border bg-surface-1 px-3 py-2">
         <div className="font-mono text-[11px] text-fg-dim">
-          Segment {activeSegment.index + 1} of {totalSegments} · {waitingForNext ? 'waiting for next segment' : statusLabel}
+          Segment {activeIndex + 1} of {totalSegments} · {waitingForNext ? 'waiting for next segment' : statusLabel}
         </div>
         {status === 'generating' ? <Loader2 className="size-3.5 animate-spin text-fg-dim" aria-hidden="true" /> : null}
       </div>
 
-      <div className="text-[13px] leading-[1.6] text-fg">{previewSegmentInput(activeSegment.input)}</div>
+      <div key={activeSegment.id} className="text-[13px] leading-[1.6] text-fg">
+        {previewSegmentInput(activeSegment.input)}
+      </div>
 
       <div className="flex flex-wrap gap-1.5" aria-label="Speech segments">
         {Array.from({ length: totalSegments }, (_, index) => {
