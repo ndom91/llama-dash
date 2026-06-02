@@ -186,7 +186,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
     <div className="rounded border border-border bg-surface-1 p-2.5">
       {/* biome-ignore lint/a11y/useMediaCaption: generated speech preview has no caption source */}
       <audio ref={audioRef} src={src} preload="metadata" className="sr-only" />
-      <div className="grid grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-3 max-sm:grid-cols-[auto_minmax(0,1fr)_auto_auto]">
+      <div className="flex flex-row items-center gap-3">
         <button
           type="button"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-on shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_20%,transparent)] transition-[opacity,transform] duration-100 hover:opacity-90 active:scale-95"
@@ -206,7 +206,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
 
         <div
           ref={waveformRef}
-          className="relative flex h-16 min-w-0 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-0 px-2 py-2 outline-none transition-[border-color,background-color] duration-100 hover:border-accent/60 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 max-sm:order-5 max-sm:col-span-4"
+          className="relative flex h-16 min-w-0 flex-1 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-0 px-2 py-2 outline-none transition-[border-color,background-color] duration-100 hover:border-accent/60 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           role="slider"
