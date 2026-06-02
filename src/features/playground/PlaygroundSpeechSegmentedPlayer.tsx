@@ -71,6 +71,8 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
         {status === 'generating' ? <Loader2 className="size-3.5 animate-spin text-fg-dim" aria-hidden="true" /> : null}
       </div>
 
+      <div className="text-[13px] leading-[1.6] text-fg">{previewSegmentInput(activeSegment.input)}</div>
+
       <div className="flex flex-wrap gap-1.5" aria-label="Speech segments">
         {Array.from({ length: totalSegments }, (_, index) => {
           const ready = index < segments.length
@@ -105,4 +107,9 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
       />
     </div>
   )
+}
+
+function previewSegmentInput(input: string) {
+  if (input.length <= 500) return input
+  return `${input.slice(0, 500).trimEnd()}...`
 }

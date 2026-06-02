@@ -109,6 +109,7 @@ export function PlaygroundSpeech() {
       : '— real-time'
   const durationLabel = (durationSec: number | null) =>
     durationSec != null ? formatSpeechClock(durationSec) : '--:--.-'
+  const articleReady = Boolean(article && articleText.trim())
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -229,32 +230,61 @@ export function PlaygroundSpeech() {
                     disabled={articleLoading || speech.loading}
                     aria-describedby="pg-speech-article-help"
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="submit"
-                      className="btn btn-secondary btn-md w-full justify-center"
-                      disabled={!articleUrl.trim() || articleLoading || speech.loading}
-                    >
-                      {articleLoading ? (
-                        <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                      ) : (
-                        <FileText className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <div className="flex flex-col gap-2 rounded border border-border bg-surface-1 p-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
+                          Step 1
+                        </span>
+                        <span className="font-mono text-[10px] text-fg-dim">Required first</span>
+                      </div>
+                      <button
+                        type="submit"
+                        className="btn btn-secondary btn-md w-full justify-center"
+                        disabled={!articleUrl.trim() || articleLoading || speech.loading}
+                      >
+                        {articleLoading ? (
+                          <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
+                        ) : (
+                          <FileText className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                        )}
+                        <span>Extract text</span>
+                      </button>
+                      <p className="text-[11px] leading-4 text-fg-dim">Pull the readable article body into the editor.</p>
+                    </div>
+
+                    <div
+                      className={cn(
+                        'flex flex-col gap-2 rounded border border-border bg-surface-1 p-2.5 transition-opacity duration-100',
+                        !articleReady && 'opacity-65',
                       )}
-                      <span>Extract text</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-md w-full justify-center"
-                      disabled={!speech.model || !article || !articleText.trim() || speech.loading || articleLoading}
-                      onClick={handleSpeakArticle}
                     >
-                      {speech.loading ? (
-                        <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                      ) : (
-                        <Volume2 className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-                      )}
-                      <span>Read aloud</span>
-                    </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
+                          Step 2
+                        </span>
+                        <span className="font-mono text-[10px] text-fg-dim">
+                          {articleReady ? 'Ready after review' : 'Extract text first'}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-md w-full justify-center"
+                        disabled={!speech.model || !articleReady || speech.loading || articleLoading}
+                        onClick={handleSpeakArticle}
+                        aria-describedby="pg-speech-read-step-help"
+                      >
+                        {speech.loading ? (
+                          <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
+                        ) : (
+                          <Volume2 className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
+                        )}
+                        <span>Read aloud</span>
+                      </button>
+                      <p id="pg-speech-read-step-help" className="text-[11px] leading-4 text-fg-dim">
+                        Review or edit the extracted text, then generate chunked audio.
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <p id="pg-speech-article-help" className="text-[12px] leading-5 text-fg-dim">
@@ -346,9 +376,6 @@ export function PlaygroundSpeech() {
                         {articleSource.truncated ? <span>· trimmed</span> : null}
                       </div>
                     ) : null}
-                    <div className="text-[13px] leading-[1.6] text-fg">
-                      {previewSpeechInput(entry.input, !!articleSource)}
-                    </div>
                     {isSegmented ? (
                       <PlaygroundSpeechSegmentedPlayer
                         segments={segments}
@@ -357,12 +384,17 @@ export function PlaygroundSpeech() {
                         onDownloadSegment={(segment) => downloadSegment(segment, entry.createdAt ?? Date.now())}
                       />
                     ) : audioUrl ? (
-                      <PlaygroundSpeechPreviewPlayer
-                        key={audioUrl}
-                        src={audioUrl}
-                        durationHint={entry.audioDurationSec}
-                        onDownload={() => downloadAudio(audioUrl, entry.input, entry.createdAt ?? Date.now())}
-                      />
+                      <>
+                        <div className="text-[13px] leading-[1.6] text-fg">
+                          {previewSpeechInput(entry.input, !!articleSource)}
+                        </div>
+                        <PlaygroundSpeechPreviewPlayer
+                          key={audioUrl}
+                          src={audioUrl}
+                          durationHint={entry.audioDurationSec}
+                          onDownload={() => downloadAudio(audioUrl, entry.input, entry.createdAt ?? Date.now())}
+                        />
+                      </>
                     ) : null}
                   </div>
                 )
