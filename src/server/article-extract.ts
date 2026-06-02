@@ -241,12 +241,14 @@ function isPrivateIpv6(value: string) {
   if (normalized === '::1' || normalized === '::') return true
   if (normalized.startsWith('fc') || normalized.startsWith('fd') || isIpv6LinkLocal(normalized)) return true
   if (normalized.startsWith('ff')) return true
+  if (normalized.startsWith('::ffff:')) return true
+  if (normalized.startsWith('64:ff9b:')) return true
+  if (normalized.startsWith('2002:') || normalized === '2002::') return true
   if (normalized.startsWith('2001:db8:') || normalized === '2001:db8::') return true
   if (normalized.startsWith('2001:2:') || normalized === '2001:2::') return true
   if (normalized.startsWith('2001:0:') || normalized.startsWith('2001:0000:') || normalized === '2001::') {
     return true
   }
-  if (normalized.startsWith('::ffff:')) return isPrivateIpv4(normalized.slice('::ffff:'.length))
   return false
 }
 

@@ -56,6 +56,13 @@ export function PlaygroundSpeech() {
     [articleLoading, articleUrl],
   )
 
+  const handleArticleUrlChange = useCallback((value: string) => {
+    setArticleUrl(value)
+    setArticle(null)
+    setArticleText('')
+    setArticleError(null)
+  }, [])
+
   const handleSpeakArticle = useCallback(() => {
     if (!speech.model || !article || !articleText.trim() || speech.loading) return
     void speech.generateSegments({
@@ -226,7 +233,7 @@ export function PlaygroundSpeech() {
                     className="min-w-0 flex-1 rounded border border-border bg-surface-1 px-3 py-2 font-mono text-xs text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     placeholder="https://example.com/article"
                     value={articleUrl}
-                    onChange={(e) => setArticleUrl(e.target.value)}
+                    onChange={(e) => handleArticleUrlChange(e.target.value)}
                     disabled={articleLoading || speech.loading}
                     aria-describedby="pg-speech-article-help"
                   />

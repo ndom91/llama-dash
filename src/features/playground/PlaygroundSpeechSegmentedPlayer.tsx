@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import type { SpeechSegment } from '../../lib/use-playground-speech'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
@@ -78,7 +79,8 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
       <div className="flex flex-wrap gap-1.5" aria-label="Speech segments">
         {Array.from({ length: totalSegments }, (_, index) => {
           const ready = index < segments.length
-          return (
+          const stillGenerating = !ready && status === 'generating'
+          const button = (
             <button
               key={index}
               type="button"
@@ -89,12 +91,27 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
                   : 'bg-surface-1 text-fg-dim hover:bg-surface-2 hover:text-fg',
                 !ready && 'cursor-not-allowed opacity-40 hover:bg-surface-1 hover:text-fg-dim',
               )}
-              disabled={!ready}
-              onClick={() => selectSegment(index)}
-              aria-label={`Play segment ${index + 1}`}
+              disabled={!ready && !stillGenerating}
+              aria-disabled={!ready}
+              onClick={() => {
+                if (ready) selectSegment(index)
+              }}
+              aria-label={
+                ready
+                  ? `Play segment ${index + 1}`
+                  : stillGenerating
+                    ? `Segment ${index + 1} still generating`
+                    : `Segment ${index + 1} unavailable`
+              }
             >
               {index + 1}
             </button>
+          )
+          if (!stillGenerating) return button
+          return (
+            <Tooltip key={index} label="Still generating">
+              {button}
+            </Tooltip>
           )
         })}
       </div>

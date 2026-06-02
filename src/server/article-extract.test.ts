@@ -32,6 +32,13 @@ describe('assertSafeArticleUrl', () => {
     await expect(assertSafeArticleUrl('http://[ff02::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
     await expect(assertSafeArticleUrl('http://[2001:db8::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
   })
+
+  it('rejects IPv6 forms that can embed private IPv4 targets', async () => {
+    await expect(assertSafeArticleUrl('http://[::ffff:127.0.0.1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[::ffff:7f00:1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[64:ff9b::a9fe:a9fe]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+    await expect(assertSafeArticleUrl('http://[2002:a9fe:a9fe::1]/post')).rejects.toBeInstanceOf(ArticleExtractError)
+  })
 })
 
 describe('isHtmlContentType', () => {
