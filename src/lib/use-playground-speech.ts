@@ -4,6 +4,8 @@ import { splitSpeechIntoSegments } from './playground-speech-segments'
 const LS_MODEL = 'playground-speech-model'
 const LS_VOICE = 'playground-speech-voice'
 const LS_ENTRIES = 'playground-speech-entries'
+const SPEECH_REQUEST_TIMEOUT_MS = 180_000
+const AUDIO_METADATA_TIMEOUT_MS = 3_000
 
 function loadString(key: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback
@@ -273,25 +275,50 @@ async function requestSpeech(input: {
   const startedAt = performance.now()
   const body: Record<string, unknown> = { model: input.model, input: input.input }
   if (input.voice.trim()) body.voice = input.voice.trim()
+  const signal = withTimeout(input.signal, SPEECH_REQUEST_TIMEOUT_MS, 'Speech request timed out')
 
-  const res = await fetch('/v1/audio/speech', {
-    method: 'POST',
-    headers: input.headers,
-    body: JSON.stringify(body),
-    signal: input.signal,
-  })
+  let res: Response
+  let blob: Blob
+  try {
+    res = await fetch('/v1/audio/speech', {
+      method: 'POST',
+      headers: input.headers,
+      body: JSON.stringify(body),
+      signal: signal.signal,
+    })
 
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '')
-    throw new Error(`${res.status}: ${errBody.slice(0, 300)}`)
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '')
+      throw new Error(`${res.status}: ${errBody.slice(0, 300)}`)
+    }
+
+    blob = await res.blob()
+  } finally {
+    signal.cleanup()
   }
 
-  const blob = await res.blob()
   const audioUrl = await readBlobAsDataUrl(blob)
   return {
     audioUrl,
     renderMs: performance.now() - startedAt,
     audioDurationSec: await readAudioDuration(audioUrl),
+  }
+}
+
+function withTimeout(signal: AbortSignal, timeoutMs: number, timeoutMessage: string) {
+  const abort = new AbortController()
+  const abortFromInput = () => abort.abort(signal.reason)
+  const timer = window.setTimeout(() => abort.abort(new Error(timeoutMessage)), timeoutMs)
+
+  if (signal.aborted) abortFromInput()
+  else signal.addEventListener('abort', abortFromInput, { once: true })
+
+  return {
+    signal: abort.signal,
+    cleanup: () => {
+      window.clearTimeout(timer)
+      signal.removeEventListener('abort', abortFromInput)
+    },
   }
 }
 
@@ -322,22 +349,29 @@ function sumSegmentDuration(segments: SpeechSegment[]) {
 function readAudioDuration(url: string) {
   return new Promise<number | null>((resolve) => {
     const audio = document.createElement('audio')
-    const cleanup = () => {
+    const cleanup = (timer: number) => {
+      window.clearTimeout(timer)
+      audio.onloadedmetadata = null
+      audio.onerror = null
       audio.removeAttribute('src')
       audio.load()
     }
-
-    audio.preload = 'metadata'
-    audio.src = url
-    audio.onloadedmetadata = () => {
-      const duration = Number.isFinite(audio.duration) ? audio.duration : null
-      cleanup()
+    const finish = (timer: number, duration: number | null) => {
+      cleanup(timer)
       resolve(duration)
     }
-    audio.onerror = () => {
-      cleanup()
-      resolve(null)
+
+    audio.preload = 'metadata'
+    const timer = window.setTimeout(() => finish(timer, null), AUDIO_METADATA_TIMEOUT_MS)
+    audio.onloadedmetadata = () => {
+      const duration = Number.isFinite(audio.duration) ? audio.duration : null
+      finish(timer, duration)
     }
+    audio.onerror = () => {
+      finish(timer, null)
+    }
+    audio.src = url
+    audio.load()
   })
 }
 
