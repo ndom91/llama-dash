@@ -245,20 +245,22 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
           />
         </div>
 
-        <span className="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">
-          mp3
-        </span>
+        <div className="flex w-8 shrink-0 flex-col items-stretch gap-1">
+          <span className="flex h-5 w-8 items-center justify-center rounded border border-border bg-surface-2 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">
+            mp3
+          </span>
 
-        <Tooltip label="Download">
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-2 text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-3 hover:text-fg active:scale-90"
-            onClick={onDownload}
-            aria-label="Download audio"
-          >
-            <Download className="size-3.5 shrink-0" strokeWidth={2} />
-          </button>
-        </Tooltip>
+          <Tooltip label="Download">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-2 text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-3 hover:text-fg active:scale-90"
+              onClick={onDownload}
+              aria-label="Download audio"
+            >
+              <Download className="size-3.5 shrink-0" strokeWidth={2} />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     </div>
   )
