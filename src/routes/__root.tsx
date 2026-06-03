@@ -142,7 +142,7 @@ function AuthenticatedShell({
         />
         <Sidebar
           initialSession={rootContext?.session ?? null}
-          initialCapabilities={rootContext?.inference.capabilities ?? null}
+          initialCapabilities={rootContext?.inference?.capabilities ?? null}
         />
         <div className="main-col">
           <TopBar />

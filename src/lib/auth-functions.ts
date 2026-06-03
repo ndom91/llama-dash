@@ -9,12 +9,6 @@ export const getSession = createServerFn({ method: 'GET' }).handler(async () => 
   return auth.api.getSession({ headers })
 })
 
-export const ensureSession = createServerFn({ method: 'GET' }).handler(async () => {
-  const session = await getSession()
-  if (!session) throw new Error('Unauthorized')
-  return session
-})
-
 export const getShellContext = createServerFn({ method: 'GET' }).handler(async () => {
   const headers = getRequestHeaders()
   const session = await auth.api.getSession({ headers })
@@ -22,8 +16,8 @@ export const getShellContext = createServerFn({ method: 'GET' }).handler(async (
   return {
     session,
     theme,
-    inference: {
-      capabilities: inferenceBackend.info.capabilities,
-    },
+    // Only expose backend info to authenticated sessions — this context is
+    // serialized into the login page's dehydrated router payload too.
+    inference: session ? { capabilities: inferenceBackend.info.capabilities } : null,
   }
 })
