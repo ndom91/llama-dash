@@ -1,6 +1,7 @@
 import { Download, Pause, Play } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
+import { cn } from '../../lib/cn'
 import { buildWaveformPeaks, formatSpeechClock } from './playgroundSpeechUtils'
 
 const WAVEFORM_BAR_WIDTH = 4
@@ -206,7 +207,8 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
 
         <div
           ref={waveformRef}
-          className="relative flex h-16 min-w-0 flex-1 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-0 px-2 py-2 outline-none transition-[border-color,background-color] duration-100 hover:border-accent/60 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30"
+          className="relative grid h-16 min-w-0 flex-1 cursor-pointer items-center gap-[3px] overflow-hidden rounded border border-border bg-surface-0 px-2 py-2 outline-none transition-[border-color,background-color] duration-100 hover:border-accent/60 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30"
+          style={{ gridTemplateColumns: peaks.length > 0 ? `repeat(${peaks.length}, minmax(0, 1fr))` : undefined }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           role="slider"
@@ -233,7 +235,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
           {peaks.map((peak) => (
             <span
               key={peak.id}
-              className={peak.index < activeBars ? 'bg-accent' : 'bg-fg-faint/35'}
+              className={cn('justify-self-center', peak.index < activeBars ? 'bg-accent' : 'bg-fg-faint/35')}
               style={{ height: `${Math.max(8, peak.value * 48)}px`, width: '4px', borderRadius: '9999px' }}
             />
           ))}
