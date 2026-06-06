@@ -257,7 +257,7 @@ export function PlaygroundSpeech() {
                         )}
                         <span>Extract text</span>
                       </button>
-                      <p className="text-[11px] leading-4 text-fg-dim">Pull the readable article body into the editor.</p>
+                      <p className="text-[11px] leading-4 text-fg-dim">Pull the readable article body into the editor. Make any necessary edits before initializing text-to-speech generation.</p>
                     </div>
 
                     <div
@@ -388,6 +388,7 @@ export function PlaygroundSpeech() {
                         segments={segments}
                         totalSegments={entry.totalSegments ?? segments.length}
                         status={entry.status ?? 'complete'}
+                        estimatedAudioDurationSec={entry.estimatedAudioDurationSec}
                         onDownloadSegment={(segment) => downloadSegment(segment, entry.createdAt ?? Date.now())}
                       />
                     ) : audioUrl ? (

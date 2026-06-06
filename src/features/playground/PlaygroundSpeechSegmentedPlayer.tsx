@@ -9,10 +9,17 @@ type Props = {
   segments: SpeechSegment[]
   totalSegments: number
   status: 'generating' | 'complete' | 'cancelled' | 'error'
+  estimatedAudioDurationSec?: number | null
   onDownloadSegment: (segment: SpeechSegment) => void
 }
 
-export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, status, onDownloadSegment }: Props) {
+export function PlaygroundSpeechSegmentedPlayer({
+  segments,
+  totalSegments,
+  status,
+  estimatedAudioDurationSec,
+  onDownloadSegment,
+}: Props) {
   const [activeIndex, setActiveIndex] = useState(0)
   const [autoPlay, setAutoPlay] = useState(() => status === 'generating')
   const [waitingForNext, setWaitingForNext] = useState(false)
@@ -52,10 +59,14 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
 
   if (!activeSegment) {
     const emptyLabel = status === 'generating' ? 'Generating first audio segment...' : 'No playable audio segments were generated.'
+    const runtimeLabel = getRuntimeLabel(null, estimatedAudioDurationSec)
     return (
-      <div className="flex items-center gap-2 rounded border border-border bg-surface-1 px-3 py-2 font-mono text-[11px] text-fg-dim">
-        {status === 'generating' ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : null}
-        <span>{emptyLabel}</span>
+      <div className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-1 px-3 py-2 font-mono text-[11px] text-fg-dim">
+        <span className="inline-flex items-center gap-2">
+          {status === 'generating' ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : null}
+          <span>{emptyLabel}</span>
+        </span>
+        {runtimeLabel ? <span>· Total runtime: {runtimeLabel}</span> : null}
       </div>
     )
   }
@@ -63,6 +74,7 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
   const generatedLabel = `${segments.length} / ${totalSegments} segments generated`
   const statusLabel = status === 'generating' ? generatedLabel : `${status} · ${generatedLabel}`
   const totalRuntimeSec = segments.length === totalSegments ? sumSegmentDuration(segments) : null
+  const runtimeLabel = getRuntimeLabel(totalRuntimeSec, estimatedAudioDurationSec)
 
   return (
     <div className="flex flex-col gap-3">
@@ -115,8 +127,8 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
             </Tooltip>
           )
         })}
-        {totalRuntimeSec != null ? (
-          <span className="ml-2 font-mono text-[11px] text-fg-dim">Total Runtime: {formatRuntime(totalRuntimeSec)}</span>
+        {runtimeLabel ? (
+          <span className="ml-2 font-mono text-[11px] text-fg-dim">Total runtime: {runtimeLabel}</span>
         ) : null}
       </div>
 
@@ -139,6 +151,12 @@ function sumSegmentDuration(segments: SpeechSegment[]) {
     total += segment.audioDurationSec
   }
   return total
+}
+
+function getRuntimeLabel(exactSeconds: number | null, estimatedSeconds: number | null | undefined) {
+  if (exactSeconds != null) return formatRuntime(exactSeconds)
+  if (estimatedSeconds != null) return `${formatRuntime(estimatedSeconds)} (estimated)`
+  return null
 }
 
 function formatRuntime(seconds: number) {

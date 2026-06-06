@@ -6,6 +6,8 @@ const LS_VOICE = 'playground-speech-voice'
 const LS_ENTRIES = 'playground-speech-entries'
 const SPEECH_REQUEST_TIMEOUT_MS = 180_000
 const AUDIO_METADATA_TIMEOUT_MS = 3_000
+const ESTIMATED_SPEECH_WORDS_PER_MINUTE = 175
+const SPEECH_WORD_PATTERN = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
 
 function loadString(key: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback
@@ -150,6 +152,7 @@ export function usePlaygroundSpeech() {
         source: options.source,
         renderMs: null,
         audioDurationSec: null,
+        estimatedAudioDurationSec: estimateSpeechDuration(chunks),
         createdAt,
         status: 'generating',
         totalSegments: chunks.length,
@@ -233,6 +236,7 @@ export type SpeechEntry = {
   source?: SpeechEntrySource
   renderMs: number | null
   audioDurationSec: number | null
+  estimatedAudioDurationSec?: number | null
   createdAt?: number
   status?: SpeechEntryStatus
   totalSegments?: number
@@ -342,6 +346,15 @@ function sumSegmentDuration(segments: SpeechSegment[]) {
   for (const segment of segments) {
     if (segment.audioDurationSec == null) return null
     total += segment.audioDurationSec
+  }
+  return total
+}
+
+function estimateSpeechDuration(chunks: string[]) {
+  let total = 0
+  for (const chunk of chunks) {
+    const words = chunk.match(SPEECH_WORD_PATTERN)?.length ?? 0
+    total += Math.max(1, (words / ESTIMATED_SPEECH_WORDS_PER_MINUTE) * 60)
   }
   return total
 }
