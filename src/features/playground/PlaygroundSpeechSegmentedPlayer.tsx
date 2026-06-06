@@ -62,6 +62,7 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
 
   const generatedLabel = `${segments.length} / ${totalSegments} segments generated`
   const statusLabel = status === 'generating' ? generatedLabel : `${status} · ${generatedLabel}`
+  const totalRuntimeSec = segments.length === totalSegments ? sumSegmentDuration(segments) : null
 
   return (
     <div className="flex flex-col gap-3">
@@ -76,7 +77,7 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
         {activeSegment.input}
       </div>
 
-      <div className="flex flex-wrap gap-1.5" aria-label="Speech segments">
+      <div className="flex flex-wrap items-center gap-1.5" aria-label="Speech segments">
         {Array.from({ length: totalSegments }, (_, index) => {
           const ready = index < segments.length
           const stillGenerating = !ready && status === 'generating'
@@ -114,6 +115,9 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
             </Tooltip>
           )
         })}
+        {totalRuntimeSec != null ? (
+          <span className="ml-2 font-mono text-[11px] text-fg-dim">Total Runtime: {formatRuntime(totalRuntimeSec)}</span>
+        ) : null}
       </div>
 
       <PlaygroundSpeechPreviewPlayer
@@ -126,4 +130,24 @@ export function PlaygroundSpeechSegmentedPlayer({ segments, totalSegments, statu
       />
     </div>
   )
+}
+
+function sumSegmentDuration(segments: SpeechSegment[]) {
+  let total = 0
+  for (const segment of segments) {
+    if (segment.audioDurationSec == null) return null
+    total += segment.audioDurationSec
+  }
+  return total
+}
+
+function formatRuntime(seconds: number) {
+  const totalSeconds = Math.max(0, Math.round(seconds))
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const remainingSeconds = totalSeconds % 60
+
+  if (hours > 0) return `${hours}h ${minutes}m ${remainingSeconds}s`
+  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`
+  return `${remainingSeconds}s`
 }
