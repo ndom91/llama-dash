@@ -6,7 +6,7 @@ const LS_VOICE = 'playground-speech-voice'
 const LS_ENTRIES = 'playground-speech-entries'
 const SPEECH_REQUEST_TIMEOUT_MS = 180_000
 const AUDIO_METADATA_TIMEOUT_MS = 3_000
-const ESTIMATED_SPEECH_WORDS_PER_MINUTE = 165
+const ESTIMATED_SPEECH_WORDS_PER_MINUTE = 145
 const SPEECH_WORD_PATTERN = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
 
 function loadString(key: string, fallback: string): string {
