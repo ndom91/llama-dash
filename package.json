@@ -84,12 +84,5 @@
     "typescript": "5.9.3",
     "vite": "8.0.10",
     "vitest": "3.2.4"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3",
-      "esbuild",
-      "lightningcss"
-    ]
   }
 }
