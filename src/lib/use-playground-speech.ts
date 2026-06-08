@@ -35,34 +35,27 @@ export function usePlaygroundSpeech() {
   const abortRef = useRef<AbortController | null>(null)
   const apiKeyRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/playground-key')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.key) apiKeyRef.current = d.key
-      })
-      .catch(() => {})
+  // The system key rotates on every server restart, so a cached key goes stale
+  // if the page sits idle across one. refreshApiKey re-fetches it; speech/voices
+  // calls retry once through it on a 401 to self-heal instead of erroring.
+  const refreshApiKey = useCallback(async () => {
+    const key = await fetchSystemKey()
+    apiKeyRef.current = key
+    return key
   }, [])
 
   useEffect(() => {
+    void refreshApiKey()
+  }, [refreshApiKey])
+
+  useEffect(() => {
     const timer = setTimeout(() => {
-      const headers: Record<string, string> = {}
-      if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
-      fetch('/v1/audio/voices', { headers })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.voices && Array.isArray(data.voices)) {
-            setVoices(
-              data.voices.map((v: string | { name?: string; id?: string }) =>
-                typeof v === 'string' ? v : (v.name ?? v.id ?? String(v)),
-              ),
-            )
-          }
-        })
-        .catch(() => {})
+      void loadVoices(apiKeyRef.current, refreshApiKey).then((names) => {
+        if (names) setVoices(names)
+      })
     }, 500)
     return () => clearTimeout(timer)
-  }, [])
+  }, [refreshApiKey])
 
   useEffect(() => {
     try {
@@ -93,11 +86,15 @@ export function usePlaygroundSpeech() {
       const abort = new AbortController()
       abortRef.current = abort
 
-      const headers: Record<string, string> = { 'content-type': 'application/json' }
-      if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
-
       try {
-        const result = await requestSpeech({ model, voice, input, headers, signal: abort.signal })
+        const result = await requestSpeech({
+          model,
+          voice,
+          input,
+          apiKey: apiKeyRef.current,
+          refreshKey: refreshApiKey,
+          signal: abort.signal,
+        })
         const createdAt = Date.now()
         setEntries((prev) => [
           {
@@ -120,7 +117,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [model, text, voice],
+    [model, refreshApiKey, text, voice],
   )
 
   const generateSegments = useCallback(
@@ -139,9 +136,6 @@ export function usePlaygroundSpeech() {
 
       const abort = new AbortController()
       abortRef.current = abort
-
-      const headers: Record<string, string> = { 'content-type': 'application/json' }
-      if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
 
       const createdAt = Date.now()
       const id = `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`
@@ -163,7 +157,14 @@ export function usePlaygroundSpeech() {
       try {
         for (let index = 0; index < chunks.length; index += 1) {
           const chunk = chunks[index]
-          const result = await requestSpeech({ model, voice, input: chunk, headers, signal: abort.signal })
+          const result = await requestSpeech({
+            model,
+            voice,
+            input: chunk,
+            apiKey: apiKeyRef.current,
+            refreshKey: refreshApiKey,
+            signal: abort.signal,
+          })
           const segment: SpeechSegment = {
             id: `${id}_seg_${index}`,
             index,
@@ -199,7 +200,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [generate, model, text, voice],
+    [generate, model, refreshApiKey, text, voice],
   )
 
   const stop = useCallback(() => {
@@ -269,11 +270,50 @@ export type SpeechSegment = {
 
 type SpeechEntryStatus = 'generating' | 'complete' | 'cancelled' | 'error'
 
+async function fetchSystemKey(): Promise<string | null> {
+  try {
+    const r = await fetch('/api/playground-key')
+    if (!r.ok) return null
+    const d = await r.json()
+    return typeof d?.key === 'string' ? d.key : null
+  } catch {
+    return null
+  }
+}
+
+function bearerHeaders(apiKey: string | null, base: Record<string, string> = {}): Record<string, string> {
+  const headers = { ...base }
+  if (apiKey) headers.authorization = `Bearer ${apiKey}`
+  return headers
+}
+
+async function loadVoices(
+  apiKey: string | null,
+  refreshKey: () => Promise<string | null>,
+): Promise<Array<string> | null> {
+  try {
+    let res = await fetch('/v1/audio/voices', { headers: bearerHeaders(apiKey) })
+    if (res.status === 401) {
+      const fresh = await refreshKey()
+      if (fresh) res = await fetch('/v1/audio/voices', { headers: bearerHeaders(fresh) })
+    }
+    if (!res.ok) return null
+    const data = await res.json()
+    if (!data?.voices || !Array.isArray(data.voices)) return null
+    return data.voices.map((v: string | { name?: string; id?: string }) =>
+      typeof v === 'string' ? v : (v.name ?? v.id ?? String(v)),
+    )
+  } catch {
+    return null
+  }
+}
+
 async function requestSpeech(input: {
   model: string
   voice: string
   input: string
-  headers: Record<string, string>
+  apiKey: string | null
+  refreshKey: () => Promise<string | null>
   signal: AbortSignal
 }) {
   const startedAt = performance.now()
@@ -281,15 +321,24 @@ async function requestSpeech(input: {
   if (input.voice.trim()) body.voice = input.voice.trim()
   const signal = withTimeout(input.signal, SPEECH_REQUEST_TIMEOUT_MS, 'Speech request timed out')
 
-  let res: Response
-  let blob: Blob
-  try {
-    res = await fetch('/v1/audio/speech', {
+  const send = (apiKey: string | null) =>
+    fetch('/v1/audio/speech', {
       method: 'POST',
-      headers: input.headers,
+      headers: bearerHeaders(apiKey, { 'content-type': 'application/json' }),
       body: JSON.stringify(body),
       signal: signal.signal,
     })
+
+  let res: Response
+  let blob: Blob
+  try {
+    res = await send(input.apiKey)
+
+    // Stale system key after a server restart returns 401 — refresh once and retry.
+    if (res.status === 401) {
+      const fresh = await input.refreshKey()
+      if (fresh) res = await send(fresh)
+    }
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '')
