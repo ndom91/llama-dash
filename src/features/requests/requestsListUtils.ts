@@ -2,13 +2,24 @@ import type { ApiRequest } from '../../lib/api'
 
 export const REQUESTS_ROW_HEIGHT = 37
 
-// columns: t, endpoint, model, status, tok-in, tok-out, cache, cost, duration
-export type RequestsColKey = 't' | 'endpoint' | 'model' | 'status' | 'tokIn' | 'tokOut' | 'cache' | 'cost' | 'duration'
+// columns: t, endpoint, api-key, model, status, tok-in, tok-out, cache, cost, duration
+export type RequestsColKey =
+  | 't'
+  | 'endpoint'
+  | 'apiKey'
+  | 'model'
+  | 'status'
+  | 'tokIn'
+  | 'tokOut'
+  | 'cache'
+  | 'cost'
+  | 'duration'
 
 const ALL_COL_WIDTHS: Record<RequestsColKey, number | string> = {
   t: 132,
-  endpoint: '21%',
-  model: '24%',
+  endpoint: '18%',
+  apiKey: '12%',
+  model: '20%',
   status: 70,
   tokIn: 80,
   tokOut: 80,
@@ -20,6 +31,7 @@ const ALL_COL_WIDTHS: Record<RequestsColKey, number | string> = {
 export const REQUESTS_ALL_COLS: readonly RequestsColKey[] = [
   't',
   'endpoint',
+  'apiKey',
   'model',
   'status',
   'tokIn',

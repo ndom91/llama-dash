@@ -164,8 +164,10 @@ export function RequestsPage() {
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
   const dropTokens = useMediaQuery('(max-width: 1100px)')
+  const dropApiKey = useMediaQuery('(max-width: 900px)')
   const visibleCols = useMemo(() => {
     const set = new Set<RequestsColKey>(REQUESTS_ALL_COLS)
+    if (dropApiKey) set.delete('apiKey')
     if (dropCacheCost) {
       set.delete('cache')
       set.delete('cost')
@@ -175,8 +177,9 @@ export function RequestsPage() {
       set.delete('tokOut')
     }
     return set
-  }, [dropCacheCost, dropTokens])
+  }, [dropApiKey, dropCacheCost, dropTokens])
   const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
+  const showApiKey = visibleCols.has('apiKey')
   const showCache = visibleCols.has('cache')
   const showCost = visibleCols.has('cost')
   const showTokIn = visibleCols.has('tokIn')
@@ -562,6 +565,7 @@ export function RequestsPage() {
                             t
                           </RequestsSortHeader>
                           <th className="mono">endpoint</th>
+                          {showApiKey ? <th>api key</th> : null}
                           <th>model</th>
                           <RequestsSortHeader field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
                             status
@@ -632,6 +636,16 @@ export function RequestsPage() {
                                         {r.endpoint}
                                       </span>
                                     </td>
+                                    {showApiKey ? (
+                                      <td className="dim" translate="no">
+                                        <span
+                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={r.keyName ?? 'system'}
+                                        >
+                                          {r.keyName ?? 'system'}
+                                        </span>
+                                      </td>
+                                    ) : null}
                                     <td className="dim" translate="no">
                                       <div className="flex min-w-0 items-center gap-2">
                                         <span
