@@ -18,8 +18,16 @@ import { applyTransforms } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
 import { config } from '../config.ts'
 
+const HARD_BODY_CAP = 20 * 1024 * 1024
+
 export async function handleProxyRequest(request: Request): Promise<Response> {
   const ctx = createProxyContext(request)
+
+  const contentLength = Number(request.headers.get('content-length') ?? '0')
+  if (contentLength > HARD_BODY_CAP) {
+    return rejectBodyTooLarge(ctx, new Error('Request body exceeds 20 MB hard limit'))
+  }
+
   try {
     await prepareBodyBeforeAuthIfNeeded(ctx)
   } catch (err) {

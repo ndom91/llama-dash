@@ -7,6 +7,7 @@ export const ApiKeySchema = v.object({
   keyPrefix: v.string(),
   createdAt: v.string(),
   disabledAt: v.nullable(v.string()),
+  expiresAt: v.nullable(v.string()),
   allowedModels: v.array(v.string()),
   allowedMcpRelays: v.array(v.string()),
   rateLimitRpm: v.nullable(v.number()),
@@ -36,6 +37,7 @@ export const CreateApiKeyBodySchema = v.object({
   rateLimitTpm: v.optional(v.nullable(v.number())),
   monthlyTokenQuota: v.optional(v.nullable(v.number())),
   systemPrompt: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(10000)))),
+  expiresAt: v.optional(v.nullable(v.string())),
 })
 
 export type CreateApiKeyBody = v.InferOutput<typeof CreateApiKeyBodySchema>

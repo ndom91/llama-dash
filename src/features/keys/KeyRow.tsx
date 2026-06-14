@@ -15,6 +15,9 @@ export function KeyRow({ apiKey }: Props) {
   const revokeKey = useRevokeApiKey()
   const deleteKey = useDeleteApiKey()
   const isRevoked = apiKey.disabledAt != null
+  const isExpired = apiKey.expiresAt != null && new Date(apiKey.expiresAt) < new Date()
+  const expiresSoon =
+    !isExpired && apiKey.expiresAt != null && new Date(apiKey.expiresAt).getTime() - Date.now() < 7 * 86400_000
 
   return (
     <tr
@@ -45,6 +48,15 @@ export function KeyRow({ apiKey }: Props) {
       </td>
       <td className="num mono hide-mobile">{apiKey.rateLimitRpm ?? <span className="dim">—</span>}</td>
       <td className="num mono hide-mobile">{apiKey.rateLimitTpm ?? <span className="dim">—</span>}</td>
+      <td
+        className="hide-mobile"
+        style={{
+          fontSize: 12,
+          color: isExpired ? 'var(--color-error)' : expiresSoon ? 'var(--color-warn)' : 'var(--fg-dim)',
+        }}
+      >
+        {apiKey.expiresAt ? new Date(apiKey.expiresAt).toLocaleDateString() : <span className="dim">Never</span>}
+      </td>
       <td className="hide-mobile" style={{ fontSize: 12, color: 'var(--fg-dim)' }}>
         {new Date(apiKey.createdAt).toLocaleDateString()}
       </td>

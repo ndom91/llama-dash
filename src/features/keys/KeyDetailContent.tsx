@@ -21,6 +21,9 @@ export function KeyDetailContent({ data }: Props) {
   const { key, stats, requests, modelBreakdown } = data
   const { data: models } = useModels()
   const isRevoked = key.disabledAt != null
+  const isExpired = key.expiresAt != null && new Date(key.expiresAt) < new Date()
+  const expiresSoon =
+    !isExpired && key.expiresAt != null && new Date(key.expiresAt).getTime() - Date.now() < 7 * 86400_000
   const renameKey = useRenameApiKey()
   const revokeKey = useRevokeApiKey()
   const rotateKey = useRotateApiKey()
@@ -234,6 +237,16 @@ export function KeyDetailContent({ data }: Props) {
               <div>
                 <dt>created</dt>
                 <dd>{new Date(key.createdAt).toLocaleDateString()}</dd>
+              </div>
+              <div>
+                <dt>expires</dt>
+                <dd
+                  style={{
+                    color: isExpired ? 'var(--color-error)' : expiresSoon ? 'var(--color-warn)' : undefined,
+                  }}
+                >
+                  {key.expiresAt ? new Date(key.expiresAt).toLocaleDateString() : 'Never'}
+                </dd>
               </div>
               <div>
                 <dt>last used</dt>

@@ -62,6 +62,12 @@ export default createServerEntry({
     }
 
     if (url.pathname === '/metrics') {
+      if (config.metricsToken) {
+        const auth = request.headers.get('authorization')
+        if (auth !== `Bearer ${config.metricsToken}`) {
+          return new Response('Unauthorized', { status: 401 })
+        }
+      }
       const { renderPrometheusMetrics } = await import('./server/metrics.ts')
       return new Response(await renderPrometheusMetrics(), {
         headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' },

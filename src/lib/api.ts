@@ -143,6 +143,8 @@ export const api = {
     rateLimitRpm?: number | null
     rateLimitTpm?: number | null
     monthlyTokenQuota?: number | null
+    systemPrompt?: string | null
+    expiresAt?: string | null
   }) => sendJson('/api/keys', ApiKeyCreatedSchema, { method: 'POST', body }),
   renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
   updateKeyModels: (id: string, allowedModels: Array<string>) =>

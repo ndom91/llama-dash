@@ -11,6 +11,7 @@ export function KeysPageSkeleton() {
           <th className="hide-mobile">models</th>
           <th className="num hide-mobile">rpm</th>
           <th className="num hide-mobile">tpm</th>
+          <th className="hide-mobile">expires</th>
           <th className="hide-mobile">created</th>
           <th style={{ width: 90 }} className="num">
             actions
@@ -37,6 +38,9 @@ export function KeysPageSkeleton() {
             </td>
             <td className="num hide-mobile">
               <span className="skel skel-text" style={{ width: 40 }} />
+            </td>
+            <td className="hide-mobile">
+              <span className="skel skel-text" style={{ width: 72 }} />
             </td>
             <td className="hide-mobile">
               <span className="skel skel-text" style={{ width: 72 }} />

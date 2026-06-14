@@ -67,6 +67,7 @@ export function KeysPage() {
                   <th className="hide-mobile">models</th>
                   <th className="num hide-mobile">rpm</th>
                   <th className="num hide-mobile">tpm</th>
+                  <th className="hide-mobile">expires</th>
                   <th className="hide-mobile">created</th>
                   <th style={{ width: 90 }} className="num">
                     actions

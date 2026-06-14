@@ -104,6 +104,7 @@ function makeKey(rawKey: string): ApiKey {
     keyPrefix: rawKey.slice(0, 8),
     createdAt: new Date(0),
     disabledAt: null,
+    expiresAt: null,
     allowedModels: '[]',
     allowedMcpRelays: '[]',
     rateLimitRpm: null,

@@ -78,6 +78,7 @@ export const apiKeys = sqliteTable('api_keys', {
   keyPrefix: text('key_prefix').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
   disabledAt: integer('disabled_at', { mode: 'timestamp_ms' }),
+  expiresAt: integer('expires_at', { mode: 'timestamp_ms' }),
   allowedModels: text('allowed_models').notNull().default('[]'),
   allowedMcpRelays: text('allowed_mcp_relays').notNull().default('[]'),
   rateLimitRpm: integer('rate_limit_rpm'),

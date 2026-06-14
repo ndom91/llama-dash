@@ -32,6 +32,7 @@ export function createApiKey(input: {
   rateLimitTpm?: number | null
   monthlyTokenQuota?: number | null
   systemPrompt?: string | null
+  expiresAt?: Date | null
 }): { key: ApiKeyItem; rawKey: string } {
   const rawKey = `sk-${randomBytes(32).toString('hex')}`
   const keyHash = createHash('sha256').update(rawKey).digest('hex')
@@ -46,6 +47,7 @@ export function createApiKey(input: {
     keyPrefix,
     createdAt: now,
     disabledAt: null,
+    expiresAt: input.expiresAt ?? null,
     allowedModels: JSON.stringify(input.allowedModels ?? []),
     allowedMcpRelays: JSON.stringify(input.allowedMcpRelays ?? []),
     rateLimitRpm: input.rateLimitRpm ?? null,
@@ -59,7 +61,7 @@ export function createApiKey(input: {
   db.insert(schema.apiKeys).values(row).run()
   invalidateKeyCache()
 
-  return { key: toApiShape({ ...row, createdAt: now, disabledAt: null }), rawKey }
+  return { key: toApiShape({ ...row, createdAt: now, disabledAt: null, expiresAt: input.expiresAt ?? null }), rawKey }
 }
 
 export function rotateApiKey(id: string): { key: ApiKeyItem; rawKey: string } | null {
@@ -118,8 +120,13 @@ export function deleteApiKey(id: string): boolean {
   return result.changes > 0
 }
 
+let _keyHashCache: Map<string, schema.ApiKey | undefined> | null = null
+
 export function findKeyByHash(hash: string): schema.ApiKey | undefined {
-  return db.select().from(schema.apiKeys).where(eq(schema.apiKeys.keyHash, hash)).get()
+  if (_keyHashCache != null) return _keyHashCache.get(hash)
+  const rows = db.select().from(schema.apiKeys).all()
+  _keyHashCache = new Map(rows.map((row) => [row.keyHash, row]))
+  return _keyHashCache.get(hash)
 }
 
 let _hasUserKeysCache: boolean | null = null
@@ -140,6 +147,7 @@ export function hasAnyUserKeys(): boolean {
 export function invalidateKeyCache() {
   _hasUserKeysCache = null
   _keyNameCache = null
+  _keyHashCache = null
 }
 
 export function getApiKeyNameMap(): Map<string, string> {
@@ -222,6 +230,7 @@ function toApiShape(row: schema.ApiKey): ApiKeyItem {
     keyPrefix: row.keyPrefix,
     createdAt: row.createdAt.toISOString(),
     disabledAt: row.disabledAt?.toISOString() ?? null,
+    expiresAt: row.expiresAt?.toISOString() ?? null,
     allowedModels: JSON.parse(row.allowedModels),
     allowedMcpRelays: JSON.parse(row.allowedMcpRelays),
     rateLimitRpm: row.rateLimitRpm,

@@ -28,7 +28,8 @@ export const keyRoutes: Route[] = [
       if (!parsed.ok) return error(400, 'Invalid JSON body')
       const result = v.safeParse(CreateApiKeyBodySchema, parsed.value)
       if (!result.success) return error(400, 'Body must have "name" (non-empty string)')
-      return json(201, createApiKey(result.output))
+      const expiresAt = result.output.expiresAt ? new Date(result.output.expiresAt) : null
+      return json(201, createApiKey({ ...result.output, expiresAt }))
     },
   },
   {

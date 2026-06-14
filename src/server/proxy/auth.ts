@@ -92,6 +92,14 @@ function authenticateApiKeyToken(
     }
   }
 
+  if (keyRow.expiresAt != null && keyRow.expiresAt.getTime() < Date.now()) {
+    return {
+      ok: false,
+      status: 401,
+      body: { error: { message: 'API key has expired', type: 'invalid_api_key' } },
+    }
+  }
+
   if (keyRow.rateLimitRpm != null) {
     const rpm = checkRpm(keyRow.id, keyRow.rateLimitRpm)
     if (!rpm.allowed) {

@@ -20,6 +20,24 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
   const [rpm, setRpm] = useState('')
   const [tpm, setTpm] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
+  const [expiryOption, setExpiryOption] = useState('30d')
+
+  const expiryOptions = [
+    { value: '30d', label: '30 days' },
+    { value: '60d', label: '60 days' },
+    { value: '90d', label: '90 days' },
+    { value: '1y', label: '1 year' },
+    { value: 'never', label: 'Does not expire' },
+  ]
+
+  function resolveExpiresAt(option: string): string | null {
+    const now = Date.now()
+    if (option === '30d') return new Date(now + 30 * 86400_000).toISOString()
+    if (option === '60d') return new Date(now + 60 * 86400_000).toISOString()
+    if (option === '90d') return new Date(now + 90 * 86400_000).toISOString()
+    if (option === '1y') return new Date(now + 365 * 86400_000).toISOString()
+    return null
+  }
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +50,7 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
         rateLimitRpm: rpm ? Number(rpm) : null,
         rateLimitTpm: tpm ? Number(tpm) : null,
         systemPrompt: systemPrompt.trim() || null,
+        expiresAt: resolveExpiresAt(expiryOption),
       },
       { onSuccess: (data) => onCreated(data) },
     )
@@ -149,6 +168,21 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
             />
           </div>
         </div>
+
+        <label className="flex flex-1 flex-col gap-1">
+          <span className="text-xs font-medium text-fg-dim">Expiry</span>
+          <select
+            className="h-9 rounded border border-border bg-surface-0 px-2.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
+            value={expiryOption}
+            onChange={(e) => setExpiryOption(e.target.value)}
+          >
+            {expiryOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-fg-dim">Prepend system prompt</span>
