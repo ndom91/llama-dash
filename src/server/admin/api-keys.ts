@@ -196,6 +196,7 @@ export function ensureSystemKey(): void {
     })
     .run()
 
+  invalidateKeyCache()
   _systemRawKey = rawKey
 }
 
@@ -219,6 +220,7 @@ export function getSystemKeyRaw(): string | null {
     .where(eq(schema.apiKeys.system, true))
     .run()
 
+  invalidateKeyCache()
   _systemRawKey = rawKey
   return _systemRawKey
 }
