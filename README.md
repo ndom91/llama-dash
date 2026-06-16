@@ -23,21 +23,14 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 ## ✨ What it does
 
-- **Dashboard** — live stats, sparklines, model timeline, upstream health, GPU monitoring, SSE-backed live refresh with ETag polling fallback, and update status.
-- **Model management** — load/unload models, per-model stats, load history, config snippet.
-- **Request logging** — every completed `/v1/*` call is queued for SQLite logging with searchable UI, histogram, detail view, credential injection audit metadata, retention controls, and token cost estimates from a startup-cached `models.dev` pricing catalog.
-- **Transparent proxy** — streaming SSE preserved, bounded body capture for logs, token counts scraped in-flight. OpenAI (`/v1/chat/completions`) and Anthropic (`/v1/messages`) shapes both supported — for example, point Claude Code at llama-dash via `ANTHROPIC_BASE_URL` to proxy and track your Claude code usage as well.
-- **API keys** — per-key rate limits (RPM/TPM), model and MCP relay allow-lists editable from detail page, hashed at rest, per-key stats and model usage breakdown.
-- **Dashboard auth** — Better Auth username/password and passkey session gate for the UI and `/api/*` with first-visit signup; `/v1/*` proxy auth stays API-key based.
-- **Policies** — custom routing rules with real proxy enforcement for continue, model rewrite, and policy reject actions, plus explicit auth passthrough, direct HTTPS `/v1` upstream targets, MCP relay endpoints with Claude Code snippets, encrypted upstream credential injection, header credential placeholder replacement, per-key system prompt injection, and global request size limits.
-- **Attribution** — configurable header mapping for client, end-user, and session metadata with setup examples for common clients.
-- **Request auditing** — per-key usage tracking across all proxied calls.
-- **Prometheus metrics** — `/metrics` exposes proxy request, token, credential injection, latency-window, queue, upstream, running-model, and GPU gauges.
-- **GPU monitoring** — NVIDIA, AMD, and Apple Silicon. VRAM, utilization, temp, power.
-- **Config editor** — edit llama-swap `config.yaml` in-browser with on-demand validation, enforced pre-save schema checks, and auto-reload.
-- **Inference backend facade** — backend health, model list/running state, lifecycle actions, logs, and config are capability-driven so future runtimes can be added without weakening the llama-swap experience.
-- **Endpoints** — copyable base URL, API key selector, code examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Open WebUI, and more.
-- **Playground** — supports chat, image, speech, and transcribe; Speech can turn plain text or a server-extracted article URL into audio, with paragraph-chunked article playback for faster starts.
+- **Watch the box** — live request, token, model, upstream, GPU, and update status in one dashboard.
+- **Manage models** — load/unload models, inspect per-model stats, view residency history, and edit llama-swap config with validation.
+- **Proxy clients** — expose one OpenAI/Anthropic-compatible `/v1/*` endpoint for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
+- **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.
+- **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, model allow-lists, MCP relay allow-lists, and per-key usage breakdowns.
+- **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
+- **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.
+- **Export ops data** — raw log streams, retention controls, request auditing, and low-cardinality Prometheus metrics at `/metrics`.
 
 <table>
   <tr>
