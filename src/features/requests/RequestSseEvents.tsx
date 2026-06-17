@@ -1,7 +1,8 @@
 import { ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
+import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { assembleSseText, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 
@@ -16,7 +17,7 @@ export function RequestSseEvents({ body, stream }: Props) {
     () => assembleSseText({ events, latestTimingData: stream?.latestTimingData ?? null }),
     [events, stream],
   )
-  const [open, setOpen] = useState(false)
+  const [open, toggleOpen] = useStickyToggle('requests-assembled-text-open', false)
   if (events.length === 0) return <>{body}</>
   return (
     <div className="sse-events">
@@ -26,7 +27,7 @@ export function RequestSseEvents({ body, stream }: Props) {
             <button
               type="button"
               className="flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
-              onClick={() => setOpen(!open)}
+              onClick={toggleOpen}
             >
               <ChevronRight
                 className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
