@@ -64,6 +64,36 @@ export function parseSseStream(body: string): ParsedSseStream {
   return { events, latestTimingData }
 }
 
+// Concatenate the assistant's generated text across an SSE stream so the
+// Response pane can show the assembled completion without the user reading
+// every delta chunk. Handles both OpenAI chat-completions
+// (choices[0].delta.content) and Anthropic messages (content_block_delta →
+// delta.text) shapes. Tool-arg deltas (input_json_delta) are intentionally
+// skipped — this is the human-readable text, not tool call payloads.
+export function assembleSseText(stream: ParsedSseStream | null): string {
+  if (!stream) return ''
+  let out = ''
+  for (const e of stream.events) {
+    const data = e.parsedData
+    if (!data) continue
+    // OpenAI: choices[0].delta.content
+    const choices = (data as { choices?: unknown }).choices
+    if (Array.isArray(choices)) {
+      for (const choice of choices) {
+        const content = (choice as { delta?: { content?: unknown } })?.delta?.content
+        if (typeof content === 'string') out += content
+      }
+      continue
+    }
+    // Anthropic: content_block_delta → delta.text
+    if ((data as { type?: unknown }).type === 'content_block_delta') {
+      const delta = (data as { delta?: { type?: unknown; text?: unknown } }).delta
+      if (delta?.type === 'text_delta' && typeof delta.text === 'string') out += delta.text
+    }
+  }
+  return out
+}
+
 export type ResponseAnalysis = {
   displayBody: string
   isJson: boolean
