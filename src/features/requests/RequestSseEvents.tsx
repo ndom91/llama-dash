@@ -32,10 +32,10 @@ export function RequestSseEvents({ body, stream }: Props) {
                 className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
                 strokeWidth={2}
               />
-              <span>output</span>
+              <span>assembled text</span>
               <span className="dim normal-case tracking-normal">{assembled.length.toLocaleString()} chars</span>
             </button>
-            <CopyButton text={assembled} variant="icon" icon="clipboard" ariaLabel="Copy assembled output" />
+            <CopyButton text={assembled} variant="icon" icon="clipboard" ariaLabel="Copy assembled text" />
           </div>
           {open ? (
             <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
