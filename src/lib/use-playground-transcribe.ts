@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const LS_MODEL = 'playground-transcribe-model'
 const DEFAULT_LANGUAGE = 'auto-detect'
-const DEFAULT_RESPONSE_FORMAT = 'verbose_json'
+const DEFAULT_RESPONSE_FORMAT = 'json'
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const LLAMA_CPP_AUDIO_TYPES = new Set(['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3', 'audio/flac'])
 const LLAMA_CPP_AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'flac'])
