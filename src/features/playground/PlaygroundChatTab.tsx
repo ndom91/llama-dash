@@ -199,10 +199,10 @@ export function PlaygroundChatTab({ chat }: Props) {
               <Tooltip label="Send message">
                 <button
                   type="submit"
-                  className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded bg-accent px-3 text-xs font-medium text-white transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-10 shrink-0 items-center justify-center gap-1.5 rounded bg-accent px-3 text-xs font-medium text-accent-on transition-[opacity,transform] duration-150 ease-out hover:opacity-85 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   disabled={!chat.model || !draft.trim()}
                 >
-                  <Send className="size-3.5 shrink-0" strokeWidth={2} />
+                  <Send className="size-3.5 shrink-0 text-current" strokeWidth={2} />
                   send
                 </button>
               </Tooltip>
