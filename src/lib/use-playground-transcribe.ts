@@ -4,6 +4,8 @@ const LS_MODEL = 'playground-transcribe-model'
 const DEFAULT_LANGUAGE = 'auto-detect'
 const DEFAULT_RESPONSE_FORMAT = 'verbose_json'
 const MAX_FILE_SIZE = 20 * 1024 * 1024
+const LLAMA_CPP_AUDIO_TYPES = new Set(['audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/mp3', 'audio/flac'])
+const LLAMA_CPP_AUDIO_EXTENSIONS = new Set(['wav', 'mp3', 'flac'])
 const ACCEPTED_TYPES = new Set([
   'audio/mpeg',
   'audio/mp3',
@@ -76,10 +78,11 @@ export function usePlaygroundTranscribe() {
     abortRef.current = abort
 
     const formData = new FormData()
+    const uploadFile = await prepareTranscriptionFile(file)
     const requestedLanguage = language.trim()
     const requestedResponseFormat = responseFormat.trim() || DEFAULT_RESPONSE_FORMAT
 
-    formData.append('file', file, file.name)
+    formData.append('file', uploadFile, uploadFile.name)
     formData.append('model', model)
     formData.append('response_format', requestedResponseFormat)
     if (requestedLanguage && requestedLanguage.toLowerCase() !== DEFAULT_LANGUAGE) {
@@ -209,4 +212,80 @@ export type TranscriptionVerbose = {
       end?: number
     }>
   }>
+}
+
+async function prepareTranscriptionFile(file: File): Promise<File> {
+  if (isLlamaCppAudioFile(file)) return file
+
+  let audioBuffer: AudioBuffer
+  try {
+    const context = new AudioContext()
+    try {
+      audioBuffer = await context.decodeAudioData(await file.arrayBuffer())
+    } finally {
+      await context.close().catch(() => {})
+    }
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    throw new Error(`Unable to convert ${file.name} to WAV for llama.cpp audio input: ${detail}`)
+  }
+
+  const wav = audioBufferToWav(audioBuffer)
+  if (wav.size > MAX_FILE_SIZE) {
+    throw new Error(`Converted WAV is too large (${(wav.size / 1024 / 1024).toFixed(1)} MB). Maximum is 20 MB.`)
+  }
+
+  return new File([wav], `${stripExtension(file.name) || 'audio'}.wav`, { type: 'audio/wav' })
+}
+
+function isLlamaCppAudioFile(file: File): boolean {
+  if (LLAMA_CPP_AUDIO_TYPES.has(file.type)) return true
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  return extension ? LLAMA_CPP_AUDIO_EXTENSIONS.has(extension) : false
+}
+
+function stripExtension(name: string): string {
+  const index = name.lastIndexOf('.')
+  return index > 0 ? name.slice(0, index) : name
+}
+
+function audioBufferToWav(buffer: AudioBuffer): Blob {
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, index) => buffer.getChannelData(index))
+  const sampleRate = buffer.sampleRate
+  const sampleCount = buffer.length
+  const bytesPerSample = 2
+  const dataBytes = sampleCount * bytesPerSample
+  const wav = new ArrayBuffer(44 + dataBytes)
+  const view = new DataView(wav)
+
+  writeAscii(view, 0, 'RIFF')
+  view.setUint32(4, 36 + dataBytes, true)
+  writeAscii(view, 8, 'WAVE')
+  writeAscii(view, 12, 'fmt ')
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * bytesPerSample, true)
+  view.setUint16(32, bytesPerSample, true)
+  view.setUint16(34, 8 * bytesPerSample, true)
+  writeAscii(view, 36, 'data')
+  view.setUint32(40, dataBytes, true)
+
+  let offset = 44
+  for (let i = 0; i < sampleCount; i++) {
+    let sample = 0
+    for (const channel of channels) sample += channel[i] ?? 0
+    sample = Math.max(-1, Math.min(1, sample / channels.length))
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+    offset += bytesPerSample
+  }
+
+  return new Blob([wav], { type: 'audio/wav' })
+}
+
+function writeAscii(view: DataView, offset: number, value: string) {
+  for (let i = 0; i < value.length; i++) {
+    view.setUint8(offset + i, value.charCodeAt(i))
+  }
 }

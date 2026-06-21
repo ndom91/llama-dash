@@ -18,4 +18,5 @@ config/config.yaml
 todo.md
 next-plan.md
 plan.md
-playground/
+playground
+.understand-anything

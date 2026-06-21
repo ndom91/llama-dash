@@ -161,7 +161,7 @@ export function PlaygroundTranscribe() {
               <Upload className="h-[34px] w-[34px] opacity-30" strokeWidth={1.25} />
               <span>Drop an audio file here or click to browse</span>
               <span className="max-w-[320px] text-[11px] leading-[1.5] text-fg-faint">
-                MP3, OGG, WAV, FLAC, M4A, WebM — max 20 MB
+                MP3, WAV, FLAC pass through; other browser audio is converted to WAV — max 20 MB
               </span>
             </button>
           )}
