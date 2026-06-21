@@ -74,15 +74,27 @@ export function PlaygroundTranscribe() {
             </select>
           </div>
 
-          <div className="flex items-center gap-3 border-r border-border pr-4" aria-hidden="true">
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">lang</div>
-            <div className="font-mono text-xs text-fg">auto-detect</div>
-          </div>
+          <label className="flex items-center gap-3 border-r border-border pr-4" htmlFor="pg-tx-language">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">lang</span>
+            <input
+              id="pg-tx-language"
+              name="language"
+              className="h-8 w-28 rounded border border-transparent bg-transparent px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow,background-color] duration-100 hover:border-border hover:bg-surface-2 focus:border-accent focus:bg-surface-2 focus:[box-shadow:var(--shadow-focus)]"
+              value={tx.language}
+              onChange={(e) => tx.setLanguage(e.target.value)}
+            />
+          </label>
 
-          <div className="flex items-center gap-3 border-r border-border pr-4" aria-hidden="true">
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</div>
-            <div className="font-mono text-xs text-fg">verbose_json</div>
-          </div>
+          <label className="flex items-center gap-3 border-r border-border pr-4" htmlFor="pg-tx-output">
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</span>
+            <input
+              id="pg-tx-output"
+              name="response_format"
+              className="h-8 w-32 rounded border border-transparent bg-transparent px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow,background-color] duration-100 hover:border-border hover:bg-surface-2 focus:border-accent focus:bg-surface-2 focus:[box-shadow:var(--shadow-focus)]"
+              value={tx.responseFormat}
+              onChange={(e) => tx.setResponseFormat(e.target.value)}
+            />
+          </label>
         </div>
       </div>
 
@@ -171,6 +183,19 @@ export function PlaygroundTranscribe() {
               <div className="flex justify-end border-t border-border px-3 py-2.5">
                 <Tooltip label="Copy">
                   <CopyButton text={tx.transcript ?? ''} variant="icon" ariaLabel="Copy transcript" />
+                </Tooltip>
+              </div>
+            </div>
+          ) : null}
+
+          {transcriptRows.length === 0 && tx.transcript != null ? (
+            <div className="mx-auto mb-6 w-full max-w-[686px] overflow-hidden rounded border border-border bg-surface-2">
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap px-3 py-3 font-mono text-xs leading-[1.6] text-fg">
+                {tx.transcript}
+              </pre>
+              <div className="flex justify-end border-t border-border px-3 py-2.5">
+                <Tooltip label="Copy">
+                  <CopyButton text={tx.transcript} variant="icon" ariaLabel="Copy transcript" />
                 </Tooltip>
               </div>
             </div>

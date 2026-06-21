@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const LS_MODEL = 'playground-transcribe-model'
+const DEFAULT_LANGUAGE = 'auto-detect'
+const DEFAULT_RESPONSE_FORMAT = 'verbose_json'
 const MAX_FILE_SIZE = 20 * 1024 * 1024
 const ACCEPTED_TYPES = new Set([
   'audio/mpeg',
@@ -21,6 +23,8 @@ function loadString(key: string, fallback: string): string {
 
 export function usePlaygroundTranscribe() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
+  const [language, setLanguage] = useState(DEFAULT_LANGUAGE)
+  const [responseFormat, setResponseFormat] = useState(DEFAULT_RESPONSE_FORMAT)
   const [file, setFileState] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [transcript, setTranscript] = useState<string | null>(null)
@@ -72,9 +76,15 @@ export function usePlaygroundTranscribe() {
     abortRef.current = abort
 
     const formData = new FormData()
+    const requestedLanguage = language.trim()
+    const requestedResponseFormat = responseFormat.trim() || DEFAULT_RESPONSE_FORMAT
+
     formData.append('file', file, file.name)
     formData.append('model', model)
-    formData.append('response_format', 'verbose_json')
+    formData.append('response_format', requestedResponseFormat)
+    if (requestedLanguage && requestedLanguage.toLowerCase() !== DEFAULT_LANGUAGE) {
+      formData.append('language', requestedLanguage)
+    }
 
     const headers: Record<string, string> = {}
     if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
@@ -92,9 +102,16 @@ export function usePlaygroundTranscribe() {
         throw new Error(`${res.status}: ${body.slice(0, 300)}`)
       }
 
-      const data = await res.json()
-      setTranscript(data.text ?? JSON.stringify(data))
-      setTranscriptData(data as TranscriptionVerbose)
+      const format = requestedResponseFormat.toLowerCase()
+      if (format === 'json' || format === 'verbose_json') {
+        const data = await res.json()
+        setTranscript(data.text ?? JSON.stringify(data))
+        setTranscriptData(data as TranscriptionVerbose)
+      } else {
+        const text = await res.text()
+        setTranscript(text)
+        setTranscriptData(null)
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return
       setError(err instanceof Error ? err.message : String(err))
@@ -102,7 +119,7 @@ export function usePlaygroundTranscribe() {
       setLoading(false)
       abortRef.current = null
     }
-  }, [model, file])
+  }, [model, file, language, responseFormat])
 
   const startRecording = useCallback(async () => {
     setError(null)
@@ -157,6 +174,10 @@ export function usePlaygroundTranscribe() {
   return {
     model,
     setModel,
+    language,
+    setLanguage,
+    responseFormat,
+    setResponseFormat,
     file,
     setFile,
     loading,
