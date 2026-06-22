@@ -623,7 +623,7 @@
 }
 
 .detail-meta-list dd {
-  @apply m-0 inline-flex min-w-0 flex-wrap items-center gap-1.5 wrap-anywhere text-xs text-fg;
+  @apply m-0 inline-flex min-w-0 flex-wrap items-center gap-1.5 wrap-anywhere text-xs text-fg tabular-nums;
 }
 
 .detail-meta-links {
@@ -668,7 +668,7 @@
 }
 
 .detail-sidecar-metrics > div {
-  @apply flex justify-between gap-2.5 font-mono text-xs;
+  @apply flex justify-between gap-2.5 font-mono text-xs tabular-nums;
 }
 
 .detail-sidecar-metrics dt {
