@@ -57,7 +57,7 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
       <dt className="font-mono text-[11px] lowercase tracking-[0.02em] text-fg-muted">{label}</dt>
-      <dd className="m-0 min-w-0 justify-self-end text-right font-mono text-xs text-fg">{value}</dd>
+      <dd className="m-0 min-w-0 justify-self-end text-right font-mono tabular-nums text-xs text-fg">{value}</dd>
     </div>
   )
 }
@@ -90,7 +90,7 @@ function StatTile({ label, value, meta, tone }: { label: string; value: React.Re
       <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <StatusDot tone={tone} /> {label}
       </div>
-      <div className="truncate font-mono text-xl font-semibold tracking-[-0.04em] text-fg">{value}</div>
+      <div className="truncate font-mono tabular-nums text-xl font-semibold tracking-[-0.04em] text-fg">{value}</div>
       {meta ? <div className="mt-1 truncate font-mono text-[10px] text-fg-dim">{meta}</div> : null}
     </section>
   )
@@ -111,7 +111,7 @@ function ComponentRail({ components }: { components: Array<{ label: string; age:
           >
             <StatusDot tone={item.tone} />
             <span className="truncate font-mono text-[11px] text-fg-muted">{item.label}</span>
-            <span className="font-mono text-[10px] text-fg-faint">{item.age}</span>
+            <span className="font-mono tabular-nums text-[10px] text-fg-faint">{item.age}</span>
           </div>
         ))}
       </div>
