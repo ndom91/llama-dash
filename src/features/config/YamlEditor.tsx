@@ -43,7 +43,7 @@ export function YamlEditor({ value, onChange }: Props) {
   return (
     <div className="flex min-h-0 flex-1 font-mono text-[13px] leading-[1.6]">
       <div
-        className="flex min-w-11 flex-col overflow-hidden border-r border-border bg-surface-3 py-3 text-right text-fg-faint select-none"
+        className="flex min-w-11 flex-col overflow-hidden border-r border-border bg-surface-3 py-3 text-right tabular-nums text-fg-faint select-none"
         aria-hidden="true"
       >
         {Array.from({ length: lineCount }, (_, i) => (
