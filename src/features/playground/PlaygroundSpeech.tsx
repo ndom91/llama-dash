@@ -363,7 +363,7 @@ export function PlaygroundSpeech() {
                         <Tooltip label="Close">
                           <button
                             type="button"
-                            className="flex h-4 w-4 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+                            className="flex h-4 w-4 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-[0.96]"
                             onClick={() => speech.removeEntry(entry.id)}
                             aria-label="Remove speech result"
                           >

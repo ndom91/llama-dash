@@ -32,7 +32,7 @@ export function PlaygroundTimingBars({ inspector }: Props) {
                 style={{ width: `${Math.max(stub ? 2 : 1, width)}%` }}
               />
             </div>
-            <span className="text-right font-mono text-[11px] text-fg-dim">
+            <span className="text-right font-mono tabular-nums text-[11px] text-fg-dim">
               {row.ms != null ? `${Math.round(row.ms)}ms` : '—'}
             </span>
           </div>

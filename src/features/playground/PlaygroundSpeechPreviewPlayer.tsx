@@ -190,7 +190,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
       <div className="flex flex-row items-center gap-3">
         <button
           type="button"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-on shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_20%,transparent)] transition-[opacity,transform] duration-100 hover:opacity-90 active:scale-95"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-accent-on shadow-[0_0_18px_color-mix(in_srgb,var(--accent)_20%,transparent)] transition-[opacity,transform] duration-100 hover:opacity-90 active:scale-[0.96]"
           onClick={togglePlayback}
           aria-label={isPlaying ? 'Pause' : 'Play'}
         >
@@ -253,7 +253,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
           <Tooltip label="Download">
             <button
               type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-2 text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-3 hover:text-fg active:scale-90"
+              className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface-2 text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-3 hover:text-fg active:scale-[0.96]"
               onClick={onDownload}
               aria-label="Download audio"
             >

@@ -18,7 +18,7 @@ type Props = {
 
 const variantClasses: Record<CopyButtonVariant, string> = {
   text: 'inline-flex items-center gap-1 rounded-sm border border-transparent px-1.5 py-1 text-[11px] text-fg-dim transition-[background-color,border-color,color,transform] hover:border-border hover:bg-surface-2 hover:text-fg active:scale-[0.97] focus-visible:outline-none focus-visible:shadow-focus',
-  icon: 'flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90 focus-visible:outline-none focus-visible:shadow-focus',
+  icon: 'flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-[0.96] focus-visible:outline-none focus-visible:shadow-focus',
   button: 'btn btn-ghost btn-sm',
 }
 

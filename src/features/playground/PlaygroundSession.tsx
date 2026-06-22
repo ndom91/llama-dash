@@ -109,7 +109,7 @@ export function PlaygroundSession({
           <Tooltip label="Reset Sampling Settings">
             <button
               type="button"
-              className="inline-flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+              className="inline-flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-[0.96]"
               onClick={() => setSampling(DEFAULT_SAMPLING)}
               aria-label="Reset Sampling Settings"
             >

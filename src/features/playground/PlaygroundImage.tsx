@@ -96,7 +96,7 @@ export function PlaygroundImage() {
             <Tooltip label="Clear">
               <button
                 type="button"
-                className="ml-auto flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-90"
+                className="ml-auto flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-2 hover:text-fg active:scale-[0.96]"
                 onClick={img.clearEntries}
               >
                 <Trash2 className="size-3.5 shrink-0" strokeWidth={2} />

@@ -17,7 +17,7 @@ export function PlaygroundSlider({ label, value, min, max, step, decimals, onCha
     <div className="flex flex-col gap-1.5">
       <div className="flex justify-between font-mono text-[11px]">
         <span className="text-fg-muted">{label}</span>
-        <span className="font-medium text-fg">{display}</span>
+        <span className="font-medium text-fg tabular-nums">{display}</span>
       </div>
       <input
         type="range"
@@ -29,7 +29,7 @@ export function PlaygroundSlider({ label, value, min, max, step, decimals, onCha
         onChange={(e) => onChange(Number(e.target.value))}
         style={{ '--pct': `${pct}%` } as React.CSSProperties}
       />
-      <div className="flex justify-between font-mono text-[9px] text-fg-faint">
+      <div className="flex justify-between font-mono tabular-nums text-[9px] text-fg-faint">
         <span>{format ? format(min) : min}</span>
         <span>{format ? format((min + max) / 2) : ((min + max) / 2).toFixed(decimals)}</span>
         <span>{format ? format(max) : max}</span>

@@ -182,7 +182,7 @@ export function PlaygroundMessage({
           <Tooltip label="Edit">
             <button
               type="button"
-              className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-90"
+              className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-[0.96]"
               onClick={startEdit}
             >
               <Pencil className="size-3 shrink-0" strokeWidth={2} />
