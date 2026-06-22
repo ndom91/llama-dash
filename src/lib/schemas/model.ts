@@ -1,6 +1,15 @@
 import * as v from 'valibot'
 import { ApiRequestSchema } from './request'
 
+export const ApiModelCapabilitiesSchema = v.object({
+  inputModalities: v.array(v.string()),
+  outputModalities: v.array(v.string()),
+  flags: v.array(v.string()),
+  supportedParameters: v.array(v.string()),
+})
+
+export type ApiModelCapabilities = v.InferOutput<typeof ApiModelCapabilitiesSchema>
+
 export const ApiModelSchema = v.object({
   id: v.string(),
   name: v.string(),
@@ -10,6 +19,7 @@ export const ApiModelSchema = v.object({
   state: v.string(),
   running: v.boolean(),
   ttl: v.nullable(v.number()),
+  capabilities: ApiModelCapabilitiesSchema,
 })
 
 export type ApiModel = v.InferOutput<typeof ApiModelSchema>

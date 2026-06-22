@@ -3,6 +3,7 @@ services:
     image: ghcr.io/mostlygeek/llama-swap:cuda
     command: ['-config', '/config/config.yaml', '-watch-config']
     volumes:
+      # Keep the config directory mounted: llama-dash writes config.yaml via atomic rename.
       - ./config:/config
       - ./models:/models
     networks:
@@ -25,6 +26,7 @@ services:
       INFERENCE_CONFIG_FILE: /config/config.yaml
       DATABASE_PATH: /data/dash.db
     volumes:
+      # Keep the config directory mounted: llama-dash writes config.yaml via atomic rename.
       - ./config:/config
       - llama-dash-data:/data
     networks:

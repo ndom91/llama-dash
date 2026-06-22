@@ -33,6 +33,14 @@ export type BackendModel = {
   kind: 'local' | 'peer'
   peerId: string | null
   contextLength: number | null
+  capabilities: BackendModelCapabilities
+}
+
+export type BackendModelCapabilities = {
+  inputModalities: Array<string>
+  outputModalities: Array<string>
+  flags: Array<string>
+  supportedParameters: Array<string>
 }
 
 export type BackendRunningModel = {

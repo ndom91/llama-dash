@@ -198,6 +198,7 @@ export function buildApiModel(
     state: running?.state ?? 'stopped',
     running: Boolean(running),
     ttl: running?.ttl ?? null,
+    capabilities: model.capabilities,
   }
 }
 

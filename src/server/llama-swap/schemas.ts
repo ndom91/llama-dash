@@ -6,6 +6,16 @@ export const OpenAiModelSchema = v.object({
   created: v.number(),
   owned_by: v.string(),
   name: v.optional(v.string()),
+  description: v.optional(v.string()),
+  architecture: v.optional(
+    v.object({
+      input_modalities: v.optional(v.array(v.string())),
+      output_modalities: v.optional(v.array(v.string())),
+      modality: v.optional(v.string()),
+    }),
+  ),
+  capabilities: v.optional(v.record(v.string(), v.unknown())),
+  supported_parameters: v.optional(v.array(v.string())),
   context_length: v.optional(v.number()),
   contextLength: v.optional(v.number()),
   n_ctx: v.optional(v.number()),

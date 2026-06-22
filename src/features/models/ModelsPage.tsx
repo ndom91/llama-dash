@@ -77,6 +77,9 @@ export function ModelsPage() {
                   <th style={{ width: 72 }} className="hide-mobile">
                     kind
                   </th>
+                  <th style={{ width: 180 }} className="hide-mobile">
+                    capabilities
+                  </th>
                   <th style={{ width: 130 }} className="hide-mobile">
                     state
                   </th>

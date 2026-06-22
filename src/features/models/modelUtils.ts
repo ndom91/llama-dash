@@ -36,3 +36,32 @@ export function formatContextLength(contextLength: number | null | undefined): s
   }
   return contextLength.toLocaleString()
 }
+
+export function formatCapabilityLabel(value: string): string {
+  return value.replaceAll('_', ' ')
+}
+
+export function getModelCapabilityBadges(model: {
+  capabilities: {
+    inputModalities: Array<string>
+    outputModalities: Array<string>
+    flags: Array<string>
+    supportedParameters: Array<string>
+  }
+}): Array<string> {
+  const badges = [...model.capabilities.flags]
+  if (model.capabilities.inputModalities.includes('image')) badges.unshift('image in')
+  if (model.capabilities.inputModalities.includes('audio')) badges.unshift('audio in')
+  if (model.capabilities.outputModalities.includes('image')) badges.unshift('image out')
+  if (model.capabilities.outputModalities.includes('audio')) badges.unshift('audio out')
+  return [...new Set(badges)]
+}
+
+export function hasModelCapabilities(model: Parameters<typeof getModelCapabilityBadges>[0]): boolean {
+  return (
+    model.capabilities.inputModalities.length > 0 ||
+    model.capabilities.outputModalities.length > 0 ||
+    model.capabilities.flags.length > 0 ||
+    model.capabilities.supportedParameters.length > 0
+  )
+}

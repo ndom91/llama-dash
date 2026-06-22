@@ -135,7 +135,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
    backend currently supports `llama-swap` only and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,
-   logs, config snippets, config-derived context hints, and model log-name hints.
+   logs, config snippets, config-derived context hints, model capability metadata,
+   and model log-name hints.
    Backend support is capability-driven; unsupported operations should return a
    structured `501` and UI routes should hide links or show direct-navigation
    fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md).
@@ -177,7 +178,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    15s, diffs against known state, inserts `load`/`unload` events into SQLite,
    and publishes model-change dashboard events.
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
-    recent requests), Models (list + load/unload + per-model detail),
+    recent requests), Models (list + load/unload + capability badges + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
@@ -453,9 +454,10 @@ sort lexicographically by creation time).
 - **Config round-tripping will matter later.** When the config editor
   lands, user comments and key order in `config.yaml` must survive a write.
   Don't pick a YAML library that doesn't round-trip.
-- **Config reload is file-based.** llama-swap uses `-watch-config` (fsnotify)
-  to detect config changes and reload automatically. There is no
-  `/api/reload` endpoint — just write the file and llama-swap picks it up.
+- **Config reload is file-based.** llama-swap uses `-watch-config` with a
+  stat-poll watcher to detect config changes and reload automatically. SIGHUP
+  reload is also supported upstream, but llama-dash still relies on atomic file
+  writes rather than a reload endpoint.
 
 ## llama-swap API surface we consume
 
@@ -465,12 +467,12 @@ sort lexicographically by creation time).
 - `GET /upstream/:model_id/*` — proxy directly to a specific llama-server (useful for `/metrics`)
 - `GET /logs/stream`, `/logs/stream/proxy`, `/logs/stream/upstream`, `/logs/stream/{model_id}` — SSE log streams
 - `GET /health`
-- `GET /v1/models` — OpenAI-format list including peers
-- Hot reload: editing `config.yaml` when llama-swap runs with `-watch-config` (fsnotify-based; no SIGHUP)
+- `GET /v1/models` — OpenAI-format list including peers and v229 capability metadata
+- Hot reload: editing `config.yaml` when llama-swap runs with `-watch-config` triggers the stat-poll watcher; SIGHUP reload is also supported by llama-swap.
 
 **CLI flags**: `-config <path>`, `-listen <addr>` (default `:8080`), `-watch-config`, `-tls-cert-file`, `-tls-key-file`, `-version`.
 
-**Signals**: `SIGINT` / `SIGTERM` with graceful shutdown of child processes. No `SIGHUP`.
+**Signals**: `SIGINT` / `SIGTERM` with graceful shutdown of child processes. `SIGHUP` reloads configuration.
 
 ## Claude Code / Anthropic passthrough
 
@@ -524,6 +526,10 @@ peers:
 - Preserve user comments and key order (YAML round-tripper).
 - Validate against llama-swap's `config-schema.json` before writing.
 - Back up the previous version on every write.
+- Keep `./config:/config` as a directory bind mount in bundled compose files;
+  single-file mounts pin an inode and break atomic rename-over saves.
+- llama-swap reloads `-watch-config` changes through stat polling; SIGHUP is an
+  upstream escape hatch, not the normal llama-dash save path.
 
 ## Before you call work "done"
 

@@ -1,6 +1,17 @@
 import Ajv, { type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
-import { readFileSync, statSync, writeFileSync } from 'node:fs'
+import {
+  closeSync,
+  copyFileSync,
+  fsyncSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { basename, dirname, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { config } from '../config.ts'
 
@@ -60,6 +71,51 @@ export async function validateAgainstSchema(content: string): Promise<Validation
   }
 }
 
+function fsyncDirectory(path: string) {
+  let fd: number | null = null
+  try {
+    fd = openSync(path, 'r')
+    fsyncSync(fd)
+  } catch {
+    // Directory fsync is not supported on every platform/filesystem.
+  } finally {
+    if (fd != null) closeSync(fd)
+  }
+}
+
+function writeConfigAtomically(path: string, content: string, mode: number) {
+  const dir = dirname(path)
+  const base = basename(path)
+  const tmpPath = join(dir, `.${base}.${process.pid}.${Date.now()}.tmp`)
+  let fd: number | null = null
+
+  try {
+    fd = openSync(tmpPath, 'w', mode)
+    writeFileSync(fd, content, 'utf-8')
+    fsyncSync(fd)
+    closeSync(fd)
+    fd = null
+
+    copyFileSync(path, `${path}.bak`)
+    renameSync(tmpPath, path)
+    fsyncDirectory(dir)
+  } catch (err) {
+    if (fd != null) {
+      try {
+        closeSync(fd)
+      } catch {
+        // Preserve the original write/rename error.
+      }
+    }
+    try {
+      unlinkSync(tmpPath)
+    } catch {
+      // Best-effort cleanup only; the original config remains untouched.
+    }
+    throw err
+  }
+}
+
 export async function writeConfig(content: string, expectedModifiedAt: number): Promise<WriteConfigResult> {
   const validation = await validateAgainstSchema(content)
   if (!validation.valid) {
@@ -71,7 +127,7 @@ export async function writeConfig(content: string, expectedModifiedAt: number): 
   if (Math.abs(stat.mtimeMs - expectedModifiedAt) > 50) {
     return { written: false, conflict: true }
   }
-  writeFileSync(p, content, 'utf-8')
+  writeConfigAtomically(p, content, stat.mode & 0o777)
   const newStat = statSync(p)
   return { written: true, conflict: false, modifiedAt: newStat.mtimeMs }
 }

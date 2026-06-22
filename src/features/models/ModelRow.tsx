@@ -3,6 +3,7 @@ import { Play, Power } from 'lucide-react'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/api'
+import { formatCapabilityLabel, getModelCapabilityBadges } from './modelUtils'
 
 type Props = {
   model: ApiModel
@@ -21,6 +22,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
       : model.kind === 'peer'
         ? ('warn' as const)
         : stateTone(model.state, model.running)
+  const capabilityBadges = getModelCapabilityBadges(model)
 
   return (
     <tr
@@ -38,6 +40,24 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
           {model.kind}
         </span>
+      </td>
+      <td className="hide-mobile">
+        {capabilityBadges.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {capabilityBadges.slice(0, 2).map((capability) => (
+              <span key={capability} className="state-label state-label-idle">
+                {formatCapabilityLabel(capability)}
+              </span>
+            ))}
+            {capabilityBadges.length > 2 ? (
+              <span className="mono text-[11px] text-dim">+{capabilityBadges.length - 2}</span>
+            ) : null}
+          </div>
+        ) : (
+          <span className="mono dim" style={{ fontSize: 11 }}>
+            —
+          </span>
+        )}
       </td>
       <td className="hide-mobile">
         <span className={`state-label state-label-${tone}`}>

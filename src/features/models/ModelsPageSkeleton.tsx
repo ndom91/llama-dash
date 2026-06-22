@@ -13,6 +13,9 @@ export function ModelsPageSkeleton() {
           <th style={{ width: 72 }} className="hide-mobile">
             kind
           </th>
+          <th style={{ width: 180 }} className="hide-mobile">
+            capabilities
+          </th>
           <th style={{ width: 130 }} className="hide-mobile">
             state
           </th>
@@ -35,6 +38,9 @@ export function ModelsPageSkeleton() {
             </td>
             <td className="hide-mobile">
               <span className="skel skel-text" style={{ width: 34 }} />
+            </td>
+            <td className="hide-mobile">
+              <span className="skel skel-text" style={{ width: 118 }} />
             </td>
             <td className="hide-mobile">
               <span className="skel skel-text" style={{ width: 70 }} />

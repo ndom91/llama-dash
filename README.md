@@ -24,7 +24,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 ## ✨ What it does
 
 - **Watch the box** — live request, token, model, upstream, GPU, and update status in one dashboard.
-- **Manage models** — load/unload models, inspect per-model stats, view residency history, and edit llama-swap config with validation.
+- **Manage models** — load/unload models, inspect per-model stats and capability metadata, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose one OpenAI/Anthropic-compatible `/v1/*` endpoint for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, model allow-lists, MCP relay allow-lists, and per-key usage breakdowns.
@@ -103,7 +103,7 @@ cp config/config.example.yaml config/config.yaml  # edit models
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
-`docker-compose.amd.yaml` runs `ghcr.io/mostlygeek/llama-swap:rocm`, passes through `/dev/kfd` and `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard.
+`docker-compose.amd.yaml` runs `ghcr.io/mostlygeek/llama-swap:rocm`, passes through `/dev/kfd` and `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
 ### NVIDIA / CUDA
 
@@ -112,7 +112,7 @@ cp config/config.example.yaml config/config.yaml  # edit models
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
-`docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host.
+`docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
 ## 🏗️ Manual setup
 
@@ -161,7 +161,7 @@ See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backen
 - `src/server/gpu-poller.ts` — polls `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes GPU-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
-- `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API.
+- `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata.
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.

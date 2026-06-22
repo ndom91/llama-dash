@@ -8,7 +8,14 @@ import { useLoadModel, useUnloadModel } from '../../lib/queries'
 import { ModelEventsPanel } from './ModelEventsPanel'
 import { ModelRequestsPanel } from './ModelRequestsPanel'
 import { ModelStatsRow } from './ModelStatsRow'
-import { formatContextLength, formatTtl, parseModelConfigSnippet } from './modelUtils'
+import {
+  formatCapabilityLabel,
+  formatContextLength,
+  formatTtl,
+  getModelCapabilityBadges,
+  hasModelCapabilities,
+  parseModelConfigSnippet,
+} from './modelUtils'
 
 type Props = {
   data: ApiModelDetail
@@ -21,6 +28,7 @@ export function ModelDetailContent({ data }: Props) {
   const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
   const configMeta = useMemo(() => parseModelConfigSnippet(configSnippet), [configSnippet])
   const contextLabel = formatContextLength(model.contextLength) ?? configMeta.ctxSize
+  const capabilityBadges = getModelCapabilityBadges(model)
 
   return (
     <>
@@ -103,6 +111,35 @@ export function ModelDetailContent({ data }: Props) {
                   </span>
                 ))}
               </div>
+            </div>
+          ) : null}
+
+          {hasModelCapabilities(model) ? (
+            <div className="detail-meta-section">
+              <div className="detail-meta-kicker">Capabilities</div>
+              {capabilityBadges.length > 0 ? (
+                <div className="detail-meta-links">
+                  {capabilityBadges.map((capability) => (
+                    <span key={capability} className="detail-meta-link">
+                      {formatCapabilityLabel(capability)}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <dl className="detail-meta-list mt-3">
+                <div>
+                  <dt>input</dt>
+                  <dd>{model.capabilities.inputModalities.join(', ') || '—'}</dd>
+                </div>
+                <div>
+                  <dt>output</dt>
+                  <dd>{model.capabilities.outputModalities.join(', ') || '—'}</dd>
+                </div>
+                <div>
+                  <dt>params</dt>
+                  <dd>{model.capabilities.supportedParameters.join(', ') || '—'}</dd>
+                </div>
+              </dl>
             </div>
           ) : null}
         </aside>

@@ -1,7 +1,13 @@
 import { config } from '../../config.ts'
 import { llamaSwap } from '../../llama-swap/client.ts'
 import type { OpenAiModel, RunningModel } from '../../llama-swap/client.ts'
-import type { BackendModel, BackendRunningModel, InferenceBackend, InferenceBackendInfo } from '../backend.ts'
+import type {
+  BackendModel,
+  BackendModelCapabilities,
+  BackendRunningModel,
+  InferenceBackend,
+  InferenceBackendInfo,
+} from '../backend.ts'
 import {
   getLlamaSwapConfigContextLengths,
   getLlamaSwapModelConfigSnippet,
@@ -23,6 +29,22 @@ function pickLlamaSwapModelContextLength(model: OpenAiModel): number | null {
   )
 }
 
+function pickLlamaSwapModelCapabilities(model: OpenAiModel): BackendModelCapabilities {
+  const inputModalities = model.architecture?.input_modalities ?? []
+  const outputModalities = model.architecture?.output_modalities ?? []
+  const flags = Object.entries(model.capabilities ?? {})
+    .filter(([, value]) => value === true)
+    .map(([key]) => key)
+    .sort()
+
+  return {
+    inputModalities,
+    outputModalities,
+    flags,
+    supportedParameters: model.supported_parameters ?? [],
+  }
+}
+
 function extractCtxSize(value: unknown): number | null {
   if (typeof value !== 'string') return null
   const match = value.match(/--ctx-size(?:\s+|=)(\d+)/)
@@ -37,6 +59,7 @@ function mapLlamaSwapModel(model: OpenAiModel): BackendModel {
     kind: peerId ? 'peer' : 'local',
     peerId,
     contextLength: pickLlamaSwapModelContextLength(model),
+    capabilities: pickLlamaSwapModelCapabilities(model),
   }
 }
 
