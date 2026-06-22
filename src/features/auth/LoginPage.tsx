@@ -501,7 +501,7 @@ function PasswordField({
 function PasswordStrength({ password }: { password: string }) {
   const filled = Math.min(4, Math.max(1, Math.floor(password.length / 4)))
   return (
-    <div className="mt-3 flex items-center gap-2 font-mono text-[10px] text-fg-dim">
+    <div className="mt-3 flex items-center gap-2 font-mono tabular-nums text-[10px] text-fg-dim">
       <div className="flex flex-1 gap-2">
         {[0, 1, 2, 3, 4].map((i) => (
           <span key={i} className={cn('h-px flex-1', i < filled ? 'bg-accent' : 'bg-border')} />
@@ -516,7 +516,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
   return (
     <button
       type="submit"
-      className="mt-5 h-10 w-full rounded bg-accent font-mono text-sm font-bold text-accent-on transition-[background-color,transform] hover:bg-accent-strong active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+      className="mt-5 h-10 w-full rounded bg-accent font-mono text-sm font-bold text-accent-on transition-[background-color,transform] hover:bg-accent-strong active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
       {pending ? pendingLabel : `${label}  ->`}
