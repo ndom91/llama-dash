@@ -12,7 +12,7 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec }: P
       <div className="panel-head bg-surface-1 px-4">
         <span className="panel-title">Stream</span>
         <span className="panel-sub">· token trace</span>
-        <span className="panel-sub ml-auto">
+        <span className="panel-sub ml-auto tabular-nums">
           {completionTokens} tokens · {tokPerSec ?? '—'} tok/s
         </span>
       </div>
@@ -20,7 +20,7 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec }: P
         <div className="h-2 rounded bg-surface-3">
           <div className="stream-flow-bar h-full w-full rounded bg-accent" />
         </div>
-        <div className="mt-2 flex flex-wrap justify-between gap-2 font-mono text-[11px] text-fg-dim">
+        <div className="mt-2 flex flex-wrap justify-between gap-2 font-mono tabular-nums text-[11px] text-fg-dim">
           <span style={{ color: 'var(--accent-shifted)' }}>start</span>
           <span>
             {completionTokens} tokens · {tokPerSec ?? '—'} tok/s

@@ -183,7 +183,7 @@
   }
   .dtable td.mono,
   .dtable th.mono {
-    @apply font-mono;
+    @apply font-mono tabular-nums;
   }
   .dtable td.dim {
     @apply text-fg-dim;
