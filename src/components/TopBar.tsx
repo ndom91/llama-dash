@@ -34,7 +34,7 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
     <header className="bg-surface-1 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
       <button
         type="button"
-        className="hidden max-md:inline-flex items-center justify-center text-fg p-1 cursor-pointer mr-1"
+        className="hidden max-md:inline-flex items-center justify-center text-fg p-2.5 cursor-pointer -ml-1.5"
         onClick={toggle}
         aria-label="Toggle menu"
       >
@@ -76,7 +76,7 @@ function TopBarLiveStats() {
         <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
           <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
           <span>upstream</span>
-          <span className="font-medium text-fg" translate="no">
+          <span className="font-medium text-fg tabular-nums" translate="no">
             {versionLabel}
           </span>
         </span>
@@ -85,14 +85,14 @@ function TopBarLiveStats() {
       <Tooltip label="Currently loaded models" side="bottom">
         <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
           <span>running</span>
-          <span className="font-medium text-fg">{runningLabel}</span>
+          <span className="font-medium text-fg tabular-nums">{runningLabel}</span>
           {peerLabel != null ? (
             <>
               <span className="-mx-0.5 text-fg-faint" aria-hidden="true">
                 ·
               </span>
               <span>peer</span>
-              <span className="font-medium text-fg">{peerLabel}</span>
+              <span className="font-medium text-fg tabular-nums">{peerLabel}</span>
             </>
           ) : null}
         </span>
@@ -101,7 +101,7 @@ function TopBarLiveStats() {
       <Tooltip label="Requests per second (1 min)" side="bottom">
         <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
           <span>req/s</span>
-          <span className="font-medium text-fg">{reqRateLabel}</span>
+          <span className="font-medium text-fg tabular-nums">{reqRateLabel}</span>
         </span>
       </Tooltip>
     </>
@@ -118,7 +118,7 @@ function TopBarClock() {
   }, [])
 
   return (
-    <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono max-md:hidden">
+    <span className="text-[11px] text-fg-dim -tracking-[0.01em] font-mono tabular-nums max-md:hidden">
       {mounted ? formatDatetime(now) : '—'}
     </span>
   )

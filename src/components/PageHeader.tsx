@@ -35,9 +35,13 @@ export function PageHeader({
           </div>
         ) : null}
         {titleNode ?? (
-          <h1 className="page-header-title text-xl font-semibold -tracking-[0.015em] text-fg m-0">{title}</h1>
+          <h1 className="page-header-title text-balance text-xl font-semibold -tracking-[0.015em] text-fg m-0">
+            {title}
+          </h1>
         )}
-        {subtitle ? <p className="page-header-subtitle font-mono text-xs text-fg-dim m-0">{subtitle}</p> : null}
+        {subtitle ? (
+          <p className="page-header-subtitle text-pretty font-mono text-xs text-fg-dim m-0">{subtitle}</p>
+        ) : null}
       </div>
       {action ? <div className="page-header-action shrink-0 flex items-center gap-1.5">{action}</div> : null}
     </div>

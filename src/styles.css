@@ -73,7 +73,7 @@
     @apply bg-surface-3 border-accent;
   }
   .btn:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(0.96);
   }
   .btn:focus-visible {
     @apply outline-none shadow-focus;
@@ -1489,6 +1489,7 @@ a,
   letter-spacing: -0.03em;
   color: var(--fg);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 .stat-card-unit {
   font-family: var(--font-mono);

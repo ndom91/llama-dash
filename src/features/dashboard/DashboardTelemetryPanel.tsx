@@ -18,19 +18,19 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
       <dl className="mb-0 mt-0 grid gap-2.5 border-b border-border pb-4">
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">host</dt>
-          <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+          <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
             {upstream?.reachable ? upstream.host : '—'}
           </dd>
         </div>
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">version</dt>
-          <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+          <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
             {upstream?.reachable ? `v${upstream.version}` : '—'}
           </dd>
         </div>
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">/health</dt>
-          <dd className="m-0 inline-flex items-center justify-self-end gap-1.5 text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+          <dd className="m-0 inline-flex items-center justify-self-end gap-1.5 text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
             {upstream?.reachable ? (
               <>
                 <StatusDot tone="ok" /> <span>ok · {upstream.latencyMs}ms</span>
@@ -53,7 +53,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
               <dl className="mb-0 mt-0 grid gap-2.5">
                 <div className={metaGrid}>
                   <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">device</dt>
-                  <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+                  <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
                     {gpuEntry.name}
                   </dd>
                 </div>
@@ -61,7 +61,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                   <div className="grid items-start gap-2 [grid-template-columns:70px_minmax(0,1fr)]">
                     <dt className="pt-0.5 font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">vram</dt>
                     <div>
-                      <dd className="m-0 inline-flex w-full items-center justify-between gap-2 font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+                      <dd className="m-0 inline-flex w-full items-center justify-between gap-2 font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
                         <span>
                           {formatMiBGb(gpuEntry.memoryUsedMiB)} / {formatMiBGb(gpuEntry.memoryTotalMiB)}
                         </span>
@@ -78,7 +78,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                 ) : null}
                 <div className={metaGrid}>
                   <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">util · temp</dt>
-                  <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+                  <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
                     {gpuEntry.utilizationPercent != null ? `${gpuEntry.utilizationPercent}%` : '—'}
                     {gpuEntry.temperatureC != null ? ` · ${gpuEntry.temperatureC}°C` : ''}
                   </dd>
@@ -86,7 +86,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                 {gpuEntry.powerW != null ? (
                   <div className={metaGrid}>
                     <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">power</dt>
-                    <dd className="m-0 justify-self-end text-right font-mono text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+                    <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
                       {gpuEntry.powerW} W
                     </dd>
                   </div>
