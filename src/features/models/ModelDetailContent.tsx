@@ -118,15 +118,18 @@ export function ModelDetailContent({ data }: Props) {
             <div className="detail-meta-section">
               <div className="detail-meta-kicker">Capabilities</div>
               {capabilityBadges.length > 0 ? (
-                <div className="detail-meta-links">
+                <div className="flex flex-wrap gap-1.5 mb-4">
                   {capabilityBadges.map((capability) => (
-                    <span key={capability} className="detail-meta-link">
+                    <span
+                      key={capability}
+                      className="inline-flex rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[9px] leading-none tracking-[0.08em] text-fg-dim [text-box:trim-both_cap_alphabetic]"
+                    >
                       {formatCapabilityLabel(capability)}
                     </span>
                   ))}
                 </div>
               ) : null}
-              <dl className="detail-meta-list mt-3">
+              <dl className="detail-meta-list">
                 <div>
                   <dt>input</dt>
                   <dd>{model.capabilities.inputModalities.join(', ') || '—'}</dd>
