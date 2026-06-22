@@ -32,32 +32,31 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
       <td>
         <StatusDot tone={tone} live={loading || model.running} />
       </td>
-      <td className="mono" translate="no">
-        {model.id}
+      <td>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="mono" translate="no">
+            {model.id}
+          </span>
+          {capabilityBadges.length > 0 ? (
+            <span className="contents">
+              <span className="sr-only">Capabilities: </span>
+              {capabilityBadges.map((capability) => (
+                <span
+                  key={capability}
+                  className="inline-flex rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[9px] leading-none tracking-[0.08em] text-fg-dim [text-box:trim-both_cap_alphabetic]"
+                >
+                  {formatCapabilityLabel(capability)}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </div>
       </td>
       <td>{model.name}</td>
       <td className="hide-mobile">
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
           {model.kind}
         </span>
-      </td>
-      <td className="hide-mobile">
-        {capabilityBadges.length > 0 ? (
-          <div className="flex flex-wrap items-center gap-1">
-            {capabilityBadges.slice(0, 2).map((capability) => (
-              <span key={capability} className="state-label state-label-idle">
-                {formatCapabilityLabel(capability)}
-              </span>
-            ))}
-            {capabilityBadges.length > 2 ? (
-              <span className="mono text-[11px] text-dim">+{capabilityBadges.length - 2}</span>
-            ) : null}
-          </div>
-        ) : (
-          <span className="mono dim" style={{ fontSize: 11 }}>
-            —
-          </span>
-        )}
       </td>
       <td className="hide-mobile">
         <span className={`state-label state-label-${tone}`}>

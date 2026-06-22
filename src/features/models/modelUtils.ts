@@ -38,7 +38,7 @@ export function formatContextLength(contextLength: number | null | undefined): s
 }
 
 export function formatCapabilityLabel(value: string): string {
-  return value.replaceAll('_', ' ')
+  return value.replaceAll('_', ' ').toUpperCase()
 }
 
 export function getModelCapabilityBadges(model: {
@@ -49,11 +49,11 @@ export function getModelCapabilityBadges(model: {
     supportedParameters: Array<string>
   }
 }): Array<string> {
-  const badges = [...model.capabilities.flags]
-  if (model.capabilities.inputModalities.includes('image')) badges.unshift('image in')
-  if (model.capabilities.inputModalities.includes('audio')) badges.unshift('audio in')
-  if (model.capabilities.outputModalities.includes('image')) badges.unshift('image out')
-  if (model.capabilities.outputModalities.includes('audio')) badges.unshift('audio out')
+  const badges = [
+    ...model.capabilities.inputModalities.map((modality) => `${modality} in`),
+    ...model.capabilities.outputModalities.map((modality) => `${modality} out`),
+    ...model.capabilities.flags,
+  ]
   return [...new Set(badges)]
 }
 

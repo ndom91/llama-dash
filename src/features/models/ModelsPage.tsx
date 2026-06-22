@@ -70,15 +70,12 @@ export function ModelsPage() {
               <thead>
                 <tr>
                   <th style={{ width: 18 }} aria-label="state" />
-                  <th className="mono" style={{ minWidth: 180 }}>
+                  <th className="mono" style={{ minWidth: 300 }}>
                     id
                   </th>
                   <th>name</th>
                   <th style={{ width: 72 }} className="hide-mobile">
                     kind
-                  </th>
-                  <th style={{ width: 180 }} className="hide-mobile">
-                    capabilities
                   </th>
                   <th style={{ width: 130 }} className="hide-mobile">
                     state
