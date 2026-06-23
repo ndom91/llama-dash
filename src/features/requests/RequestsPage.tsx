@@ -20,9 +20,15 @@ import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
   colWidthsFor,
   REQUESTS_ALL_COLS,
+  REQUEST_KEY_FILTER_NONE,
+  REQUEST_KEY_FILTER_PROXY,
   REQUESTS_ROW_HEIGHT,
   type RequestsColKey,
   formatWhen,
+  isProxyRequestKey,
+  requestKeyLabel,
+  requestKeyNameFilterValue,
+  requestMatchesKeyFilter,
   type RoutingFilter,
   sortVal,
   type SortDir,
@@ -98,6 +104,7 @@ export function RequestsPage() {
     for (const r of allRows) if (r.keyName) set.add(r.keyName)
     return Array.from(set).sort()
   }, [allRows])
+  const hasProxyRequests = useMemo(() => allRows.some(isProxyRequestKey), [allRows])
 
   const hosts = useMemo(() => {
     const set = new Set<string>()
@@ -371,9 +378,10 @@ export function RequestsPage() {
                   onChange={(e) => updateSearch({ key: e.target.value })}
                 >
                   <option value="all">All keys</option>
-                  <option value="__none__">No key</option>
+                  {hasProxyRequests ? <option value={REQUEST_KEY_FILTER_PROXY}>proxy</option> : null}
+                  <option value={REQUEST_KEY_FILTER_NONE}>No key</option>
                   {keyNames.map((k) => (
-                    <option key={k} value={k}>
+                    <option key={k} value={requestKeyNameFilterValue(k)}>
                       {k}
                     </option>
                   ))}
@@ -600,6 +608,7 @@ export function RequestsPage() {
                       <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                         {virtualizer.getVirtualItems().map((vRow) => {
                           const r = rows[vRow.index]
+                          const keyLabel = requestKeyLabel(r)
                           return (
                             // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
                             <div
@@ -640,9 +649,9 @@ export function RequestsPage() {
                                       <td className="dim" translate="no">
                                         <span
                                           className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                                          title={r.keyName ?? 'system'}
+                                          title={keyLabel}
                                         >
-                                          {r.keyName ?? 'system'}
+                                          {keyLabel}
                                         </span>
                                       </td>
                                     ) : null}
@@ -718,6 +727,7 @@ type RequestFilterRow = {
   statusCode: number
   model: string | null
   keyName: string | null
+  routingAuthMode: string | null
   routingActionType: string | null
   clientName: string | null
   clientHost: string | null
@@ -753,8 +763,7 @@ function applyRequestFilters<T extends RequestFilterRow>(
   if (filters.modelFilter !== 'all') out = out.filter((r) => r.model === filters.modelFilter)
 
   if (filters.keyFilter !== 'all') {
-    if (filters.keyFilter === '__none__') out = out.filter((r) => r.keyName == null)
-    else out = out.filter((r) => r.keyName === filters.keyFilter)
+    out = out.filter((r) => requestMatchesKeyFilter(r, filters.keyFilter))
   }
 
   if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)

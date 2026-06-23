@@ -52,6 +52,40 @@ export type SortDir = 'asc' | 'desc'
 export type StatusFilter = 'all' | 'ok' | 'err'
 export type RoutingFilter = 'all' | 'routed' | 'unrouted'
 
+export const REQUEST_KEY_FILTER_NONE = '__none__'
+export const REQUEST_KEY_FILTER_PROXY = '__proxy__'
+const REQUEST_KEY_FILTER_KEY_PREFIX = 'key:'
+
+type RequestKeySource = {
+  keyName: string | null
+  routingAuthMode: string | null
+}
+
+export function isProxyRequestKey(r: RequestKeySource): boolean {
+  return r.keyName == null && r.routingAuthMode === 'passthrough'
+}
+
+export function requestKeyLabel(r: RequestKeySource): string {
+  if (isProxyRequestKey(r)) return 'proxy'
+  return r.keyName ?? 'system'
+}
+
+export function requestKeyFilterValue(r: RequestKeySource): string {
+  if (isProxyRequestKey(r)) return REQUEST_KEY_FILTER_PROXY
+  return r.keyName ? requestKeyNameFilterValue(r.keyName) : REQUEST_KEY_FILTER_NONE
+}
+
+export function requestKeyNameFilterValue(keyName: string): string {
+  return `${REQUEST_KEY_FILTER_KEY_PREFIX}${encodeURIComponent(keyName)}`
+}
+
+export function requestMatchesKeyFilter(r: RequestKeySource, filter: string): boolean {
+  if (filter === REQUEST_KEY_FILTER_PROXY) return isProxyRequestKey(r)
+  if (filter === REQUEST_KEY_FILTER_NONE) return r.keyName == null && !isProxyRequestKey(r)
+  if (filter.startsWith(REQUEST_KEY_FILTER_KEY_PREFIX)) return requestKeyFilterValue(r) === filter
+  return r.keyName === filter
+}
+
 export function sortVal(r: ApiRequest, key: SortKey): number | string {
   switch (key) {
     case 'startedAt':

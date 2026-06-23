@@ -28,7 +28,7 @@ import {
 } from './requestDetailUtils'
 import { RequestPayloadPane } from './RequestPayloadPane'
 import { RequestTokenTrace } from './RequestTokenTrace'
-import { formatWhen } from './requestsListUtils'
+import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
 
 type Props = {
   req: ApiRequestDetail
@@ -115,6 +115,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   )
   const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
   const hasAttribution = Boolean(req.clientName || req.endUserId || req.sessionId)
+  const keyLabel = requestKeyLabel(req)
+  const shouldShowKeyInSubtitle = req.keyName != null || isProxyRequestKey(req)
 
   return (
     <>
@@ -124,7 +126,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         subtitle={
           <span translate="no">
             <span>{modelLabel ?? 'request detail'}</span>
-            {req.keyName ? <span className="text-fg-muted"> · {req.keyName}</span> : null}
+            {shouldShowKeyInSubtitle ? <span className="text-fg-muted"> · {keyLabel}</span> : null}
           </span>
         }
         variant="integrated"
@@ -232,7 +234,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               </div>
               <div>
                 <dt>key</dt>
-                <dd>{req.keyName ?? 'system'}</dd>
+                <dd>{keyLabel}</dd>
               </div>
               <div>
                 <dt>client</dt>
