@@ -1,4 +1,20 @@
 allowBuilds:
   better-sqlite3: true
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@tanstack/devtools-client@0.0.8'
+  - '@tanstack/devtools-event-client@0.5.0'
+  - '@tanstack/devtools-ui@0.6.0'
+  - '@tanstack/devtools-vite@0.8.1'
+  - '@tanstack/devtools@0.12.5'
+  - '@tanstack/react-devtools@0.10.8'
+  - '@types/node@26.0.1'
+  - '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-darwin-x64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-linux-arm64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-linux-arm@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-linux-x64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-win32-arm64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview-win32-x64@7.0.0-dev.20260624.1'
+  - '@typescript/native-preview@7.0.0-dev.20260624.1'
 saveExact: true
