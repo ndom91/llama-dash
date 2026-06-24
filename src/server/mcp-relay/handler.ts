@@ -9,7 +9,7 @@ import {
   auditToJson,
   REDACTED_INJECTED_CREDENTIAL,
 } from '../proxy/credential-placeholders.ts'
-import { MAX_PROXY_BODY_BYTES } from '../proxy/body.ts'
+import { MAX_PROXY_BODY_BYTES, type ProxyForwardBody } from '../proxy/body.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
 import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
@@ -199,7 +199,7 @@ async function relayBody(
   request: Request,
   method: string,
 ): Promise<{
-  forwardBody: ReadableStream<Uint8Array> | BodyInit | undefined
+  forwardBody: ProxyForwardBody
   hasBody: boolean
   loggedBody: string | null
 }> {

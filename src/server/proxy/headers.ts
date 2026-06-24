@@ -26,6 +26,10 @@ const SENSITIVE_HEADERS = new Set([
   'set-cookie',
 ])
 
+type HeaderCollection = {
+  forEach(callback: (value: string, key: string) => void): void
+}
+
 export function redactSensitiveHeaders(headers: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {}
   for (const [key, value] of Object.entries(headers)) {
@@ -59,7 +63,7 @@ export function filterRequestHeaders(headers: Headers): Record<string, string> {
   return out
 }
 
-export function filterResponseHeaders(upstream: Headers): Headers {
+export function filterResponseHeaders(upstream: HeaderCollection): Headers {
   const out = new Headers()
   upstream.forEach((value, key) => {
     const lower = key.toLowerCase()
@@ -70,7 +74,7 @@ export function filterResponseHeaders(upstream: Headers): Headers {
   return out
 }
 
-export function headersToRecord(headers: Headers): Record<string, string> {
+export function headersToRecord(headers: HeaderCollection): Record<string, string> {
   const out: Record<string, string> = {}
   headers.forEach((value, key) => {
     if (!HOP_BY_HOP.has(key.toLowerCase())) out[key] = value

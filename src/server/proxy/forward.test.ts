@@ -2,8 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { forwardUpstreamAndLog, writeProxyLog, type ProxyLogInput } from './forward'
 
 const writeRequestLog = vi.hoisted(() => vi.fn())
+const undiciFetch = vi.hoisted(() => vi.fn())
 
 vi.mock('./log.ts', () => ({ writeRequestLog }))
+vi.mock('undici', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('undici')>()
+  return { ...actual, fetch: undiciFetch }
+})
 vi.mock('../admin/settings.ts', () => ({ getPrivacySettings: () => ({ captureResponseBodies: true }) }))
 vi.mock('./headers.ts', () => ({
   filterResponseHeaders: (headers: Headers) => headers,
@@ -57,6 +62,7 @@ function input(overrides: Partial<ProxyLogInput> = {}): ProxyLogInput {
 describe('writeProxyLog', () => {
   beforeEach(() => {
     writeRequestLog.mockClear()
+    undiciFetch.mockClear()
   })
 
   afterEach(() => {
@@ -76,8 +82,7 @@ describe('writeProxyLog', () => {
   })
 
   it('lets fetch compute content length for forwarded request bodies', async () => {
-    const fetchMock = vi.fn(async () => Response.json({ ok: true }))
-    vi.stubGlobal('fetch', fetchMock)
+    undiciFetch.mockResolvedValue(Response.json({ ok: true }))
 
     await forwardUpstreamAndLog({
       upstream: 'http://upstream.test/v1/chat/completions',
@@ -96,7 +101,7 @@ describe('writeProxyLog', () => {
       routing: input().routing,
     })
 
-    expect(fetchMock).toHaveBeenCalledWith(
+    expect(undiciFetch).toHaveBeenCalledWith(
       'http://upstream.test/v1/chat/completions',
       expect.objectContaining({
         headers: { 'content-type': 'application/json' },

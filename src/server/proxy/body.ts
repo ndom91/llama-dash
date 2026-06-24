@@ -18,6 +18,8 @@ export type ProxyBodyTransformResult = {
   mutated: boolean
 }
 
+export type ProxyForwardBody = ReadableStream<Uint8Array> | ArrayBuffer | string | undefined
+
 export async function prepareProxyBody(request: Request, method: string): Promise<ProxyBodySnapshot> {
   const hasBody = method !== 'GET' && method !== 'HEAD'
   const contentType = request.headers.get('content-type') ?? ''
@@ -85,10 +87,7 @@ export function applyProxyBodyTransform(
   )
 }
 
-export function getProxyForwardBody(
-  body: ProxyBodySnapshot,
-  request: Request,
-): ReadableStream<Uint8Array> | BodyInit | undefined {
+export function getProxyForwardBody(body: ProxyBodySnapshot, request: Request): ProxyForwardBody {
   if (!body.hasBody) return undefined
   if (body.isMultipart) return request.body ?? undefined
   return body.bodyText || undefined

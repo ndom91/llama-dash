@@ -9,6 +9,7 @@ import {
   getProxyLoggedBody,
   prepareProxyBody,
   restoreProxyBodyContentLength,
+  type ProxyForwardBody,
   type ProxyBodySnapshot,
 } from './body.ts'
 import { filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
@@ -110,6 +111,6 @@ export function loggedRequestBody(ctx: ProxyContext): string | null {
   return ctx.body ? getProxyLoggedBody(ctx.body) : null
 }
 
-export function forwardBody(ctx: ProxyContext): ReadableStream<Uint8Array> | BodyInit | undefined {
+export function forwardBody(ctx: ProxyContext): ProxyForwardBody {
   return ctx.body ? getProxyForwardBody(ctx.body, ctx.request) : undefined
 }

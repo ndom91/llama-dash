@@ -16,10 +16,15 @@ vi.mock('../admin/settings.ts', () => ({
 const logsMock = vi.hoisted(() => ({
   writeRequestLog: vi.fn(),
 }))
+const undiciFetch = vi.hoisted(() => vi.fn())
 
 vi.mock('./log.ts', () => ({
   writeRequestLog: logsMock.writeRequestLog,
 }))
+vi.mock('undici', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('undici')>()
+  return { ...actual, fetch: undiciFetch }
+})
 
 vi.mock('./rate-limiter.ts', () => ({
   recordTokenUsage: vi.fn(),
@@ -45,11 +50,8 @@ describe('proxy privacy settings', () => {
   it('omits logged response bodies when response body capture is disabled', async () => {
     settingsMock.privacy = { ...settingsMock.privacy, captureResponseBodies: false }
     logsMock.writeRequestLog.mockClear()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        Response.json({ usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 }, text: 'secret' }),
-      ),
+    undiciFetch.mockResolvedValue(
+      Response.json({ usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 }, text: 'secret' }),
     )
 
     const response = await forwardUpstreamAndLog({
@@ -72,6 +74,5 @@ describe('proxy privacy settings', () => {
     expect(response).toBeInstanceOf(Response)
     await (response as Response).text()
     expect(logsMock.writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ responseBody: null }))
-    vi.unstubAllGlobals()
   })
 })

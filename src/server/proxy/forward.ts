@@ -1,7 +1,8 @@
-import { Agent } from 'undici'
+import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from 'undici'
 import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
+import type { ProxyForwardBody } from './body.ts'
 import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -144,7 +145,7 @@ export async function forwardUpstreamAndLog(input: {
   upstream: string
   method: string
   headers: Record<string, string>
-  body: ReadableStream<Uint8Array> | BodyInit | undefined
+  body: ProxyForwardBody
   hasBody: boolean
   startedAt: number
   endpoint: string
@@ -158,19 +159,19 @@ export async function forwardUpstreamAndLog(input: {
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
 }): Promise<Response | { upstreamError: string }> {
-  let upstreamResponse: Response
+  let upstreamResponse: Awaited<ReturnType<typeof undiciFetch>>
   try {
     // `duplex` (streaming request bodies) and `dispatcher` (custom undici
     // timeouts) are not in the standard RequestInit type.
-    const init: RequestInit & { duplex?: 'half'; dispatcher?: Agent } = {
+    const init: UndiciRequestInit = {
       method: input.method,
       headers: stripContentLength(input.headers),
-      body: input.body,
+      body: input.body as UndiciRequestInit['body'],
       duplex: input.hasBody ? 'half' : undefined,
       dispatcher: getProxyDispatcher(),
       redirect: 'manual',
     }
-    upstreamResponse = await fetch(input.upstream, init)
+    upstreamResponse = await undiciFetch(input.upstream, init)
   } catch (err) {
     return { upstreamError: formatUpstreamError(err) }
   }
