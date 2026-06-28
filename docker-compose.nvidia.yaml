@@ -20,8 +20,13 @@ services:
     build: .
     ports:
       - '3000:3000'
+    env_file:
+      # User secrets (BETTER_AUTH_SECRET, CREDENTIAL_ENCRYPTION_KEY, BETTER_AUTH_URL, ...).
+      # Required: copy .env.example to .env first or the stack won't start.
+      - .env
     environment:
-      INFERENCE_BACKEND: llama-swap
+      # Container-topology overrides — must point at the compose network / mounted
+      # volume, so they stay here and override any value coming from .env.
       INFERENCE_BASE_URL: http://llama-swap:8080
       INFERENCE_CONFIG_FILE: /config/config.yaml
       DATABASE_PATH: /data/dash.db

@@ -96,10 +96,18 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 Choose the compose file that matches your GPU vendor. Both setups use `./config/config.yaml` for llama-swap config, `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
 
+First create your env and config files, then set the required secrets:
+
+```bash
+cp .env.example .env       # then set BETTER_AUTH_SECRET and CREDENTIAL_ENCRYPTION_KEY
+cp config/config.example.yaml config/config.yaml   # edit models
+```
+
+The compose files load `.env` via `env_file` and won't start without it. Generate a session secret with `openssl rand -base64 33`. See the [Environment](#️-environment) table for all values.
+
 ### AMD / ROCm
 
 ```bash
-cp config/config.example.yaml config/config.yaml  # edit models
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
@@ -108,7 +116,6 @@ docker compose -f docker-compose.amd.yaml up -d
 ### NVIDIA / CUDA
 
 ```bash
-cp config/config.example.yaml config/config.yaml  # edit models
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
