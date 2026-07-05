@@ -111,15 +111,21 @@ export function TokenInput({
   values: string[]
   onAdd: (value: string) => void
   onRemove: (value: string) => void
-  suggestions?: string[]
+  suggestions?: Array<string | { value: string; label: string }>
   renderValue?: (value: string) => string
 }) {
   const [draft, setDraft] = useState('')
-  const availableSuggestions = suggestions.filter((item) => !values.includes(item))
+  const normalizedSuggestions = suggestions.map((item) =>
+    typeof item === 'string' ? { value: item, label: item } : item,
+  )
+  const availableSuggestions = normalizedSuggestions.filter((item) => !values.includes(item.value))
+  const labelToValue = new Map(normalizedSuggestions.map((item) => [item.label, item.value]))
 
   const submit = () => {
-    const next = draft.trim()
-    if (!next || values.includes(next)) return
+    const raw = draft.trim()
+    if (!raw) return
+    const next = labelToValue.get(raw) ?? raw
+    if (values.includes(next)) return
     onAdd(next)
     setDraft('')
   }
@@ -157,7 +163,7 @@ export function TokenInput({
         {availableSuggestions.length > 0 ? (
           <datalist id={`${label}-suggestions`}>
             {availableSuggestions.map((item) => (
-              <option key={item} value={item} />
+              <option key={item.value} value={item.label} />
             ))}
           </datalist>
         ) : null}

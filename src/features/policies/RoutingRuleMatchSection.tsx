@@ -48,10 +48,10 @@ export function RoutingRuleMatchSection({
         ) : (
           <TokenInput
             label="API key"
-            helper="matches by stored key id, never raw token"
+            helper="matches by stored key, never raw token"
             placeholder="add key…"
             values={draft.match.apiKeyIds}
-            suggestions={keys.map((key) => key.id)}
+            suggestions={keys.map((key) => ({ value: key.id, label: keyMap.get(key.id) ?? key.id }))}
             renderValue={(value) => `${keyMap.get(value) ?? value}`}
             onAdd={(value) => onChange(addMatchValue(draft, 'apiKeyIds', value))}
             onRemove={(value) => onChange(removeMatchValue(draft, 'apiKeyIds', value))}
