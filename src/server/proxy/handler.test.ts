@@ -71,6 +71,31 @@ vi.mock('./rate-limiter.ts', () => ({
   recordTokenUsage: vi.fn(),
 }))
 
+// The real forward uses undici's `fetch`, which cannot be replaced via
+// vi.stubGlobal('fetch'). Mock the forward layer so routing/rewrite decisions
+// are asserted from the arguments the handler passes downstream.
+const forwardMock = vi.hoisted(() => ({
+  forwardUpstreamAndLog: vi.fn(async () => Response.json({ ok: true })),
+}))
+
+vi.mock('./forward.ts', async () => {
+  const actual = await vi.importActual<typeof import('./forward.ts')>('./forward.ts')
+  return {
+    ...actual,
+    forwardUpstreamAndLog: forwardMock.forwardUpstreamAndLog,
+    writeProxyLog: vi.fn(),
+  }
+})
+
+import { forwardUpstreamAndLog } from './forward.ts'
+
+type ForwardInput = { upstream: string; headers: Record<string, string>; body: unknown }
+
+function lastForward(): ForwardInput {
+  const calls = vi.mocked(forwardUpstreamAndLog).mock.calls
+  return calls[calls.length - 1][0] as unknown as ForwardInput
+}
+
 function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
   return {
     id: 'rrl_test',
@@ -122,12 +147,8 @@ describe('handleProxyRequest auth/body ordering', () => {
     apiKeysMock.hasAnyUserKeys.mockReturnValue(true)
     apiKeysMock.findKeyByHash.mockReturnValue(undefined)
     logsMock.writeRequestLog.mockReset()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        Response.json({ id: 'ok', usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }),
-      ),
-    )
+    forwardMock.forwardUpstreamAndLog.mockClear()
+    forwardMock.forwardUpstreamAndLog.mockResolvedValue(Response.json({ ok: true }))
   })
 
   it('does not read the request body before rejecting invalid key-auth requests', async () => {
@@ -140,7 +161,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     const response = await handleProxyRequest(request)
 
     expect(response.status).toBe(401)
-    expect(fetch).not.toHaveBeenCalled()
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
     await expect(request.text()).resolves.toBe('{"model":"llama3"}')
   })
 
@@ -164,10 +185,9 @@ describe('handleProxyRequest auth/body ordering', () => {
     const response = await handleProxyRequest(request)
 
     expect(response.status).toBe(200)
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.openai.com/v1/messages',
-      expect.objectContaining({ headers: expect.objectContaining({ authorization: 'Bearer upstream-token' }) }),
-    )
+    const forwarded = lastForward()
+    expect(forwarded.upstream).toBe('https://api.openai.com/v1/messages')
+    expect(forwarded.headers.authorization).toBe('Bearer upstream-token')
   })
 
   it('reads body before auth when pre-auth passthrough rules need body fields', async () => {
@@ -183,7 +203,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     const response = await handleProxyRequest(request)
 
     expect(response.status).toBe(200)
-    expect(fetch).toHaveBeenCalledWith('https://api.openai.com/v1/messages', expect.any(Object))
+    expect(lastForward().upstream).toBe('https://api.openai.com/v1/messages')
   })
 
   it('reads the body after valid key auth when no pre-auth body fields are needed', async () => {
@@ -198,7 +218,92 @@ describe('handleProxyRequest auth/body ordering', () => {
     const response = await handleProxyRequest(request)
 
     expect(response.status).toBe(200)
-    expect(fetch).toHaveBeenCalledWith('http://llama-swap.test/v1/chat/completions', expect.any(Object))
+    expect(lastForward().upstream).toBe('http://llama-swap.test/v1/chat/completions')
+  })
+
+  it('honors rule order: a require_key rule above a passthrough rule wins when its key matches', async () => {
+    const rawKey = 'sk-opencode'
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({
+        id: 'rrl_local',
+        order: 1,
+        authMode: 'require_key',
+        preserveAuthorization: false,
+        action: { type: 'rewrite_model', model: 'qwen3.6-35b' },
+        target: { type: 'llama_swap' },
+        match: {
+          ...makeRule().match,
+          requestedModels: ['claude-haiku-4-5-20251001'],
+          apiKeyIds: ['key_test'],
+        },
+      }),
+      makeRule({
+        id: 'rrl_anthropic',
+        order: 2,
+        authMode: 'passthrough',
+        preserveAuthorization: true,
+        action: { type: 'continue' },
+        target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1' },
+        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+      }),
+    ])
+    const request = new Request('http://dash.test/v1/messages', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${rawKey}` },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(200)
+    const forwarded = lastForward()
+    expect(forwarded.upstream).toBe('http://llama-swap.test/v1/messages')
+    expect(JSON.parse(forwarded.body as string).model).toBe('qwen3.6-35b')
+    // require_key routing strips the client Authorization before forwarding.
+    expect(forwarded.headers.authorization).toBeUndefined()
+  })
+
+  it('routes an OAuth passthrough request to Anthropic when no llama-dash key matches the earlier rule', async () => {
+    // Same rule set as above, but the caller presents a non-llama-dash bearer
+    // (Claude Code OAuth). The key-scoped rewrite rule cannot match, so the
+    // request passes through to Anthropic with the client token preserved.
+    apiKeysMock.findKeyByHash.mockReturnValue(undefined)
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({
+        id: 'rrl_local',
+        order: 1,
+        authMode: 'require_key',
+        action: { type: 'rewrite_model', model: 'qwen3.6-35b' },
+        target: { type: 'llama_swap' },
+        match: {
+          ...makeRule().match,
+          requestedModels: ['claude-haiku-4-5-20251001'],
+          apiKeyIds: ['key_test'],
+        },
+      }),
+      makeRule({
+        id: 'rrl_anthropic',
+        order: 2,
+        authMode: 'passthrough',
+        preserveAuthorization: true,
+        action: { type: 'continue' },
+        target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1' },
+        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+      }),
+    ])
+    const request = new Request('http://dash.test/v1/messages', {
+      method: 'POST',
+      headers: { authorization: 'Bearer oauth-token' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(200)
+    const forwarded = lastForward()
+    expect(forwarded.upstream).toBe('https://api.anthropic.com/v1/messages')
+    expect(forwarded.headers.authorization).toBe('Bearer oauth-token')
   })
 
   it('requires key auth before injecting stored credentials for passthrough rules', async () => {
@@ -224,6 +329,6 @@ describe('handleProxyRequest auth/body ordering', () => {
         type: 'credential_key_required',
       },
     })
-    expect(fetch).not.toHaveBeenCalled()
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 })

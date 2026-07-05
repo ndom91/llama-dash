@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CreateRoutingRuleBodySchema, type RoutingRule } from '../../lib/schemas/routing-rule'
 import * as v from 'valibot'
-import {
-  evaluatePreAuthRoutingRules,
-  evaluateRoutingRules,
-  hasBodyDependentPreAuthRoutingRule,
-  matchesRoutingRule,
-  type RoutingContext,
-} from './routing-rules'
+import { evaluateRoutingRules, matchesRoutingRule, type RoutingContext, routingNeedsBody } from './routing-rules'
 
 function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
   return {
@@ -148,79 +142,56 @@ describe('evaluateRoutingRules', () => {
   })
 })
 
-describe('evaluatePreAuthRoutingRules', () => {
-  it('only considers passthrough rules without API-key matchers', () => {
-    const requireKeyRule = makeRule({
-      id: 'rrl_require_key',
-      authMode: 'require_key',
-      action: { type: 'continue' },
-    })
-    const keyScopedPassthroughRule = makeRule({
-      id: 'rrl_key_passthrough',
-      authMode: 'passthrough',
-      preserveAuthorization: true,
-      match: { ...makeRule().match, apiKeyIds: ['key_homeassistant'] },
-      action: { type: 'continue' },
-    })
-    const publicPassthroughRule = makeRule({
-      id: 'rrl_public_passthrough',
-      authMode: 'passthrough',
-      preserveAuthorization: true,
-      action: { type: 'continue' },
-    })
-
-    const decision = evaluatePreAuthRoutingRules(
-      [requireKeyRule, keyScopedPassthroughRule, publicPassthroughRule],
-      makeContext(),
-    )
-
-    expect(decision.matchedRule?.id).toBe('rrl_public_passthrough')
-    expect(decision.authMode).toBe('passthrough')
-  })
-
-  it('does not consider credential-bearing passthrough rules before key auth', () => {
-    const credentialRule = makeRule({
-      id: 'rrl_credential_passthrough',
-      authMode: 'passthrough',
-      action: { type: 'continue' },
-      target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1', credentialId: 'ucr_anthropic' },
-    })
-    const publicRule = makeRule({
-      id: 'rrl_public_passthrough',
-      authMode: 'passthrough',
-      action: { type: 'continue' },
-    })
-
-    const decision = evaluatePreAuthRoutingRules([credentialRule, publicRule], makeContext())
-
-    expect(decision.matchedRule?.id).toBe('rrl_public_passthrough')
-  })
-
-  it('detects whether pre-auth routing needs body fields', () => {
+describe('routingNeedsBody', () => {
+  it('does not need the body for an endpoint-only rule', () => {
     const endpointOnly = makeRule({
       id: 'rrl_endpoint_only',
-      authMode: 'passthrough',
-      action: { type: 'continue' },
       match: { ...makeRule().match, endpoints: ['/v1/messages'] },
     })
+    expect(routingNeedsBody([endpointOnly], '/v1/messages', null, true)).toBe(false)
+  })
+
+  it('needs the body for a rule constraining on model or stream that matches endpoint/key', () => {
     const modelScoped = makeRule({
       id: 'rrl_model_scoped',
-      authMode: 'passthrough',
-      action: { type: 'continue' },
       match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] },
     })
     const streamScoped = makeRule({
       id: 'rrl_stream_scoped',
-      authMode: 'passthrough',
-      action: { type: 'continue' },
       match: { ...makeRule().match, stream: 'stream' },
     })
-
-    expect(hasBodyDependentPreAuthRoutingRule([endpointOnly])).toBe(false)
-    expect(hasBodyDependentPreAuthRoutingRule([modelScoped])).toBe(true)
-    expect(hasBodyDependentPreAuthRoutingRule([streamScoped])).toBe(true)
+    expect(routingNeedsBody([modelScoped], '/v1/messages', null, true)).toBe(true)
+    expect(routingNeedsBody([streamScoped], '/v1/messages', null, true)).toBe(true)
   })
 
+  it('ignores body-scoped rules whose endpoint or key matcher cannot match this request', () => {
+    const keyScoped = makeRule({
+      id: 'rrl_key_scoped',
+      match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'], apiKeyIds: ['key_opencode'] },
+    })
+    // Different resolved key -> the rule can never match, so no body read.
+    expect(routingNeedsBody([keyScoped], '/v1/messages', 'key_other', true)).toBe(false)
+    // Matching key -> body read needed.
+    expect(routingNeedsBody([keyScoped], '/v1/messages', 'key_opencode', true)).toBe(true)
+  })
+
+  it('excludes require_key rules when require-key body reads are disallowed', () => {
+    const requireKeyModel = makeRule({
+      id: 'rrl_require_key_model',
+      authMode: 'require_key',
+      match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] },
+    })
+    const passthroughModel = makeRule({
+      id: 'rrl_passthrough_model',
+      authMode: 'passthrough',
+      match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] },
+    })
+    expect(routingNeedsBody([requireKeyModel], '/v1/messages', null, false)).toBe(false)
+    expect(routingNeedsBody([passthroughModel], '/v1/messages', null, false)).toBe(true)
+  })
+})
+
+describe('direct passthrough rule schema safety', () => {
   it('rejects broad direct passthrough rules at the schema boundary', () => {
     const result = v.safeParse(CreateRoutingRuleBodySchema, {
       name: 'Unsafe passthrough',

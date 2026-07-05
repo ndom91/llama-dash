@@ -209,9 +209,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
     injected values are redacted in request logs and recorded as credential
     injection metadata with non-secret credential name/slug labels. Stored
    credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
-   Passthrough routing rules can use stored credentials, but credential-bearing
-   rules are never evaluated before llama-dash key auth; callers must present a
-   valid llama-dash API key before any stored credential is injected.
+   Passthrough routing rules can use stored credentials, but a stored credential
+   is never injected without a valid llama-dash API key: the proxy rejects a
+   credential-bearing matched rule with `401 credential_key_required` when no key
+   resolved, before any secret is applied.
    MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
    and the key must explicitly allow that relay so the client's `Authorization`
    header can be owned by the upstream provider credential injection.
@@ -224,12 +225,18 @@ paths (proxy will grow middleware; admin will grow CRUD).
    allow-list check → routing rule evaluation → alias resolution → system
    prompt injection → request size limits. Routing rules are ordered,
    first-match-wins, and currently support `continue`, `rewrite_model`, `reject`, and
-   per-rule auth mode (`require_key` or `passthrough`). Pre-auth passthrough
-   routing only evaluates passthrough rules without API-key matchers. Normal
-   key-auth requests authenticate before body parsing unless an enabled
-   pre-auth passthrough rule needs body-derived fields (`requestedModels`,
-   `stream`, or estimated prompt token bounds). Endpoint-only passthrough rules
-   can match before auth without consuming the request body.
+   per-rule auth mode (`require_key` or `passthrough`). Routing is resolved in a
+   single ordered pass using an optimistically-resolved API key (the bearer token
+   is looked up but a missing/invalid token is not rejected up front); the matched
+   rule's auth mode then decides whether a valid key is required. This keeps
+   `require_key` rules ordered above `passthrough` rules winning as the UI
+   promises — see [`docs/2026_07_05_single_pass_routing_auth.md`](./docs/2026_07_05_single_pass_routing_auth.md).
+   The body is read before routing only when a rule that could still match this
+   request (by endpoint + resolved key) constrains on a body-derived field
+   (`requestedModels`, `stream`, or estimated prompt token bounds); `require_key`
+   rules only trigger such a pre-enforcement read once the caller is authenticated
+   (or the proxy runs open), so unauthenticated requests are still rejected without
+   buffering a body.
    In-memory caches for aliases and settings, invalidated on admin writes.
    System-prompt injection branches
    by endpoint: `/v1/chat/completions` prepends a `system` message to
@@ -438,10 +445,18 @@ sort lexicographically by creation time).
   ad-hoc body variables through `handler.ts`. Use the body snapshot helpers for
   parsed routing input, transformed JSON serialization, multipart model updates,
   forward body selection, logged body selection, and `content-length` updates.
-- **Authenticate before body parsing when safe.** `handler.ts` should only read
-  the body before auth when pre-auth passthrough routing can require body fields.
-  Keep `preAuthRoutingNeedsBody()` and `hasBodyDependentPreAuthRoutingRule()` in
-  sync with any new routing match fields.
+- **Resolve routing once, in order.** `handler.ts` optimistically resolves the
+  API key (header-only, via `resolveApiKey()`), resolves routing in a single
+  ordered pass (`resolveProxyRouting()`), then enforces auth for the matched
+  rule's auth mode (`enforceAuth()`). Do not reintroduce a separate pre-auth
+  routing pass — it breaks "first match wins" for a `require_key` rule ordered
+  above a `passthrough` rule. `applyTransforms()` must apply the decision it is
+  given, not re-evaluate rules.
+- **Don't buffer a body just to reject it.** Only read the body before auth
+  enforcement when `proxyRoutingNeedsBody()` says a still-matchable rule needs a
+  body-derived field. `require_key` rules only qualify once a valid key is
+  resolved (or the proxy runs open); keep `routingNeedsBody()` in sync with any
+  new routing match fields.
 - **Streaming correctness is non-negotiable.** SSE must pass through
   without buffering (`res.write(value)` as each chunk arrives, no gather-
   then-flush). Token counting happens on a `tee`d scan, not by reading the

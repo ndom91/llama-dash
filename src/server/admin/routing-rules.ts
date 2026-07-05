@@ -240,28 +240,9 @@ export function evaluateRoutingRules(rules: RoutingRule[], ctx: RoutingContext):
   }
 }
 
-export function evaluatePreAuthRoutingRules(
-  rules: RoutingRule[],
-  ctx: Omit<RoutingContext, 'apiKeyId'>,
-): RoutingDecision {
-  return evaluateRoutingRules(rules.filter(isPreAuthRoutingCandidate), { ...ctx, apiKeyId: null })
-}
-
-export function hasBodyDependentPreAuthRoutingRule(rules: RoutingRule[]): boolean {
-  return rules.some((rule) => isPreAuthRoutingCandidate(rule) && needsBodyForPreAuthRouting(rule))
-}
-
-function isPreAuthRoutingCandidate(rule: RoutingRule): boolean {
-  return rule.authMode === 'passthrough' && rule.match.apiKeyIds.length === 0 && !usesStoredCredentials(rule)
-}
-
-function usesStoredCredentials(rule: RoutingRule): boolean {
-  return (
-    (rule.target.type === 'direct' && Boolean(rule.target.credentialId)) || (rule.credentialBindings ?? []).length > 0
-  )
-}
-
-function needsBodyForPreAuthRouting(rule: RoutingRule): boolean {
+// A rule constrains on a body-derived field (model / stream / token estimate)
+// that can only be known after the request body has been read.
+function ruleHasBodyMatchers(rule: RoutingRule): boolean {
   return (
     (ROUTING_MATCH_FIELD_METADATA.requestedModels.requiresBodyForPreAuth && rule.match.requestedModels.length > 0) ||
     (ROUTING_MATCH_FIELD_METADATA.stream.requiresBodyForPreAuth && rule.match.stream !== 'any') ||
@@ -269,5 +250,35 @@ function needsBodyForPreAuthRouting(rule: RoutingRule): boolean {
       rule.match.minEstimatedPromptTokens !== '') ||
     (ROUTING_MATCH_FIELD_METADATA.maxEstimatedPromptTokens.requiresBodyForPreAuth &&
       rule.match.maxEstimatedPromptTokens !== '')
+  )
+}
+
+// Match only the fields that are available without the request body: endpoint
+// and resolved API-key id. Used purely to decide whether a body read is needed
+// before routing can be finalized.
+function matchesNonBodyMatchers(rule: RoutingRule, endpoint: string, apiKeyId: string | null): boolean {
+  if (!rule.enabled) return false
+  if (!matchesStringList(rule.match.endpoints, endpoint)) return false
+  if (!matchesStringList(rule.match.apiKeyIds, apiKeyId)) return false
+  return true
+}
+
+// The request body is only worth reading before routing when some rule that
+// could still match this request (by endpoint + resolved key) also constrains on
+// a body-derived field. `includeRequireKeyRules` gates whether require_key rules
+// count: unauthenticated callers should not buffer a body just to be rejected,
+// so only passthrough rules (which never require a key) trigger a body read for
+// them. This preserves "authenticate before body parsing when safe".
+export function routingNeedsBody(
+  rules: RoutingRule[],
+  endpoint: string,
+  apiKeyId: string | null,
+  includeRequireKeyRules: boolean,
+): boolean {
+  return rules.some(
+    (rule) =>
+      ruleHasBodyMatchers(rule) &&
+      matchesNonBodyMatchers(rule, endpoint, apiKeyId) &&
+      (includeRequireKeyRules || rule.authMode === 'passthrough'),
   )
 }

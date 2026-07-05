@@ -214,7 +214,8 @@ are redacted from request logs. The request detail view records non-secret
 credential name/slug metadata for audit, and the credential vault warns before
 deleting credentials still referenced by routing rules or MCP relays.
 Credential-bearing passthrough rules still require a valid llama-dash API key;
-they are not evaluated as pre-auth public passthrough rules.
+the proxy rejects them with `401` when no key resolved, before injecting any
+stored secret.
 
 For remote MCP servers, create an MCP relay in Policies instead of pointing
 Claude Code directly at the provider. Configure Claude with the relay URL and a

@@ -1,4 +1,4 @@
-import { authenticateRequest } from './auth.ts'
+import { enforceAuth, resolveApiKey } from './auth.ts'
 import {
   applyTransformResultToContext,
   createProxyContext,
@@ -7,14 +7,14 @@ import {
   forwardBody,
   loggedRequestBody,
   loggedRequestHeaders,
-  prepareBodyBeforeAuthIfNeeded,
+  prepareBodyForRoutingIfNeeded,
   setAuthContext,
   type ProxyContext,
 } from './context.ts'
 import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
-import { shouldPreserveAuthorization } from './routing.ts'
-import { applyTransforms } from './transforms.ts'
+import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
+import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
 import { config } from '../config.ts'
 
@@ -28,13 +28,28 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     return rejectBodyTooLarge(ctx, new Error('Request body exceeds 20 MB hard limit'))
   }
 
+  // Optimistically resolve the API key from the header (no body read). A valid
+  // key is only attached; enforcement happens after routing is decided.
+  const keyResolution = resolveApiKey(request)
+  const resolvedKeyId = keyResolution.status === 'valid' ? keyResolution.keyRow.id : null
+
   try {
-    await prepareBodyBeforeAuthIfNeeded(ctx)
+    await prepareBodyForRoutingIfNeeded(ctx, resolvedKeyId)
   } catch (err) {
     return rejectBodyTooLarge(ctx, err)
   }
 
-  const authResult = authenticateRequest(request, ctx.endpoint, ctx.body?.parsedBody ?? null)
+  // Single ordered, first-match-wins routing pass with the resolved key. The
+  // matched rule's auth mode then governs whether a valid key is required.
+  const routingDecision = resolveProxyRouting(
+    ctx.endpoint,
+    ctx.body?.parsedBody ?? null,
+    resolvedKeyId,
+    request.headers,
+  )
+  ctx.routingOutcome = routingOutcomeFromDecision(routingDecision, ctx.body?.reqModel ?? null)
+
+  const authResult = enforceAuth(keyResolution, routingDecision.authMode)
   if (!authResult.ok) {
     const headers = new Headers({ 'content-type': 'application/json' })
     if (authResult.retryAfterMs) {
@@ -77,8 +92,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         keyRow: ctx.keyRow,
         endpoint: ctx.endpoint,
         method: ctx.method,
-        skipRouting: false,
-        headers: request.headers,
+        routingDecision,
       })
       ctx.routingOutcome = transformResult.routing
       if (!transformResult.ok) {
@@ -106,7 +120,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
   }
 
-  finalizeRoutingAndBody(ctx, authResult.preAuthRouting)
+  finalizeRoutingAndBody(ctx)
 
   if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
     delete ctx.reqHeaders.authorization

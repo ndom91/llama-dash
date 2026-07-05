@@ -13,7 +13,7 @@ import {
   type ProxyBodySnapshot,
 } from './body.ts'
 import { filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
-import { preAuthRoutingNeedsBody, preferPostAuthRouting } from './routing.ts'
+import { proxyRoutingNeedsBody } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
 import { selectUpstream } from './upstream.ts'
@@ -64,8 +64,8 @@ export function createProxyContext(request: Request): ProxyContext {
   }
 }
 
-export async function prepareBodyBeforeAuthIfNeeded(ctx: ProxyContext) {
-  if (preAuthRoutingNeedsBody(ctx.method)) {
+export async function prepareBodyForRoutingIfNeeded(ctx: ProxyContext, apiKeyId: string | null) {
+  if (proxyRoutingNeedsBody(ctx.method, ctx.endpoint, apiKeyId)) {
     ctx.body = await prepareProxyBody(ctx.request, ctx.method)
   }
 }
@@ -74,13 +74,9 @@ export async function ensureProxyBody(ctx: ProxyContext) {
   ctx.body ??= await prepareProxyBody(ctx.request, ctx.method)
 }
 
-export function setAuthContext(
-  ctx: ProxyContext,
-  auth: { keyId: string | null; keyRow: ApiKey | null; preAuthRouting: RoutingOutcome },
-) {
+export function setAuthContext(ctx: ProxyContext, auth: { keyId: string | null; keyRow: ApiKey | null }) {
   ctx.keyId = auth.keyId
   ctx.keyRow = auth.keyRow
-  ctx.routingOutcome = auth.preAuthRouting
 }
 
 export function applyTransformResultToContext(ctx: ProxyContext, transform: Extract<TransformResult, { ok: true }>) {
@@ -88,13 +84,12 @@ export function applyTransformResultToContext(ctx: ProxyContext, transform: Extr
   ctx.body = applyProxyBodyTransform(ctx.body, transform)
 }
 
-export function finalizeRoutingAndBody(ctx: ProxyContext, preAuthRouting: RoutingOutcome) {
+export function finalizeRoutingAndBody(ctx: ProxyContext) {
   if (!ctx.body) return
   if (!ctx.body.hasBody) {
     ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
     return
   }
-  ctx.routingOutcome = preferPostAuthRouting(preAuthRouting, ctx.routingOutcome)
   ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
   applyProxyBodyHeaders(ctx.body, ctx.reqHeaders)
   restoreProxyBodyContentLength(ctx.body, ctx.request, ctx.reqHeaders)

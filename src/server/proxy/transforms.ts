@@ -1,16 +1,17 @@
 import { resolveAlias } from '../admin/model-aliases.ts'
-import { evaluateRoutingRules, listRoutingRules } from '../admin/routing-rules.ts'
+import type { RoutingDecision } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { CredentialBinding } from '../../lib/schemas/routing-rule.ts'
-import { estimatePromptTokens, getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
+import { getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
 
 export type TransformContext = {
   keyRow: ApiKey | null
   endpoint: string
   method: string
-  skipRouting: boolean
-  headers?: Headers
+  // Routing is resolved once, before auth enforcement, and passed in here so the
+  // transform pipeline applies the same decision that gated the request.
+  routingDecision: RoutingDecision
 }
 
 export type RoutingOutcome = {
@@ -39,7 +40,12 @@ export type TransformResult = TransformOk | TransformErr
 
 export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx: TransformContext): TransformResult {
   if (!parsedBody) {
-    return { ok: true, body: parsedBody, mutated: false, routing: emptyRoutingOutcome() }
+    return {
+      ok: true,
+      body: parsedBody,
+      mutated: false,
+      routing: routingOutcomeFromDecision(ctx.routingDecision, null),
+    }
   }
 
   let mutated = false
@@ -48,23 +54,7 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
   const allowErrBeforeRouting = checkModelAllowed(ctx.keyRow, parsedBody, emptyRoutingOutcome())
   if (allowErrBeforeRouting) return allowErrBeforeRouting
 
-  const routingDecision = ctx.skipRouting
-    ? {
-        matchedRule: null,
-        action: null,
-        target: { type: 'llama_swap' as const },
-        authMode: 'require_key' as const,
-        preserveAuthorization: false as const,
-        credentialBindings: [] as CredentialBinding[],
-      }
-    : evaluateRoutingRules(listRoutingRules(), {
-        endpoint: ctx.endpoint,
-        requestedModel: typeof parsedBody.model === 'string' ? parsedBody.model : null,
-        apiKeyId: ctx.keyRow?.id ?? null,
-        stream: parsedBody.stream === true,
-        estimatedPromptTokens: estimatePromptTokens(parsedBody),
-        headers: ctx.headers,
-      })
+  const routingDecision = ctx.routingDecision
   const routing = routingOutcomeFromDecision(
     routingDecision,
     typeof parsedBody.model === 'string' ? parsedBody.model : null,
@@ -137,10 +127,7 @@ export function emptyRoutingOutcome(): RoutingOutcome {
   }
 }
 
-export function routingOutcomeFromDecision(
-  decision: ReturnType<typeof evaluateRoutingRules>,
-  requestedModel: string | null,
-): RoutingOutcome {
+export function routingOutcomeFromDecision(decision: RoutingDecision, requestedModel: string | null): RoutingOutcome {
   if (!decision.matchedRule) return emptyRoutingOutcome()
   return {
     ruleId: decision.matchedRule.id,

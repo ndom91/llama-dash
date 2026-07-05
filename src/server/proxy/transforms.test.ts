@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { RoutingDecision } from '../admin/routing-rules.ts'
+import type { RoutingRule } from '../../lib/schemas/routing-rule.ts'
 
 vi.mock('../admin/model-aliases.ts', () => ({
   resolveAlias: (model: string) => model,
@@ -8,58 +10,74 @@ vi.mock('../admin/settings.ts', () => ({
   getRequestLimits: () => ({ maxMessages: null, maxEstimatedTokens: null }),
 }))
 
-vi.mock('../admin/routing-rules.ts', () => ({
-  listRoutingRules: () => [],
-  evaluateRoutingRules: vi.fn(() => ({
-    matchedRule: null,
-    action: null,
+import { applyTransforms } from './transforms.ts'
+
+function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
+  return {
+    id: 'rrl_test',
+    name: 'Test rule',
+    enabled: true,
+    order: 1,
+    match: {
+      endpoints: [],
+      requestedModels: [],
+      apiKeyIds: [],
+      stream: 'any',
+      minEstimatedPromptTokens: '',
+      maxEstimatedPromptTokens: '',
+    },
+    action: { type: 'continue' },
     target: { type: 'llama_swap' },
     authMode: 'require_key',
     preserveAuthorization: false,
-  })),
-}))
+    credentialBindings: [],
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+    ...overrides,
+  }
+}
 
-import { evaluateRoutingRules } from '../admin/routing-rules.ts'
-import { applyTransforms } from './transforms.ts'
+const noMatchDecision: RoutingDecision = {
+  matchedRule: null,
+  action: null,
+  target: { type: 'llama_swap' },
+  authMode: 'require_key',
+  preserveAuthorization: false,
+  credentialBindings: [],
+}
 
 describe('applyTransforms', () => {
-  it('skips routing evaluation when skipRouting is true', () => {
-    const body = { model: 'gpt-4', stream: true }
-    applyTransforms(body, { keyRow: null, endpoint: '/v1/messages', method: 'POST', skipRouting: true })
-    expect(evaluateRoutingRules).not.toHaveBeenCalled()
+  it('applies the provided routing decision without re-evaluating rules', () => {
+    const result = applyTransforms(
+      { model: 'gpt-4', stream: true },
+      { keyRow: null, endpoint: '/v1/messages', method: 'POST', routingDecision: noMatchDecision },
+    )
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.mutated).toBe(false)
+      expect(result.body?.model).toBe('gpt-4')
+      expect(result.routing.ruleName).toBeNull()
+    }
   })
 
   it('applies rewrite_model actions to the parsed body', () => {
-    vi.mocked(evaluateRoutingRules).mockReturnValueOnce({
-      matchedRule: {
-        id: 'rrl_rewrite',
-        name: 'Rewrite rule',
-        enabled: true,
-        order: 1,
-        match: {
-          endpoints: [],
-          requestedModels: [],
-          apiKeyIds: [],
-          stream: 'any',
-          minEstimatedPromptTokens: '',
-          maxEstimatedPromptTokens: '',
-        },
-        action: { type: 'rewrite_model', model: 'qwen2.5-32b-instruct' },
-        target: { type: 'llama_swap' },
-        authMode: 'require_key',
-        preserveAuthorization: false,
-        createdAt: new Date(0).toISOString(),
-        updatedAt: new Date(0).toISOString(),
-      },
+    const rule = makeRule({
+      id: 'rrl_rewrite',
+      name: 'Rewrite rule',
+      action: { type: 'rewrite_model', model: 'qwen2.5-32b-instruct' },
+    })
+    const decision: RoutingDecision = {
+      matchedRule: rule,
       action: { type: 'rewrite_model', model: 'qwen2.5-32b-instruct' },
       target: { type: 'llama_swap' },
       authMode: 'require_key',
       preserveAuthorization: false,
-    })
+      credentialBindings: [],
+    }
 
     const result = applyTransforms(
       { model: 'gpt-4', stream: true },
-      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', skipRouting: false },
+      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', routingDecision: decision },
     )
 
     expect(result.ok).toBe(true)
@@ -73,36 +91,23 @@ describe('applyTransforms', () => {
   })
 
   it('preserves routing metadata on routing reject', () => {
-    vi.mocked(evaluateRoutingRules).mockReturnValueOnce({
-      matchedRule: {
-        id: 'rrl_reject',
-        name: 'Reject rule',
-        enabled: true,
-        order: 1,
-        match: {
-          endpoints: [],
-          requestedModels: [],
-          apiKeyIds: [],
-          stream: 'any',
-          minEstimatedPromptTokens: '',
-          maxEstimatedPromptTokens: '',
-        },
-        action: { type: 'reject', reason: 'Blocked by policy' },
-        target: { type: 'llama_swap' },
-        authMode: 'require_key',
-        preserveAuthorization: false,
-        createdAt: new Date(0).toISOString(),
-        updatedAt: new Date(0).toISOString(),
-      },
+    const rule = makeRule({
+      id: 'rrl_reject',
+      name: 'Reject rule',
+      action: { type: 'reject', reason: 'Blocked by policy' },
+    })
+    const decision: RoutingDecision = {
+      matchedRule: rule,
       action: { type: 'reject', reason: 'Blocked by policy' },
       target: { type: 'llama_swap' },
       authMode: 'require_key',
       preserveAuthorization: false,
-    })
+      credentialBindings: [],
+    }
 
     const result = applyTransforms(
       { model: 'gpt-4', stream: true },
-      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', skipRouting: false },
+      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', routingDecision: decision },
     )
 
     expect(result.ok).toBe(false)
@@ -114,36 +119,26 @@ describe('applyTransforms', () => {
   })
 
   it('records continue routing metadata without mutating the body', () => {
-    vi.mocked(evaluateRoutingRules).mockReturnValueOnce({
-      matchedRule: {
-        id: 'rrl_continue',
-        name: 'Continue rule',
-        enabled: true,
-        order: 1,
-        match: {
-          endpoints: [],
-          requestedModels: [],
-          apiKeyIds: [],
-          stream: 'any',
-          minEstimatedPromptTokens: '',
-          maxEstimatedPromptTokens: '',
-        },
-        action: { type: 'continue' },
-        target: { type: 'direct', baseUrl: 'https://api.openai.com/v1', credentialId: 'ucr_test' },
-        authMode: 'passthrough',
-        preserveAuthorization: true,
-        createdAt: new Date(0).toISOString(),
-        updatedAt: new Date(0).toISOString(),
-      },
+    const rule = makeRule({
+      id: 'rrl_continue',
+      name: 'Continue rule',
       action: { type: 'continue' },
       target: { type: 'direct', baseUrl: 'https://api.openai.com/v1', credentialId: 'ucr_test' },
       authMode: 'passthrough',
       preserveAuthorization: true,
     })
+    const decision: RoutingDecision = {
+      matchedRule: rule,
+      action: { type: 'continue' },
+      target: { type: 'direct', baseUrl: 'https://api.openai.com/v1', credentialId: 'ucr_test' },
+      authMode: 'passthrough',
+      preserveAuthorization: true,
+      credentialBindings: [],
+    }
 
     const result = applyTransforms(
       { model: 'gpt-4', stream: true },
-      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', skipRouting: false },
+      { keyRow: null, endpoint: '/v1/chat/completions', method: 'POST', routingDecision: decision },
     )
 
     expect(result.ok).toBe(true)
