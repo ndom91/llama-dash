@@ -142,20 +142,8 @@ pnpm dev               # http://localhost:5173
 
 Copy `.env.example` to `.env` and fill in the values.
 
-| Variable | Default | Notes |
-|---|---|---|
-| `INFERENCE_BACKEND` | `llama-swap` | Active inference backend. Only `llama-swap` is currently implemented. |
-| `INFERENCE_BASE_URL` | `http://localhost:8080` | Inference backend base URL. No trailing slash. |
-| `INFERENCE_INSECURE` | `false` | Skip TLS verification for inference backend with self-signed certs. |
-| `INFERENCE_CONFIG_FILE` | (empty) | Absolute path to the backend config file. Required for the llama-swap config editor. |
-| `DATABASE_PATH` | `data/dash.db` | SQLite file, relative to CWD. SQLite `:memory:` and `file:` URI paths are preserved for tests/special deployments. |
-| `BETTER_AUTH_SECRET` | | Secret for signing Better Auth session data; `openssl rand -base64 33` |
-| `BETTER_AUTH_URL` | inferred | Optional external base URL for Better Auth redirects/cookies. Set this to the public HTTPS origin when using passkeys outside localhost. |
-| `CREDENTIAL_ENCRYPTION_KEY` | | 32+ character secret used to encrypt stored upstream provider credentials. Required before creating, placeholder-replacing, or injecting upstream credentials. |
-| `UPSTREAM_HEADERS_TIMEOUT_MS` | `600000` | Upstream proxy fetch headers timeout (ms); `0` disables. Keep generous for long non-streaming jobs (image gen) that send no response headers until done. |
-| `UPSTREAM_BODY_TIMEOUT_MS` | `0` | Upstream proxy fetch body timeout (ms); `0` disables. |
-
-See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md) for the backend abstraction, capability model, and future Ollama notes.
+See the [environment variables reference](https://llama-dash.dev/docs/reference/environment-variables)
+for the complete list of variables, defaults, and deployment notes.
 
 ## ✴️ Claude Code / Anthropic passthrough
 
