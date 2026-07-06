@@ -159,66 +159,12 @@ See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backen
 
 ## ✴️ Claude Code / Anthropic passthrough
 
-Route any Anthropic SDK (including claude-code) through llama-dash for
-logging, filtering, and per-request inspection. Supports Anthropic subscriptions. Traffic flows:
+Route any Anthropic SDK, including Claude Code, through llama-dash for logging,
+filtering, per-request inspection, and Anthropic subscription passthrough.
 
-```
-Claude Code ──► llama-dash :5173 (log + filter) ──► api.anthropic.com
-```
-
-**Client config** (`~/.claude/settings.json`):
-
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://<llama-dash-host>:3000",
-    "CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY": "1"
-  }
-}
-```
-
-Leave `ANTHROPIC_AUTH_TOKEN` unset when using subscription OAuth — Claude
-Code manages the bearer itself and llama-dash passes it through unchanged.
-
-In llama-dash, configure an explicit routing rule in Policies for `/v1/*`
-target path or Claude source model names, using `continue`, `passthrough` auth, preserved client
-`Authorization`, and direct target `https://api.anthropic.com/v1`. This
-will result in all Anthropic requests being transparently proxied through
-while logging all traffic in llama-dash and applying filters.
-
-For provider-key flows, store the upstream token in the Policies credential
-vault and add a credential binding to the routing rule. Bindings can either
-set an outbound header automatically or replace a client-sent header
-placeholder like `{{llama-dash:credential:anthropic-prod}}`; injected values
-are redacted from request logs. The request detail view records non-secret
-credential name/slug metadata for audit, and the credential vault warns before
-deleting credentials still referenced by routing rules or MCP relays.
-Credential-bearing passthrough rules still require a valid llama-dash API key;
-the proxy rejects them with `401` when no key resolved, before injecting any
-stored secret.
-
-For remote MCP servers, create an MCP relay in Policies instead of pointing
-Claude Code directly at the provider. Configure Claude with the relay URL and a
-separate llama-dash key header:
-
-```json
-{
-  "mcpServers": {
-    "hyperline_sandbox": {
-      "type": "http",
-      "url": "http://<llama-dash-host>:5173/mcp-relays/hyperline-sandbox",
-      "headers": {
-        "x-llama-dash-api-key": "sk-..."
-      }
-    }
-  }
-}
-```
-
-The provider bearer token stays encrypted in llama-dash and is injected only
-when an API key that is explicitly allowed to use the relay forwards the MCP
-request upstream. The Policies page shows this Claude Code snippet for each
-configured relay.
+See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code)
+for client setup, routing rules, subscription OAuth, and provider-key flows. For
+remote MCP servers, see the [MCP relays guide](https://llama-dash.dev/docs/clients/mcp-relays).
 
 ## 🤖 Acknowledgements
 
