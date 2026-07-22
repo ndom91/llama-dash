@@ -1,7 +1,8 @@
 import { config } from '../config.ts'
 import { createLlamaSwapBackend } from './backends/llama-swap.ts'
+import { createLlamaCppRouterBackend } from './backends/llama-cpp-router.ts'
 
-export type InferenceBackendKind = 'llama-swap'
+export type InferenceBackendKind = 'llama-swap' | 'llama-cpp-router'
 
 export type InferenceBackendInfo = {
   kind: InferenceBackendKind
@@ -68,7 +69,8 @@ export type InferenceBackend = {
 
 function createInferenceBackend(kind: string): InferenceBackend {
   if (kind === 'llama-swap') return createLlamaSwapBackend()
-  throw new Error(`Unsupported INFERENCE_BACKEND "${kind}". Supported backends: llama-swap`)
+  if (kind === 'llama-cpp-router') return createLlamaCppRouterBackend()
+  throw new Error(`Unsupported INFERENCE_BACKEND "${kind}". Supported backends: llama-swap, llama-cpp-router`)
 }
 
 export const inferenceBackend = createInferenceBackend(config.inferenceBackend)

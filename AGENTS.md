@@ -5,8 +5,10 @@ Notes for agents (and humans operating as agents) working on this repo.
 ## What this is
 
 llama-dash is a dashboard UI plus a logging, auth-ready proxy for a local
-inference backend. The implemented backend is currently
-[llama-swap](https://github.com/mostlygeek/llama-swap), fronting llama.cpp
+inference backend. Two backends are implemented:
+[llama-swap](https://github.com/mostlygeek/llama-swap) (bundled compose, full feature set)
+and [llama.cpp Router Mode](https://github.com/ggml-org/llama.cpp) (`INFERENCE_BACKEND=llama-cpp-router`,
+direct model management without config editor).
 models through its `/v1/*` OpenAI/Anthropic-compatible endpoint. Feature ideas
 and prioritization live in [`next-plan.md`](./next-plan.md).
 
@@ -91,6 +93,7 @@ src/
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
+    backends/llama-cpp-router.ts — adapter for llama.cpp router mode
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
     metrics.ts            — Prometheus text exporter for /metrics
@@ -120,7 +123,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
-- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml`, `docker-compose.router.yaml` — production container packaging for llama-dash by itself or bundled withlama-swap or llama.cpp router.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with SSE-driven cache invalidation for request, model, GPU, and system changes plus slow ETag polling fallback.
@@ -153,7 +156,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
-   backend currently supports `llama-swap` only and normalizes model list,
+   backend supports `llama-swap` (full feature set) and `llama-cpp-router`
+   (model list, running state, load/unload lifecycle, health, metrics; no config
+   editor or log streams) and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,
    logs, config snippets, config-derived context hints, model capability metadata,
    and model log-name hints.
@@ -425,7 +430,8 @@ sort lexicographically by creation time).
 ## Dev environment
 
 - Copy `.env.example` to `.env` and set `INFERENCE_BASE_URL` to point at your
-  llama-swap instance. Default is `http://localhost:8080`.
+  inference backend (llama-swap or llama.cpp router). Default is `http://localhost:8080`.
+- Set `INFERENCE_BACKEND` to `llama-swap` (default) or `llama-cpp-router`.
 - If your upstream uses HTTPS with a self-signed cert, set
   `INFERENCE_INSECURE=true` so Node accepts it (it sets
   `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot). Off by default.
