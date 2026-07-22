@@ -712,6 +712,20 @@ export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
   })
 }
 
+export function useClearAllLogs(): UseMutationResult<unknown, Error, void> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.clearAllLogs(),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.requests, qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      toast.success('All logs cleared')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to clear logs', e)
+    },
+  })
+}
+
 export function useCompactDatabase(): UseMutationResult<unknown, Error, void> {
   const qc = useQueryClient()
   return useMutation({

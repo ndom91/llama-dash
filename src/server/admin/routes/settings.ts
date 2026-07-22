@@ -5,6 +5,8 @@ import {
   UpdatePrivacySettingsBodySchema,
   UpdateRequestLimitsBodySchema,
 } from '../../../lib/schemas/settings.ts'
+import { modelEvents, requests } from '../../db/schema.ts'
+import { db } from '../../db/index.ts'
 import {
   getAttributionSettings,
   getPrivacySettings,
@@ -76,6 +78,19 @@ export const settingRoutes: Route[] = [
       if (!result.success) return error(400, 'Invalid privacy settings body')
       setPrivacySettings(result.output)
       return json(200, getPrivacySettings())
+    },
+  },
+  {
+    method: 'POST',
+    pattern: /^\/api\/settings\/danger\/clear-logs$/,
+    handler: async () => {
+      try {
+        await db.delete(requests)
+        await db.delete(modelEvents)
+        return json(200, { ok: true })
+      } catch (err) {
+        return error(500, err instanceof Error ? err.message : String(err))
+      }
     },
   },
 ]

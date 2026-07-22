@@ -227,6 +227,7 @@ export const api = {
   }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
   pruneRequestLogs: () => sendJson('/api/system/request-logs/prune', v.any(), { method: 'POST', body: {} }),
   compactDatabase: () => sendJson('/api/system/database/compact', OkSchema, { method: 'POST', body: {} }),
+  clearAllLogs: () => sendJson('/api/settings/danger/clear-logs', OkSchema, { method: 'POST', body: {} }),
   extractArticle: (url: string) =>
     sendJson('/api/playground/article-extract', ArticleExtractResponseSchema, { method: 'POST', body: { url } }),
 }
