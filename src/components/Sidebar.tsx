@@ -253,9 +253,23 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   }, [slide])
   const resident = runningCount > 0 ? running[visibleIdx % runningCount] : null
 
-  const gpuCard = gpu?.available ? gpu.gpus[0] : null
-  const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
-  const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
+  const allGpus = gpu?.available ? gpu.gpus : []
+  const gpuCard = allGpus[0] ?? null
+  const fmtGiB = (mib: number) => ((mib / 1024)).toFixed(1)
+  const fmtW = (w: number) => w.toFixed(1)
+  const totalMemUsed = allGpus.reduce((s, g) => s + (g.memoryUsedMiB ?? 0), 0)
+  const totalMemTotal = allGpus.reduce((s, g) => s + (g.memoryTotalMiB ?? 0), 0)
+  const totalPower = allGpus.reduce((s, g) => s + (g.powerW ?? 0), 0)
+  const memGpus = allGpus.filter((g) => g.memoryTotalMiB != null)
+  const avgMemPercent =
+    memGpus.length > 0
+      ? Math.round(
+          memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0) > 0
+            ? (memGpus.reduce((s, g) => s + g.memoryUsedMiB!, 0) / memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0)) * 100
+            : 0,
+        )
+      : null
+  const hasVram = totalMemTotal > 0
 
   async function signOut() {
     await authClient.signOut()
@@ -266,10 +280,10 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
     <div className="p-2.5 border-t border-border flex flex-col gap-2">
       <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
         <div className="flex justify-between items-center gap-2 text-[10px] font-mono tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-          <span className="text-fg-muted">{gpuCard?.powerW ?? '-'} W</span>
+          <span className="text-fg-muted">{totalPower > 0 ? `${fmtW(totalPower)} W` : gpuCard?.powerW ? `${fmtW(gpuCard.powerW)} W` : '-'}</span>
           <span className="text-fg-muted">
             {hasVram
-              ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`
+              ? `${fmtGiB(totalMemUsed)} / ${fmtGiB(totalMemTotal)} GB`
               : resident
                 ? `${visibleIdx} of ${totalCount}`
                 : 'idle'}
@@ -280,7 +294,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
             className="h-full bg-accent rounded-pill transition-[width] duration-300"
             style={{
               width: hasVram
-                ? `${gpuCard.memoryPercent ?? 0}%`
+                ? `${avgMemPercent ?? 0}%`
                 : totalCount > 0
                   ? `${(runningCount / totalCount) * 100}%`
                   : '0%',
@@ -289,13 +303,15 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
         </div>
         {resident ? (
           <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
-            <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
+            <div className="font-mono text-xs text-fg leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
               <StatusDot tone={stateTone(resident.state, true)} live />{' '}
-              <span style={{ marginLeft: 6 }} translate="no">
+              <span style={{ marginLeft: 6 }} translate="no" title={resident.id}>
                 {resident.id}
               </span>
             </div>
-            <div className="font-mono text-[10px] text-fg-dim">{system?.inference.label ?? 'backend'}</div>
+            <div className="font-mono text-[10px] text-fg-dim truncate" title={system?.inference.label}>
+              {system?.inference.label ?? 'backend'}
+            </div>
           </div>
         ) : (
           <>
@@ -307,7 +323,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
               className="truncate font-mono text-[10px] text-fg-dim"
               title={gpuCard ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}` : undefined}
             >
-              {gpuCard ? gpuCard.name : 'no models loaded'}
+              {gpuCard ? allGpus.length > 1 ? `${allGpus.length}× ${gpuCard.name}` : gpuCard.name : 'no models loaded'}
               {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
             </div>
           </>
