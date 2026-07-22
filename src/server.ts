@@ -44,7 +44,7 @@ export default createServerEntry({
       return handleMcpRelayRequest(request)
     }
 
-    if (url.pathname === '/api/login-meta') {
+    if (url.pathname === '/api/login-meta' || url.pathname === '/api/playground-config') {
       const { handleAdminRequest } = await import('./server/admin/handler.ts')
       return handleAdminRequest(request)
     }

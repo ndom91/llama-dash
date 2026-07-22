@@ -8,6 +8,20 @@ import { compactDatabase, pruneRequestLogs } from '../../request-log-maintenance
 import { getUpdateCheck } from '../../update-check.ts'
 import { error, json, type Route } from './types.ts'
 
+export const playgroundConfigRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/playground-config$/,
+    handler: async () => {
+      return json(200, {
+        image: config.playgroundImageEnabled,
+        speech: config.playgroundSpeechEnabled,
+        transcribe: config.playgroundTranscribeEnabled,
+      })
+    },
+  },
+]
+
 const DIRECT_TARGETS = ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']
 
 export const systemRoutes: Route[] = [

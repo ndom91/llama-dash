@@ -32,6 +32,10 @@ export const config = {
   upstreamHeadersTimeoutMs: parseMs(process.env.UPSTREAM_HEADERS_TIMEOUT_MS, 600_000),
   upstreamBodyTimeoutMs: parseMs(process.env.UPSTREAM_BODY_TIMEOUT_MS, 0),
   metricsToken: process.env.METRICS_TOKEN ?? null,
+  // Playground tab visibility. Defaults to true if unset.
+  playgroundImageEnabled: parseBool(process.env.PLAYGROUND_IMAGE_ENABLED, true),
+  playgroundSpeechEnabled: parseBool(process.env.PLAYGROUND_SPEECH_ENABLED, true),
+  playgroundTranscribeEnabled: parseBool(process.env.PLAYGROUND_TRANSCRIBE_ENABLED, true),
 }
 
 function loadDotEnvFile() {
