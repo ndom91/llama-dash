@@ -345,7 +345,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 </div>
                 <div>
                   <dt>target</dt>
-                  <dd>{req.routingTargetType ?? 'llama_swap'}</dd>
+                  <dd>{req.routingTargetType === 'direct' ? 'direct' : 'default upstream'}</dd>
                 </div>
                 <div>
                   <dt>upstream</dt>

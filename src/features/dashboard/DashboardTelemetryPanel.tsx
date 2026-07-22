@@ -17,15 +17,21 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
       <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Upstream</div>
       <dl className="mb-0 mt-0 grid gap-2.5 border-b border-border pb-4">
         <div className={metaGrid}>
-          <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">host</dt>
+          <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">type</dt>
           <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
+            {upstream?.backend ?? '—'}
+          </dd>
+        </div>
+        <div className={metaGrid}>
+          <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">host</dt>
+          <dd className="m-0 w-full truncate text-right font-mono tabular-nums text-[12px] leading-[1.35] text-fg" title={upstream?.reachable ? upstream.host : undefined}>
             {upstream?.reachable ? upstream.host : '—'}
           </dd>
         </div>
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">version</dt>
           <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
-            {upstream?.reachable ? `v${upstream.version}` : '—'}
+            {upstream?.reachable && upstream.version ? `v${upstream.version}` : '—'}
           </dd>
         </div>
         <div className={metaGrid}>

@@ -84,8 +84,11 @@ export function createLlamaCppRouterBackend(): InferenceBackend {
           fetchJson<Record<string, unknown>>('/props').catch(() => null),
         ])
         const latencyMs = Math.round(performance.now() - t0)
-        const version =
-          (propsRes?.version as string | undefined) ?? (propsRes?.router_version as string | undefined) ?? undefined
+    const version =
+      (propsRes?.version as string | undefined) ??
+      (propsRes?.build_info as string | undefined) ??
+      (propsRes?.router_version as string | undefined) ??
+      undefined
         return {
           reachable: true,
           health: healthRes?.trim(),

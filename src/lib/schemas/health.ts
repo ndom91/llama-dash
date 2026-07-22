@@ -10,7 +10,6 @@ export const ApiHealthSchema = v.object({
       latencyMs: v.optional(v.number()),
       version: v.optional(v.string()),
       commit: v.optional(v.string()),
-      build_date: v.optional(v.string()),
     }),
     v.object({
       reachable: v.literal(false),

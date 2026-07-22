@@ -335,7 +335,7 @@ function ObservabilityPreview({
     ['api key', keyLabel],
     ['auth mode', rule.authMode],
     ['authorization', rule.preserveAuthorization ? 'preserved' : 'default'],
-    ['target', rule.target.type],
+    ['target', rule.target.type === 'llama_swap' ? 'default upstream' : rule.target.type],
     ['upstream', rule.target.type === 'direct' ? rule.target.baseUrl : '—'],
     ['credential', rule.target.type === 'direct' ? (rule.target.credentialId ?? '—') : '—'],
     ['endpoint', rule.match.endpoints[0] ?? '—'],

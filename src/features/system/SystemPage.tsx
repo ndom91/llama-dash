@@ -169,6 +169,7 @@ export function SystemPage() {
   const primaryGpu = data.gpu.gpus[0] ?? null
   const gpuVendor = formatGpuVendor(data.gpu.driver)
   const gpuModel = primaryGpu?.name ?? null
+
   const components = [
     { label: 'control bus', age: 'now', tone: 'ok' as const },
     { label: 'backend', age: data.inference.label, tone: 'ok' as const },

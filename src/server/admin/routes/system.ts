@@ -16,9 +16,21 @@ export const systemRoutes: Route[] = [
     pattern: /^\/api\/health$/,
     handler: async () => {
       const health = await inferenceBackend.health()
-      return json(200, {
-        upstream: { ...health, backend: inferenceBackend.info.label, host: inferenceBackend.info.upstreamHost },
-      })
+      const upstream: Record<string, unknown> = {
+        backend: inferenceBackend.info.label,
+        host: inferenceBackend.info.upstreamHost,
+        reachable: health.reachable,
+      }
+      if (health.reachable && 'health' in health) {
+        upstream.health = health.health
+        upstream.latencyMs = health.latencyMs
+        if (health.version) upstream.version = health.version
+        if (health.commit) upstream.commit = health.commit
+      }
+      if (!health.reachable && 'error' in health) {
+        upstream.error = (health as { error?: string }).error
+      }
+      return json(200, { upstream })
     },
   },
   {
