@@ -255,7 +255,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
 
   const allGpus = gpu?.available ? gpu.gpus : []
   const gpuCard = allGpus[0] ?? null
-  const fmtGiB = (mib: number) => ((mib / 1024)).toFixed(1)
+  const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
   const fmtW = (w: number) => w.toFixed(1)
   const totalMemUsed = allGpus.reduce((s, g) => s + (g.memoryUsedMiB ?? 0), 0)
   const totalMemTotal = allGpus.reduce((s, g) => s + (g.memoryTotalMiB ?? 0), 0)
@@ -265,7 +265,8 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
     memGpus.length > 0
       ? Math.round(
           memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0) > 0
-            ? (memGpus.reduce((s, g) => s + g.memoryUsedMiB!, 0) / memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0)) * 100
+            ? (memGpus.reduce((s, g) => s + g.memoryUsedMiB!, 0) / memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0)) *
+                100
             : 0,
         )
       : null
@@ -280,7 +281,9 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
     <div className="p-2.5 border-t border-border flex flex-col gap-2">
       <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
         <div className="flex justify-between items-center gap-2 text-[10px] font-mono tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-          <span className="text-fg-muted">{totalPower > 0 ? `${fmtW(totalPower)} W` : gpuCard?.powerW ? `${fmtW(gpuCard.powerW)} W` : '-'}</span>
+          <span className="text-fg-muted">
+            {totalPower > 0 ? `${fmtW(totalPower)} W` : gpuCard?.powerW ? `${fmtW(gpuCard.powerW)} W` : '-'}
+          </span>
           <span className="text-fg-muted">
             {hasVram
               ? `${fmtGiB(totalMemUsed)} / ${fmtGiB(totalMemTotal)} GB`
@@ -323,7 +326,11 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
               className="truncate font-mono text-[10px] text-fg-dim"
               title={gpuCard ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}` : undefined}
             >
-              {gpuCard ? allGpus.length > 1 ? `${allGpus.length}× ${gpuCard.name}` : gpuCard.name : 'no models loaded'}
+              {gpuCard
+                ? allGpus.length > 1
+                  ? `${allGpus.length}× ${gpuCard.name}`
+                  : gpuCard.name
+                : 'no models loaded'}
               {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
             </div>
           </>

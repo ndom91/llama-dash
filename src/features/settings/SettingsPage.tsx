@@ -450,11 +450,7 @@ function ClearAllLogsButton() {
     <div className="flex flex-col gap-2">
       <button
         type="button"
-        className={cn(
-          'btn btn-err',
-          firstClick && cooldown && '!bg-err-strong',
-          clearAllLogs.isSuccess && '!bg-ok',
-        )}
+        className={cn('btn btn-err', firstClick && cooldown && '!bg-err-strong', clearAllLogs.isSuccess && '!bg-ok')}
         disabled={clearAllLogs.isPending || clearAllLogs.isSuccess}
         onClick={handleClick}
       >
@@ -467,9 +463,7 @@ function ClearAllLogsButton() {
               : 'Clear All Logs'}
       </button>
       {firstClick && cooldown && (
-        <div className="font-mono text-[10px] text-err-faint">
-          You have {countdown} seconds to confirm this action.
-        </div>
+        <div className="font-mono text-[10px] text-err-faint">You have {countdown} seconds to confirm this action.</div>
       )}
     </div>
   )

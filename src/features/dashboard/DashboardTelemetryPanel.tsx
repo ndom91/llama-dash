@@ -24,7 +24,10 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
         </div>
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">host</dt>
-          <dd className="m-0 w-full truncate text-right font-mono tabular-nums text-[12px] leading-[1.35] text-fg" title={upstream?.reachable ? upstream.host : undefined}>
+          <dd
+            className="m-0 w-full truncate text-right font-mono tabular-nums text-[12px] leading-[1.35] text-fg"
+            title={upstream?.reachable ? upstream.host : undefined}
+          >
             {upstream?.reachable ? upstream.host : '—'}
           </dd>
         </div>
