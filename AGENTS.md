@@ -89,7 +89,7 @@ src/
     config.ts             — env-var loader (INFERENCE_BASE_URL, DATABASE_PATH, …)
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
-    db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
+    db/                   — drizzle schema + SQLite init; pending migrations run on server boot (also via pnpm db:migrate)
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
@@ -120,7 +120,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata.
-- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
+- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Pending migrations are applied on server boot via `runMigrations()` (before `ensureSystemKey()`); `pnpm db:migrate` remains available for offline/preflight use.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml`, `docker-compose.router.yaml` — production container packaging for llama-dash by itself or bundled withlama-swap or llama.cpp router.
@@ -305,7 +305,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Package manager**: pnpm only. Don't commit `npm`/`yarn` lockfiles.
 - **ORM**: Drizzle (`drizzle-orm` + `drizzle-kit`) over better-sqlite3.
   Migrations live in `drizzle/`. Generate with `pnpm db:generate`, apply
-  with `pnpm db:migrate`.
+  on server boot (and via `pnpm db:migrate`).
 - **Runtime validation**: [Valibot](https://valibot.dev) for runtime type
   validation at trust boundaries. Schemas live in `src/lib/schemas/` (shared
   API types) and `src/server/llama-swap/schemas.ts` (upstream response

@@ -9,6 +9,12 @@ if (config.inferenceInsecure) {
 
 const { auth, getDashboardSession } = await import('./server/auth.ts')
 
+// Apply pending migrations before any DB reads/writes. Idempotent via drizzle's
+// journal — safe on every boot, and required for first start against an empty
+// persistent volume (e.g. Docker /data/dash.db).
+const { runMigrations } = await import('./server/db/migrate.ts')
+runMigrations()
+
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
 

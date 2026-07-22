@@ -149,7 +149,7 @@ This compose file connects `llama-dash` to your host's `llama-server` process vi
 ```bash
 cp .env.example .env   # edit INFERENCE_BASE_URL to point at your instance
 pnpm install
-pnpm db:migrate        # creates data/dash.db
+pnpm db:migrate        # optional preflight; also runs automatically on server boot
 pnpm dev               # http://localhost:5173
 ```
 
