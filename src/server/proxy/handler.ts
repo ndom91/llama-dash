@@ -11,12 +11,15 @@ import {
   setAuthContext,
   type ProxyContext,
 } from './context.ts'
-import { toErrorBody } from './errors.ts'
+import { queueOverflowError, queueTimeoutError, toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
+import { getModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
+import { createQueuedSseStream } from './queue-status-sse.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
 import { config } from '../config.ts'
+import { ulid } from 'ulidx'
 
 const HARD_BODY_CAP = 20 * 1024 * 1024
 
@@ -190,6 +193,139 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   const reqHeadersJson = loggedRequestHeaders(ctx)
   const reqBody = loggedRequestBody(ctx)
+
+  const isLocalBackend = ctx.routingOutcome.targetType !== 'direct'
+  const isSse = ctx.body?.parsedBody?.stream === true
+
+  if (isLocalBackend) {
+    const scheduler = getModelScheduler()
+    // Queue-entry id is distinct from the logged request id (req_*).
+    const entryId = `queue_${ulid()}`
+    const model = ctx.body?.reqModel ?? ctx.routingOutcome.routedModel ?? 'unknown'
+
+    const requestData: ProxyRequestData = {
+      upstream: ctx.upstream,
+      method: ctx.method,
+      headers: ctx.reqHeaders,
+      body: forwardBody(ctx),
+      hasBody: ctx.body?.hasBody ?? false,
+      startedAt: ctx.startedAt,
+      endpoint: ctx.endpoint,
+      reqModel: ctx.body?.reqModel ?? null,
+      reqHeadersJson,
+      reqBody,
+      keyId: ctx.keyId,
+      keyRow: ctx.keyRow,
+      attribution: ctx.attribution,
+      routing: ctx.routingOutcome,
+      credentialInjectionJson: ctx.credentialInjectionJson,
+    }
+
+    const enqueueResult = scheduler.enqueue(entryId, model, requestData)
+
+    if (enqueueResult.status === 'overflow') {
+      const overflow = queueOverflowError(enqueueResult.queueDepth, enqueueResult.maxQueue)
+      writeProxyLog({
+        startedAt: ctx.startedAt,
+        status: overflow.status,
+        method: ctx.method,
+        endpoint: ctx.endpoint,
+        usage: nullUsage(ctx.body?.reqModel),
+        streamed: false,
+        error: (overflow.body as any).error?.message ?? 'Queue overflow',
+        reqHeaders: reqHeadersJson,
+        reqBody,
+        resHeaders: null,
+        resBody: JSON.stringify(toErrorBody(ctx.endpoint, overflow.body as any)),
+        keyId: ctx.keyId,
+        reqModel: ctx.body?.reqModel ?? null,
+        attribution: ctx.attribution,
+        routing: ctx.routingOutcome,
+        credentialInjectionJson: ctx.credentialInjectionJson,
+      })
+      return new Response(JSON.stringify(toErrorBody(ctx.endpoint, overflow.body as any)), {
+        status: overflow.status,
+        headers: overflow.headers,
+      })
+    }
+
+    try {
+      // SSE + queued: commit response early with SSE headers, stream comment
+      // pings while waiting for the slot, then pipe through upstream response.
+      // Timeout after commit cannot become HTTP 408 — see createQueuedSseStream.
+      if (isSse && enqueueResult.status === 'queued') {
+        const sseStream = createQueuedSseStream(scheduler, enqueueResult.entryId, model, enqueueResult.waitPromise)
+        return new Response(sseStream, {
+          status: 200,
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+            'x-llama-dash-queued': 'true',
+          },
+        })
+      }
+
+      if (enqueueResult.status === 'immediate') {
+        return await enqueueResult.dispatchPromise
+      }
+      return await enqueueResult.waitPromise
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const isTimeout = message.includes('Queue timeout')
+      if (isTimeout) {
+        const timeoutErr = queueTimeoutError(config.localBackendQueueTimeoutMs)
+        writeProxyLog({
+          startedAt: ctx.startedAt,
+          status: timeoutErr.status,
+          method: ctx.method,
+          endpoint: ctx.endpoint,
+          usage: nullUsage(ctx.body?.reqModel),
+          streamed: false,
+          error: message,
+          reqHeaders: reqHeadersJson,
+          reqBody,
+          resHeaders: null,
+          resBody: JSON.stringify(toErrorBody(ctx.endpoint, timeoutErr.body as any)),
+          keyId: ctx.keyId,
+          reqModel: ctx.body?.reqModel ?? null,
+          attribution: ctx.attribution,
+          routing: ctx.routingOutcome,
+          credentialInjectionJson: ctx.credentialInjectionJson,
+        })
+        return new Response(JSON.stringify(toErrorBody(ctx.endpoint, timeoutErr.body as any)), {
+          status: timeoutErr.status,
+          headers: timeoutErr.headers,
+        })
+      }
+
+      writeProxyLog({
+        startedAt: ctx.startedAt,
+        status: 502,
+        method: ctx.method,
+        endpoint: ctx.endpoint,
+        usage: nullUsage(ctx.body?.reqModel),
+        streamed: false,
+        error: message,
+        reqHeaders: reqHeadersJson,
+        reqBody,
+        resHeaders: null,
+        resBody: null,
+        keyId: ctx.keyId,
+        reqModel: ctx.body?.reqModel ?? null,
+        attribution: ctx.attribution,
+        routing: ctx.routingOutcome,
+        credentialInjectionJson: ctx.credentialInjectionJson,
+      })
+      return Response.json(
+        toErrorBody(ctx.endpoint, {
+          error: { message, type: 'upstream_error' },
+        }),
+        { status: 502 },
+      )
+    }
+  }
+
   const forwardedResponse = await forwardUpstreamAndLog({
     upstream: ctx.upstream,
     method: ctx.method,

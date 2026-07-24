@@ -52,6 +52,16 @@ async function diffRunning() {
       publishAdminEvent('model.changed', { events: inserts.map((row) => ({ modelId: row.modelId, event: row.event })) })
     }
 
+    // Notify the model scheduler only when the loaded model set changes.
+    // Derive from the listRunning() result already fetched — no second round-trip.
+    // Scheduler ignores updates while it has active slots (idle-only apply).
+    if (inserts.length > 0) {
+      const loaded = running.find((r) => r.state === 'loaded')
+      const currentModel = loaded?.model ?? (running.length === 1 ? running[0].model : null)
+      const { getModelScheduler } = await import('./proxy/model-scheduler.ts')
+      getModelScheduler().onModelChanged(currentModel)
+    }
+
     knownRunning = current
   } catch {
     // upstream unreachable — keep last known state

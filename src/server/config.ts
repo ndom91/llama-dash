@@ -16,6 +16,18 @@ const parseMs = (v: string | undefined, fallback: number): number => {
   return Number.isFinite(n) && n >= 0 ? n : fallback
 }
 
+const parseMsOrDisabled = (v: string | undefined, fallback: number): number => {
+  if (v == null) return fallback
+  const n = Number(v)
+  return Number.isFinite(n) ? n : fallback
+}
+
+const parsePositiveInt = (v: string | undefined, fallback: number): number => {
+  if (v == null) return fallback
+  const n = Number(v)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
 export const config = {
   inferenceBackend: process.env.INFERENCE_BACKEND ?? 'llama-swap',
   inferenceBaseUrl: stripTrailingSlash(process.env.INFERENCE_BASE_URL ?? 'http://localhost:8080'),
@@ -36,6 +48,14 @@ export const config = {
   playgroundImageEnabled: parseBool(process.env.PLAYGROUND_IMAGE_ENABLED, true),
   playgroundSpeechEnabled: parseBool(process.env.PLAYGROUND_SPEECH_ENABLED, true),
   playgroundTranscribeEnabled: parseBool(process.env.PLAYGROUND_TRANSCRIBE_ENABLED, true),
+  // Local backend concurrency, queue, and model-grouping configuration.
+  // Direct upstreams bypass this system entirely.
+  localBackendMaxConcurrent: parsePositiveInt(process.env.LOCAL_BACKEND_MAX_CONCURRENT, 4),
+  localBackendMaxQueue: parsePositiveInt(process.env.LOCAL_BACKEND_MAX_QUEUE, 20),
+  localBackendQueueTimeoutMs: parseMsOrDisabled(process.env.LOCAL_BACKEND_QUEUE_TIMEOUT_MS, 60_000),
+  localBackendModelGrouping: parseBool(process.env.LOCAL_BACKEND_MODEL_GROUPING, true),
+  modelQueueBatchWindowMs: parseMs(process.env.MODEL_QUEUE_BATCH_WINDOW_MS, 2_000),
+  modelQueueFairnessTimeoutMs: parseMs(process.env.MODEL_QUEUE_FAIRNESS_TIMEOUT_MS, 30_000),
 }
 
 function loadDotEnvFile() {

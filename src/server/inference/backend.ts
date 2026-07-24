@@ -59,6 +59,7 @@ export type InferenceBackend = {
   eventStreamUrl?: string
   listModels(): Promise<Array<BackendModel>>
   listRunning?(): Promise<Array<BackendRunningModel>>
+  getCurrentModel?(): Promise<string | null>
   modelLogNames?(modelId: string): Array<string>
   modelConfigSnippet?(modelId: string): string | null
   modelContextLengthHints?(): Map<string, number>

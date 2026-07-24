@@ -91,6 +91,8 @@ src/
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; pending migrations run on server boot (also via pnpm db:migrate)
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
+    proxy/model-scheduler.ts — upstream concurrency queue, model-aware scheduling, fairness timeout
+    proxy/queue-status-sse.ts — SSE comment pings for queued requests (keep-alive)
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
     backends/llama-cpp-router.ts — adapter for llama.cpp router mode
@@ -164,7 +166,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    and model log-name hints.
    Backend support is capability-driven; unsupported operations should return a
    structured `501` and UI routes should hide links or show direct-navigation
-   fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md).
+   fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md)
+   and [`docs/2026_07_22_llama_cpp_router_backend.md`](./docs/2026_07_22_llama_cpp_router_backend.md).
 5. Admin API:
    Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
    `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
@@ -289,8 +292,27 @@ paths (proxy will grow middleware; admin will grow CRUD).
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin
-    entrypoints; page-specific components live with their feature instead of
-    accumulating inside `src/routes/*` or flat shared component files.
+   entrypoints; page-specific components live with their feature instead of
+   accumulating inside `src/routes/*` or flat shared component files.
+16. Upstream concurrency queue + model-aware scheduling. Local backend requests
+   are gated by a configurable concurrency limit (`LOCAL_BACKEND_MAX_CONCURRENT`,
+   default 4). When at capacity, requests enter a bounded FIFO queue
+   (`LOCAL_BACKEND_MAX_QUEUE`, default 20). Queue overflow returns 503 with
+   queue depth info. Queue timeout returns 408 (`LOCAL_BACKEND_QUEUE_TIMEOUT_MS`,
+   default 60000ms; set to -1 to disable). Direct upstreams bypass the queue
+   entirely. Model grouping (`LOCAL_BACKEND_MODEL_GROUPING`, default true)
+   dispatches same-model requests first, then largest model group, with a
+   fairness timeout (`MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`, default 30000ms) that
+   dispatches the oldest request regardless of model to prevent starvation. A
+   batch window (`MODEL_QUEUE_BATCH_WINDOW_MS`, default 2000ms) collects
+   same-model requests before dispatch. SSE requests receive queue-status
+   comment pings every 5s while waiting (`: queued position=N eta=Xs ...`).
+   Non-SSE requests use HTTP long-poll (connection held open until slot
+   acquired). The scheduler is notified of model state changes from the
+   model-watcher only when the loaded set changes, and only applies them while
+   idle. Queue entry ids use a `queue_` prefix (distinct from logged `req_` ids).
+   SSE timeouts after early commit emit an SSE `queue_timeout` error event
+   rather than HTTP 408.
 
 ## Tooling
 
@@ -442,6 +464,11 @@ sort lexicographically by creation time).
   (default 0); `0` disables.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.
+- Local backend concurrency queue: `LOCAL_BACKEND_MAX_CONCURRENT` (default 4),
+  `LOCAL_BACKEND_MAX_QUEUE` (default 20), `LOCAL_BACKEND_QUEUE_TIMEOUT_MS`
+  (default 60000, -1 to disable), `LOCAL_BACKEND_MODEL_GROUPING` (default true),
+  `MODEL_QUEUE_BATCH_WINDOW_MS` (default 2000), `MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`
+  (default 30000). Direct upstreams bypass the queue entirely.
 
 ## Runtime validation conventions
 
@@ -499,6 +526,18 @@ sort lexicographically by creation time).
   stat-poll watcher to detect config changes and reload automatically. SIGHUP
   reload is also supported upstream, but llama-dash still relies on atomic file
   writes rather than a reload endpoint.
+- **Scheduler gates only local backends.** The concurrency queue in
+  `model-scheduler.ts` applies only to local inference backends. Direct upstream
+  routing (`targetType: 'direct'`) bypasses the queue entirely and flows
+  immediately through `forwardUpstreamAndLog()`.
+- **SSE queue pings use comment lines.** Queued SSE requests get `:` comment
+  pings every 5s while waiting (`: queued position=N eta=Xs model=...`).
+  Non-SSE requests use HTTP long-poll (connection held, no response committed).
+  Both approaches are zero-breaking per SSE and HTTP specs.
+- **Queue timeout after SSE commit.** Non-SSE queue timeouts return HTTP 408
+  with `queue_timeout`. SSE requests that were already committed at 200 while
+  queued emit a single SSE `data:` error event (`type: queue_timeout`) and close
+  the stream — the status line cannot be changed after early commit.
 
 ## llama-swap API surface we consume
 

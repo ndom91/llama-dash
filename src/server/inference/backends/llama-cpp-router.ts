@@ -129,6 +129,16 @@ export function createLlamaCppRouterBackend(): InferenceBackend {
         }))
     },
 
+    async getCurrentModel(): Promise<string | null> {
+      try {
+        const data = await fetchJson<RouterModelsResponse>('/models')
+        const loaded = (data.data ?? []).find((m: RouterModelEntry) => m.status?.value === 'loaded')
+        return loaded?.id ?? null
+      } catch {
+        return null
+      }
+    },
+
     async loadModel(id: string): Promise<void> {
       await fetchJson('/models/load', {
         method: 'POST',

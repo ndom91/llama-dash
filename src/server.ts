@@ -41,8 +41,16 @@ export default createServerEntry({
     }
 
     if (url.pathname.startsWith('/v1/') || url.pathname === '/v1') {
-      const { handleProxyRequest } = await import('./server/proxy/handler.ts')
-      return handleProxyRequest(request)
+      try {
+        const { handleProxyRequest } = await import('./server/proxy/handler.ts')
+        return await handleProxyRequest(request)
+      } catch (err) {
+        console.error('[proxy error]', err)
+        return new Response(JSON.stringify({ error: String(err) }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
     }
 
     if (url.pathname.startsWith(MCP_RELAY_ENDPOINT_PREFIX)) {

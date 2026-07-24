@@ -129,6 +129,15 @@ export function createLlamaSwapBackend(): InferenceBackend {
       const { running } = await llamaSwap.listRunning()
       return running.map(mapLlamaSwapRunningModel)
     },
+    async getCurrentModel() {
+      try {
+        const { running } = await llamaSwap.listRunning()
+        const active = running.find((m) => m.state === 'loaded')
+        return active?.model ?? null
+      } catch {
+        return null
+      }
+    },
     modelLogNames: getLlamaSwapModelLogNames,
     modelConfigSnippet: getLlamaSwapModelConfigSnippet,
     modelContextLengthHints: getLlamaSwapConfigContextLengths,
