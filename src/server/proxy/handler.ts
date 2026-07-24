@@ -14,7 +14,7 @@ import {
 import { queueOverflowError, queueTimeoutError, toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { getModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
-import { createQueuedSseStream } from './queue-status-sse.ts'
+import { createImmediateSseStream, createQueuedSseStream } from './queue-status-sse.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
@@ -210,6 +210,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       body: forwardBody(ctx),
       hasBody: ctx.body?.hasBody ?? false,
       startedAt: ctx.startedAt,
+      queueMs: 0,
       endpoint: ctx.endpoint,
       reqModel: ctx.body?.reqModel ?? null,
       reqHeadersJson,
@@ -242,6 +243,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         attribution: ctx.attribution,
         routing: ctx.routingOutcome,
         credentialInjectionJson: ctx.credentialInjectionJson,
+        queueMs: 0,
       })
       return new Response(JSON.stringify(toErrorBody(ctx.endpoint, overflow.body as any)), {
         status: overflow.status,
@@ -266,8 +268,23 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         })
       }
 
+      if (isSse && enqueueResult.status === 'immediate') {
+        // Commit SSE immediately and emit RELAY before upstream fetch so RELAY means
+        // "dispatched to backend", not "upstream headers arrived".
+        const sseStream = createImmediateSseStream(enqueueResult.startDispatch)
+        return new Response(sseStream, {
+          status: 200,
+          headers: {
+            'content-type': 'text/event-stream',
+            'cache-control': 'no-cache',
+            connection: 'keep-alive',
+            'x-llama-dash-queue-ms': '0',
+          },
+        })
+      }
+
       if (enqueueResult.status === 'immediate') {
-        return await enqueueResult.dispatchPromise
+        return await enqueueResult.startDispatch()
       }
       return await enqueueResult.waitPromise
     } catch (err) {
@@ -292,6 +309,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           attribution: ctx.attribution,
           routing: ctx.routingOutcome,
           credentialInjectionJson: ctx.credentialInjectionJson,
+          queueMs: config.localBackendQueueTimeoutMs > 0 ? config.localBackendQueueTimeoutMs : null,
         })
         return new Response(JSON.stringify(toErrorBody(ctx.endpoint, timeoutErr.body as any)), {
           status: timeoutErr.status,

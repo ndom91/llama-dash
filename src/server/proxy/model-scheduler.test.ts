@@ -9,6 +9,7 @@ function makeRequestData(upstream = 'http://test/v1/chat/completions', model = '
     body: JSON.stringify({ model }),
     hasBody: true,
     startedAt: Date.now(),
+    queueMs: 0,
     endpoint: '/v1/chat/completions',
     reqModel: model,
     reqHeadersJson: '{}',
@@ -58,7 +59,7 @@ async function awaitAndDrainImmediate(result: ReturnType<ModelScheduler['enqueue
   if (result.status !== 'immediate') {
     throw new Error(`expected immediate enqueue, got ${result.status}`)
   }
-  return drainResponse(await result.dispatchPromise)
+  return drainResponse(await result.startDispatch())
 }
 
 describe('ModelScheduler', () => {
@@ -446,12 +447,16 @@ describe('ModelScheduler', () => {
     scheduler.enqueue('x4', 'llama3', makeRequestData('http://test/v1', 'llama3'))
     expect(scheduler.getActiveSlots()).toBe(2)
     expect(scheduler.getQueueDepth()).toBe(2)
+
+    if (x1.status !== 'immediate' || x2.status !== 'immediate') throw new Error('expected immediate')
+    const d1 = x1.startDispatch()
+    const d2 = x2.startDispatch()
     expect(resolvers.length).toBe(2)
 
     // Headers resolve; slots stay held until response bodies are drained.
-    resolvers[0](Response.json({ id: 'ok1' }))
-    resolvers[1](Response.json({ id: 'ok2' }))
-    await Promise.all([awaitAndDrainImmediate(x1), awaitAndDrainImmediate(x2)])
+    resolvers[0]!(Response.json({ id: 'ok1' }))
+    resolvers[1]!(Response.json({ id: 'ok2' }))
+    await Promise.all([drainResponse(await d1), drainResponse(await d2)])
 
     expect(scheduler.getActiveSlots()).toBe(0)
     expect(scheduler.getQueueDepth()).toBe(2)
@@ -533,7 +538,7 @@ describe('ModelScheduler', () => {
 
     // Headers return while the body is still open — this is when the bug used
     // to free the slot and let a second model preempt llama.cpp mid-stream.
-    const firstResponse = await first.dispatchPromise
+    const firstResponse = await first.startDispatch()
     expect(scheduler.getActiveSlots()).toBe(1)
     expect(forwardMock).toHaveBeenCalledTimes(1)
 
@@ -568,6 +573,110 @@ describe('ModelScheduler', () => {
     }
   })
 
+  it('records queue wait ms and exposes it on the response header', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    const resolvers: Array<(value: Response) => void> = []
+    forwardMock.mockImplementation(async (data: ProxyRequestData) => {
+      expect(typeof data.queueMs).toBe('number')
+      return new Promise<Response>((resolve) => {
+        resolvers.push(resolve)
+      })
+    })
+
+    const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
+    expect(first.status).toBe('immediate')
+    if (first.status !== 'immediate') throw new Error('expected immediate')
+    const firstDispatch = first.startDispatch()
+
+    const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1', 'model-b'))
+    expect(second.status).toBe('queued')
+
+    await vi.advanceTimersByTimeAsync(250)
+    resolvers[0]?.(Response.json({ id: 'a' }))
+    const firstResponse = await firstDispatch
+    expect(firstResponse.headers.get('x-llama-dash-queue-ms')).toBe('0')
+    await drainResponse(firstResponse)
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(forwardMock).toHaveBeenCalledTimes(2)
+    const queuedCall = forwardMock.mock.calls[1]?.[0] as ProxyRequestData
+    expect(queuedCall.queueMs).toBeGreaterThanOrEqual(250)
+
+    resolvers[1]?.(Response.json({ id: 'b' }))
+    if (second.status === 'queued') {
+      const secondResponse = await second.waitPromise
+      expect(secondResponse.headers.get('x-llama-dash-queue-ms')).toBe(String(queuedCall.queueMs))
+      await drainResponse(secondResponse)
+    }
+  })
+
+  it('keeps streaming the first body after a second model is queued', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    let streamController!: ReadableStreamDefaultController<Uint8Array>
+    const openStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller
+        controller.enqueue(new TextEncoder().encode('data: {"reasoning":1}\n\n'))
+      },
+    })
+
+    forwardMock.mockImplementation(async (data: ProxyRequestData) => {
+      if (data.reqModel === 'model-a') {
+        return new Response(openStream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      }
+      return Response.json({ id: 'model-b-done' })
+    })
+
+    const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1/chat/completions', 'model-a'))
+    expect(first.status).toBe('immediate')
+    if (first.status !== 'immediate') throw new Error('expected immediate')
+    const firstResponse = await first.startDispatch()
+    const reader = firstResponse.body!.getReader()
+    expect((await reader.read()).done).toBe(false)
+
+    const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1/chat/completions', 'model-b'))
+    expect(second.status).toBe('queued')
+    expect(forwardMock).toHaveBeenCalledTimes(1)
+
+    // First generation continues after the second request is only queued.
+    for (let i = 0; i < 5; i++) {
+      streamController.enqueue(new TextEncoder().encode(`data: {"content":${i}}\n\n`))
+      const chunk = await reader.read()
+      expect(chunk.done).toBe(false)
+      expect(forwardMock).toHaveBeenCalledTimes(1)
+      expect(scheduler.getActiveSlots()).toBe(1)
+      expect(scheduler.getQueueDepth()).toBe(1)
+    }
+
+    streamController.close()
+    expect((await reader.read()).done).toBe(true)
+    await vi.advanceTimersByTimeAsync(0)
+    expect(forwardMock).toHaveBeenCalledTimes(2)
+
+    if (second.status === 'queued') {
+      await drainResponse(await second.waitPromise)
+    }
+  })
+
   it('does not free the slot when headers arrive with an unread open body', async () => {
     scheduler = new ModelScheduler({
       maxConcurrency: 1,
@@ -594,7 +703,7 @@ describe('ModelScheduler', () => {
 
     const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
     if (first.status !== 'immediate') throw new Error('expected immediate')
-    const firstResponse = await first.dispatchPromise
+    const firstResponse = await first.startDispatch()
 
     const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1', 'model-b'))
     expect(second.status).toBe('queued')
@@ -606,8 +715,6 @@ describe('ModelScheduler', () => {
     await firstResponse.body?.cancel()
     await vi.advanceTimersByTimeAsync(0)
   })
-
-  // ---- SSE controller tracking ----
 
   it('tracks SSE controller for queued entries', () => {
     scheduler.enqueue('e1', 'llama3', makeRequestData('http://test/v1', 'llama3'))
@@ -622,5 +729,30 @@ describe('ModelScheduler', () => {
       scheduler.setSseController(queued.entryId, null)
       expect(scheduler.getSseController(queued.entryId)).toBeNull()
     }
+  })
+
+  it('cancelQueued rejects waitPromise and removes the entry', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    forwardMock.mockImplementation(() => new Promise<Response>(() => {}))
+    scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
+    const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1', 'model-b'))
+    expect(second.status).toBe('queued')
+    if (second.status !== 'queued') throw new Error('expected queued')
+
+    const waitRejection = second.waitPromise.then(
+      () => 'resolved',
+      (err: Error) => err.message,
+    )
+    expect(scheduler.cancelQueued(second.entryId)).toBe(true)
+    expect(scheduler.getQueueDepth()).toBe(0)
+    expect(await waitRejection).toContain('cancelled')
   })
 })

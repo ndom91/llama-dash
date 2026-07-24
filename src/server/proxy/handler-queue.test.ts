@@ -210,7 +210,9 @@ describe('handleProxyRequest queue behavior', () => {
     expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(2)
     expect(secondResp.status).toBe(200)
     await secondResp.arrayBuffer()
-    expect(scheduler.getActiveSlots()).toBe(0)
+    await vi.waitFor(() => {
+      expect(scheduler.getActiveSlots()).toBe(0)
+    })
 
     vi.useRealTimers()
   })

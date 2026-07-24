@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createQueuedSseStream, formatQueueComment, sendQueuePing } from './queue-status-sse.ts'
+import {
+  createQueuedSseStream,
+  formatQueueComment,
+  formatRelayedComment,
+  parseQueueComment,
+  parseRelayedComment,
+  sendQueueNotice,
+} from './queue-status-sse.ts'
 
 describe('formatQueueComment', () => {
   it('formats a valid SSE comment with queue status', () => {
@@ -105,7 +112,31 @@ describe('formatQueueComment', () => {
   })
 })
 
-describe('sendQueuePing', () => {
+describe('formatRelayedComment', () => {
+  it('formats a bare relayed marker', () => {
+    expect(formatRelayedComment()).toBe(': relayed')
+  })
+})
+
+describe('parse queue/relayed comments', () => {
+  it('parses queued status comments', () => {
+    expect(parseQueueComment(': queued position=3 eta=14s model=llama3 request_id=queue_x')).toEqual({
+      position: 3,
+      eta: '14s',
+      model: 'llama3',
+    })
+  })
+
+  it('parses bare relayed comments', () => {
+    expect(parseRelayedComment(': relayed')).toEqual({ waitMs: null })
+  })
+
+  it('parses legacy relayed wait comments', () => {
+    expect(parseRelayedComment(': relayed wait_ms=250')).toEqual({ waitMs: 250 })
+  })
+})
+
+describe('sendQueueNotice', () => {
   it('encodes and enqueues SSE comment to controller', () => {
     const chunks: Uint8Array[] = []
     const controller = {
@@ -115,7 +146,7 @@ describe('sendQueuePing', () => {
       error() {},
     } as unknown as ReadableStreamDefaultController
 
-    sendQueuePing(
+    sendQueueNotice(
       controller,
       {
         position: 2,
@@ -148,7 +179,7 @@ describe('sendQueuePing', () => {
     } as unknown as ReadableStreamDefaultController
 
     expect(() =>
-      sendQueuePing(
+      sendQueueNotice(
         controller,
         {
           position: 1,
@@ -174,7 +205,7 @@ describe('sendQueuePing', () => {
       error() {},
     } as unknown as ReadableStreamDefaultController
 
-    sendQueuePing(
+    sendQueueNotice(
       controller,
       {
         position: 1,
@@ -224,6 +255,7 @@ describe('createQueuedSseStream', () => {
           estimatedEtaMs: 0,
         }),
         setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
       } as any,
       'req_test',
       'llama3',
@@ -240,9 +272,73 @@ describe('createQueuedSseStream', () => {
 
     const decoder = new TextDecoder()
     const text = chunks.map((c) => decoder.decode(c)).join('')
+    // Immediate keep-alive ping at enqueue; RELAY comes from the scheduler.
+    expect(text).toContain(': queued position=1')
+    expect(text).not.toContain(': relayed')
     expect(text).toContain('data: {"id":"test"}')
     expect(text).toContain('data: [DONE]')
 
+    vi.useRealTimers()
+  })
+
+  it('sends periodic queue keep-alive comments while waiting', async () => {
+    vi.useFakeTimers()
+    let resolveWait!: (value: Response) => void
+    const waitPromise = new Promise<Response>((resolve) => {
+      resolveWait = resolve
+    })
+    const getQueuePosition = vi.fn(() => 2)
+    const stream = createQueuedSseStream(
+      {
+        getQueuePosition,
+        getStatus: () => ({
+          position: 2,
+          queueDepth: 3,
+          maxQueue: 10,
+          activeSlots: 4,
+          maxConcurrency: 4,
+          currentModel: 'llama3',
+          estimatedEtaMs: 10_000,
+        }),
+        setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
+      } as any,
+      'queue_ping',
+      'llama3',
+      waitPromise,
+    )
+
+    const reader = stream.getReader()
+    const readChunk = async () => {
+      const { value } = await reader.read()
+      return new TextDecoder().decode(value)
+    }
+
+    expect(await readChunk()).toContain(': queued position=2')
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(await readChunk()).toContain(': queued position=2')
+    await vi.advanceTimersByTimeAsync(5_000)
+    expect(await readChunk()).toContain(': queued position=2')
+
+    const encoder = new TextEncoder()
+    resolveWait(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('data: {"ok":true}\n\n'))
+            controller.close()
+          },
+        }),
+      ),
+    )
+
+    const rest: string[] = []
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      rest.push(new TextDecoder().decode(value))
+    }
+    expect(rest.join('')).toContain('data: {"ok":true}')
     vi.useRealTimers()
   })
 
@@ -262,6 +358,7 @@ describe('createQueuedSseStream', () => {
           estimatedEtaMs: 0,
         }),
         setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
       } as any,
       'req_test',
       'llama3',
@@ -304,6 +401,7 @@ describe('createQueuedSseStream', () => {
           estimatedEtaMs: 0,
         }),
         setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
       } as any,
       'req_empty',
       'test',
@@ -355,6 +453,7 @@ describe('createQueuedSseStream', () => {
           estimatedEtaMs: 0,
         }),
         setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
       } as any,
       'req_order',
       'test',

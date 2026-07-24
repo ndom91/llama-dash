@@ -36,7 +36,25 @@ Client ──► llama-dash ──► [Routing] ──► Local backend OR Direc
 
 A single semaphore gates how many requests can be active on the local backend at once. All models share this pool. When the limit is reached, requests enter a bounded FIFO queue. When the queue is full, new requests get 503 Service Unavailable.
 
-**A slot stays held for the full exchange**, including streaming response bodies. `forwardUpstreamAndLog` returns as soon as response headers arrive so SSE can start flowing, but the scheduler must not free the slot until the client finishes reading (or cancels) the body. Releasing on headers alone lets a second model request hit llama.cpp / llama-swap mid-stream and preempt the in-flight generation (e.g. concurrency=1, long Qwen-35B stream interrupted by a Qwen-27B call).
+**Slot release is a general rule**, independent of which local backend is selected and of `LOCAL_BACKEND_MAX_CONCURRENT`: the slot is held until the server finishes the whole response body, or the client disconnects (cancel/error). `forwardUpstreamAndLog` returns as soon as response headers arrive so SSE can start flowing — releasing then would let another request hit the backend mid-stream and preempt generation (e.g. concurrency=1, long Qwen-35B stream interrupted by a Qwen-27B call).
+
+**Phase timings are proxy wall-clock** and must sum to `duration_ms`:
+
+```
+duration_ms ≈ queue_ms + prefill_ms + decode_ms + stream_close_ms + other
+```
+
+- `queue_ms` — concurrency wait before upstream dispatch (0 if immediate)
+- `prefill_ms` — dispatch → first generated token (SSE; includes TTFB)
+- `decode_ms` — first token → `[DONE]` (SSE), or dispatch → body end (JSON)
+- `stream_close_ms` — `[DONE]` → body end (SSE only)
+- `other` — auth/routing/setup before dispatch (and any leftover)
+
+llama.cpp `timings.prompt_ms` / `predicted_ms` are stored separately as
+`gpu_prefill_ms` / `gpu_decode_ms` for request log/detail only — they are
+**not** stacked into the wall-clock timeline bar.
+
+**Queue wait is measured and persisted** as `queue_ms` on the request log (0 when dispatched immediately). Immediate responses also carry `x-llama-dash-queue-ms`. Queued SSE streams emit `: queued …` keep-alives while waiting (every 5s, plus an immediate first ping), then `: relayed` when the slot is acquired / dispatched to the backend, before upstream `data:` events. Request detail Timing/Phases and the playground inspector (START → QUEUE → RELAY → …) surface this phase; QUEUE is logged once from the first keep-alive.
 
 **Direct upstreams completely bypass this system.**
 
@@ -89,20 +107,22 @@ The HTTP response is **not committed** until the slot is acquired. The connectio
 
 #### SSE Requests: Comment Lines
 
-The HTTP response **is committed early** with SSE headers, and queue-status comments are sent while waiting.
+The HTTP response **is committed early** with SSE headers. Queue-status comments are sent as keep-alives while waiting; `: relayed` is emitted at backend dispatch.
 
 **Wire format:**
 ```
-: queued position=3 eta=14s model=llama3 request_id=req_01j5abc
-: queued position=2 eta=6s model=llama3 request_id=req_01j5abc
+: queued position=3 eta=14s model=llama3 request_id=queue_01j5abc
+: queued position=2 eta=6s model=llama3 request_id=queue_01j5abc
+: relayed
 data: {"id":"chatcmpl-xyz","object":"chat.completion.chunk",...}
 data: [DONE]
 ```
 
 - Lines starting with `:` are SSE comments — **invisible per spec**
 - Old clients: ignore comments, wait for `data:` lines normally
-- New clients: optional parsing for queue position/ETA
+- New clients: optional parsing for queue position/ETA and relay marker
 - Zero breaking changes
+- Playground event tape logs QUEUE once (first `: queued`); later pings stay on the wire only
 
 #### Implementation in handler.ts
 
@@ -434,7 +454,7 @@ Guarantees **no request waits more than 30 seconds** in queue, regardless of mod
 | File | Action | Description |
 |------|--------|-------------|
 | `src/server/proxy/model-scheduler.ts` | **NEW** | Timed-window batching + queue + semaphore |
-| `src/server/proxy/queue-status-sse.ts` | **NEW** | SSE comment formatting + keep-alive pings |
+| `src/server/proxy/queue-status-sse.ts` | **NEW** | Queue keep-alive comments + `: relayed` at dispatch |
 | `src/server/config.ts` | Modify | Add `LOCAL_BACKEND_*` and `MODEL_QUEUE_*` env vars |
 | `src/server/proxy/handler.ts` | Modify | Enqueue/dispatch for local, bypass for direct |
 | `src/server/proxy/errors.ts` | Modify | Queue overflow/timeout error types |

@@ -1,5 +1,6 @@
 import { config } from '../config.ts'
 import { forwardUpstreamAndLog } from './forward.ts'
+import { formatRelayedComment } from './queue-status-sse.ts'
 
 export type QueueEntryId = string
 
@@ -31,6 +32,8 @@ export type ProxyRequestData = {
   body: unknown
   hasBody: boolean
   startedAt: number
+  /** Milliseconds spent waiting in the concurrency queue before dispatch (0 if immediate). */
+  queueMs: number
   endpoint: string
   reqModel: string | null
   reqHeadersJson: string
@@ -52,7 +55,7 @@ type SchedulerConfig = {
 }
 
 export type EnqueueResult =
-  | { status: 'immediate'; dispatchPromise: Promise<Response> }
+  | { status: 'immediate'; startDispatch: () => Promise<Response> }
   | { status: 'queued'; waitPromise: Promise<Response>; entryId: QueueEntryId }
   | { status: 'overflow'; queueDepth: number; maxQueue: number }
 
@@ -114,11 +117,15 @@ export class ModelScheduler {
 
     this.activeSlots++
     this.currentModel = model
+    requestData.queueMs = 0
     // Slot is held until the response body finishes (or errors), not when headers
     // arrive — otherwise a second model request can reach the backend mid-stream
     // and preempt the in-flight generation (e.g. llama.cpp router model swap).
-    const dispatchPromise = this.dispatchHoldingSlot(requestData)
-    return { status: 'immediate', dispatchPromise }
+    // Lazily start dispatch so SSE can commit `: relayed` before undiciFetch.
+    return {
+      status: 'immediate',
+      startDispatch: () => this.dispatchHoldingSlot(requestData, null),
+    }
   }
 
   private enqueueAndWait(entryId: string, model: string, requestData: ProxyRequestData): EnqueueResult {
@@ -172,6 +179,23 @@ export class ModelScheduler {
     return idx >= 0 ? idx + 1 : 0
   }
 
+  /**
+   * Drop a still-queued entry (e.g. client cancelled the SSE keep-alive stream
+   * before a slot was acquired). No-ops if the entry was already dispatched.
+   */
+  cancelQueued(entryId: string, reason = 'Client cancelled while queued'): boolean {
+    const idx = this.queue.findIndex((e) => e.id === entryId)
+    if (idx === -1) return false
+    const [entry] = this.queue.splice(idx, 1)
+    if (entry.timeoutTimer) {
+      clearTimeout(entry.timeoutTimer)
+      entry.timeoutTimer = null
+    }
+    entry.sseController = null
+    entry.reject(new Error(reason))
+    return true
+  }
+
   // Called when a dispatched request completes — wait the batch window
   // so same-model requests can collect before the next selectNext().
   private onDispatchComplete() {
@@ -187,21 +211,6 @@ export class ModelScheduler {
     if (this.currentModel === newModel) return
     this.currentModel = newModel
     this.scheduleEvaluation()
-  }
-
-  // Send keep-alive ping to all queued SSE connections
-  pingQueuedSse(pingFn: (entry: QueueEntry, status: QueueStatus) => void): void {
-    const status = this.getStatus()
-    for (let i = 0; i < this.queue.length; i++) {
-      const entry = this.queue[i]
-      if (entry.sseController) {
-        const entryStatus: QueueStatus = {
-          ...status,
-          position: i + 1,
-        }
-        pingFn(entry, entryStatus)
-      }
-    }
   }
 
   private scheduleEvaluation() {
@@ -238,8 +247,11 @@ export class ModelScheduler {
 
       this.currentModel = candidate.model
       this.activeSlots++
+      candidate.requestData.queueMs = Math.max(0, Date.now() - candidate.enqueueTime)
 
-      const dispatchPromise = this.dispatchHoldingSlot(candidate.requestData)
+      // Emit RELAY on the early-committed SSE controller *before* upstream fetch so
+      // clients see "queue done + dispatched to backend", not "upstream headers".
+      const dispatchPromise = this.dispatchHoldingSlot(candidate.requestData, candidate.sseController)
       dispatchPromise
         .then((response) => candidate.resolve(response))
         .catch((err) => candidate.reject(err instanceof Error ? err : new Error(String(err))))
@@ -288,10 +300,22 @@ export class ModelScheduler {
     return this.queue.reduce((a, b) => (a.enqueueTime < b.enqueueTime ? a : b))
   }
 
-  private async dispatchHoldingSlot(requestData: ProxyRequestData): Promise<Response> {
+  private async dispatchHoldingSlot(
+    requestData: ProxyRequestData,
+    sseController: ReadableStreamDefaultController<Uint8Array> | null,
+  ): Promise<Response> {
+    // RELAY = queue finished + we are sending to the backend (not upstream headers).
+    if (sseController) {
+      try {
+        const encoder = new TextEncoder()
+        sseController.enqueue(encoder.encode(`${formatRelayedComment()}\n\n`))
+      } catch {
+        // Client disconnected — continue dispatch; cancel paths release the slot.
+      }
+    }
     try {
       const response = await this.dispatch(requestData)
-      return this.holdSlotUntilBodyDone(response)
+      return this.holdSlotUntilBodyDone(response, requestData.queueMs)
     } catch (err) {
       this.onDispatchComplete()
       throw err
@@ -299,24 +323,24 @@ export class ModelScheduler {
   }
 
   /**
-   * Keep the concurrency slot until the client finishes reading (or cancels)
-   * the response body. `forwardUpstreamAndLog` returns as soon as headers
-   * arrive so streaming SSE/JSON can start — releasing then would let the next
-   * model request hit the local backend and preempt the in-flight generation.
+   * Concurrency-slot lifetime (local backends only; any concurrency N, any backend):
+   * hold until the server finishes the whole response body, or the client disconnects
+   * (cancel/error). Headers alone must never free the slot — that lets another request
+   * hit the backend mid-stream and preempt generation.
+   *
+   * Uses TransformStream + pipeTo so backpressure and cancel propagate correctly.
    */
-  private holdSlotUntilBodyDone(response: Response): Response {
+  private holdSlotUntilBodyDone(response: Response, queueMs: number): Response {
+    const headers = new Headers(response.headers)
+    headers.set('x-llama-dash-queue-ms', String(queueMs))
+
     if (!response.body) {
       this.onDispatchComplete()
-      return response
-    }
-
-    let reader: ReadableStreamDefaultReader<Uint8Array>
-    try {
-      reader = response.body.getReader()
-    } catch {
-      // Body already locked (unexpected) — do not leak the concurrency slot.
-      this.onDispatchComplete()
-      return response
+      return new Response(null, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      })
     }
 
     let released = false
@@ -326,38 +350,23 @@ export class ModelScheduler {
       this.onDispatchComplete()
     }
 
-    const wrapped = new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        try {
-          const { done, value } = await reader.read()
-          if (done) {
-            controller.close()
-            release()
-            return
-          }
-          controller.enqueue(value)
-        } catch (err) {
-          release()
-          controller.error(err)
-        }
-      },
-      cancel(reason) {
-        release()
-        return reader.cancel(reason)
-      },
-    })
+    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>()
+    void response.body.pipeTo(writable).then(release, release)
 
-    return new Response(wrapped, {
+    return new Response(readable, {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
+      headers,
     })
   }
 
   private async dispatch(requestData: ProxyRequestData): Promise<Response> {
     const start = Date.now()
     try {
-      const result = await forwardUpstreamAndLog(requestData as Parameters<typeof forwardUpstreamAndLog>[0])
+      const result = await forwardUpstreamAndLog({
+        ...(requestData as Parameters<typeof forwardUpstreamAndLog>[0]),
+        queueMs: requestData.queueMs,
+      })
       const latency = Date.now() - start
       this.dispatchLatencies.push(latency)
       if (this.dispatchLatencies.length > 20) this.dispatchLatencies.shift()
