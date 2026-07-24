@@ -27,7 +27,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Watch the box** — live request, token, model, upstream, GPU, and update status in one dashboard.
 - **Manage models** — load/unload models, inspect per-model stats and capability metadata, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose one OpenAI/Anthropic-compatible `/v1/*` endpoint for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
-- **Queue local load** — bound concurrent local-backend requests, queue overflow/timeouts, and model-aware scheduling (same-model batching + fairness). Direct upstreams bypass the queue.
+- **Queue local load** — bound concurrent local-backend requests, queue overflow/timeouts, and model-aware scheduling (same-model batching + fairness). Direct upstreams bypass the queue. Request/playground timing shows `queue + model loading + prefill + reasoning + response + other = total` (0/null → "—"): prefill/response from llama.cpp GPU timings, model loading from wall RELAY→REASON|RESPOND minus prefill, reasoning from REASON→RESPOND. Queue wait is also shown in the playground inspector (START → QUEUE → RELAY).
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, model allow-lists, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.

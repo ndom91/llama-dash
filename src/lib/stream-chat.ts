@@ -8,7 +8,6 @@ export type ChatMessage = {
 }
 
 export type MessageMetrics = {
-  ttftMs?: number
   totalMs?: number
   tokIn?: number
   tokOut?: number
@@ -32,7 +31,10 @@ export type SamplingParams = {
 
 export type StreamEvent =
   | { kind: 'request-sent'; body: Record<string, unknown>; url: string; at: number }
-  | { kind: 'first-byte'; at: number }
+  /** Server accepted the request (response headers received). Tape: START */
+  | { kind: 'started'; at: number }
+  | { kind: 'queued'; position: number; eta: string; model: string; at: number }
+  | { kind: 'relayed'; at: number }
   | { kind: 'reasoning-start'; at: number }
   | { kind: 'content-start'; at: number }
   | { kind: 'timings'; promptMs?: number; predictedMs?: number; at: number }
@@ -91,6 +93,7 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
 
   const body = buildBody(opts)
   const url = '/v1/chat/completions'
+  // Client is about to POST; tape START fires when llama-dash accepts (headers).
   opts.onEvent?.({ kind: 'request-sent', body, url, at: Date.now() })
 
   const res = await fetch(url, {
@@ -113,24 +116,40 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
     throw new Error(msg)
   }
 
+  // START: our server received the request and committed a response.
+  opts.onEvent?.({ kind: 'started', at: Date.now() })
+
+  const wasQueued = res.headers.get('x-llama-dash-queued') === 'true'
+  const isSse = (res.headers.get('content-type') ?? '').includes('text/event-stream')
+  // Non-SSE: no `: relayed` comment — treat header receipt as RELAY.
+  if (!wasQueued && !isSse) {
+    opts.onEvent?.({ kind: 'relayed', at: Date.now() })
+  }
+
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
-  let sawFirstByte = false
+  let sawRelayed = !wasQueued && !isSse
+  let sawQueued = false
   let sawFirstContent = false
   let sawFirstReasoning = false
   let sawDone = false
 
   const emitChunkEvents = (chunk: StreamChunk) => {
-    if (chunk.reasoningContent && !sawFirstReasoning) {
+    const hasReasoning = Boolean(chunk.reasoningContent)
+    const hasContent = Boolean(chunk.content)
+
+    if (hasReasoning && !sawFirstReasoning) {
       sawFirstReasoning = true
       opts.onEvent?.({ kind: 'reasoning-start', at: Date.now() })
     }
-    if (chunk.content && !sawFirstContent) {
+
+    if (hasContent && !sawFirstContent) {
       sawFirstContent = true
       opts.onEvent?.({ kind: 'content-start', at: Date.now() })
     }
-    if (chunk.content || chunk.reasoningContent) {
+
+    if (hasContent || hasReasoning) {
       opts.onEvent?.({
         kind: 'chunk',
         content: chunk.content,
@@ -165,16 +184,28 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
       const { value, done } = await reader.read()
       if (done) break
 
-      if (!sawFirstByte) {
-        sawFirstByte = true
-        opts.onEvent?.({ kind: 'first-byte', at: Date.now() })
-      }
-
       buffer += decoder.decode(value, { stream: true })
       const lines = buffer.split('\n')
       buffer = lines.pop() ?? ''
 
       for (const line of lines) {
+        const queueStatus = parseQueueStatusLine(line)
+        if (queueStatus) {
+          if (!sawQueued) {
+            sawQueued = true
+            // Later `: queued` keep-alives update position/ETA on the wire only.
+            opts.onEvent?.({ kind: 'queued', ...queueStatus, at: Date.now() })
+          }
+          continue
+        }
+        if (parseRelayedStatusLine(line)) {
+          if (!sawRelayed) {
+            sawRelayed = true
+            opts.onEvent?.({ kind: 'relayed', at: Date.now() })
+          }
+          continue
+        }
+
         const chunk = parseSseLine(line)
         if (!chunk) continue
         emitChunkEvents(chunk)
@@ -195,6 +226,21 @@ export async function* streamChatCompletion(opts: StreamRequestOptions): AsyncGe
   } finally {
     reader.releaseLock()
   }
+}
+
+function parseQueueStatusLine(line: string): { position: number; eta: string; model: string } | null {
+  const trimmed = line.trim()
+  if (!trimmed.startsWith(': queued ')) return null
+  const position = /position=(\d+)/.exec(trimmed)?.[1]
+  const eta = /eta=(\S+)/.exec(trimmed)?.[1]
+  const model = /model=(\S+)/.exec(trimmed)?.[1]
+  if (!position || !eta || !model) return null
+  return { position: Number(position), eta, model }
+}
+
+function parseRelayedStatusLine(line: string): boolean {
+  const trimmed = line.trim()
+  return trimmed === ': relayed' || trimmed.startsWith(': relayed ')
 }
 
 function parseSseLine(line: string): StreamChunk | null {

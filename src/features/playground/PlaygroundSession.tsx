@@ -149,7 +149,7 @@ export function PlaygroundSession({
           label="max_tokens"
           value={sampling.maxTokens}
           min={64}
-          max={8192}
+          max={1_000_000}
           step={64}
           decimals={0}
           onChange={(v) => setSampling({ maxTokens: Math.round(v) })}

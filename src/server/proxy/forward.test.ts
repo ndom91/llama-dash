@@ -27,10 +27,16 @@ function input(overrides: Partial<ProxyLogInput> = {}): ProxyLogInput {
       model: 'gemma-4-26B-A4B-it-UD-Q8_K_XL.gguf',
       promptTokens: 10,
       completionTokens: 20,
-      totalTokens: 30,
       cacheCreationTokens: null,
       cacheReadTokens: null,
+      prefillMs: null,
+      decodeMs: null,
       streamCloseMs: null,
+      modelLoadingMs: null,
+      reasoningMs: null,
+      responseMs: null,
+      gpuPrefillMs: null,
+      gpuDecodeMs: null,
     },
     streamed: true,
     error: null,
@@ -79,6 +85,18 @@ describe('writeProxyLog', () => {
     writeProxyLog(input({ routing: { ...input().routing, routedModel: 'qwen3.6-coder' } }))
 
     expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ model: 'qwen3.6-coder' }))
+  })
+
+  it('logs queueMs when provided', () => {
+    writeProxyLog(input({ queueMs: 420 }))
+
+    expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ queueMs: 420 }))
+  })
+
+  it('defaults queueMs to null when omitted', () => {
+    writeProxyLog(input())
+
+    expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ queueMs: null }))
   })
 
   it('lets fetch compute content length for forwarded request bodies', async () => {

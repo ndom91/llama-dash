@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo } from 'react'
+import { useDeferredValue, useMemo, useRef } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import type { ParsedSseStream } from './requestDetailUtils'
@@ -13,10 +13,24 @@ type Props = {
   headers: Record<string, string> | null
   mode: 'pretty' | 'raw' | 'sse'
   sseStream?: ParsedSseStream | null
+  assembledReasoning?: string | null
+  assembledResponse?: string | null
 }
 
-export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseStream = null }: Props) {
+export function RequestPayloadPane({
+  title,
+  subtitle,
+  body,
+  headers,
+  mode,
+  sseStream = null,
+  assembledReasoning = null,
+  assembledResponse = null,
+}: Props) {
   const hasBody = body.trim().length > 0
+  const hasAssembled = Boolean(assembledReasoning || assembledResponse)
+  const showPayload = hasBody || (mode === 'sse' && hasAssembled)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const deferredBody = useDeferredValue(body)
   const deferredHeaders = useDeferredValue(headers)
 
@@ -29,16 +43,32 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
     [deferredBody, mode],
   )
   const bodyContent = useMemo(() => {
-    if (mode === 'sse') return <RequestSseEvents body={deferredBody} stream={sseStream} />
-    if (pretty) return <RequestJsonHighlight json={pretty} className="flex-1" />
+    if (mode === 'sse') {
+      return (
+        <RequestSseEvents
+          body={deferredBody}
+          stream={sseStream}
+          assembledReasoning={assembledReasoning}
+          assembledResponse={assembledResponse}
+        />
+      )
+    }
+    if (pretty) {
+      return (
+        <RequestJsonHighlight
+          json={pretty}
+          getScrollElement={() => scrollRef.current}
+          className="!h-auto !max-h-none !overflow-visible"
+        />
+      )
+    }
     return deferredBody
-  }, [deferredBody, mode, pretty, sseStream])
+  }, [assembledReasoning, assembledResponse, deferredBody, mode, pretty, sseStream])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
-  const usesCustomPrettyBody = pretty != null
 
   return (
     <section className="request-payload-pane flex h-full min-h-0 min-w-0 flex-col border-r border-border last:border-r-0">
-      <div className="flex min-h-10 min-w-0 items-center gap-2.5 border-b border-border bg-surface-1 px-4 max-[1200px]:px-3">
+      <div className="flex min-h-10 min-w-0 shrink-0 items-center gap-2.5 border-b border-border bg-surface-1 px-4 max-[1200px]:px-3">
         <span className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-dim">
           {title}
         </span>
@@ -46,39 +76,38 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
         <div className="ml-auto" />
         <CopyButton text={body} variant="button" icon="clipboard" ariaLabel={`Copy ${title} payload`} />
       </div>
-      {hasBody ? (
-        usesCustomPrettyBody ? (
-          <div className="flex flex-1 min-h-[50%] min-w-0">{bodyContent}</div>
-        ) : (
-          <pre className={cn('body-pre border-t-0', 'flex-1 min-h-[50%]')}>{bodyContent}</pre>
-        )
-      ) : (
-        <pre className={cn('body-pre border-t-0', 'h-14 flex-none overflow-hidden py-4')}>
-          <span className="text-fg-faint">No body payload</span>
-        </pre>
-      )}
-      {headerEntries.length > 0 ? (
-        <div
-          className={cn(
-            'headers-scroll overflow-auto border-t border-border',
-            hasBody ? 'min-h-[25%] max-h-[50%]' : 'min-h-0 flex-1 max-h-none',
-          )}
-        >
-          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-            Headers
+
+      <div ref={scrollRef} className="payload-body-scroll min-h-0 flex-1 overflow-auto">
+        {headerEntries.length > 0 ? (
+          <div className="headers-scroll border-b border-border">
+            <div className="border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+              Headers
+            </div>
+            <table className="dtable headers-table">
+              <tbody>
+                {headerEntries.map(([k, v]) => (
+                  <tr key={k}>
+                    <td className="mono header-key">{k}</td>
+                    <td className="mono header-value">{maskSensitive(k, v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <table className="dtable headers-table">
-            <tbody>
-              {headerEntries.map(([k, v]) => (
-                <tr key={k}>
-                  <td className="mono header-key">{k}</td>
-                  <td className="mono header-value">{maskSensitive(k, v)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
+        ) : null}
+
+        {showPayload ? (
+          mode === 'pretty' && pretty != null ? (
+            bodyContent
+          ) : (
+            <pre className={cn('body-pre border-t-0', '!h-auto !max-h-none !overflow-visible')}>{bodyContent}</pre>
+          )
+        ) : (
+          <pre className={cn('body-pre border-t-0', 'overflow-hidden py-4')}>
+            <span className="text-fg-faint">No body payload</span>
+          </pre>
+        )}
+      </div>
     </section>
   )
 }

@@ -12,6 +12,8 @@ type FakeRequest = {
   request_body: string | null
   response_headers: string | null
   response_body: string | null
+  assembled_reasoning: string | null
+  assembled_response: string | null
 }
 
 const settingsMock = vi.hoisted(() => ({
@@ -88,6 +90,8 @@ vi.mock('./db/index.ts', () => ({
             row.request_body = null
             row.response_headers = null
             row.response_body = null
+            row.assembled_reasoning = null
+            row.assembled_response = null
             changes++
           }
           return { changes }
@@ -104,7 +108,12 @@ import { pruneRequestLogs } from './request-log-maintenance'
 
 function hasBodyText(row: FakeRequest) {
   return (
-    row.request_headers != null || row.request_body != null || row.response_headers != null || row.response_body != null
+    row.request_headers != null ||
+    row.request_body != null ||
+    row.response_headers != null ||
+    row.response_body != null ||
+    row.assembled_reasoning != null ||
+    row.assembled_response != null
   )
 }
 
@@ -125,6 +134,8 @@ function row(id: string, overrides: Partial<FakeRequest>): FakeRequest {
     request_body: null,
     response_headers: null,
     response_body: null,
+    assembled_reasoning: null,
+    assembled_response: null,
     ...overrides,
   }
 }

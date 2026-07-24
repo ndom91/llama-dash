@@ -53,7 +53,6 @@ export function PlaygroundMessage({
   const metrics = message.metrics
   const metricItems = metrics
     ? [
-        `ttft ${metrics.ttftMs != null ? `${Math.round(metrics.ttftMs)} ms` : '—'}`,
         `total ${metrics.totalMs != null ? `${(metrics.totalMs / 1000).toFixed(2)} s` : '—'}`,
         `tok/s ${metrics.tokPerSec != null ? metrics.tokPerSec.toFixed(1) : '—'}`,
         `tokens ${metrics.tokIn != null ? `${metrics.tokIn} in` : '—'}`,

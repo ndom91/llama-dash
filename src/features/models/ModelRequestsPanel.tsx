@@ -1,6 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
-import { useMemo } from 'react'
 import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
 import type { ApiRequest } from '../../lib/api'
@@ -13,7 +12,6 @@ type Props = {
 
 export function ModelRequestsPanel({ rows, modelId }: Props) {
   const navigate = useNavigate()
-  const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   return (
     <section className="panel detail-stacked-section">
@@ -70,7 +68,17 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
                   <td className="num dim">{r.promptTokens ?? '—'}</td>
                   <td className="num">{r.completionTokens ?? '—'}</td>
                   <td>
-                    <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                    <DurationBar
+                      ms={r.durationMs}
+                      isErr={r.statusCode >= 400}
+                      timing={{
+                        queueMs: r.queueMs,
+                        modelLoadingMs: r.modelLoadingMs,
+                        prefillMs: r.prefillMs,
+                        reasoningMs: r.reasoningMs,
+                        responseMs: r.responseMs,
+                      }}
+                    />
                   </td>
                 </tr>
               ))}

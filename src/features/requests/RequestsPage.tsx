@@ -166,7 +166,6 @@ export function RequestsPage() {
   }, [displayed, sortKey, sortDir])
 
   const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
-  const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
@@ -286,9 +285,7 @@ export function RequestsPage() {
     <div className="content">
       <div className="page flex min-h-full flex-1">
         <PageHeader
-          kicker="req · log"
-          title="Request log"
-          subtitle="proxied API calls, newest first"
+          title="Requests"
           variant="integrated"
           action={
             <span className="live-badge requests-live-badge">
@@ -580,7 +577,7 @@ export function RequestsPage() {
                           </RequestsSortHeader>
                           {showTokIn ? (
                             <RequestsSortHeader
-                              field="totalTokens"
+                              field="promptTokens"
                               current={sortKey}
                               dir={sortDir}
                               onToggle={toggleSort}
@@ -693,7 +690,17 @@ export function RequestsPage() {
                                       </td>
                                     ) : null}
                                     <td>
-                                      <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                                      <DurationBar
+                                        ms={r.durationMs}
+                                        isErr={r.statusCode >= 400}
+                                        timing={{
+                                          queueMs: r.queueMs,
+                                          modelLoadingMs: r.modelLoadingMs,
+                                          prefillMs: r.prefillMs,
+                                          reasoningMs: r.reasoningMs,
+                                          responseMs: r.responseMs,
+                                        }}
+                                      />
                                     </td>
                                   </tr>
                                 </tbody>

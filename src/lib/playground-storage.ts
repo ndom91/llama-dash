@@ -23,6 +23,7 @@ export const DEFAULT_SAMPLING: SamplingParams = {
 }
 
 const MessageMetricsSchema = v.object({
+  // Legacy localStorage messages may still carry ttftMs; ignore it.
   ttftMs: v.optional(v.number()),
   totalMs: v.optional(v.number()),
   tokIn: v.optional(v.number()),

@@ -66,7 +66,9 @@ function responseFromOptions(options: FakeUpstreamOptions = {}): Response {
  * Call from the test file's top-level (with matching vi.mock('undici')) or via
  * installFakeUpstreamUndiciMock() after the module mock is in place.
  */
-export function installFakeUpstream(handler?: (call: CapturedUpstreamCall) => FakeUpstreamOptions | Response) {
+export function installFakeUpstream(
+  handler?: (call: CapturedUpstreamCall) => FakeUpstreamOptions | Response | Promise<FakeUpstreamOptions | Response>,
+) {
   captured.length = 0
   if (!undiciFetchMock) {
     throw new Error('installFakeUpstream: call installFakeUpstreamUndiciMock() / vi.mock undici first')
@@ -79,7 +81,8 @@ export function installFakeUpstream(handler?: (call: CapturedUpstreamCall) => Fa
       body: await bodyToString(init?.body ?? null),
     }
     captured.push(call)
-    const result = handler?.(call) ?? {}
+    const result = await handler?.(call)
+    if (result == null) return responseFromOptions({})
     return result instanceof Response ? result : responseFromOptions(result)
   })
 }
@@ -123,6 +126,84 @@ export function openaiSseWithUsage(model = 'llama3') {
     })}\n\n`,
     'data: [DONE]\n\n',
   ].join('')
+}
+
+export type DelayedChunk = {
+  /** Artificial backend wait before this chunk is emitted. */
+  delayMs: number
+  text: string
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** Streaming SSE response with per-chunk artificial latency (dummy backend waits). */
+export function delayedSseResponse(chunks: Array<DelayedChunk>, status = 200): Response {
+  const encoder = new TextEncoder()
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      for (const chunk of chunks) {
+        if (chunk.delayMs > 0) await sleep(chunk.delayMs)
+        controller.enqueue(encoder.encode(chunk.text))
+      }
+      controller.close()
+    },
+  })
+  return new Response(body, {
+    status,
+    headers: { 'content-type': 'text/event-stream' },
+  })
+}
+
+/** Non-streaming JSON response that waits before returning headers+body. */
+export function delayedJsonResponse(delayMs: number, json: unknown, status = 200): Promise<Response> {
+  return sleep(delayMs).then(() => Response.json(json, { status }))
+}
+
+/**
+ * Build a chat-completions SSE timeline with random-ish artifact waits:
+ * prefill → tokens → [DONE] → trailing close padding (empty, just delay before close).
+ */
+export function buildTimedChatSseChunks(opts: {
+  prefillMs: number
+  tokenGapMs: number
+  tokenCount?: number
+  closePaddingMs?: number
+  model?: string
+  /** Inflated llama.cpp timings that must NOT be used for wall-clock phase sums. */
+  misleadingGpuTimings?: { prompt_ms: number; predicted_ms: number }
+}): Array<DelayedChunk> {
+  const model = opts.model ?? 'llama3'
+  const tokenCount = opts.tokenCount ?? 3
+  const chunks: Array<DelayedChunk> = [
+    {
+      delayMs: opts.prefillMs,
+      text: `data: ${JSON.stringify({ id: 'c1', choices: [{ delta: { role: 'assistant' } }] })}\n\n`,
+    },
+  ]
+  for (let i = 0; i < tokenCount; i++) {
+    chunks.push({
+      delayMs: i === 0 ? 0 : opts.tokenGapMs,
+      text: `data: ${JSON.stringify({ id: 'c1', choices: [{ delta: { content: `t${i}` } }] })}\n\n`,
+    })
+  }
+  const usageEvent: Record<string, unknown> = {
+    id: 'c1',
+    model,
+    choices: [{ delta: {}, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 4, completion_tokens: tokenCount, total_tokens: 4 + tokenCount },
+  }
+  if (opts.misleadingGpuTimings) {
+    usageEvent.timings = opts.misleadingGpuTimings
+  }
+  chunks.push({ delayMs: opts.tokenGapMs, text: `data: ${JSON.stringify(usageEvent)}\n\n` })
+  chunks.push({ delayMs: 0, text: 'data: [DONE]\n\n' })
+  if ((opts.closePaddingMs ?? 0) > 0) {
+    // Extra delayed empty comment after [DONE] so streamCloseMs is measurable.
+    chunks.push({ delayMs: opts.closePaddingMs!, text: ': close-padding\n\n' })
+  }
+  return chunks
 }
 
 /** Vitest afterEach helper — clears captured calls between tests. */

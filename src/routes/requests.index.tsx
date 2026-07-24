@@ -20,7 +20,7 @@ export type RequestsSearch = {
 
 const STATUS_VALUES: ReadonlyArray<StatusFilter> = ['all', 'ok', 'err']
 const ROUTING_VALUES: ReadonlyArray<RoutingFilter> = ['all', 'routed', 'unrouted']
-const SORT_KEY_VALUES: ReadonlyArray<SortKey> = ['startedAt', 'durationMs', 'statusCode', 'totalTokens']
+const SORT_KEY_VALUES: ReadonlyArray<SortKey> = ['startedAt', 'durationMs', 'statusCode', 'promptTokens']
 const SORT_DIR_VALUES: ReadonlyArray<SortDir> = ['asc', 'desc']
 
 function asString(v: unknown): string | undefined {

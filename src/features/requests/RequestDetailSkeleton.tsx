@@ -5,9 +5,8 @@ export function RequestDetailSkeleton() {
   return (
     <>
       <PageHeader
-        kicker="req · loading · a · split"
-        title="POST /v1/chat/completions"
-        subtitle={<span className="skel skel-text" style={{ width: 180 }} />}
+        parent={{ label: 'Requests', to: '/requests' }}
+        title="loading…"
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
@@ -18,15 +17,25 @@ export function RequestDetailSkeleton() {
       />
 
       <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
-        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
-          <DetailRailSection title="Summary" rows={6} />
-          <DetailRailSection title="Model" rows={3} divider />
-          <DetailRailSection title="Timing" rows={5} divider />
+        <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
+          <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
+            <DetailRailSection title="Summary" rows={5} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3">
+            <DetailRailSection title="Model" rows={3} />
+          </div>
+          <div className="shrink-0 border-t border-border px-3.5 py-4 max-[1200px]:px-3">
+            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
+            <div className="grid gap-2">
+              <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
+              <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
+            </div>
+          </div>
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
+          <div className="border-b border-border bg-surface-1 max-[1024px]:border-t max-[1024px]:border-t-border">
+            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_148px_148px_148px_148px_148px] max-[1900px]:grid-cols-[minmax(0,1fr)_136px_136px_136px_136px_136px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
               <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:col-span-2">
                 <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">endpoint</div>
                 <div className="mt-2 flex items-center gap-3">
@@ -34,10 +43,10 @@ export function RequestDetailSkeleton() {
                   <span className="skel skel-text" style={{ width: '52%', height: 28 }} />
                 </div>
               </div>
-              {['status', 'tok-in', 'tok-out', 'total', 'duration', 'tok/s'].map((label, index) => (
+              {['status', 'tok-in', 'tok-out', 'duration', 'tok/s'].map((label, index) => (
                 <div
                   key={label}
-                  className={`border-border px-4 py-4 ${index % 3 !== 2 ? 'border-r' : ''} ${index < 5 ? 'max-[1500px]:border-b' : ''} ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r'} max-[1024px]:border-b`}
+                  className={`border-border px-4 py-4 ${index % 3 !== 2 ? 'border-r' : ''} ${index < 4 ? 'max-[1500px]:border-b' : ''} ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r'} max-[1024px]:border-b`}
                 >
                   <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">{label}</span>
                   <span className="mt-2 block skel skel-text" style={{ width: 48, height: 22 }} />
@@ -46,27 +55,15 @@ export function RequestDetailSkeleton() {
             </div>
           </div>
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
-            <div className="panel-head bg-surface-1 px-4">
-              <span className="panel-title">Stream</span>
-              <span className="panel-sub">· token trace</span>
-            </div>
-            <div className="px-4 pb-4">
+          <section className="panel !rounded-none !border-l-0 !border-r-0 !border-b-0 !bg-surface-1">
+            <div className="px-4 py-3">
               <div className="h-16 rounded-sm bg-surface-2">
                 <span className="skel skel-block h-full" />
               </div>
             </div>
           </section>
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="panel-head bg-surface-1 px-4">
-              <span className="panel-title">Payloads</span>
-              <span className="panel-sub">request • response</span>
-              <span className="panel-sub ml-auto">
-                <span className="skel skel-text" style={{ width: 88 }} />
-              </span>
-            </div>
-
+          <section className="panel !rounded-none !border-l-0 !border-r-0 !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             <div className="grid min-h-0 grid-cols-2 max-[1024px]:grid-cols-1">
               <div>
                 <RequestBodySkeleton title="Request" />
@@ -77,32 +74,6 @@ export function RequestDetailSkeleton() {
             </div>
           </section>
         </div>
-
-        <aside className="request-detail-sidecar detail-sidecar min-w-0 bg-surface-2">
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Response</div>
-            <div className="space-y-2 rounded border border-border bg-surface-1 px-3 py-3">
-              {Array.from({ length: 5 }, (_, index) => `res-${index}`).map((key, index) => (
-                <div key={key} className="flex items-center justify-between gap-3">
-                  <span className="skel skel-text" style={{ width: 62 }} />
-                  <span className="skel skel-text" style={{ width: `${44 - index * 4}%` }} />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Headers</div>
-            <div className="space-y-2.5">
-              {Array.from({ length: 6 }, (_, index) => `hdr-${index}`).map((key, index) => (
-                <div key={key} className="flex items-center justify-between gap-3">
-                  <span className="skel skel-text" style={{ width: 74 }} />
-                  <span className="skel skel-text" style={{ width: `${46 - index * 3}%` }} />
-                </div>
-              ))}
-            </div>
-          </section>
-        </aside>
       </div>
     </>
   )

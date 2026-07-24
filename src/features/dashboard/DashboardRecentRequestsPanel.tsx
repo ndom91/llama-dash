@@ -13,7 +13,6 @@ type Props = {
 export function DashboardRecentRequestsPanel({ requests }: Props) {
   const navigate = useNavigate()
   const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
-  const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
     <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
@@ -131,7 +130,17 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
                   <td className="num dim">{r.promptTokens ?? '—'}</td>
                   <td className="num">{r.completionTokens ?? '—'}</td>
                   <td>
-                    <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                    <DurationBar
+                      ms={r.durationMs}
+                      timing={{
+                        queueMs: r.queueMs,
+                        modelLoadingMs: r.modelLoadingMs,
+                        prefillMs: r.prefillMs,
+                        reasoningMs: r.reasoningMs,
+                        responseMs: r.responseMs,
+                      }}
+                      isErr={r.statusCode >= 400}
+                    />
                   </td>
                 </tr>
               ))}

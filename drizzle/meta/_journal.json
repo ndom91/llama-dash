@@ -253,6 +253,48 @@
       "when": 1781432774093,
       "tag": "0035_redundant_morgan_stark",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1782312000000,
+      "tag": "0036_request_queue_ms",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1782315600000,
+      "tag": "0037_request_phase_ms",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1782319200000,
+      "tag": "0038_request_gpu_phase_ms",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1782322800000,
+      "tag": "0039_request_display_phase_ms",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1782326400000,
+      "tag": "0040_drop_request_total_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1782330000000,
+      "tag": "0041_request_assembled_text",
+      "breakpoints": true
     }
   ]
 }

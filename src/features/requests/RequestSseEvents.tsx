@@ -3,47 +3,41 @@ import { useMemo } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
-import { assembleSseText, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
+import { assembleSseParts, estimateTextTokens, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 
 type Props = {
   body: string
   stream?: ParsedSseStream | null
+  /** Persisted full reasoning (preferred over stream-derived when set). */
+  assembledReasoning?: string | null
+  /** Persisted full response (preferred over stream-derived when set). */
+  assembledResponse?: string | null
 }
 
-export function RequestSseEvents({ body, stream }: Props) {
+export function RequestSseEvents({ body, stream = null, assembledReasoning = null, assembledResponse = null }: Props) {
   const events = useMemo(() => stream?.events ?? parseSseStream(body).events, [body, stream])
-  const assembled = useMemo(
-    () => assembleSseText({ events, latestTimingData: stream?.latestTimingData ?? null }),
+  const derived = useMemo(
+    () => assembleSseParts({ events, latestTimingData: stream?.latestTimingData ?? null }),
     [events, stream],
   )
-  const [open, toggleOpen] = useStickyToggle('requests-assembled-text-open', false)
-  if (events.length === 0) return <>{body}</>
+  const reasoning = assembledReasoning ?? derived.reasoning
+  const response = assembledResponse ?? derived.response
+
+  if (events.length === 0 && !reasoning && !response) return <>{body}</>
+
   return (
     <div className="sse-events">
-      {assembled ? (
-        <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
-          <div className="flex w-full items-center bg-surface-0">
-            <button
-              type="button"
-              className="flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
-              onClick={toggleOpen}
-            >
-              <ChevronRight
-                className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
-                strokeWidth={2}
-              />
-              <span>assembled text</span>
-              <span className="dim normal-case tracking-normal">{assembled.length.toLocaleString()} chars</span>
-            </button>
-            <CopyButton text={assembled} variant="icon" icon="clipboard" ariaLabel="Copy assembled text" />
-          </div>
-          {open ? (
-            <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
-              {assembled}
-            </pre>
-          ) : null}
-        </div>
+      {reasoning ? (
+        <AssembledBlock label="assembled reasoning" text={reasoning} storageKey="requests-assembled-reasoning-open" />
+      ) : null}
+      {response ? (
+        <AssembledBlock
+          label="assembled response"
+          text={response}
+          storageKey="requests-assembled-response-open"
+          defaultOpen
+        />
       ) : null}
       {events.map((e, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: stream is append-only, index is stable
@@ -66,6 +60,47 @@ export function RequestSseEvents({ body, stream }: Props) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+function AssembledBlock({
+  label,
+  text,
+  storageKey,
+  defaultOpen = false,
+}: {
+  label: string
+  text: string
+  storageKey: string
+  defaultOpen?: boolean
+}) {
+  const [open, toggleOpen] = useStickyToggle(storageKey, defaultOpen)
+  const tokens = estimateTextTokens(text)
+  return (
+    <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+      <div className="flex w-full items-center bg-surface-0">
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
+          onClick={toggleOpen}
+        >
+          <ChevronRight
+            className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
+            strokeWidth={2}
+          />
+          <span>{label}</span>
+          <span className="dim normal-case tracking-normal">
+            {tokens.toLocaleString()} {tokens === 1 ? 'token' : 'tokens'}
+          </span>
+        </button>
+        <CopyButton text={text} variant="icon" icon="clipboard" ariaLabel={`Copy ${label}`} />
+      </div>
+      {open ? (
+        <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
+          {text}
+        </pre>
+      ) : null}
     </div>
   )
 }

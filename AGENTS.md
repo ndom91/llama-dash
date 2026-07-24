@@ -92,7 +92,7 @@ src/
     db/                   — drizzle schema + SQLite init; pending migrations run on server boot (also via pnpm db:migrate)
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
     proxy/model-scheduler.ts — upstream concurrency queue, model-aware scheduling, fairness timeout
-    proxy/queue-status-sse.ts — SSE comment pings for queued requests (keep-alive)
+    proxy/queue-status-sse.ts — SSE queue keep-alive comments + `: relayed` at dispatch
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
     backends/llama-cpp-router.ts — adapter for llama.cpp router mode
@@ -217,8 +217,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
     with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
-    image and transcription testing; timing sidebar shows TTFT, prefill,
-    decode, and stream-close when upstream llama.cpp timing metadata is present), Config editor with explicit
+    image and transcription testing; timing sidebar shows queue, model loading,
+    prefill (GPU), reasoning, response, and other so phases sum to total; event rail uses
+    START / QUEUE / RELAY / REASON / RESPOND / END / ERROR), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls
     and global proxy/privacy/retention defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
@@ -278,9 +279,16 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (string or content-block array, preserved shape).
 12. Request logs persist routing and attribution context. Request detail shows
       matched routing rule/action/auth mode plus client, end-user, and session metadata.
-    Request list supports routing, attribution, and client-host filters, and session IDs
+    Timing/Phases always show queue + model loading + prefill + reasoning +
+    response + other (= duration); 0/null values render as "—". Prefill is
+    llama.cpp `timings.prompt_ms`; model loading is wall RELAY→REASON|RESPOND minus
+    prefill; reasoning is wall REASON→RESPOND when both exist; response is
+    `timings.predicted_ms` minus reasoning. Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
+    For SSE responses, full assembled reasoning and response text are stored in
+    separate columns (not subject to max-stored-body truncation) so the readable
+    completion survives even when the raw stream is trimmed.
     Request rows are classified as `inference` or `mcp_relay`; successful MCP relay
     rows are metadata-only by default, while relay failures keep bounded body/header
     snippets for debugging. Hourly retention pruning removes old inference rows,
@@ -306,19 +314,27 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (`LOCAL_BACKEND_MAX_QUEUE`, default 20). Queue overflow returns 503 with
    queue depth info. Queue timeout returns 408 (`LOCAL_BACKEND_QUEUE_TIMEOUT_MS`,
    default 60000ms; set to -1 to disable). Direct upstreams bypass the queue
-   entirely. Model grouping (`LOCAL_BACKEND_MODEL_GROUPING`, default true)
-   dispatches same-model requests first, then largest model group, with a
-   fairness timeout (`MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`, default 30000ms) that
-   dispatches the oldest request regardless of model to prevent starvation. A
-   batch window (`MODEL_QUEUE_BATCH_WINDOW_MS`, default 2000ms) collects
-   same-model requests before dispatch. SSE requests receive queue-status
-   comment pings every 5s while waiting (`: queued position=N eta=Xs ...`).
-   Non-SSE requests use HTTP long-poll (connection held open until slot
-   acquired). The scheduler is notified of model state changes from the
-   model-watcher only when the loaded set changes, and only applies them while
-   idle. Queue entry ids use a `queue_` prefix (distinct from logged `req_` ids).
-   SSE timeouts after early commit emit an SSE `queue_timeout` error event
-   rather than HTTP 408.
+   entirely. A concurrency slot is always held until the server finishes the
+   whole response body or the client disconnects — independent of backend and
+   of concurrency N (headers alone never free the slot). Request display timing
+   is `queue + model loading + prefill + reasoning + response + other = duration`
+   (0/null → "—"). Prefill/response come from llama.cpp `timings.prompt_ms` /
+   `predicted_ms` (also stored raw as `gpu_*`); model loading is wall RELAY→REASON|RESPOND
+   minus prefill; reasoning is wall REASON→RESPOND when both exist. Model
+   grouping (`LOCAL_BACKEND_MODEL_GROUPING`,
+   default true) dispatches same-model requests first, then largest model
+   group, with a fairness timeout (`MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`, default
+   30000ms) that dispatches the oldest request regardless of model to prevent
+   starvation. A batch window (`MODEL_QUEUE_BATCH_WINDOW_MS`, default 2000ms)
+   collects same-model requests before dispatch. Queued SSE requests get
+   `: queued …` keep-alive comments every 5s while waiting (immediate first
+   ping at enqueue); the playground logs QUEUE once from the first comment.
+   `: relayed` is emitted at backend dispatch. Non-SSE requests use HTTP long-poll (connection held open
+   until slot acquired). The scheduler is notified of model state changes from
+   the model-watcher only when the loaded set changes, and only applies them
+   while idle. Queue entry ids use a `queue_` prefix (distinct from logged
+   `req_` ids). SSE timeouts after early commit emit an SSE `queue_timeout`
+   error event rather than HTTP 408.
 
 ## Tooling
 
@@ -544,14 +560,28 @@ sort lexicographically by creation time).
 - **Scheduler gates only local backends.** The concurrency queue in
   `model-scheduler.ts` applies only to local inference backends. Direct upstream
   routing (`targetType: 'direct'`) bypasses the queue entirely and flows
-  immediately through `forwardUpstreamAndLog()`. A concurrency slot is held
-  until the response body finishes (or the client cancels), not when upstream
-  headers arrive — otherwise a second model request can preempt an in-flight
-  stream on single-slot backends such as llama.cpp router.
-- **SSE queue pings use comment lines.** Queued SSE requests get `:` comment
-  pings every 5s while waiting (`: queued position=N eta=Xs model=...`).
-  Non-SSE requests use HTTP long-poll (connection held, no response committed).
-  Both approaches are zero-breaking per SSE and HTTP specs.
+  immediately through `forwardUpstreamAndLog()`. For every queued local request,
+  independent of backend and of `LOCAL_BACKEND_MAX_CONCURRENT`, a concurrency
+  slot is held until the server finishes the whole response body or the client
+  disconnects — never when upstream headers alone arrive (otherwise a second
+  model request can preempt an in-flight stream). Phase timings on the request
+  log follow `queue + model loading + prefill + reasoning + response + other =
+  duration_ms` (labels always shown; 0/null → "—"). Prefill is GPU
+  `timings.prompt_ms`; model loading is wall RELAY→REASON|RESPOND minus prefill;
+  reasoning is wall REASON→RESPOND when both exist; response is
+  `timings.predicted_ms` minus reasoning when thinking ran.
+  Queue wait is also exposed as `x-llama-dash-queue-ms` so request detail and
+  the playground can show the queue phase separately from START → RELAY.
+- **SSE queue comments.** Queued SSE requests get `: queued position=N
+  eta=Xs model=...` keep-alive comments every 5s while waiting (immediate first
+  ping at enqueue). Playground / inspector clients log QUEUE once from the first
+  comment; later pings are keep-alives only. Non-SSE requests use HTTP long-poll
+  (connection held, no response committed). After the slot is acquired, SSE
+  emits `: relayed` **when llama-dash dispatches to the inference backend**
+  (before waiting on upstream headers), so RELAY marks queue-done + backend
+  send — not first token / upstream headers. Immediate SSE also early-commits
+  and emits `: relayed` before the upstream fetch for the same reason. Both
+  approaches are zero-breaking per SSE and HTTP specs.
 - **Queue timeout after SSE commit.** Non-SSE queue timeouts return HTTP 408
   with `queue_timeout`. SSE requests that were already committed at 200 while
   queued emit a single SSE `data:` error event (`type: queue_timeout`) and close

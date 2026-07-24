@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import { deriveDisplayPhases } from './timing-phases.ts'
 import { type ChatMessage, type MessageMetrics, type StreamEvent, streamChatCompletion } from './stream-chat'
 import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
@@ -19,10 +20,18 @@ export type InspectorEvent = { id: string; at: number; tag: string; text: string
 
 export type InspectorTiming = {
   queueMs: number | null
-  swapMs: number | null
+  modelLoadingMs: number | null
   prefillMs: number | null
-  decodeMs: number | null
-  streamCloseMs: number | null
+  reasoningMs: number | null
+  responseMs: number | null
+}
+
+const EMPTY_TIMING: InspectorTiming = {
+  queueMs: null,
+  modelLoadingMs: null,
+  prefillMs: null,
+  reasoningMs: null,
+  responseMs: null,
 }
 
 const EMPTY_INSPECTOR: InspectorState = {
@@ -31,7 +40,7 @@ const EMPTY_INSPECTOR: InspectorState = {
   lastResponseText: '',
   lastMetrics: {},
   events: [],
-  timing: { queueMs: null, swapMs: null, prefillMs: null, decodeMs: null, streamCloseMs: null },
+  timing: { ...EMPTY_TIMING },
 }
 
 let nextId = 0
@@ -94,20 +103,28 @@ export function usePlaygroundChat() {
       setIsReasoning(false)
       const runId = ++runSeqRef.current
 
+      // One playground generation at a time — abort any prior in-flight stream
+      // so message/inspector state does not race across overlapping runs.
+      abortRef.current?.abort()
       const abort = new AbortController()
       abortRef.current = abort
 
       const timings = {
         requestAt: 0,
-        firstByteAt: 0,
+        startedAt: 0,
+        relayedAt: 0,
+        reasoningStartAt: 0,
         firstContentAt: 0,
         doneAt: 0,
         closeAt: 0,
-        promptMs: 0,
-        predictedMs: 0,
+        promptMs: null as number | null,
+        predictedMs: null as number | null,
+        queueMs: null as number | null,
+        wasQueued: false,
       }
       const events: Array<InspectorEvent> = []
       const usage: { prompt?: number; completion?: number } = {}
+      let lastUrl = '/v1/chat/completions'
 
       let evSeq = 0
       let finalized = false
@@ -120,16 +137,40 @@ export function usePlaygroundChat() {
         setInspector((prev) => ({ ...prev, events: [...events] }))
       }
       const applyFinalMetrics = (closeAt?: number) => {
-        const ttftMs = timings.firstContentAt ? timings.firstContentAt - timings.requestAt : undefined
-        const totalMs = timings.doneAt ? timings.doneAt - timings.requestAt : undefined
-        const decodeMs =
-          timings.predictedMs ||
-          (timings.doneAt && timings.firstContentAt ? timings.doneAt - timings.firstContentAt : undefined)
-        const streamCloseMs = closeAt && timings.doneAt ? Math.max(0, closeAt - timings.doneAt) : undefined
+        const endAt = closeAt && timings.doneAt ? Math.max(closeAt, timings.doneAt) : (closeAt ?? timings.doneAt)
+        const totalMs = endAt && timings.requestAt ? endAt - timings.requestAt : undefined
+
+        // Model loading: RELAY → REASON|RESPOND − GPU prefill; unavailable without REASON/RESPOND.
+        const firstTokenAt = timings.reasoningStartAt || timings.firstContentAt || 0
+        const relayAt = timings.relayedAt || 0
+        const relayToFirstTokenMs = relayAt && firstTokenAt ? Math.max(0, firstTokenAt - relayAt) : null
+
+        // Reasoning: REASON → RESPOND only when both exist.
+        const reasoningMs =
+          timings.reasoningStartAt && timings.firstContentAt
+            ? Math.max(0, timings.firstContentAt - timings.reasoningStartAt)
+            : null
+
+        if (timings.queueMs == null && timings.wasQueued && timings.startedAt && timings.relayedAt) {
+          timings.queueMs = Math.max(0, timings.relayedAt - timings.startedAt)
+        } else if (timings.queueMs == null && !timings.wasQueued && timings.relayedAt) {
+          timings.queueMs = 0
+        }
+
+        const phases = deriveDisplayPhases({
+          relayToFirstTokenMs,
+          gpuPrefillMs: timings.promptMs,
+          gpuDecodeMs: timings.predictedMs,
+          reasoningMs,
+        })
+
         const tokOut = usage.completion
-        const tokPerSec = tokOut != null && decodeMs ? (tokOut / decodeMs) * 1000 : undefined
+        const responseForRate = phases.responseMs ?? timings.predictedMs
+        const tokPerSec =
+          tokOut != null && responseForRate != null && responseForRate > 0
+            ? (tokOut / responseForRate) * 1000
+            : undefined
         const metrics: MessageMetrics = {
-          ttftMs,
           totalMs,
           tokIn: usage.prompt ?? estimatedPromptTokens,
           tokOut,
@@ -143,11 +184,11 @@ export function usePlaygroundChat() {
           lastResponseText: assistantMsg.content,
           lastMetrics: metrics,
           timing: {
-            queueMs: null,
-            swapMs: null,
-            prefillMs: timings.promptMs || ttftMs || null,
-            decodeMs: decodeMs ?? null,
-            streamCloseMs: streamCloseMs ?? prev.timing.streamCloseMs,
+            queueMs: timings.queueMs,
+            modelLoadingMs: phases.modelLoadingMs,
+            prefillMs: phases.prefillMs,
+            reasoningMs: phases.reasoningMs,
+            responseMs: phases.responseMs,
           },
         }))
       }
@@ -170,6 +211,7 @@ export function usePlaygroundChat() {
             switch (ev.kind) {
               case 'request-sent':
                 timings.requestAt = ev.at
+                lastUrl = ev.url
                 setInspector((prev) => ({
                   ...prev,
                   lastRequestBody: ev.body,
@@ -177,21 +219,37 @@ export function usePlaygroundChat() {
                   lastResponseText: '',
                   lastMetrics: {},
                   events: [],
-                  timing: { queueMs: null, swapMs: null, prefillMs: null, decodeMs: null, streamCloseMs: null },
+                  timing: { ...EMPTY_TIMING },
                 }))
-                pushEvent('REQ', `POST ${ev.url} seed=${sampling.seed ?? 'auto'}`)
                 break
-              case 'first-byte':
-                timings.firstByteAt = ev.at
-                pushEvent('MDL', `${model} resident`)
+              case 'started':
+                timings.startedAt = ev.at
+                pushEvent('START', `server received · POST ${lastUrl}`)
+                break
+              case 'queued':
+                timings.wasQueued = true
+                pushEvent('QUEUE', `position=${ev.position} eta=${ev.eta} model=${ev.model}`)
+                break
+              case 'relayed':
+                timings.relayedAt = ev.at
+                if (timings.wasQueued && timings.startedAt) {
+                  timings.queueMs = Math.max(0, ev.at - timings.startedAt)
+                } else {
+                  timings.queueMs = 0
+                }
+                setInspector((prev) => ({
+                  ...prev,
+                  timing: { ...prev.timing, queueMs: timings.queueMs },
+                }))
+                pushEvent('RELAY', 'relayed')
+                break
+              case 'reasoning-start':
+                timings.reasoningStartAt = ev.at
+                pushEvent('REASON', 'first reasoning')
                 break
               case 'content-start':
                 timings.firstContentAt = ev.at
-                pushEvent('PFL', `prefilled in ${ev.at - timings.requestAt}ms`)
-                pushEvent('DEC', `streaming started`)
-                break
-              case 'reasoning-start':
-                pushEvent('RSN', `reasoning started`)
+                pushEvent('RESPOND', 'first content')
                 break
               case 'usage':
                 if (ev.promptTokens != null) usage.prompt = ev.promptTokens
@@ -203,13 +261,9 @@ export function usePlaygroundChat() {
                 break
               case 'done':
                 timings.doneAt = ev.at
-                pushEvent('STOP', `finish_reason=${ev.finishReason ?? 'stop'}`)
+                pushEvent('END', `finished · finish_reason=${ev.finishReason ?? 'stop'}`)
                 if (!finalized) {
                   finalized = true
-                  pushEvent(
-                    'RES',
-                    `200 OK · ${usage.completion ?? '?'} tok · ${timings.doneAt && timings.requestAt ? `${((timings.doneAt - timings.requestAt) / 1000).toFixed(2)}s` : '—'}`,
-                  )
                   applyFinalMetrics()
                   if (isCurrentRun()) setIsStreaming(false)
                 }
@@ -219,34 +273,32 @@ export function usePlaygroundChat() {
                 if (finalized) applyFinalMetrics(ev.at)
                 break
               case 'error':
-                pushEvent('ERR', ev.message)
+                pushEvent('ERROR', ev.message)
                 break
             }
           },
         })
 
-        let reasoningStart = 0
-
         for await (const chunk of stream) {
+          if (!isCurrentRun()) break
           if (chunk.done) continue
 
           if (chunk.reasoningContent) {
-            if (!reasoningStart) {
-              reasoningStart = Date.now()
+            if (!assistantMsg.reasoningContent) {
               setIsReasoning(true)
             }
             assistantMsg.reasoningContent = (assistantMsg.reasoningContent ?? '') + chunk.reasoningContent
           }
 
           if (chunk.content) {
-            if (reasoningStart && !assistantMsg.reasoningTimeMs) {
-              assistantMsg.reasoningTimeMs = Date.now() - reasoningStart
+            if (timings.reasoningStartAt && !assistantMsg.reasoningTimeMs) {
+              assistantMsg.reasoningTimeMs = (timings.firstContentAt || Date.now()) - timings.reasoningStartAt
               setIsReasoning(false)
             }
             assistantMsg.content += chunk.content
           }
 
-          setMessages([...msgs, { ...assistantMsg }])
+          if (isCurrentRun()) setMessages([...msgs, { ...assistantMsg }])
         }
 
         if (!finalized) {
@@ -258,7 +310,7 @@ export function usePlaygroundChat() {
           if (!finalized) {
             finalized = true
             timings.doneAt = Date.now()
-            pushEvent('STOP', 'aborted by user')
+            pushEvent('END', 'aborted by user')
             applyFinalMetrics(timings.closeAt || undefined)
           }
         } else {

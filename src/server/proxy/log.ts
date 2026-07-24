@@ -40,7 +40,6 @@ export type RequestLogInput = {
   statusCode: number
   promptTokens: number | null
   completionTokens: number | null
-  totalTokens: number | null
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
   streamed: boolean
@@ -49,7 +48,19 @@ export type RequestLogInput = {
   requestBody: string | null
   responseHeaders: string | null
   responseBody: string | null
+  /** Full assembled reasoning; stored untruncated when bodies are persisted. */
+  assembledReasoning?: string | null
+  /** Full assembled response; stored untruncated when bodies are persisted. */
+  assembledResponse?: string | null
   streamCloseMs: number | null
+  queueMs: number | null
+  modelLoadingMs: number | null
+  prefillMs: number | null
+  reasoningMs: number | null
+  responseMs: number | null
+  decodeMs: number | null
+  gpuPrefillMs: number | null
+  gpuDecodeMs: number | null
   keyId: string | null
   clientHost: string | null
   clientName: string | null
@@ -121,6 +132,9 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const responseBody = persistBodies ? truncateBody(row.responseBody, maxBytes) : null
   const requestHeaders = persistBodies ? row.requestHeaders : null
   const responseHeaders = persistBodies ? row.responseHeaders : null
+  // Assembled text is small vs raw SSE and must survive maxBytes truncation.
+  const assembledReasoning = persistBodies ? (row.assembledReasoning ?? null) : null
+  const assembledResponse = persistBodies ? (row.assembledResponse ?? null) : null
   const costUsd = computeCostUsd(row.model, row)
   db.insert(schema.requests)
     .values({
@@ -134,7 +148,6 @@ export function writeRequestLogNow(row: RequestLogInput) {
       statusCode: row.statusCode,
       promptTokens: row.promptTokens,
       completionTokens: row.completionTokens,
-      totalTokens: row.totalTokens,
       cacheCreationTokens: row.cacheCreationTokens,
       cacheReadTokens: row.cacheReadTokens,
       costUsd,
@@ -144,7 +157,17 @@ export function writeRequestLogNow(row: RequestLogInput) {
       requestBody,
       responseHeaders,
       responseBody,
+      assembledReasoning,
+      assembledResponse,
       streamCloseMs: row.streamCloseMs,
+      queueMs: row.queueMs,
+      modelLoadingMs: row.modelLoadingMs,
+      prefillMs: row.prefillMs,
+      reasoningMs: row.reasoningMs,
+      responseMs: row.responseMs,
+      decodeMs: row.decodeMs,
+      gpuPrefillMs: row.gpuPrefillMs,
+      gpuDecodeMs: row.gpuDecodeMs,
       keyId: row.keyId,
       clientHost: row.clientHost,
       clientName: row.clientName,
@@ -177,12 +200,16 @@ export function writeRequestLogNow(row: RequestLogInput) {
         statusCode: row.statusCode,
         promptTokens: row.promptTokens,
         completionTokens: row.completionTokens,
-        totalTokens: row.totalTokens,
         cacheCreationTokens: row.cacheCreationTokens,
         cacheReadTokens: row.cacheReadTokens,
         costUsd,
         streamed: row.streamed,
         error: row.error,
+        queueMs: row.queueMs,
+        modelLoadingMs: row.modelLoadingMs,
+        prefillMs: row.prefillMs,
+        reasoningMs: row.reasoningMs,
+        responseMs: row.responseMs,
         clientHost: row.clientHost,
         clientName: row.clientName,
         endUserId: row.endUserId,

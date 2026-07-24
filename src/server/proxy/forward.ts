@@ -7,8 +7,15 @@ import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from '
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import { BoundedTextCapture } from './text-capture.ts'
+import { SseContentAssembler } from './sse-content-assembler.ts'
 import type { RoutingOutcome } from './transforms.ts'
-import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
+import {
+  SseUsageScanner,
+  type UsageWithClose,
+  usageFromJsonBody,
+  usageTokenSum,
+  usageWithDisplayPhases,
+} from './usage.ts'
 
 type Attribution = {
   clientName: string | null
@@ -29,11 +36,15 @@ export type ProxyLogInput = {
   reqBody: string | null
   resHeaders: string | null
   resBody: string | null
+  assembledReasoning?: string | null
+  assembledResponse?: string | null
   keyId: string | null
   reqModel: string | null
   attribution: Attribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
+  /** Time spent in the local-backend concurrency queue before upstream dispatch. */
+  queueMs?: number | null
 }
 
 export function formatUpstreamError(err: unknown): string {
@@ -47,10 +58,16 @@ export function nullUsage(model?: string | null): UsageWithClose {
     model: model ?? null,
     promptTokens: null,
     completionTokens: null,
-    totalTokens: null,
     cacheCreationTokens: null,
     cacheReadTokens: null,
+    modelLoadingMs: null,
+    prefillMs: null,
+    reasoningMs: null,
+    responseMs: null,
+    decodeMs: null,
     streamCloseMs: null,
+    gpuPrefillMs: null,
+    gpuDecodeMs: null,
   }
 }
 
@@ -87,7 +104,6 @@ export function writeProxyLog(input: ProxyLogInput) {
     statusCode: input.status,
     promptTokens: input.usage.promptTokens,
     completionTokens: input.usage.completionTokens,
-    totalTokens: input.usage.totalTokens,
     cacheCreationTokens: input.usage.cacheCreationTokens,
     cacheReadTokens: input.usage.cacheReadTokens,
     streamed: input.streamed,
@@ -96,7 +112,17 @@ export function writeProxyLog(input: ProxyLogInput) {
     requestBody: input.reqBody,
     responseHeaders: input.resHeaders,
     responseBody: input.resBody,
+    assembledReasoning: input.assembledReasoning ?? null,
+    assembledResponse: input.assembledResponse ?? null,
     streamCloseMs: input.usage.streamCloseMs,
+    queueMs: input.queueMs ?? null,
+    modelLoadingMs: input.usage.modelLoadingMs,
+    prefillMs: input.usage.prefillMs,
+    reasoningMs: input.usage.reasoningMs,
+    responseMs: input.usage.responseMs,
+    decodeMs: input.usage.decodeMs,
+    gpuPrefillMs: input.usage.gpuPrefillMs,
+    gpuDecodeMs: input.usage.gpuDecodeMs,
     keyId: input.keyId,
     clientHost: deriveClientHost(input.reqHeaders),
     clientName: input.attribution.clientName,
@@ -158,7 +184,9 @@ export async function forwardUpstreamAndLog(input: {
   attribution: Attribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
+  queueMs?: number | null
 }): Promise<Response | { upstreamError: string }> {
+  const dispatchAtMs = Date.now()
   let upstreamResponse: Awaited<ReturnType<typeof undiciFetch>>
   try {
     // `duplex` (streaming request bodies) and `dispatcher` (custom undici
@@ -191,7 +219,9 @@ export async function forwardUpstreamAndLog(input: {
       requestClass: input.requestClass,
       method: input.method,
       endpoint: input.endpoint,
-      usage: nullUsage(input.reqModel),
+      usage: {
+        ...nullUsage(input.reqModel),
+      },
       streamed: false,
       error: null,
       reqHeaders: input.reqHeadersJson,
@@ -203,14 +233,18 @@ export async function forwardUpstreamAndLog(input: {
       attribution: input.attribution,
       routing: input.routing,
       credentialInjectionJson: input.credentialInjectionJson,
+      queueMs: input.queueMs ?? null,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
 
   const reader = upstreamResponse.body.getReader()
   const decoder = isBinaryResponse ? null : new TextDecoder()
-  const sseScanner = isSse ? new SseUsageScanner() : null
+  const sseScanner = isSse ? new SseUsageScanner(dispatchAtMs) : null
+  const contentAssembler = isSse ? new SseContentAssembler() : null
   const responseCapture = decoder ? new BoundedTextCapture() : null
+
+  const finishAssembled = () => (captureResponseBodies ? (contentAssembler?.result() ?? null) : null)
 
   const responseBody = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -223,22 +257,18 @@ export async function forwardUpstreamAndLog(input: {
             if (tail) {
               responseCapture?.append(tail)
               if (sseScanner) sseScanner.feed(tail, Date.now())
+              contentAssembler?.feed(tail)
             }
           }
           const resBody = captureResponseBodies ? (responseCapture?.text() ?? null) : null
           const usageBody = responseCapture?.usageText()
+          const closeAt = Date.now()
           const usage: UsageWithClose = sseScanner
-            ? sseScanner.done(Date.now())
+            ? sseScanner.done(closeAt)
             : isJson && usageBody
-              ? { ...usageFromJsonBody(usageBody), streamCloseMs: null }
+              ? usageWithDisplayPhases(usageFromJsonBody(usageBody))
               : nullUsage(input.reqModel)
-          if (
-            input.endpoint === '/v1/messages/count_tokens' &&
-            usage.totalTokens == null &&
-            usage.promptTokens != null
-          ) {
-            usage.totalTokens = usage.promptTokens
-          }
+          const assembled = finishAssembled()
 
           writeProxyLog({
             startedAt: input.startedAt,
@@ -253,15 +283,19 @@ export async function forwardUpstreamAndLog(input: {
             reqBody: input.reqBody,
             resHeaders: resHeadersJson,
             resBody,
+            assembledReasoning: assembled?.reasoning ?? null,
+            assembledResponse: assembled?.response ?? null,
             keyId: input.keyId,
             reqModel: input.reqModel,
             attribution: input.attribution,
             routing: input.routing,
             credentialInjectionJson: input.credentialInjectionJson,
+            queueMs: input.queueMs ?? null,
           })
 
-          if (input.keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
-            recordTokenUsage(input.keyRow.id, input.keyRow.rateLimitTpm, usage.totalTokens)
+          const tokenSum = usageTokenSum(usage)
+          if (input.keyRow?.rateLimitTpm != null && tokenSum != null) {
+            recordTokenUsage(input.keyRow.id, input.keyRow.rateLimitTpm, tokenSum)
           }
           return
         }
@@ -270,10 +304,12 @@ export async function forwardUpstreamAndLog(input: {
           const text = decoder.decode(value, { stream: true })
           responseCapture?.append(text)
           if (sseScanner) sseScanner.feed(text, Date.now())
+          contentAssembler?.feed(text)
         }
       } catch (err) {
         controller.error(err)
         const message = err instanceof Error ? err.message : String(err)
+        const assembled = finishAssembled()
         writeProxyLog({
           startedAt: input.startedAt,
           status: upstreamResponse.status,
@@ -287,16 +323,20 @@ export async function forwardUpstreamAndLog(input: {
           reqBody: input.reqBody,
           resHeaders: resHeadersJson,
           resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
+          assembledReasoning: assembled?.reasoning ?? null,
+          assembledResponse: assembled?.response ?? null,
           keyId: input.keyId,
           reqModel: input.reqModel,
           attribution: input.attribution,
           routing: input.routing,
           credentialInjectionJson: input.credentialInjectionJson,
+          queueMs: input.queueMs ?? null,
         })
       }
     },
     cancel() {
       reader.cancel().catch(() => {})
+      const assembled = finishAssembled()
       writeProxyLog({
         startedAt: input.startedAt,
         status: upstreamResponse.status,
@@ -310,11 +350,14 @@ export async function forwardUpstreamAndLog(input: {
         reqBody: input.reqBody,
         resHeaders: resHeadersJson,
         resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
+        assembledReasoning: assembled?.reasoning ?? null,
+        assembledResponse: assembled?.response ?? null,
         keyId: input.keyId,
         reqModel: input.reqModel,
         attribution: input.attribution,
         routing: input.routing,
         credentialInjectionJson: input.credentialInjectionJson,
+        queueMs: input.queueMs ?? null,
       })
     },
   })

@@ -15,7 +15,6 @@ export const requests = sqliteTable(
     statusCode: integer('status_code').notNull(),
     promptTokens: integer('prompt_tokens'),
     completionTokens: integer('completion_tokens'),
-    totalTokens: integer('total_tokens'),
     cacheCreationTokens: integer('cache_creation_tokens'),
     cacheReadTokens: integer('cache_read_tokens'),
     costUsd: real('cost_usd'),
@@ -25,7 +24,26 @@ export const requests = sqliteTable(
     requestBody: text('request_body'),
     responseHeaders: text('response_headers'),
     responseBody: text('response_body'),
+    /** Full SSE-assembled reasoning text; not subject to max-stored-body truncation. */
+    assembledReasoning: text('assembled_reasoning'),
+    /** Full SSE-assembled response text; not subject to max-stored-body truncation. */
+    assembledResponse: text('assembled_response'),
     streamCloseMs: integer('stream_close_ms'),
+    queueMs: integer('queue_ms'),
+    /** (RELAY→REASON|RESPOND wall) − GPU prefill — model load/swap before prefill. */
+    modelLoadingMs: integer('model_loading_ms'),
+    /** Display prefill: llama.cpp timings.prompt_ms (GPU). */
+    prefillMs: integer('prefill_ms'),
+    /** Wall-clock reasoning (REASON→RESPOND); null unless both markers exist. */
+    reasoningMs: integer('reasoning_ms'),
+    /** GPU decode minus reasoning: timings.predicted_ms − reasoning. */
+    responseMs: integer('response_ms'),
+    /** @deprecated legacy wall decode; unused on newer rows. */
+    decodeMs: integer('decode_ms'),
+    /** Raw llama.cpp timings.prompt_ms (same value as prefill_ms on newer rows). */
+    gpuPrefillMs: integer('gpu_prefill_ms'),
+    /** Raw llama.cpp timings.predicted_ms. */
+    gpuDecodeMs: integer('gpu_decode_ms'),
     keyId: text('key_id'),
     clientHost: text('client_host'),
     clientName: text('client_name'),

@@ -113,12 +113,7 @@ export function SettingsPage() {
   return (
     <div className="content overflow-hidden">
       <div className="page h-full min-h-0 px-0">
-        <PageHeader
-          kicker="cfg · settings"
-          title="Settings"
-          subtitle="application preferences and global proxy defaults"
-          variant="integrated"
-        />
+        <PageHeader title="Settings" variant="integrated" />
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
           <SettingsPanel title="Appearance" subtitle="theme and display mode">
@@ -292,7 +287,8 @@ export function SettingsPage() {
                     Max stored body bytes
                   </label>
                   <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
-                    Truncates persisted request and response bodies. Set to 0 to store no body text.
+                    Truncates persisted request and response bodies (raw SSE). Assembled reasoning/response text is
+                    stored in full separately. Set to 0 to store no raw body text.
                   </span>
                   <NumberInput
                     id="max-stored-body-bytes"

@@ -41,7 +41,9 @@ export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
             and (request_headers is not null
               or request_body is not null
               or response_headers is not null
-              or response_body is not null))`,
+              or response_body is not null
+              or assembled_reasoning is not null
+              or assembled_response is not null))`,
     )
     .all(inferenceCutoff, mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff) as Array<{ id: string }>
   const inferenceDeleted = sqliteDb
@@ -63,12 +65,16 @@ export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
        set request_headers = null,
            request_body = null,
            response_headers = null,
-           response_body = null
+           response_body = null,
+           assembled_reasoning = null,
+           assembled_response = null
        where started_at < ?
          and (request_headers is not null
            or request_body is not null
            or response_headers is not null
-           or response_body is not null)`,
+           or response_body is not null
+           or assembled_reasoning is not null
+           or assembled_response is not null)`,
     )
     .run(bodyCutoff).changes
 

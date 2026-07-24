@@ -1,5 +1,6 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react'
+import { cn } from '../../lib/cn'
 
 const JSON_TOKEN = /("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b|(true|false|null)\b|([[\]{}.,:])/g
 
@@ -9,15 +10,17 @@ const LINE_HEIGHT_ESTIMATE = 18
 type Props = {
   json: string
   className?: string
+  /** Outer scrollport for virtualization (shared headers+body pane). */
+  getScrollElement?: () => HTMLElement | null
 }
 
-export function RequestJsonHighlight({ json, className = '' }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+export function RequestJsonHighlight({ json, className = '', getScrollElement }: Props) {
+  const localScrollRef = useRef<HTMLDivElement>(null)
   const lines = useMemo(() => json.split('\n'), [json])
   const shouldVirtualize = lines.length > VIRTUALIZE_LINE_THRESHOLD
   const virtualizer = useVirtualizer({
     count: lines.length,
-    getScrollElement: () => scrollRef.current,
+    getScrollElement: () => getScrollElement?.() ?? localScrollRef.current,
     estimateSize: () => LINE_HEIGHT_ESTIMATE,
     overscan: 30,
   })
@@ -34,9 +37,16 @@ export function RequestJsonHighlight({ json, className = '' }: Props) {
     [shouldVirtualize, virtualizer],
   )
 
+  const scrollOwned = getScrollElement == null
+  const rootClass = cn(
+    'body-pre border-t-0 max-h-none min-h-0',
+    scrollOwned ? 'h-full overflow-auto' : 'h-auto overflow-visible',
+    className,
+  )
+
   if (!shouldVirtualize) {
     return (
-      <div ref={scrollRef} className={`body-pre border-t-0 h-full max-h-none min-h-0 ${className}`}>
+      <div ref={localScrollRef} className={rootClass}>
         {lines.map((line, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: pretty-printed lines are static for a given payload
           <JsonLine key={index} line={line} />
@@ -46,7 +56,7 @@ export function RequestJsonHighlight({ json, className = '' }: Props) {
   }
 
   return (
-    <div ref={scrollRef} className={`body-pre border-t-0 h-full max-h-none min-h-0 ${className}`}>
+    <div ref={localScrollRef} className={rootClass}>
       <div className="relative min-w-full" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((item) => (
           <div
