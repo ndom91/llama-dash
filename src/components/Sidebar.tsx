@@ -124,14 +124,17 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
               </a>
             </Tooltip>
           ) : null}
-          <a
-            href="https://github.com/ndom91/llama-dash"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-[10px] text-fg-faint no-underline hover:text-fg-dim"
-          >
-            {__GIT_COMMIT__}
-          </a>
+          {__GIT_COMMIT__ ? (
+            <a
+              href="https://github.com/ndom91/llama-dash"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[10px] text-fg-faint no-underline hover:text-fg-dim"
+              title={`commit ${__GIT_COMMIT__}`}
+            >
+              {__GIT_COMMIT__}
+            </a>
+          ) : null}
         </div>
       </div>
 

@@ -59,12 +59,7 @@ export function PlaygroundPage({ searchTab }: Props) {
   return (
     <div className="content">
       <div className="page flex-1 min-h-0">
-        <PageHeader
-          kicker={`dsh · playground · ${tab}`}
-          title="Playground"
-          subtitle="Test prompts against loaded models · inspector visible · multi-model"
-          variant="integrated"
-        />
+        <PageHeader title="Playground" variant="integrated" />
 
         {allowedTabs.length > 1 && (
           <Tabs

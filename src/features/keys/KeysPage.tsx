@@ -24,9 +24,7 @@ export function KeysPage() {
     <div className="content">
       <div className="page min-h-full flex-1 bg-surface-1">
         <PageHeader
-          kicker="dsh · keys"
           title="API Keys"
-          subtitle="manage proxy authentication and rate limits"
           variant="integrated"
           action={
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>

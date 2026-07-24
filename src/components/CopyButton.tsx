@@ -1,5 +1,6 @@
-import { Check, Copy, Link } from 'lucide-react'
+import { Check, Clipboard, Copy, Link } from 'lucide-react'
 import { useState } from 'react'
+import { copyToClipboard } from '../lib/clipboard'
 import { cn } from '../lib/cn'
 
 type CopyButtonVariant = 'text' | 'icon' | 'button'
@@ -22,6 +23,12 @@ const variantClasses: Record<CopyButtonVariant, string> = {
   button: 'btn btn-ghost btn-sm',
 }
 
+const icons = {
+  copy: Copy,
+  clipboard: Clipboard,
+  link: Link,
+} as const
+
 export function CopyButton({
   text,
   label = 'copy',
@@ -33,10 +40,11 @@ export function CopyButton({
   iconStrokeWidth = 2,
 }: Props) {
   const [copied, setCopied] = useState(false)
-  const Icon = icon === 'link' ? Link : Copy
+  const Icon = icons[icon]
 
   const copy = () => {
-    navigator.clipboard.writeText(text).then(() => {
+    void copyToClipboard(text).then((ok) => {
+      if (!ok) return
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     })

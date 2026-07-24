@@ -21,12 +21,7 @@ export function EndpointsPage() {
   return (
     <div className="content">
       <div className="page flex-1 bg-surface-1">
-        <PageHeader
-          kicker="dsh · endpoints"
-          title="Endpoints"
-          subtitle="connect clients to llama-dash"
-          variant="integrated"
-        />
+        <PageHeader title="Endpoints" variant="integrated" />
 
         <div className={`grid gap-0 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
           <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1">

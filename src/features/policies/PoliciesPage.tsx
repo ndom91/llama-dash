@@ -31,12 +31,7 @@ export function PoliciesPage({ searchTab }: Props) {
   return (
     <div className="content">
       <div className="page flex min-h-0 flex-1 flex-col bg-surface-1">
-        <PageHeader
-          kicker={`dsh · policies · ${tab}`}
-          title="Policies"
-          subtitle="Routing, credentials, and agent-facing relays"
-          variant="integrated"
-        />
+        <PageHeader title="Policies" variant="integrated" />
         <Tabs
           items={POLICY_TABS}
           value={tab}

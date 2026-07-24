@@ -145,7 +145,7 @@ export function SystemPage() {
   if (isLoading) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+        <PageHeader title="System" variant="integrated" />
         <main className="flex-1 p-4">
           <div className="panel h-64 animate-pulse bg-surface-2" />
         </main>
@@ -156,7 +156,7 @@ export function SystemPage() {
   if (error || !data) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+        <PageHeader title="System" variant="integrated" />
         <main className="flex-1 p-4">
           <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
         </main>
@@ -171,7 +171,6 @@ export function SystemPage() {
   const gpuModel = primaryGpu?.name ?? null
 
   const components = [
-    { label: 'control bus', age: 'now', tone: 'ok' as const },
     { label: 'backend', age: data.inference.label, tone: 'ok' as const },
     { label: 'logging queue', age: 'live', tone: queueTone },
     { label: 'gpu telemetry', age: formatAge(data.gpu.ageMs), tone: gpuTone },
@@ -182,12 +181,7 @@ export function SystemPage() {
   return (
     <div className="content">
       <div className="page min-h-full px-0">
-        <PageHeader
-          kicker="sys · system"
-          title="System"
-          subtitle="Process health, control-bus state, GPU telemetry, and database posture."
-          variant="integrated"
-        />
+        <PageHeader title="System" variant="integrated" />
         <div className="flex min-h-0 flex-1">
           <ComponentRail components={components} />
           <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">

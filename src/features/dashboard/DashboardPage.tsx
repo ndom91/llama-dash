@@ -20,12 +20,7 @@ export function DashboardPage() {
   return (
     <div className="content">
       <div className="page min-h-full px-0">
-        <PageHeader
-          kicker="dsh · overview"
-          title="Operator dashboard"
-          subtitle="system overview and recent activity"
-          variant="integrated"
-        />
+        <PageHeader title="Dashboard" variant="integrated" />
 
         <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">
           <DashboardTelemetryPanel health={health} gpu={gpu} />

@@ -6,6 +6,7 @@ import typescript from 'highlight.js/lib/languages/typescript'
 import yaml from 'highlight.js/lib/languages/yaml'
 import { Check, Copy, FileCode2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { copyToClipboard } from '../lib/clipboard'
 import { cn } from '../lib/cn'
 import { Tooltip } from './Tooltip'
 
@@ -36,13 +37,11 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
   }, [text, lang])
 
   const copy = () => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      },
-      () => {},
-    )
+    void copyToClipboard(text).then((ok) => {
+      if (!ok) return
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
   }
 
   const heading = title ?? filename

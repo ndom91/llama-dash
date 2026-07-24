@@ -133,13 +133,7 @@ export function ConfigPage() {
     <div className="content">
       <div className="page min-h-full flex-1">
         <PageHeader
-          kicker="dsh · config"
-          title="Configuration"
-          subtitle={
-            configUnsupported
-              ? `${system.inference.label} does not expose editable runtime configuration through llama-dash.`
-              : 'edit the inference backend configuration'
-          }
+          title="Config"
           variant="integrated"
           action={
             loadState.status === 'ready' ? (

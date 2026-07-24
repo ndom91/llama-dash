@@ -7,9 +7,8 @@ export function ModelDetailSkeleton() {
   return (
     <>
       <PageHeader
-        kicker="mdl · loading"
-        title="Model detail"
-        subtitle={<span className="skel skel-text" style={{ width: 180 }} />}
+        parent={{ label: 'Models', to: '/models' }}
+        title="loading…"
         variant="integrated"
         action={<span className="skel skel-text" style={{ width: 70, height: 28 }} />}
       />

@@ -70,7 +70,7 @@ export const systemRoutes: Route[] = [
       const backend = inferenceBackend.info
       const gpu = getGpuSnapshot()
       const now = Date.now()
-      const gitCommit = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
+      const gitCommit = typeof __GIT_COMMIT__ === 'string' && __GIT_COMMIT__ ? __GIT_COMMIT__ : 'unknown'
       return json(200, {
         runtime: {
           uptimeSec: Math.round(process.uptime()),
@@ -113,7 +113,9 @@ export const systemRoutes: Route[] = [
       return json(200, {
         instanceLabel: publicUrl.host || 'local instance',
         uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
-        commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
+        commitLabel: formatLoginCommit(
+          typeof __GIT_COMMIT__ === 'string' && __GIT_COMMIT__ ? __GIT_COMMIT__ : 'unknown',
+        ),
         tlsLabel: publicUrl.protocol === 'https:' ? 'https · tls' : 'http · no tls',
         signupAllowed: !hasDashboardUsers(),
       })

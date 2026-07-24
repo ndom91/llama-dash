@@ -35,21 +35,16 @@ export function SkeletonPageFrame({ children }: { children: ReactNode }) {
 }
 
 export function PageHeaderSkeleton({
-  kickerWidth = 120,
   titleWidth = 180,
 }: {
-  kickerWidth?: number
   titleWidth?: number
+  /** @deprecated unused — single title line now */
+  kickerWidth?: number
 }) {
   return (
     <div className="page-header page-header-integrated flex items-start justify-between gap-4">
       <div className="page-header-copy flex flex-1 flex-col gap-0.5">
-        <SkeletonLine width={kickerWidth} height={10} />
-        <SkeletonLine width={titleWidth} height={24} className="mt-0.5" />
-        <div className="flex gap-2">
-          <SkeletonLine width={220} height={11} />
-          <SkeletonLine width={120} height={11} className="max-sm:hidden" />
-        </div>
+        <SkeletonLine width={titleWidth} height={24} />
       </div>
       <div className="page-header-action hidden shrink-0 items-center gap-1.5 sm:flex">
         <SkeletonLine width={60} height={28} className="rounded-sm" />

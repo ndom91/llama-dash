@@ -7,9 +7,8 @@ export function KeyDetailSkeleton() {
   return (
     <>
       <PageHeader
-        kicker="key · loading"
-        title="API Key"
-        subtitle={<span className="skel skel-text" style={{ width: 220 }} />}
+        parent={{ label: 'API Keys', to: '/keys' }}
+        title="loading…"
         variant="integrated"
         action={
           <div className="flex items-center gap-2">

@@ -1,4 +1,3 @@
-import { useMatches } from '@tanstack/react-router'
 import { Menu } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 import { useMobileMenu } from '../lib/use-mobile-menu'
@@ -6,29 +5,8 @@ import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
 import { Tooltip } from './Tooltip'
 
-function resolveTitle(pathname: string): string {
-  const normalized = pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
-  if (normalized === '/') return 'Dashboard'
-  if (normalized.startsWith('/models/')) return 'Model Detail'
-  if (normalized === '/models') return 'Models'
-  if (normalized.startsWith('/requests')) return 'Requests'
-  if (normalized === '/logs') return 'Logs'
-  if (normalized === '/playground') return 'Playground'
-  if (normalized === '/keys') return 'API Keys'
-  if (normalized.startsWith('/keys/')) return 'API Key Detail'
-  if (normalized === '/config') return 'Config'
-  if (normalized === '/settings') return 'Settings'
-  if (normalized === '/endpoints') return 'Endpoints'
-  if (normalized === '/policies') return 'Policies'
-  if (normalized === '/system') return 'System'
-  return 'llama-dash'
-}
-
 export function TopBar({ actions }: { actions?: ReactNode }) {
   const { toggle } = useMobileMenu()
-  const matches = useMatches()
-  const leaf = matches[matches.length - 1]?.pathname ?? '/'
-  const title = resolveTitle(leaf)
 
   return (
     <header className="bg-surface-1 border-b border-border h-12 flex items-center gap-3 px-4 shrink-0">
@@ -40,8 +18,6 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       >
         <Menu size={20} strokeWidth={1.75} />
       </button>
-      <span className="text-[13px] font-medium -tracking-[0.005em]">{title}</span>
-      <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
       <TopBarLiveStats />
       <div className="ml-auto flex items-center gap-1.5">
         {actions}
@@ -65,6 +41,7 @@ function TopBarLiveStats() {
     setMounted(true)
   }, [])
 
+  const typeLabel = mounted ? backendLabel : '—'
   const versionLabel = mounted && version ? `v${version}` : '—'
   const runningLabel = mounted ? (counts?.running ?? '—') : '—'
   const peerLabel = mounted && counts && counts.peers > 0 ? counts.peers : null
@@ -76,6 +53,9 @@ function TopBarLiveStats() {
         <span className="inline-flex items-center gap-1.5 rounded-sm px-2 py-1 font-mono text-[11px] text-fg-muted -tracking-[0.005em] max-md:hidden">
           <StatusDot tone={reachable ? 'ok' : 'err'} live={reachable} />
           <span>upstream</span>
+          <span className="font-medium text-fg" translate="no">
+            {typeLabel}
+          </span>
           <span className="font-medium text-fg tabular-nums" translate="no">
             {versionLabel}
           </span>
