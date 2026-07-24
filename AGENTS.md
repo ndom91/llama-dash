@@ -99,8 +99,14 @@ src/
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
     metrics.ts            — Prometheus text exporter for /metrics
+  test/                   — shared fixtures + integration harness (db reset, fake upstream)
+    fixtures/             — makeRoutingRule, makeApiKeyRow, makeProxyRequest helpers
+    harness/              — :memory: SQLite reset, undici fake upstream, settleProxyResponse
+    integration-setup.ts  — env + undici mock for the integration Vitest project
+    *.integration.test.ts — co-located under src/test/ (or next to modules) for DB+proxy contracts
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
+vitest.config.ts          — unit + integration Vitest projects
 docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llama-dash + llama-swap
 docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llama-dash + llama-swap
 next-plan.md              — feature ideas and prioritization
@@ -325,6 +331,15 @@ paths (proxy will grow middleware; admin will grow CRUD).
   typechecker for this repo. Don't add `tsc` back. Note: tsgo rejects
   `baseUrl` in tsconfig — use `paths` with root-relative entries.
 - **Package manager**: pnpm only. Don't commit `npm`/`yarn` lockfiles.
+- **Tests**: [Vitest](https://vitest.dev) with two projects in `vitest.config.ts`.
+  Unit tests are co-located `*.test.ts` (mock boundaries). Integration tests are
+  `*.integration.test.ts` against `:memory:` SQLite + a mocked undici fetch; shared
+  helpers live in `src/test/`. Scripts: `pnpm test` (both), `pnpm test:unit`,
+  `pnpm test:integration`. Drain proxy response bodies via `settleProxyResponse`
+  before asserting request-log rows (logs write on stream completion). Both
+  inference backends (`llama-swap`, `llama-cpp-router`) are covered by adapter unit
+  tests plus `src/test/inference-backends.integration.test.ts` driven by the shared
+  dummy HTTP fixtures in `src/test/fixtures/dummy-inference-backend.ts`.
 - **ORM**: Drizzle (`drizzle-orm` + `drizzle-kit`) over better-sqlite3.
   Migrations live in `drizzle/`. Generate with `pnpm db:generate`, apply
   on server boot (and via `pnpm db:migrate`).

@@ -1,7 +1,7 @@
 import { desc } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import { db, schema } from './db/index.ts'
-import { inferenceBackend } from './inference/backend.ts'
+import { inferenceBackend, isPrimaryRunningState } from './inference/backend.ts'
 import { publishAdminEvent } from './admin/events.ts'
 
 const POLL_INTERVAL_MS = 15_000
@@ -56,7 +56,7 @@ async function diffRunning() {
     // Derive from the listRunning() result already fetched — no second round-trip.
     // Scheduler ignores updates while it has active slots (idle-only apply).
     if (inserts.length > 0) {
-      const loaded = running.find((r) => r.state === 'loaded')
+      const loaded = running.find((r) => isPrimaryRunningState(r.state))
       const currentModel = loaded?.model ?? (running.length === 1 ? running[0].model : null)
       const { getModelScheduler } = await import('./proxy/model-scheduler.ts')
       getModelScheduler().onModelChanged(currentModel)

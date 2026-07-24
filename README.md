@@ -154,6 +154,18 @@ pnpm db:migrate        # optional preflight; also runs automatically on server b
 pnpm dev               # http://localhost:5173
 ```
 
+## 🧪 Tests
+
+```bash
+pnpm test                 # unit + integration (CI)
+pnpm test:unit            # co-located *.test.ts with mocked boundaries
+pnpm test:integration     # :memory: SQLite + fake upstream proxy contracts
+```
+
+Shared fixtures and harness code live in `src/test/`. Both inference backends
+(`llama-swap` and `llama-cpp-router`) are exercised via dummy HTTP fixtures — see
+[`docs/2026_07_24_test_system.md`](./docs/2026_07_24_test_system.md).
+
 ## 🏔️ Environment
 
 Copy `.env.example` to `.env` and fill in the values.

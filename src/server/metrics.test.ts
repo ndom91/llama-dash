@@ -22,10 +22,10 @@ vi.mock('./gpu-poller.ts', () => ({
   }),
 }))
 
-vi.mock('./llama-swap/client.ts', () => ({
-  llamaSwap: {
-    health: vi.fn(async () => 'OK'),
-    listRunning: vi.fn(async () => ({ running: [{ model: 'local-a' }, { model: 'local-b' }] })),
+vi.mock('./inference/backend.ts', () => ({
+  inferenceBackend: {
+    ping: vi.fn(async () => ({ reachable: true, latencyMs: 67, version: null })),
+    listRunning: vi.fn(async () => [{ model: 'local-a' }, { model: 'local-b' }]),
   },
 }))
 

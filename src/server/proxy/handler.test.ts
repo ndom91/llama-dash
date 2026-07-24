@@ -1,7 +1,8 @@
-import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RoutingRule } from '../../lib/schemas/routing-rule'
 import type { ApiKey } from '../db/schema'
+import { makeApiKeyRow } from '../../test/fixtures/api-key'
+import { emptyRoutingMatch, makeRoutingRule } from '../../test/fixtures/routing-rule'
 import { handleProxyRequest } from './handler'
 
 vi.mock('../config.ts', () => ({
@@ -96,49 +97,13 @@ function lastForward(): ForwardInput {
   return calls[calls.length - 1][0] as unknown as ForwardInput
 }
 
-function makeRule(overrides: Partial<RoutingRule> = {}): RoutingRule {
-  return {
-    id: 'rrl_test',
-    name: 'Test rule',
-    enabled: true,
-    order: 1,
-    match: {
-      endpoints: [],
-      requestedModels: [],
-      apiKeyIds: [],
-      stream: 'any',
-      minEstimatedPromptTokens: '',
-      maxEstimatedPromptTokens: '',
-    },
-    action: { type: 'continue' },
+function makeRule(overrides: Partial<RoutingRule> = {}) {
+  return makeRoutingRule({
     target: { type: 'direct', baseUrl: 'https://api.openai.com/v1' },
     authMode: 'passthrough',
     preserveAuthorization: true,
-    credentialBindings: [],
-    createdAt: new Date(0).toISOString(),
-    updatedAt: new Date(0).toISOString(),
     ...overrides,
-  }
-}
-
-function makeKey(rawKey: string): ApiKey {
-  return {
-    id: 'key_test',
-    name: 'Test key',
-    keyHash: createHash('sha256').update(rawKey).digest('hex'),
-    keyPrefix: rawKey.slice(0, 8),
-    createdAt: new Date(0),
-    disabledAt: null,
-    expiresAt: null,
-    allowedModels: '[]',
-    allowedMcpRelays: '[]',
-    rateLimitRpm: null,
-    rateLimitTpm: null,
-    monthlyTokenQuota: null,
-    defaultModel: null,
-    systemPrompt: null,
-    system: false,
-  }
+  })
 }
 
 describe('handleProxyRequest auth/body ordering', () => {
@@ -167,7 +132,7 @@ describe('handleProxyRequest auth/body ordering', () => {
 
   it('matches endpoint-only passthrough rules without reading the request body first', async () => {
     routingRulesMock.listRoutingRules.mockReturnValue([
-      makeRule({ match: { ...makeRule().match, endpoints: ['/v1/messages'] } }),
+      makeRule({ match: emptyRoutingMatch({ endpoints: ['/v1/messages'] }) }),
     ])
     const body = new ReadableStream<Uint8Array>({
       pull(controller) {
@@ -192,7 +157,7 @@ describe('handleProxyRequest auth/body ordering', () => {
 
   it('reads body before auth when pre-auth passthrough rules need body fields', async () => {
     routingRulesMock.listRoutingRules.mockReturnValue([
-      makeRule({ match: { ...makeRule().match, requestedModels: ['claude-opus-4-6'] } }),
+      makeRule({ match: emptyRoutingMatch({ requestedModels: ['claude-opus-4-6'] }) }),
     ])
     const request = new Request('http://dash.test/v1/messages', {
       method: 'POST',
@@ -208,7 +173,7 @@ describe('handleProxyRequest auth/body ordering', () => {
 
   it('reads the body after valid key auth when no pre-auth body fields are needed', async () => {
     const rawKey = 'sk-valid'
-    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    apiKeysMock.findKeyByHash.mockReturnValue(makeApiKeyRow(rawKey))
     const request = new Request('http://dash.test/v1/chat/completions', {
       method: 'POST',
       headers: { authorization: `Bearer ${rawKey}` },
@@ -223,7 +188,7 @@ describe('handleProxyRequest auth/body ordering', () => {
 
   it('honors rule order: a require_key rule above a passthrough rule wins when its key matches', async () => {
     const rawKey = 'sk-opencode'
-    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    apiKeysMock.findKeyByHash.mockReturnValue(makeApiKeyRow(rawKey))
     routingRulesMock.listRoutingRules.mockReturnValue([
       makeRule({
         id: 'rrl_local',
@@ -232,11 +197,10 @@ describe('handleProxyRequest auth/body ordering', () => {
         preserveAuthorization: false,
         action: { type: 'rewrite_model', model: 'qwen3.6-35b' },
         target: { type: 'llama_swap' },
-        match: {
-          ...makeRule().match,
+        match: emptyRoutingMatch({
           requestedModels: ['claude-haiku-4-5-20251001'],
           apiKeyIds: ['key_test'],
-        },
+        }),
       }),
       makeRule({
         id: 'rrl_anthropic',
@@ -245,7 +209,7 @@ describe('handleProxyRequest auth/body ordering', () => {
         preserveAuthorization: true,
         action: { type: 'continue' },
         target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1' },
-        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+        match: emptyRoutingMatch({ endpoints: ['/v1/messages'] }),
       }),
     ])
     const request = new Request('http://dash.test/v1/messages', {
@@ -276,11 +240,10 @@ describe('handleProxyRequest auth/body ordering', () => {
         authMode: 'require_key',
         action: { type: 'rewrite_model', model: 'qwen3.6-35b' },
         target: { type: 'llama_swap' },
-        match: {
-          ...makeRule().match,
+        match: emptyRoutingMatch({
           requestedModels: ['claude-haiku-4-5-20251001'],
           apiKeyIds: ['key_test'],
-        },
+        }),
       }),
       makeRule({
         id: 'rrl_anthropic',
@@ -289,7 +252,7 @@ describe('handleProxyRequest auth/body ordering', () => {
         preserveAuthorization: true,
         action: { type: 'continue' },
         target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1' },
-        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+        match: emptyRoutingMatch({ endpoints: ['/v1/messages'] }),
       }),
     ])
     const request = new Request('http://dash.test/v1/messages', {
@@ -310,7 +273,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     apiKeysMock.hasAnyUserKeys.mockReturnValue(false)
     routingRulesMock.listRoutingRules.mockReturnValue([
       makeRule({
-        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+        match: emptyRoutingMatch({ endpoints: ['/v1/messages'] }),
         target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1', credentialId: 'ucr_anthropic' },
       }),
     ])

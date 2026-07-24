@@ -68,7 +68,10 @@ export type InferenceBackend = {
   unloadAll?(): Promise<void>
 }
 
-function createInferenceBackend(kind: string): InferenceBackend {
+export { isPrimaryRunningState } from './running-state.ts'
+
+/** Build an adapter for a known backend kind. Used at boot and in tests. */
+export function createInferenceBackend(kind: string): InferenceBackend {
   if (kind === 'llama-swap') return createLlamaSwapBackend()
   if (kind === 'llama-cpp-router') return createLlamaCppRouterBackend()
   throw new Error(`Unsupported INFERENCE_BACKEND "${kind}". Supported backends: llama-swap, llama-cpp-router`)
