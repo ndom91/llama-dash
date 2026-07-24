@@ -127,7 +127,7 @@ describe('handleProxyRequest queue behavior', () => {
     apiKeysMock.findKeyByHash.mockReturnValue(undefined)
     logsMock.writeRequestLog.mockReset()
     forwardMock.forwardUpstreamAndLog.mockClear()
-    forwardMock.forwardUpstreamAndLog.mockResolvedValue(Response.json({ ok: true }))
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async () => Response.json({ ok: true }))
 
     scheduler = new ModelScheduler({
       maxConcurrency: 2,
@@ -144,8 +144,79 @@ describe('handleProxyRequest queue behavior', () => {
     scheduler.reset()
   })
 
+  it('queues a second local model while the first stream body is still open', async () => {
+    vi.useFakeTimers()
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+    setModelScheduler(scheduler)
+
+    let streamController!: ReadableStreamDefaultController<Uint8Array>
+    let forwardCalls = 0
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async () => {
+      forwardCalls++
+      if (forwardCalls === 1) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streamController = controller
+              controller.enqueue(new TextEncoder().encode('data: {"thinking":true}\n\n'))
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        )
+      }
+      return Response.json({ id: 'qwen-27b-done' })
+    })
+
+    const firstResp = await handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'qwen-35b', stream: true }),
+      }),
+    )
+    expect(firstResp.status).toBe(200)
+    expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(scheduler.getActiveSlots()).toBe(1)
+
+    const secondPromise = handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'qwen-27b' }),
+      }),
+    )
+
+    await vi.waitFor(() => {
+      expect(scheduler.getQueueDepth()).toBe(1)
+    })
+
+    // Concurrency=1: second must wait — not preempt the in-flight 35b stream
+    expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(scheduler.getActiveSlots()).toBe(1)
+    expect(scheduler.getCurrentModel()).toBe('qwen-35b')
+
+    const reader = firstResp.body!.getReader()
+    await reader.read()
+    streamController.close()
+    await reader.read()
+
+    await vi.advanceTimersByTimeAsync(0)
+    const secondResp = await secondPromise
+    expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(2)
+    expect(secondResp.status).toBe(200)
+    await secondResp.arrayBuffer()
+    expect(scheduler.getActiveSlots()).toBe(0)
+
+    vi.useRealTimers()
+  })
+
   it('routes local backend requests through the scheduler', async () => {
-    forwardMock.forwardUpstreamAndLog.mockResolvedValue(Response.json({ ok: true }))
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async () => Response.json({ ok: true }))
 
     const request = new Request('http://dash.test/v1/chat/completions', {
       method: 'POST',
@@ -155,6 +226,7 @@ describe('handleProxyRequest queue behavior', () => {
 
     expect(resp.status).toBe(200)
     expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    await resp.arrayBuffer()
   })
 
   it('bypasses scheduler for direct upstream requests', async () => {

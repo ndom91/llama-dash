@@ -114,8 +114,10 @@ export class ModelScheduler {
 
     this.activeSlots++
     this.currentModel = model
-    const dispatchPromise = this.dispatch(requestData)
-    dispatchPromise.finally(() => this.onDispatchComplete())
+    // Slot is held until the response body finishes (or errors), not when headers
+    // arrive — otherwise a second model request can reach the backend mid-stream
+    // and preempt the in-flight generation (e.g. llama.cpp router model swap).
+    const dispatchPromise = this.dispatchHoldingSlot(requestData)
     return { status: 'immediate', dispatchPromise }
   }
 
@@ -237,11 +239,10 @@ export class ModelScheduler {
       this.currentModel = candidate.model
       this.activeSlots++
 
-      const dispatchPromise = this.dispatch(candidate.requestData)
+      const dispatchPromise = this.dispatchHoldingSlot(candidate.requestData)
       dispatchPromise
         .then((response) => candidate.resolve(response))
         .catch((err) => candidate.reject(err instanceof Error ? err : new Error(String(err))))
-        .finally(() => this.onDispatchComplete())
     }
   }
 
@@ -285,6 +286,72 @@ export class ModelScheduler {
 
     // 4. FIFO fallback
     return this.queue.reduce((a, b) => (a.enqueueTime < b.enqueueTime ? a : b))
+  }
+
+  private async dispatchHoldingSlot(requestData: ProxyRequestData): Promise<Response> {
+    try {
+      const response = await this.dispatch(requestData)
+      return this.holdSlotUntilBodyDone(response)
+    } catch (err) {
+      this.onDispatchComplete()
+      throw err
+    }
+  }
+
+  /**
+   * Keep the concurrency slot until the client finishes reading (or cancels)
+   * the response body. `forwardUpstreamAndLog` returns as soon as headers
+   * arrive so streaming SSE/JSON can start — releasing then would let the next
+   * model request hit the local backend and preempt the in-flight generation.
+   */
+  private holdSlotUntilBodyDone(response: Response): Response {
+    if (!response.body) {
+      this.onDispatchComplete()
+      return response
+    }
+
+    let reader: ReadableStreamDefaultReader<Uint8Array>
+    try {
+      reader = response.body.getReader()
+    } catch {
+      // Body already locked (unexpected) — do not leak the concurrency slot.
+      this.onDispatchComplete()
+      return response
+    }
+
+    let released = false
+    const release = () => {
+      if (released) return
+      released = true
+      this.onDispatchComplete()
+    }
+
+    const wrapped = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        try {
+          const { done, value } = await reader.read()
+          if (done) {
+            controller.close()
+            release()
+            return
+          }
+          controller.enqueue(value)
+        } catch (err) {
+          release()
+          controller.error(err)
+        }
+      },
+      cancel(reason) {
+        release()
+        return reader.cancel(reason)
+      },
+    })
+
+    return new Response(wrapped, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    })
   }
 
   private async dispatch(requestData: ProxyRequestData): Promise<Response> {

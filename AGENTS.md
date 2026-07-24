@@ -544,7 +544,10 @@ sort lexicographically by creation time).
 - **Scheduler gates only local backends.** The concurrency queue in
   `model-scheduler.ts` applies only to local inference backends. Direct upstream
   routing (`targetType: 'direct'`) bypasses the queue entirely and flows
-  immediately through `forwardUpstreamAndLog()`.
+  immediately through `forwardUpstreamAndLog()`. A concurrency slot is held
+  until the response body finishes (or the client cancels), not when upstream
+  headers arrive — otherwise a second model request can preempt an in-flight
+  stream on single-slot backends such as llama.cpp router.
 - **SSE queue pings use comment lines.** Queued SSE requests get `:` comment
   pings every 5s while waiting (`: queued position=N eta=Xs model=...`).
   Non-SSE requests use HTTP long-poll (connection held, no response committed).

@@ -36,6 +36,8 @@ Client ──► llama-dash ──► [Routing] ──► Local backend OR Direc
 
 A single semaphore gates how many requests can be active on the local backend at once. All models share this pool. When the limit is reached, requests enter a bounded FIFO queue. When the queue is full, new requests get 503 Service Unavailable.
 
+**A slot stays held for the full exchange**, including streaming response bodies. `forwardUpstreamAndLog` returns as soon as response headers arrive so SSE can start flowing, but the scheduler must not free the slot until the client finishes reading (or cancels) the body. Releasing on headers alone lets a second model request hit llama.cpp / llama-swap mid-stream and preempt the in-flight generation (e.g. concurrency=1, long Qwen-35B stream interrupted by a Qwen-27B call).
+
 **Direct upstreams completely bypass this system.**
 
 #### Configuration

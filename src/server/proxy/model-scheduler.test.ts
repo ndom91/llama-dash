@@ -48,13 +48,28 @@ function firstResolvesThenPending() {
   })
 }
 
+/** Drain a response body so the scheduler can release its concurrency slot. */
+async function drainResponse(response: Response) {
+  if (response.body) await response.arrayBuffer()
+  return response
+}
+
+async function awaitAndDrainImmediate(result: ReturnType<ModelScheduler['enqueue']>) {
+  if (result.status !== 'immediate') {
+    throw new Error(`expected immediate enqueue, got ${result.status}`)
+  }
+  return drainResponse(await result.dispatchPromise)
+}
+
 describe('ModelScheduler', () => {
   let scheduler: ModelScheduler
 
   beforeEach(() => {
     vi.useFakeTimers()
     forwardMock.mockClear()
-    forwardMock.mockResolvedValue(Response.json({ id: 'ok' }))
+    // Fresh Response per call — a shared body would already be locked after the
+    // first holdSlotUntilBodyDone getReader().
+    forwardMock.mockImplementation(() => Promise.resolve(Response.json({ id: 'ok' })))
     pendingResolve = null
     dispatchCallCount = 0
     scheduler = new ModelScheduler({
@@ -169,7 +184,7 @@ describe('ModelScheduler', () => {
 
     firstResolvesThenPending()
     // Fill the slot with a dispatch that resolves immediately
-    scheduler.enqueue('first', 'any', makeRequestData('http://test/v1', 'any'))
+    const first = scheduler.enqueue('first', 'any', makeRequestData('http://test/v1', 'any'))
     expect(scheduler.getActiveSlots()).toBe(1)
 
     // Enqueue qwen request (will be oldest in queue)
@@ -186,7 +201,8 @@ describe('ModelScheduler', () => {
 
     expect(scheduler.getQueueDepth()).toBe(4)
 
-    // First dispatch resolves -> onDispatchComplete -> fairness drains immediately (delay 0)
+    // Drain first response body so the slot frees and fairness can drain
+    await awaitAndDrainImmediate(first)
     await vi.advanceTimersByTimeAsync(10)
 
     // f1:qwen should be picked because it's older than fairness timeout
@@ -324,7 +340,7 @@ describe('ModelScheduler', () => {
     expect(scheduler.getQueueDepth()).toBe(1)
 
     if (r1.status === 'immediate') {
-      await r1.dispatchPromise
+      await awaitAndDrainImmediate(r1)
     }
 
     // Slot freed, but batch window has not elapsed yet
@@ -386,7 +402,7 @@ describe('ModelScheduler', () => {
     expect(scheduler.getActiveSlots()).toBe(1)
 
     if (r1.status === 'immediate') {
-      await r1.dispatchPromise
+      await awaitAndDrainImmediate(r1)
     }
 
     // Advance past batch window so evaluateQueue runs and resolves waitPromise
@@ -424,19 +440,18 @@ describe('ModelScheduler', () => {
         }),
     )
 
-    scheduler.enqueue('x1', 'llama3', makeRequestData('http://test/v1', 'llama3'))
-    scheduler.enqueue('x2', 'llama3', makeRequestData('http://test/v1', 'llama3'))
+    const x1 = scheduler.enqueue('x1', 'llama3', makeRequestData('http://test/v1', 'llama3'))
+    const x2 = scheduler.enqueue('x2', 'llama3', makeRequestData('http://test/v1', 'llama3'))
     scheduler.enqueue('x3', 'llama3', makeRequestData('http://test/v1', 'llama3'))
     scheduler.enqueue('x4', 'llama3', makeRequestData('http://test/v1', 'llama3'))
     expect(scheduler.getActiveSlots()).toBe(2)
     expect(scheduler.getQueueDepth()).toBe(2)
     expect(resolvers.length).toBe(2)
 
-    // Complete both in-flight requests
+    // Headers resolve; slots stay held until response bodies are drained.
     resolvers[0](Response.json({ id: 'ok1' }))
     resolvers[1](Response.json({ id: 'ok2' }))
-    await Promise.resolve()
-    await Promise.resolve()
+    await Promise.all([awaitAndDrainImmediate(x1), awaitAndDrainImmediate(x2)])
 
     expect(scheduler.getActiveSlots()).toBe(0)
     expect(scheduler.getQueueDepth()).toBe(2)
@@ -459,7 +474,7 @@ describe('ModelScheduler', () => {
     })
 
     firstResolvesThenPending()
-    scheduler.enqueue('e1', 'llama3', makeRequestData('http://test/v1', 'llama3'))
+    const first = scheduler.enqueue('e1', 'llama3', makeRequestData('http://test/v1', 'llama3'))
     expect(scheduler.getCurrentModel()).toBe('llama3')
 
     scheduler.enqueue('q1', 'mistral', makeRequestData('http://test/v1', 'mistral'))
@@ -468,13 +483,128 @@ describe('ModelScheduler', () => {
 
     expect(scheduler.getQueueDepth()).toBe(3)
 
-    // Immediate dispatch completes, then batch window drains largest group
+    // Drain first body so the slot frees; then batch window drains largest group
+    await awaitAndDrainImmediate(first)
     await vi.advanceTimersByTimeAsync(60)
 
     expect(scheduler.getCurrentModel()).toBe('mistral')
     expect(scheduler.getActiveSlots()).toBe(1)
 
     resolvePending()
+  })
+
+  // ---- Slot held for full streaming exchange ----
+
+  it('holds the slot until the streaming body finishes (concurrency=1)', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    let streamController!: ReadableStreamDefaultController<Uint8Array>
+    const openStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller
+        controller.enqueue(new TextEncoder().encode('data: {"thinking":true}\n\n'))
+      },
+    })
+
+    forwardMock.mockImplementation(async (data: ProxyRequestData) => {
+      if (data.reqModel === 'qwen-35b') {
+        return new Response(openStream, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        })
+      }
+      return Response.json({ id: 'qwen-27b-done' })
+    })
+
+    const first = scheduler.enqueue(
+      'req_35b',
+      'qwen-35b',
+      makeRequestData('http://test/v1/chat/completions', 'qwen-35b'),
+    )
+    expect(first.status).toBe('immediate')
+    if (first.status !== 'immediate') throw new Error('expected immediate')
+
+    // Headers return while the body is still open — this is when the bug used
+    // to free the slot and let a second model preempt llama.cpp mid-stream.
+    const firstResponse = await first.dispatchPromise
+    expect(scheduler.getActiveSlots()).toBe(1)
+    expect(forwardMock).toHaveBeenCalledTimes(1)
+
+    const second = scheduler.enqueue(
+      'req_27b',
+      'qwen-27b',
+      makeRequestData('http://test/v1/chat/completions', 'qwen-27b'),
+    )
+    expect(second.status).toBe('queued')
+    expect(scheduler.getQueueDepth()).toBe(1)
+    expect(forwardMock).toHaveBeenCalledTimes(1)
+    expect(scheduler.getCurrentModel()).toBe('qwen-35b')
+
+    const reader = firstResponse.body!.getReader()
+    const firstChunk = await reader.read()
+    expect(firstChunk.done).toBe(false)
+
+    // Still streaming — second must not have been forwarded yet
+    expect(forwardMock).toHaveBeenCalledTimes(1)
+
+    streamController.close()
+    const end = await reader.read()
+    expect(end.done).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(forwardMock).toHaveBeenCalledTimes(2)
+    expect(scheduler.getCurrentModel()).toBe('qwen-27b')
+    expect(scheduler.getQueueDepth()).toBe(0)
+
+    if (second.status === 'queued') {
+      await drainResponse(await second.waitPromise)
+    }
+  })
+
+  it('does not free the slot when headers arrive with an unread open body', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 5,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    let streamController!: ReadableStreamDefaultController<Uint8Array>
+    forwardMock.mockImplementationOnce(
+      async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streamController = controller
+            },
+          }),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+    )
+    forwardMock.mockImplementationOnce(async () => Response.json({ id: 'second' }))
+
+    const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
+    if (first.status !== 'immediate') throw new Error('expected immediate')
+    const firstResponse = await first.dispatchPromise
+
+    const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1', 'model-b'))
+    expect(second.status).toBe('queued')
+    expect(forwardMock).toHaveBeenCalledTimes(1)
+    expect(scheduler.getActiveSlots()).toBe(1)
+
+    // Cancel unread body so the slot releases (afterEach also resets)
+    streamController.close()
+    await firstResponse.body?.cancel()
+    await vi.advanceTimersByTimeAsync(0)
   })
 
   // ---- SSE controller tracking ----
