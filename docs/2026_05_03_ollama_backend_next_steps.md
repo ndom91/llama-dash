@@ -19,7 +19,10 @@ Completed foundation:
 - `/logs` no longer mounts the llama-swap SSE hook before backend capability status is known.
 - Config/log/model-detail llama-swap specifics are contained behind backend hints or llama-swap-specific files.
 
-The only implemented backend is still `llama-swap`.
+The implemented backends are `llama-swap` and `llama-cpp-router`. Ollama is
+still not implemented; see
+[`2026_07_22_llama_cpp_router_backend.md`](./2026_07_22_llama_cpp_router_backend.md)
+for the second backend that exercised the facade.
 
 ## Recommended Next Step
 
