@@ -31,6 +31,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
 - **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.
 - **Export ops data** — raw log streams, retention controls, request auditing, and low-cardinality Prometheus metrics at `/metrics`.
+- **Move fast** — `g`-leader keyboard navigation (`g d` dashboard, `g r` requests, `g l` logs, …), `j`/`k`/`Enter` through the request list, and `H`/`L` between request details.
 
 <table>
   <tr>
