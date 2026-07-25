@@ -474,6 +474,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 sseStream={parsedSse}
                 assembledReasoning={req.assembledReasoning}
                 assembledResponse={req.assembledResponse}
+                assembledToolCalls={req.assembledToolCalls}
+                assembledCitations={req.assembledCitations}
               />
             </div>
           </section>

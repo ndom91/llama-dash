@@ -28,6 +28,10 @@ export const requests = sqliteTable(
     assembledReasoning: text('assembled_reasoning'),
     /** Full SSE-assembled response text; not subject to max-stored-body truncation. */
     assembledResponse: text('assembled_response'),
+    /** SSE-assembled tool calls as JSON array; not subject to max-stored-body truncation. */
+    assembledToolCalls: text('assembled_tool_calls'),
+    /** SSE-assembled citations as JSON array; not subject to max-stored-body truncation. */
+    assembledCitations: text('assembled_citations'),
     streamCloseMs: integer('stream_close_ms'),
     queueMs: integer('queue_ms'),
     /** (RELAY→REASON|RESPOND wall) − GPU prefill — model load/swap before prefill. */

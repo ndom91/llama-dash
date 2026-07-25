@@ -47,6 +47,8 @@ export const ApiRequestDetailSchema = v.object({
   responseBody: v.nullable(v.string()),
   assembledReasoning: v.nullable(v.string()),
   assembledResponse: v.nullable(v.string()),
+  assembledToolCalls: v.nullable(v.string()),
+  assembledCitations: v.nullable(v.string()),
   streamCloseMs: v.nullable(v.number()),
   decodeMs: v.nullable(v.number()),
   gpuPrefillMs: v.nullable(v.number()),

@@ -52,6 +52,10 @@ export type RequestLogInput = {
   assembledReasoning?: string | null
   /** Full assembled response; stored untruncated when bodies are persisted. */
   assembledResponse?: string | null
+  /** Assembled tool calls as JSON; stored untruncated when bodies are persisted. */
+  assembledToolCalls?: string | null
+  /** Assembled citations as JSON; stored untruncated when bodies are persisted. */
+  assembledCitations?: string | null
   streamCloseMs: number | null
   queueMs: number | null
   modelLoadingMs: number | null
@@ -132,9 +136,11 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const responseBody = persistBodies ? truncateBody(row.responseBody, maxBytes) : null
   const requestHeaders = persistBodies ? row.requestHeaders : null
   const responseHeaders = persistBodies ? row.responseHeaders : null
-  // Assembled text is small vs raw SSE and must survive maxBytes truncation.
+  // Assembled content is small vs raw SSE and must survive maxBytes truncation.
   const assembledReasoning = persistBodies ? (row.assembledReasoning ?? null) : null
   const assembledResponse = persistBodies ? (row.assembledResponse ?? null) : null
+  const assembledToolCalls = persistBodies ? (row.assembledToolCalls ?? null) : null
+  const assembledCitations = persistBodies ? (row.assembledCitations ?? null) : null
   const costUsd = computeCostUsd(row.model, row)
   db.insert(schema.requests)
     .values({
@@ -159,6 +165,8 @@ export function writeRequestLogNow(row: RequestLogInput) {
       responseBody,
       assembledReasoning,
       assembledResponse,
+      assembledToolCalls,
+      assembledCitations,
       streamCloseMs: row.streamCloseMs,
       queueMs: row.queueMs,
       modelLoadingMs: row.modelLoadingMs,

@@ -15,6 +15,8 @@ type Props = {
   sseStream?: ParsedSseStream | null
   assembledReasoning?: string | null
   assembledResponse?: string | null
+  assembledToolCalls?: string | null
+  assembledCitations?: string | null
 }
 
 export function RequestPayloadPane({
@@ -26,6 +28,8 @@ export function RequestPayloadPane({
   sseStream = null,
   assembledReasoning = null,
   assembledResponse = null,
+  assembledToolCalls = null,
+  assembledCitations = null,
 }: Props) {
   const hasBody = body.trim().length > 0
   const hasAssembled = Boolean(assembledReasoning || assembledResponse)
@@ -50,6 +54,8 @@ export function RequestPayloadPane({
           stream={sseStream}
           assembledReasoning={assembledReasoning}
           assembledResponse={assembledResponse}
+          assembledToolCalls={assembledToolCalls}
+          assembledCitations={assembledCitations}
         />
       )
     }
@@ -63,7 +69,16 @@ export function RequestPayloadPane({
       )
     }
     return deferredBody
-  }, [assembledReasoning, assembledResponse, deferredBody, mode, pretty, sseStream])
+  }, [
+    assembledReasoning,
+    assembledResponse,
+    assembledToolCalls,
+    assembledCitations,
+    deferredBody,
+    mode,
+    pretty,
+    sseStream,
+  ])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
 
   return (

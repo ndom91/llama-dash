@@ -38,6 +38,8 @@ export type ProxyLogInput = {
   resBody: string | null
   assembledReasoning?: string | null
   assembledResponse?: string | null
+  assembledToolCalls?: string | null
+  assembledCitations?: string | null
   keyId: string | null
   reqModel: string | null
   attribution: Attribution
@@ -114,6 +116,8 @@ export function writeProxyLog(input: ProxyLogInput) {
     responseBody: input.resBody,
     assembledReasoning: input.assembledReasoning ?? null,
     assembledResponse: input.assembledResponse ?? null,
+    assembledToolCalls: input.assembledToolCalls ?? null,
+    assembledCitations: input.assembledCitations ?? null,
     streamCloseMs: input.usage.streamCloseMs,
     queueMs: input.queueMs ?? null,
     modelLoadingMs: input.usage.modelLoadingMs,
@@ -246,6 +250,11 @@ export async function forwardUpstreamAndLog(input: {
 
   const finishAssembled = () => (captureResponseBodies ? (contentAssembler?.result() ?? null) : null)
 
+  const serializeToolCalls = (a: ReturnType<SseContentAssembler['result']> | null) =>
+    a?.toolCalls ? JSON.stringify(a.toolCalls) : null
+  const serializeCitations = (a: ReturnType<SseContentAssembler['result']> | null) =>
+    a?.citations ? JSON.stringify(a.citations) : null
+
   const responseBody = new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
@@ -285,6 +294,8 @@ export async function forwardUpstreamAndLog(input: {
             resBody,
             assembledReasoning: assembled?.reasoning ?? null,
             assembledResponse: assembled?.response ?? null,
+            assembledToolCalls: serializeToolCalls(assembled),
+            assembledCitations: serializeCitations(assembled),
             keyId: input.keyId,
             reqModel: input.reqModel,
             attribution: input.attribution,
@@ -325,6 +336,8 @@ export async function forwardUpstreamAndLog(input: {
           resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
           assembledReasoning: assembled?.reasoning ?? null,
           assembledResponse: assembled?.response ?? null,
+          assembledToolCalls: serializeToolCalls(assembled),
+          assembledCitations: serializeCitations(assembled),
           keyId: input.keyId,
           reqModel: input.reqModel,
           attribution: input.attribution,
@@ -352,6 +365,8 @@ export async function forwardUpstreamAndLog(input: {
         resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
         assembledReasoning: assembled?.reasoning ?? null,
         assembledResponse: assembled?.response ?? null,
+        assembledToolCalls: serializeToolCalls(assembled),
+        assembledCitations: serializeCitations(assembled),
         keyId: input.keyId,
         reqModel: input.reqModel,
         attribution: input.attribution,

@@ -295,6 +295,13 @@
       "when": 1782330000000,
       "tag": "0041_request_assembled_text",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1782333600000,
+      "tag": "0042_request_assembled_tool_calls",
+      "breakpoints": true
     }
   ]
 }

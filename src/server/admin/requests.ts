@@ -191,6 +191,8 @@ export function getRequestById(id: string): RequestDetail | null {
     responseBody: recent?.responseBody ?? r.responseBody,
     assembledReasoning: r.assembledReasoning,
     assembledResponse: r.assembledResponse,
+    assembledToolCalls: r.assembledToolCalls,
+    assembledCitations: r.assembledCitations,
     streamCloseMs: r.streamCloseMs,
     queueMs: r.queueMs,
     modelLoadingMs: r.modelLoadingMs,
