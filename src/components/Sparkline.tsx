@@ -1,4 +1,4 @@
-let nextId = 0
+import { useId } from 'react'
 
 function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.6): string {
   if (pts.length < 2) return ''
@@ -30,12 +30,35 @@ export function Sparkline({
   height?: number
   color?: string
 }) {
+  // useId, not a module counter mutated during render — the latter produced
+  // different ids on server and client and could not survive hydration.
+  // Sanitized because React's generated ids contain punctuation that is unsafe
+  // inside a url(#...) fragment reference.
+  const id = `spark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   if (data.length < 2) return null
 
-  const id = `spark-${++nextId}`
   const vw = 200
-  const max = Math.max(...data, 1)
+  const max = Math.max(...data)
   const step = vw / (data.length - 1)
+
+  // No activity in the window. Drawing the normal curve here paints a flat line
+  // pinned to the card floor in the series color — a heavy colored rule that
+  // reads as the loudest thing on the panel while carrying no information. A
+  // hairline keeps the card's vertical rhythm and says "no activity" honestly.
+  if (max <= 0) {
+    return (
+      <svg
+        viewBox={`0 0 ${vw} ${height}`}
+        preserveAspectRatio="none"
+        className="block w-full mt-auto"
+        style={{ height }}
+        aria-hidden="true"
+      >
+        <line x1="0" y1={height - 2} x2={vw} y2={height - 2} stroke="var(--fg-faint)" strokeWidth={1} opacity={0.45} />
+      </svg>
+    )
+  }
+
   const glowH = 24
   const coords = data.map((v, i) => ({
     x: i * step,

@@ -216,11 +216,6 @@
   --ld-phosphor-700: #7b5ca0;
 
   /* surfaces */
-  --ld-surface-0: #0b0e11;
-  --ld-surface-1: #101419;
-  --ld-surface-2: #171c21;
- 
-  /* old surface colors - daker */
   --ld-surface-0: #070809;
   --ld-surface-1: #0e1114;
   --ld-surface-2: #161a1d;
@@ -268,16 +263,33 @@
 
   --accent-shifted: oklch(84% 0.036 300);
 
+  /* Series (identity) ramp — see src/lib/series-color.ts.
+     Hue and base chroma come from the active accent via themeStyleVars(); these
+     are the ultraviolet fallbacks so the first SSR paint is valid before the
+     blocking theme script runs. Lightness is anchored to an absolute band
+     rather than offset from the accent's own L, because accent L ranges 72–87%
+     across palettes and offsetting would clip past 100%.
+     Dark mode: bars sit on --bg-3 (#1c2024, L≈24%), so lightness descends as
+     chroma ascends. Chroma is capped at 0.55x accent to keep every step
+     visibly desaturated relative to the status colors. */
+  --ld-series-h: 300;
+  --ld-series-c: 0.09;
+
+  --series-1: oklch(88% calc(var(--ld-series-c) * 0.2) var(--ld-series-h));
+  --series-2: oklch(80% calc(var(--ld-series-c) * 0.29) var(--ld-series-h));
+  --series-3: oklch(72% calc(var(--ld-series-c) * 0.38) var(--ld-series-h));
+  --series-4: oklch(64% calc(var(--ld-series-c) * 0.47) var(--ld-series-h));
+  --series-5: oklch(56% calc(var(--ld-series-c) * 0.55) var(--ld-series-h));
+
   --radius-sm: 3px;
   --radius: 6px;
   --radius-lg: 9px;
   --radius-pill: 9999px;
 
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 12px;
+  /* Spacing is handled by Tailwind utilities; only --space-lg has a consumer
+     (.dash-grid). The unused xs/sm/md/xl steps were removed rather than left as
+     a second, competing spacing scale. */
   --space-lg: 16px;
-  --space-xl: 24px;
 
   /* Animation tokens — Easing Blueprint */
   --ease-out-micro: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -289,6 +301,18 @@
   --duration-slow: 250ms;
 }
 
+/*
+ * LIGHT THEME — this block and the @media (prefers-color-scheme: light) block
+ * below are intentional duplicates and MUST be edited together.
+ *
+ * They cannot be merged into one selector list: theme-init-script.ts *removes*
+ * `data-theme` when the mode is `auto` (the default), so the media query is the
+ * only thing that applies light mode for most users, while this attribute
+ * selector is what lets an explicit choice override the OS preference. CSS has
+ * no mixin, so the declarations are repeated. Collapsing this properly means
+ * changing the `data-theme` contract to always carry the *resolved* mode, which
+ * touches the SSR and hydration paths — deliberately out of scope here.
+ */
 :root[data-theme='light'] {
   --bg-0: #f5f6f3;
   --bg-1: #ffffff;
@@ -305,7 +329,7 @@
   --border-strong: rgba(0, 0, 0, 0.14);
 
   --accent: var(--ld-phosphor-700);
-  --accent-strong: #527a44;
+  --accent-strong: color-mix(in oklab, var(--accent) 82%, black);
   --accent-on: #ffffff;
 
   --ok: #4a8a3a;
@@ -316,8 +340,20 @@
   --err-bg: rgba(168, 68, 68, 0.1);
   --info: #3a7a8a;
   --info-bg: rgba(58, 122, 138, 0.1);
+
+  /* Series ramp inverts for light mode: bars sit on --bg-3 (#eef0eb, L≈94%),
+     so *darker* means stronger. Contrast ordering is preserved — --series-1 is
+     the most prominent step in both modes. Keep in sync with the
+     prefers-color-scheme block below. */
+  --series-1: oklch(36% calc(var(--ld-series-c) * 0.55) var(--ld-series-h));
+  --series-2: oklch(43% calc(var(--ld-series-c) * 0.47) var(--ld-series-h));
+  --series-3: oklch(50% calc(var(--ld-series-c) * 0.38) var(--ld-series-h));
+  --series-4: oklch(57% calc(var(--ld-series-c) * 0.29) var(--ld-series-h));
+  --series-5: oklch(64% calc(var(--ld-series-c) * 0.2) var(--ld-series-h));
 }
 
+/* Duplicate of :root[data-theme='light'] above — see the note there before
+   editing either block. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
     --bg-0: #f5f6f3;
@@ -335,7 +371,7 @@
     --border-strong: rgba(0, 0, 0, 0.14);
 
     --accent: var(--ld-phosphor-700);
-    --accent-strong: #527a44;
+    --accent-strong: color-mix(in oklab, var(--accent) 82%, black);
     --accent-on: #ffffff;
 
     --ok: #4a8a3a;
@@ -346,6 +382,13 @@
     --err-bg: rgba(168, 68, 68, 0.1);
     --info: #3a7a8a;
     --info-bg: rgba(58, 122, 138, 0.1);
+
+    /* Keep in sync with :root[data-theme='light'] above. */
+    --series-1: oklch(36% calc(var(--ld-series-c) * 0.55) var(--ld-series-h));
+    --series-2: oklch(43% calc(var(--ld-series-c) * 0.47) var(--ld-series-h));
+    --series-3: oklch(50% calc(var(--ld-series-c) * 0.38) var(--ld-series-h));
+    --series-4: oklch(57% calc(var(--ld-series-c) * 0.29) var(--ld-series-h));
+    --series-5: oklch(64% calc(var(--ld-series-c) * 0.2) var(--ld-series-h));
   }
 }
 
@@ -458,6 +501,41 @@
 }
 .ticker-out { animation: ticker-out 300ms ease-in forwards; }
 .ticker-in  { animation: ticker-in 300ms ease-out; }
+
+/* ---- sidebar leader-key shortcuts ---- */
+
+.nav-key {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--fg-faint);
+}
+
+.nav-key kbd {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+/* A leader key is invisible modal state: without feedback you can't tell whether
+   the app is waiting for the second key or dropped the first. Driven by an
+   attribute the tracker toggles on <html>, so this costs no React render.
+   Dimming `g` and lighting the target points the eye at what to press next. */
+:root[data-leader-pending] .nav-key {
+  color: var(--accent);
+}
+:root[data-leader-pending] .nav-key-leader {
+  opacity: 0.4;
+}
+:root[data-leader-pending] .nav-key-target {
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 22%, transparent);
+}
 
 @keyframes pulse-ok {
   0%, 100% { box-shadow: 0 0 6px var(--ok); }
@@ -615,7 +693,12 @@
 
 .detail-meta-list > div {
   @apply grid min-w-0 items-start gap-2;
-  grid-template-columns: minmax(58px, 31%) minmax(0, 1fr);
+  /* 31% clipped the longest labels ("authorization", "stream close") into
+     "authorizat…" / "stream clo…" — while the sidecar rendered the same strings
+     in full, so one screen both truncated and didn't. The labels themselves are
+     shorter now; this leaves headroom for the longest remaining one
+     ("credentials") at the narrow end of the rail's clamp. */
+  grid-template-columns: minmax(66px, 36%) minmax(0, 1fr);
 }
 
 .detail-meta-list dt {
@@ -987,6 +1070,13 @@
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+
+/* Browser boilerplate, shown only when expanded. Accent on every key meant
+   sec-ch-ua-platform-version read as loudly as authorization. */
+.dtable tbody td.header-key-muted {
+  color: var(--fg-muted);
+  font-weight: 400;
+}
 .dtable tbody td.header-value {
   padding-right: calc(0.25rem + var(--headers-scroll-gutter, 10px));
   text-align: right;
@@ -1296,7 +1386,7 @@
 /* ---- log viewer ---- */
 
 .log-match {
-  background: rgba(226, 178, 76, 0.25);
+  background: color-mix(in oklab, var(--warn) 25%, transparent);
   color: var(--warn);
   border-radius: 2px;
 }
@@ -1459,13 +1549,19 @@ a,
   overflow: hidden;
 }
 
-.stat-card {
-  background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-2));
-  border-right: 1px solid var(--border);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* In @layer components so Tailwind utilities on the same element can override
+   it. Unlayered, this rule beat @layer utilities regardless of specificity, and
+   DashboardStatCard's `bg-surface-2 px-3.5 pt-3 pb-2.5` were silently inert —
+   classes that looked live but did nothing. */
+@layer components {
+  .stat-card {
+    background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-2));
+    border-right: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
 }
 .stat-card:last-child {
   border-right: none;
@@ -1541,65 +1637,41 @@ a,
 
 
 
-/* ---- model swap timeline ---- */
+/* ---- model residency: peer spans ---- */
 
-.timeline-body {
-  padding: 4px 24px 12px;
+/* A peer model is resident on another host, not here. Painting it with a fill
+   color (previously --info) made it read as one more identity in the series
+   ramp. Hatching states "not resident locally" without spending a color at all.
+   Derived from --fg-dim, which already flips per color mode, so light mode
+   needs no separate rule. 135deg reads as unavailable rather than as
+   directional progress; a 6px period over an h-4 track gives ~4 stripes
+   without moire. */
+.series-span-peer {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--fg-dim) 34%, transparent) 0 2px,
+    transparent 2px 6px
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg-dim) 30%, transparent);
 }
-.timeline-track {
-  position: relative;
-  height: 28px;
-  background: var(--bg-3);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  margin: 4px 0 2px;
+
+.series-legend-swatch-peer {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--fg-dim) 44%, transparent) 0 1.5px,
+    transparent 1.5px 4px
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--fg-dim) 34%, transparent);
 }
-.timeline-span {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  border-radius: 2px;
-  opacity: 0.85;
-}
-.timeline-swap {
-  opacity: 0.6;
-}
-.timeline-axis {
-  position: relative;
-  height: 20px;
-  margin-bottom: 6px;
-}
-.timeline-tick {
-  position: absolute;
-  transform: translateX(-50%);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--fg-dim);
-}
-.timeline-tick:first-child {
-  transform: none;
-}
-.timeline-tick:last-child {
-  transform: translateX(-100%);
-}
-.timeline-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  font-size: 11px;
-  color: var(--fg-muted);
-}
-.timeline-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.timeline-legend-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  flex-shrink: 0;
+
+@media (forced-colors: active) {
+  .series-span-peer,
+  .series-legend-swatch-peer {
+    background-image: none;
+    outline: 1px dashed CanvasText;
+    outline-offset: -1px;
+  }
 }
 
 /* ---- dashboard grid ---- */
@@ -2035,11 +2107,6 @@ a,
   width: 40px;
   height: 40px;
   opacity: 0.3;
-}
-
-@keyframes msg-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 .pg-msg-markdown p {
@@ -2945,7 +3012,9 @@ a,
   opacity: 1;
 }
 .key-rename-input {
-  background: var(--bg-surface);
+  /* was var(--bg-surface), which is defined nowhere — the background silently
+     fell back to transparent */
+  background: var(--bg-1);
   border: 1px solid var(--accent);
   border-radius: 4px;
   color: var(--fg);
