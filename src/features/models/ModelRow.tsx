@@ -3,6 +3,8 @@ import { Play, Power } from 'lucide-react'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/api'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 import { formatCapabilityLabel, getModelCapabilityBadges } from './modelUtils'
 
 type Props = {
@@ -26,8 +28,8 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
 
   return (
     <tr
-      className="clickable-row h-10 last:border-b last:border-border"
-      onClick={() => navigate({ to: '/models/$id', params: { id: model.id } })}
+      className={cn('clickable-row h-10 last:border-b last:border-border', clickableRowFocusClass)}
+      {...clickableRowProps(() => navigate({ to: '/models/$id', params: { id: model.id } }))}
     >
       <td>
         <StatusDot tone={tone} live={loading || model.running} />

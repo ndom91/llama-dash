@@ -1,4 +1,5 @@
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
+import { LEADER_TIMEOUT_MS, useLeaderPendingTracker } from '../lib/nav-leader'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
@@ -24,6 +25,14 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+/**
+ * Module-level, not inline: HotkeysProvider memoises `defaultOptions` on
+ * identity, so a fresh object each render would rebuild the context value.
+ * Setting the sequence timeout here avoids repeating it on all twelve nav
+ * bindings.
+ */
+const HOTKEY_DEFAULTS = { hotkeySequence: { timeout: LEADER_TIMEOUT_MS } }
 
 import appCss from '../styles.css?url'
 
@@ -73,7 +82,7 @@ function RootDocument() {
       </head>
       <body>
         <QueryClientProvider client={queryClient}>
-          <HotkeysProvider>
+          <HotkeysProvider defaultOptions={HOTKEY_DEFAULTS}>
             <TooltipProvider>
               <AppShell />
             </TooltipProvider>
@@ -128,6 +137,7 @@ function AuthenticatedShell({
   rootContext: RootShellContext | undefined
 }) {
   useAdminEvents()
+  useLeaderPendingTracker()
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>

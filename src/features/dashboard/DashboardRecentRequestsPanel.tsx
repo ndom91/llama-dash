@@ -5,6 +5,8 @@ import { CopyableCode } from '../../components/CopyableCode'
 import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
 import type { ApiRequest } from '../../lib/api'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 
 type Props = {
   requests: Array<ApiRequest> | null
@@ -111,8 +113,8 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
               {requests.map((r) => (
                 <tr
                   key={r.id}
-                  className="clickable-row"
-                  onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                  className={cn('clickable-row', clickableRowFocusClass)}
+                  {...clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))}
                 >
                   <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                   <td className="mono" translate="no">

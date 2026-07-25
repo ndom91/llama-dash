@@ -10,6 +10,8 @@ import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { formatCompactNumber } from '../../lib/format'
+import { isTypingTarget } from '../../lib/is-typing-target'
+import { isLeaderPending } from '../../lib/nav-leader'
 import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
@@ -216,12 +218,18 @@ export function RequestsPage() {
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+      // isTypingTarget walks the composed path, so it also catches
+      // contenteditable and nested wrappers that a bare tagName check missed —
+      // and it doesn't treat <input type="button"> as typing.
+      if (isTypingTarget(e)) {
         setSelectedIdx(-1)
         if (e.key === 'Escape') (e.target as HTMLElement).blur()
         return
       }
+
+      // `g k` navigates to API Keys; without this, it would also move the row
+      // selection up. See nav-leader.ts for why propagation can't be used here.
+      if (isLeaderPending()) return
 
       if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()

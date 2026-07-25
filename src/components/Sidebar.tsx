@@ -1,4 +1,6 @@
-import { Link } from '@tanstack/react-router'
+import type { HotkeySequence } from '@tanstack/react-hotkeys'
+import { useHotkeySequence } from '@tanstack/react-hotkeys'
+import { Link, useNavigate } from '@tanstack/react-router'
 import Avatar from 'boring-avatars'
 import {
   Boxes,
@@ -19,6 +21,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
+import { LEADER_KEY } from '../lib/nav-leader'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
 import type { ApiSystemStatus } from '../lib/schemas/system'
@@ -27,62 +30,84 @@ import { StatusDot, stateTone } from './StatusDot'
 import { Logo } from './Logo'
 import { Tooltip } from './Tooltip'
 
+type NavTarget =
+  | '/'
+  | '/models'
+  | '/requests'
+  | '/logs'
+  | '/system'
+  | '/playground'
+  | '/config'
+  | '/settings'
+  | '/keys'
+  | '/attribution'
+  | '/endpoints'
+  | '/policies'
+
 type NavItem = {
-  to:
-    | '/'
-    | '/models'
-    | '/requests'
-    | '/logs'
-    | '/system'
-    | '/playground'
-    | '/config'
-    | '/settings'
-    | '/keys'
-    | '/attribution'
-    | '/endpoints'
-    | '/policies'
+  to: NavTarget
   label: string
-  shortcut: string
+  /**
+   * Second key of the `g`-leader sequence. These replaced decorative codes
+   * (`D01`, `R02`, …) that nothing read — the letters weren't even unique
+   * (`P06` Playground vs `P10` Policies) and the ordinals renumbered whenever a
+   * nav item was hidden by backend capability.
+   */
+  leader: string
   Icon: typeof LayoutDashboard
 }
-
-type FutureItem = { label: string; shortcut: string; Icon: typeof LayoutDashboard }
 
 type NavSection = {
   title: string
   items: ReadonlyArray<NavItem>
-  future?: ReadonlyArray<FutureItem>
 }
 
 const SECTIONS: ReadonlyArray<NavSection> = [
   {
     title: 'observe',
     items: [
-      { to: '/', label: 'Dashboard', shortcut: 'D01', Icon: LayoutDashboard },
-      { to: '/requests', label: 'Requests', shortcut: 'R02', Icon: ScrollText },
-      { to: '/logs', label: 'Logs', shortcut: 'L03', Icon: Terminal },
-      { to: '/system', label: 'System', shortcut: 'S04', Icon: ServerCog },
+      { to: '/', label: 'Dashboard', leader: 'd', Icon: LayoutDashboard },
+      { to: '/requests', label: 'Requests', leader: 'r', Icon: ScrollText },
+      { to: '/logs', label: 'Logs', leader: 'l', Icon: Terminal },
+      { to: '/system', label: 'System', leader: 's', Icon: ServerCog },
     ],
   },
   {
     title: 'interact',
     items: [
-      { to: '/models', label: 'Models', shortcut: 'M05', Icon: Boxes },
-      { to: '/playground', label: 'Playground', shortcut: 'P06', Icon: MessageSquare },
+      { to: '/models', label: 'Models', leader: 'm', Icon: Boxes },
+      { to: '/playground', label: 'Playground', leader: 'p', Icon: MessageSquare },
     ],
   },
   {
     title: 'configure',
     items: [
-      { to: '/config', label: 'Config', shortcut: 'C07', Icon: Settings },
-      { to: '/keys', label: 'API Keys', shortcut: 'K08', Icon: KeyRound },
-      { to: '/attribution', label: 'Attribution', shortcut: 'A09', Icon: Fingerprint },
-      { to: '/policies', label: 'Policies', shortcut: 'P10', Icon: Shield },
-      { to: '/endpoints', label: 'Endpoints', shortcut: 'E11', Icon: Link2 },
-      { to: '/settings', label: 'Settings', shortcut: 'S12', Icon: SlidersHorizontal },
+      { to: '/config', label: 'Config', leader: 'c', Icon: Settings },
+      { to: '/keys', label: 'API Keys', leader: 'k', Icon: KeyRound },
+      { to: '/attribution', label: 'Attribution', leader: 'a', Icon: Fingerprint },
+      // 'p' belongs to Playground (used daily); Policies takes its second letter.
+      { to: '/policies', label: 'Policies', leader: 'o', Icon: Shield },
+      { to: '/endpoints', label: 'Endpoints', leader: 'e', Icon: Link2 },
+      // ',' is the conventional preferences key; 's' goes to System, which an
+      // operator visits far more often than a configure-once page.
+      { to: '/settings', label: 'Settings', leader: ',', Icon: SlidersHorizontal },
     ],
   },
 ]
+
+/**
+ * Registers one `g <key>` sequence. Rendered as a component so the hook count
+ * stays stable per item even though the visible section list is filtered by
+ * backend capability — a hidden route simply gets no binding.
+ */
+function LeaderNavBinding({ to, leader }: { to: NavTarget; leader: string }) {
+  const navigate = useNavigate()
+  useHotkeySequence([LEADER_KEY.toUpperCase(), leader.toUpperCase()] as HotkeySequence, (event) => {
+    event.preventDefault()
+    navigate({ to })
+  })
+  return null
+}
 
 const NAV_LINK =
   'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
@@ -160,16 +185,22 @@ function SidebarNav({
       if (item.to === '/config') return capabilities?.config !== false
       return true
     }),
-  })).filter((section) => section.items.length > 0 || section.future?.length)
+  })).filter((section) => section.items.length > 0)
 
   return (
     <nav className="flex flex-col p-2 gap-px flex-1 overflow-y-auto" aria-label="Primary">
+      {/* Bindings are registered here rather than inside each <Link> so keyboard
+          registration isn't entangled with link markup. Driven off the same
+          capability-filtered list, so a hidden route gets no binding. */}
+      {visibleSections.flatMap((section) =>
+        section.items.map((item) => <LeaderNavBinding key={item.to} to={item.to} leader={item.leader} />),
+      )}
       {visibleSections.map((section) => (
         <div key={section.title}>
           <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint px-2.5 pt-3 pb-1.5">
             {section.title}
           </div>
-          {section.items.map(({ to, label, shortcut, Icon }) => {
+          {section.items.map(({ to, label, leader, Icon }) => {
             const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
             return (
               <Link
@@ -180,24 +211,23 @@ function SidebarNav({
                 activeProps={{ className: NAV_LINK_ACTIVE }}
                 onClick={onNavigate}
               >
-                <span className="font-mono text-[9px] font-semibold text-fg-faint tracking-[0.02em] w-6 shrink-0">
-                  {shortcut}
+                {/* Two adjacent <kbd> elements is how a *sequence* is expressed;
+                    one <kbd> wrapping both would mean a single keystroke.
+                    Deliberately no aria-keyshortcuts — that attribute is
+                    specified for key combinations, so "G D" would be announced
+                    as two independent shortcuts. The sr-only text says it
+                    properly instead. */}
+                <span className="nav-key flex w-7 shrink-0 items-center gap-px" aria-hidden="true">
+                  <kbd className="nav-key-leader">{LEADER_KEY}</kbd>
+                  <kbd className="nav-key-target">{leader}</kbd>
                 </span>
                 <Icon className="size-4 shrink-0 text-current" strokeWidth={1.75} aria-hidden="true" />
                 <span>{label}</span>
+                <span className="sr-only">{`, shortcut ${LEADER_KEY} then ${leader}`}</span>
                 {badge != null ? <span className="ml-auto font-mono text-[10px] text-fg-dim">{badge}</span> : null}
               </Link>
             )
           })}
-          {section.future?.map(({ label, shortcut, Icon }) => (
-            <span key={label} className={`${NAV_LINK} cursor-default opacity-35`}>
-              <span className="font-mono text-[9px] font-semibold text-fg-faint tracking-[0.02em] w-6 shrink-0">
-                {shortcut}
-              </span>
-              <Icon className="size-4 shrink-0 text-current" strokeWidth={1.75} aria-hidden="true" />
-              <span>{label}</span>
-            </span>
-          ))}
         </div>
       ))}
     </nav>
@@ -266,12 +296,20 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
     <div className="p-2.5 border-t border-border flex flex-col gap-2">
       <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
         <div className="flex justify-between items-center gap-2 text-[10px] font-mono tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-          <span className="text-fg-muted">{gpuCard?.powerW ?? '-'} W</span>
+          {/* The unit used to render outside the fallback, producing a literal
+              "- W". Apple and rocm-smi hardcode powerW: null in gpu-poller.ts,
+              so on those backends that readout was permanently broken-looking by
+              design. An absent row is better than a dash with a unit stuck to it. */}
+          <span className="text-fg-muted">{gpuCard?.powerW != null ? `${gpuCard.powerW} W` : ''}</span>
           <span className="text-fg-muted">
             {hasVram
-              ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GB`
+              ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
               : resident
-                ? `${visibleIdx} of ${totalCount}`
+                ? // Was `${visibleIdx} of ${totalCount}` — visibleIdx is the
+                  // ticker's rotation index, not a count, so one running model of
+                  // twelve displayed "0 of 12" while the meter below used
+                  // runningCount and disagreed.
+                  `${runningCount} of ${totalCount}`
                 : 'idle'}
           </span>
         </div>
