@@ -110,30 +110,34 @@ export function pickGpuTimings(body: RawJson): GpuTimings {
   }
 }
 
-type TokenKind = 'reasoning' | 'content'
+type TokenKinds = { hasReasoning: boolean; hasContent: boolean }
 
-function tokenKind(body: RawJson): TokenKind | null {
+function tokenKinds(body: RawJson): TokenKinds {
+  let hasReasoning = false
+  let hasContent = false
+
   const choices = body.choices
   if (Array.isArray(choices)) {
     for (const choice of choices) {
       const delta = asRecord(asRecord(choice)?.delta)
       if (!delta) continue
-      if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) return 'reasoning'
-      if (typeof delta.reasoning === 'string' && delta.reasoning.length > 0) return 'reasoning'
-      if (typeof delta.content === 'string' && delta.content.length > 0) return 'content'
+      if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) hasReasoning = true
+      if (typeof delta.reasoning === 'string' && delta.reasoning.length > 0) hasReasoning = true
+      if (typeof delta.content === 'string' && delta.content.length > 0) hasContent = true
     }
   }
 
   if (body.type === 'content_block_delta') {
     const delta = asRecord(body.delta)
-    if (!delta) return null
-    if (delta.type === 'thinking_delta' && typeof delta.thinking === 'string' && delta.thinking.length > 0) {
-      return 'reasoning'
+    if (delta) {
+      if (delta.type === 'thinking_delta' && typeof delta.thinking === 'string' && delta.thinking.length > 0) {
+        hasReasoning = true
+      }
+      if (delta.type === 'text_delta' && typeof delta.text === 'string' && delta.text.length > 0) hasContent = true
     }
-    if (delta.type === 'text_delta' && typeof delta.text === 'string' && delta.text.length > 0) return 'content'
   }
 
-  return null
+  return { hasReasoning, hasContent }
 }
 
 export function usageFromJsonBody(text: string): Usage & GpuTimings {
@@ -197,11 +201,17 @@ export class SseUsageScanner {
       this.buf = ''
     }
 
-    // Model-loading end: REASON, else RESPOND; unavailable if neither.
-    const firstTokenAt = this.reasoningStartAtMs ?? this.firstContentAtMs
+    // Model-loading end: whichever came first (REASON or RESPOND).
+    const firstTokenAt =
+      this.reasoningStartAtMs != null && this.firstContentAtMs != null
+        ? Math.min(this.reasoningStartAtMs, this.firstContentAtMs)
+        : (this.reasoningStartAtMs ?? this.firstContentAtMs)
     const relayToFirstTokenMs = firstTokenAt != null ? Math.max(0, firstTokenAt - this.dispatchAtMs) : null
 
-    // Reasoning only when both REASON and RESPOND exist.
+    // Reasoning: time from first reasoning token to first content token.
+    // Represents the "thinking before responding" phase.
+    // Null when no reasoning tokens, or when reasoning-only stream (no content).
+    // 0 when reasoning and content are simultaneous or reasoning comes after content.
     const reasoningMs =
       this.reasoningStartAtMs != null && this.firstContentAtMs != null
         ? Math.max(0, this.firstContentAtMs - this.reasoningStartAtMs)
@@ -247,12 +257,9 @@ export class SseUsageScanner {
         if (gpu.gpuPrefillMs != null) this.gpu.gpuPrefillMs = gpu.gpuPrefillMs
         if (gpu.gpuDecodeMs != null) this.gpu.gpuDecodeMs = gpu.gpuDecodeMs
 
-        const kind = tokenKind(body)
-        if (kind === 'reasoning') {
-          if (this.reasoningStartAtMs == null) this.reasoningStartAtMs = at
-        } else if (kind === 'content') {
-          if (this.firstContentAtMs == null) this.firstContentAtMs = at
-        }
+        const kinds = tokenKinds(body)
+        if (kinds.hasReasoning && this.reasoningStartAtMs == null) this.reasoningStartAtMs = at
+        if (kinds.hasContent && this.firstContentAtMs == null) this.firstContentAtMs = at
 
         if (body.type === 'message_stop' && this.doneAtMs == null) {
           this.doneAtMs = at

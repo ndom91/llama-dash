@@ -63,7 +63,7 @@ export class SseContentAssembler {
       reasoning: this.reasoning.length > 0 ? this.reasoning : null,
       response: this.response.length > 0 ? this.response : null,
       toolCalls,
-      citations,
+      citations: citations.length > 0 ? citations : null,
     }
   }
 
