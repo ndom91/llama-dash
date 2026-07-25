@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { isLeaderPending } from '../../lib/nav-leader'
 import {
   StoredCredentialInjectionAuditSchema,
   type StoredCredentialInjectionAudit,
@@ -45,17 +46,6 @@ type CredentialInjectionSummary = {
   modesLabel: string
 }
 
-const compactTokenFormatter = new Intl.NumberFormat('en', {
-  maximumFractionDigits: 0,
-  notation: 'compact',
-})
-
-function formatCompactTokens(value: number | null | undefined) {
-  if (value == null) return '—'
-  if (value < 10_000) return value.toLocaleString()
-  return compactTokenFormatter.format(value).toLowerCase()
-}
-
 export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
@@ -71,6 +61,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
+  const statMetricCell = 'border-r border-b border-border px-4 py-3.5 min-[1500px]:border-b-0'
   const navButtonClass =
     'inline-flex h-8 w-8 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
@@ -81,6 +72,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   })
 
   useHotkey('L', (e) => {
+    // `g l` navigates to Logs. Both the sequence manager and this handler listen
+    // on document, so without this guard pressing `g` then `l` here would fire
+    // both — navigating to Logs *and* stepping to the next request.
+    if (isLeaderPending()) return
     if (!nextId) return
     e.preventDefault()
     navigate({ to: '/requests/$id', params: { id: nextId } })
@@ -115,6 +110,19 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   )
   const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
   const hasAttribution = Boolean(req.clientName || req.endUserId || req.sessionId)
+  // Model names deliberately excluded: requested/served/rewrite live in the
+  // Model section, and duplicating them here produced a `routed` row that
+  // contradicted `served` (one fell back to req.model, the other to an em-dash).
+  const hasCostInfo = req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null
+  const isRouted = Boolean(
+    req.routingRuleName ||
+      req.routingActionType ||
+      req.routingAuthMode ||
+      req.routingTargetType ||
+      req.routingTargetBaseUrl ||
+      req.routingRejectReason ||
+      credentialInjection,
+  )
   const keyLabel = requestKeyLabel(req)
   const shouldShowKeyInSubtitle = req.keyName != null || isProxyRequestKey(req)
 
@@ -237,7 +245,11 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <dd>{keyLabel}</dd>
               </div>
               <div>
-                <dt>client</dt>
+                {/* Labeled `host`, not `client`: this is the origin hostname
+                    derived from request headers. The Attribution section below
+                    has its own `client` (req.clientName), and two rows in the
+                    same rail sharing one label meant different things. */}
+                <dt>host</dt>
                 <dd>{clientLabel ?? '—'}</dd>
               </div>
               <div>
@@ -322,91 +334,104 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
 
             <div className={railSectionDivider}>
               <div className={railSectionTitle}>Routing</div>
-              <dl className="detail-meta-list">
-                <div>
-                  <dt>rule</dt>
-                  <dd>{req.routingRuleName ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>action</dt>
-                  <dd>{req.routingActionType ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>auth</dt>
-                  <dd>{req.routingAuthMode ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>authorization</dt>
-                  <dd>
-                    {req.routingAuthMode === 'passthrough' && req.routingPreserveAuthorization
-                      ? 'preserved'
-                      : 'default'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>target</dt>
-                  <dd>{req.routingTargetType ?? 'llama_swap'}</dd>
-                </div>
-                <div>
-                  <dt>upstream</dt>
-                  <dd>{req.routingTargetBaseUrl ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>requested</dt>
-                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>routed</dt>
-                  <dd>{req.routingRoutedModel ?? '—'}</dd>
-                </div>
-                <div>
-                  <dt>reject</dt>
-                  <dd>{req.routingRejectReason ?? '—'}</dd>
-                </div>
-                {credentialInjection ? (
-                  <>
+              {isRouted ? (
+                <dl className="detail-meta-list">
+                  {req.routingRuleName ? (
                     <div>
-                      <dt>credential</dt>
-                      <dd>{credentialInjection.countLabel}</dd>
+                      <dt>rule</dt>
+                      <dd>{req.routingRuleName}</dd>
                     </div>
+                  ) : null}
+                  {req.routingActionType ? (
                     <div>
-                      <dt>credentials</dt>
-                      <dd>{credentialInjection.credentialsLabel}</dd>
+                      <dt>action</dt>
+                      <dd>{req.routingActionType}</dd>
                     </div>
+                  ) : null}
+                  {req.routingAuthMode ? (
                     <div>
-                      <dt>injected</dt>
-                      <dd>{credentialInjection.locationsLabel}</dd>
+                      <dt>auth</dt>
+                      <dd>
+                        {req.routingAuthMode}
+                        {req.routingAuthMode === 'passthrough' && req.routingPreserveAuthorization
+                          ? ' · authorization preserved'
+                          : ''}
+                      </dd>
                     </div>
+                  ) : null}
+                  {req.routingTargetType ? (
                     <div>
-                      <dt>mode</dt>
-                      <dd>{credentialInjection.modesLabel}</dd>
+                      <dt>target</dt>
+                      <dd>{req.routingTargetType}</dd>
                     </div>
-                  </>
-                ) : null}
-              </dl>
+                  ) : null}
+                  {req.routingTargetBaseUrl ? (
+                    <div>
+                      <dt>upstream</dt>
+                      <dd>{req.routingTargetBaseUrl}</dd>
+                    </div>
+                  ) : null}
+                  {req.routingRejectReason ? (
+                    <div>
+                      <dt>reject</dt>
+                      <dd>{req.routingRejectReason}</dd>
+                    </div>
+                  ) : null}
+                  {credentialInjection ? (
+                    <>
+                      <div>
+                        <dt>credential</dt>
+                        <dd>{credentialInjection.countLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>credentials</dt>
+                        <dd>{credentialInjection.credentialsLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>injected</dt>
+                        <dd>{credentialInjection.locationsLabel}</dd>
+                      </div>
+                      <div>
+                        <dt>mode</dt>
+                        <dd>{credentialInjection.modesLabel}</dd>
+                      </div>
+                    </>
+                  ) : null}
+                </dl>
+              ) : (
+                /* Previously this section always rendered nine rows, which for an
+                   unrouted request meant six or seven em-dashes plus two
+                   fabricated values: `authorization: default` (asserted even when
+                   the `auth` row above showed `—`) and `target: llama_swap`
+                   (asserted for requests with no target at all). */
+                <div className="mono text-[11px] text-fg-dim">no routing rule matched</div>
+              )}
             </div>
 
             <div className={railSectionDivider}>
               <div className={railSectionTitle}>Timing</div>
               <dl className="detail-meta-list">
-                <div>
-                  <dt>queue</dt>
-                  <dd>{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
-                </div>
+                {/* `queue` is gone: analyzeTiming() initialises queueMs to null
+                    and never assigns it, so the row could only ever render `—`.
+                    `ttft` is gone too: it was assigned the prefill value
+                    verbatim, so the two rows always printed the same number.
+                    `prefill` is what llama.cpp's `prompt_ms` actually measures —
+                    real TTFT would also include queue and network time, which we
+                    don't capture for logged requests. */}
                 <div>
                   <dt>prefill</dt>
                   <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
                 </div>
                 <div>
-                  <dt>ttft</dt>
-                  <dd>{timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}</dd>
+                  <dt>decode</dt>
+                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : '—'}</dd>
                 </div>
                 <div>
                   <dt>total</dt>
                   <dd>{formatDuration(req.durationMs)}</dd>
                 </div>
                 <div>
-                  <dt>stream close</dt>
+                  <dt>close</dt>
                   <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
                 </div>
               </dl>
@@ -416,37 +441,31 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
           <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
-              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:col-span-2">
-                <div className={endpointMetricLabel}>Endpoint</div>
-                <div className="mt-2 flex min-w-0 flex-wrap wrap-anywhere items-baseline gap-x-3 gap-y-1 font-mono">
-                  <span className="text-[22px] font-semibold tracking-[-0.04em] text-fg">{req.method}</span>
-                  <span className="text-[22px] font-semibold tracking-[-0.04em] text-info" translate="no">
-                    {req.endpoint}
-                  </span>
-                </div>
-              </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1500px]:border-b max-[1024px]:border-b">
+            {/* The endpoint cell that used to lead this strip is gone: it
+                repeated the page h1 at 22px, so the duplicate was louder than
+                the original. What remains is a uniform six-metric band. */}
+            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
+              <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>status</div>
-                <div className={`${endpointMetricValue} ${statusColor}`}>{req.statusCode}</div>
+                <div className={cn(endpointMetricValue, statusColor)}>{req.statusCode}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1500px]:border-b max-[1024px]:border-r-0 max-[1024px]:border-b">
+              <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>tok-in</div>
                 <div className={endpointMetricValue}>{req.promptTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="px-4 py-4 border-border max-[1500px]:border-b max-[1024px]:border-r min-[1500px]:border-r max-[1024px]:border-b">
+              <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>tok-out</div>
                 <div className={endpointMetricValue}>{req.completionTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-r-0 max-[1024px]:border-b">
+              <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>total</div>
                 <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className="border-r border-border px-4 py-4 max-[1500px]:border-r max-[1024px]:border-b">
+              <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>duration</div>
                 <div className={endpointMetricValue}>{formatDuration(req.durationMs)}</div>
               </div>
-              <div className="px-4 py-4">
+              <div className={cn(statMetricCell, 'border-r-0')}>
                 <div className={endpointMetricLabel}>tok/s</div>
                 <div className={endpointMetricValue}>{tokPerSec?.toLocaleString() ?? '—'}</div>
               </div>
@@ -458,6 +477,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               durationMs={req.durationMs}
               completionTokens={req.completionTokens}
               tokPerSec={tokPerSec}
+              prefillMs={timing.prefillMs}
+              decodeMs={timing.decodeMs}
             />
           ) : null}
 
@@ -502,25 +523,17 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           </section>
         </div>
 
+        {/* The sidecar carries only what appears nowhere else. Its Tokens tiles
+            duplicated the metric strip (and disagreed with it — the strip used
+            toLocaleString while these used a compact formatter, so a 24,000-token
+            prompt read "24,000" and "24k" at the same time), and its Phases list
+            repeated five of the rail's six Timing rows verbatim while being
+            hidden entirely below 1500px. */}
         <aside className="request-detail-sidecar min-w-0 bg-surface-2 px-3.5 py-3">
-          <section>
-            <div className={railSectionTitle}>Tokens</div>
-            <div className="grid grid-cols-2 gap-2 max-[1200px]:grid-cols-1 max-[1024px]:grid-cols-2">
-              <div className="border border-border bg-surface-1 px-3 py-3">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">in</div>
-                <div className="mt-2 font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
-                  {formatCompactTokens(req.promptTokens)}
-                </div>
-              </div>
-              <div className="border border-border bg-surface-1 px-3 py-3">
-                <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">out</div>
-                <div className="mt-2 font-mono text-[clamp(20px,2vw,28px)] font-semibold tracking-[-0.03em] text-fg">
-                  {formatCompactTokens(req.completionTokens)}
-                </div>
-              </div>
-            </div>
-            {req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null ? (
-              <dl className="m-0 mt-2 grid gap-1.5 font-mono text-xs">
+          {hasCostInfo ? (
+            <section>
+              <div className={railSectionTitle}>Cost</div>
+              <dl className="m-0 grid gap-1.5 font-mono text-xs">
                 {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
                   <>
                     <div className="flex items-center justify-between gap-3">
@@ -540,42 +553,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                   </div>
                 ) : null}
               </dl>
-            ) : null}
-          </section>
+            </section>
+          ) : null}
 
-          <section className={railSectionDivider}>
-            <div className={railSectionTitle}>Phases</div>
-            <dl className="m-0 grid gap-2.5 font-mono text-xs">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">queue</dt>
-                <dd className="m-0 text-fg">{timing.queueMs != null ? formatDuration(timing.queueMs) : '—'}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">prefill</dt>
-                <dd className="m-0 text-fg">{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">ttft</dt>
-                <dd className="m-0 text-fg">{timing.ttftMs != null ? formatDuration(timing.ttftMs) : '—'}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">decode</dt>
-                <dd className="m-0 text-fg">{timing.decodeMs != null ? formatDuration(timing.decodeMs) : '—'}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">total</dt>
-                <dd className="m-0 text-fg">{formatDuration(req.durationMs)}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-fg-dim">stream close</dt>
-                <dd className="m-0 text-fg">
-                  {timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className={railSectionDivider}>
+          <section className={hasCostInfo ? railSectionDivider : undefined}>
             <div className={railSectionTitle}>Request ID</div>
             <div className="mono wrap-anywhere text-xs text-fg">{req.id}</div>
           </section>

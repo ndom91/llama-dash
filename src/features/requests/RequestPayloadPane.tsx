@@ -1,8 +1,8 @@
-import { useDeferredValue, useMemo } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import type { ParsedSseStream } from './requestDetailUtils'
-import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
+import { groupHeaders, maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 import { RequestSseEvents } from './RequestSseEvents'
 
@@ -34,6 +34,8 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
     return deferredBody
   }, [deferredBody, mode, pretty, sseStream])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
+  const groupedHeaders = useMemo(() => groupHeaders(headerEntries), [headerEntries])
+  const [showBoilerplate, setShowBoilerplate] = useState(false)
   const usesCustomPrettyBody = pretty != null
 
   return (
@@ -69,12 +71,35 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
           </div>
           <table className="dtable headers-table">
             <tbody>
-              {headerEntries.map(([k, v]) => (
+              {groupedHeaders.primary.map(([k, v]) => (
                 <tr key={k}>
                   <td className="mono header-key">{k}</td>
                   <td className="mono header-value">{maskSensitive(k, v)}</td>
                 </tr>
               ))}
+              {showBoilerplate
+                ? groupedHeaders.boilerplate.map(([k, v]) => (
+                    <tr key={k}>
+                      <td className="mono header-key header-key-muted">{k}</td>
+                      <td className="mono header-value">{maskSensitive(k, v)}</td>
+                    </tr>
+                  ))
+                : null}
+              {groupedHeaders.boilerplate.length > 0 ? (
+                <tr>
+                  <td colSpan={2} className="!py-1.5">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setShowBoilerplate((prev) => !prev)}
+                      aria-expanded={showBoilerplate}
+                    >
+                      {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
+                      {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
+                    </button>
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

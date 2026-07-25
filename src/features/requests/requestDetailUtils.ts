@@ -1,7 +1,15 @@
+/**
+ * Phase timings scraped from the upstream response.
+ *
+ * There is deliberately no `queueMs` or `ttftMs` here. `queueMs` was never
+ * assigned by analyzeTiming(), so it could only ever render an em-dash, and
+ * `ttftMs` was assigned the prefill value verbatim — two rows that always
+ * printed the same number. Real time-to-first-token needs queue and network
+ * time, which we don't capture for proxied requests (the Playground measures it
+ * properly from its own request clock; see use-playground-chat.ts).
+ */
 export type RequestTiming = {
-  queueMs: number | null
   prefillMs: number | null
-  ttftMs: number | null
   decodeMs: number | null
   streamCloseMs: number | null
 }
@@ -117,9 +125,7 @@ export function analyzeResponse(responseBody: string | null, streamed: boolean):
 
 export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number | null): RequestTiming {
   const result: RequestTiming = {
-    queueMs: null,
     prefillMs: null,
-    ttftMs: null,
     decodeMs: null,
     streamCloseMs,
   }
@@ -135,9 +141,76 @@ export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number
   }
   const timings = lastChunk.timings as Record<string, unknown>
   result.prefillMs = typeof timings.prompt_ms === 'number' ? timings.prompt_ms : null
-  result.ttftMs = result.prefillMs
   result.decodeMs = typeof timings.predicted_ms === 'number' ? timings.predicted_ms : null
   return result
+}
+
+/**
+ * Headers that actually matter when debugging a proxied request, in the order an
+ * operator wants to read them.
+ */
+const HEADER_PRIORITY = [
+  'authorization',
+  'content-type',
+  'content-length',
+  'content-encoding',
+  'transfer-encoding',
+  'accept',
+  'user-agent',
+]
+
+/**
+ * Browser-emitted headers that are almost never why a request behaved the way it
+ * did. Rendered flat and in serialization order, eight of these were enough to
+ * push `content-type` below the fold of a pane capped at 50% height.
+ */
+const HEADER_BOILERPLATE_EXACT = new Set([
+  'accept-encoding',
+  'accept-language',
+  'cache-control',
+  'connection',
+  'cookie',
+  'dnt',
+  'origin',
+  'pragma',
+  'priority',
+  'referer',
+  'te',
+  'upgrade-insecure-requests',
+])
+
+const HEADER_BOILERPLATE_PREFIXES = ['sec-ch-ua', 'sec-fetch-', 'sec-gpc']
+
+function isBoilerplateHeader(key: string): boolean {
+  const k = key.toLowerCase()
+  if (HEADER_BOILERPLATE_EXACT.has(k)) return true
+  return HEADER_BOILERPLATE_PREFIXES.some((prefix) => k.startsWith(prefix))
+}
+
+export type GroupedHeaders = {
+  /** Priority headers first in curated order, then everything else A-Z. */
+  primary: Array<[string, string]>
+  /** Browser noise, A-Z. Collapsed in the UI by default. */
+  boilerplate: Array<[string, string]>
+}
+
+export function groupHeaders(entries: Array<[string, string]>): GroupedHeaders {
+  const priority: Array<[string, string]> = []
+  const neutral: Array<[string, string]> = []
+  const boilerplate: Array<[string, string]> = []
+
+  for (const entry of entries) {
+    if (isBoilerplateHeader(entry[0])) boilerplate.push(entry)
+    else if (HEADER_PRIORITY.includes(entry[0].toLowerCase())) priority.push(entry)
+    else neutral.push(entry)
+  }
+
+  priority.sort((a, b) => HEADER_PRIORITY.indexOf(a[0].toLowerCase()) - HEADER_PRIORITY.indexOf(b[0].toLowerCase()))
+  const byKey = (a: [string, string], b: [string, string]) => a[0].localeCompare(b[0])
+  neutral.sort(byKey)
+  boilerplate.sort(byKey)
+
+  return { primary: [...priority, ...neutral], boilerplate }
 }
 
 export function deriveClientLabel(headers: Record<string, string> | null) {
