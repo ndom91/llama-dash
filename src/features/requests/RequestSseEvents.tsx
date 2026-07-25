@@ -1,5 +1,5 @@
 import { ChevronRight, MessageSquare, Paperclip, Terminal } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
@@ -53,7 +53,7 @@ export function RequestSseEvents({
           defaultOpen
         />
       ) : null}
-      {toolCalls.length > 0 ? <ToolCallsBlock calls={toolCalls} /> : null}
+      {toolCalls.length > 0 ? <ToolCallsBlock calls={toolCalls} rawJson={assembledToolCalls} /> : null}
       {citations.length > 0 ? <CitationsBlock citations={citations} /> : null}
       {events.length > 0 ? <SseRawEvents events={events} /> : null}
     </div>
@@ -85,7 +85,7 @@ function AssembledBlock({
     }
   }, [text])
   return (
-    <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+    <div className="overflow-hidden border-t border-border text-xs">
       <div className="flex w-full items-center bg-surface-0">
         <button
           type="button"
@@ -135,10 +135,10 @@ function parseToolCalls(raw: string | null): ParsedToolCall[] {
   return []
 }
 
-function ToolCallsBlock({ calls }: { calls: ParsedToolCall[] }) {
+function ToolCallsBlock({ calls, rawJson }: { calls: ParsedToolCall[]; rawJson?: string | null }) {
   const [open, toggleOpen] = useStickyToggle('requests-assembled-tool-calls-open', false)
   return (
-    <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+    <div className="overflow-hidden border-t border-border text-xs">
       <div className="flex w-full items-center bg-surface-0">
         <button
           type="button"
@@ -153,20 +153,57 @@ function ToolCallsBlock({ calls }: { calls: ParsedToolCall[] }) {
           <span>assembled tool calls</span>
           <span className="ml-auto dim normal-case tracking-normal">({calls.length} calls)</span>
         </button>
+        <CopyButton
+          text={rawJson ?? JSON.stringify(calls, null, 2)}
+          variant="icon"
+          icon="clipboard"
+          ariaLabel="Copy assembled tool calls"
+        />
       </div>
       {open ? (
-        <div className="w-full overflow-visible border-t border-border">
-          {calls.map((call, i) => (
-            <div key={i} className="border-b border-border last:border-b-0">
-              <div className="flex items-center gap-1.5 bg-surface-0 px-3 py-1.5">
-                <span className="font-mono text-[11px] font-medium text-fg">{call.name}</span>
-                <span className="font-mono text-[10px] text-fg-faint">{call.id}</span>
-              </div>
-              <div className="m-0 overflow-x-auto px-3 py-2">{renderToolCallInput(call.input)}</div>
-            </div>
-          ))}
+        <div className="w-full overflow-visible border-t border-border px-3 py-2">
+          <div className="space-y-1">
+            {calls.map((call, i) => (
+              <SseSubBox key={i} title={call.name} preview={call.id}>
+                {renderToolCallInput(call.input)}
+              </SseSubBox>
+            ))}
+          </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function SseSubBox({
+  title,
+  preview,
+  children,
+}: {
+  title: string
+  preview?: string | null
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const truncatedPreview = preview ? (preview.length > 120 ? `${preview.slice(0, 117)}...` : preview) : null
+
+  return (
+    <div className="rounded-sm border border-border">
+      <button
+        type="button"
+        className="flex w-full items-center gap-1.5 bg-surface-0 px-2.5 py-1.5 text-left"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronRight
+          className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
+          strokeWidth={2}
+        />
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.06em] text-fg-dim">{title}</span>
+        {truncatedPreview ? (
+          <span className="min-w-0 flex-1 truncate font-mono text-[10px] text-fg-faint">{truncatedPreview}</span>
+        ) : null}
+      </button>
+      {open ? <div className="px-2.5 py-1.5">{children}</div> : null}
     </div>
   )
 }
@@ -204,7 +241,7 @@ function parseCitations(raw: string | null): ParsedCitation[] {
 function CitationsBlock({ citations }: { citations: ParsedCitation[] }) {
   const [open, toggleOpen] = useStickyToggle('requests-assembled-citations-open', false)
   return (
-    <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+    <div className="overflow-hidden border-t border-border text-xs">
       <div className="flex w-full items-center bg-surface-0">
         <button
           type="button"
@@ -244,7 +281,7 @@ function CitationsBlock({ citations }: { citations: ParsedCitation[] }) {
 function SseRawEvents({ events }: { events: NonNullable<ParsedSseStream['events']> }) {
   const [open, toggleOpen] = useStickyToggle('requests-sse-raw-events-open', false)
   return (
-    <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+    <div className="overflow-hidden border-t border-border text-xs">
       <div className="flex w-full items-center bg-surface-0">
         <button
           type="button"

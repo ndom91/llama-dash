@@ -463,6 +463,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 body={req.requestBody ?? ''}
                 headers={reqHeaders}
                 mode="pretty"
+                direction="request"
               />
               <RequestPayloadPane
                 key={`${req.id}-response`}
@@ -471,6 +472,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 body={responseAnalysis.displayBody}
                 headers={resHeaders}
                 mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
+                direction="response"
                 sseStream={parsedSse}
                 assembledReasoning={req.assembledReasoning}
                 assembledResponse={req.assembledResponse}

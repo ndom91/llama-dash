@@ -1,6 +1,9 @@
+import { ChevronRight, List } from 'lucide-react'
 import { useDeferredValue, useMemo, useRef } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
+import { useStickyToggle } from '../../lib/use-sticky-toggle'
+import { ParsedPayloadBlocks } from './ParsedPayloadBlocks'
 import type { ParsedSseStream } from './requestDetailUtils'
 import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
@@ -12,6 +15,8 @@ type Props = {
   body: string
   headers: Record<string, string> | null
   mode: 'pretty' | 'raw' | 'sse'
+  /** 'request' or 'response' — drives parsed payload block layout. */
+  direction?: 'request' | 'response'
   sseStream?: ParsedSseStream | null
   assembledReasoning?: string | null
   assembledResponse?: string | null
@@ -25,6 +30,7 @@ export function RequestPayloadPane({
   body,
   headers,
   mode,
+  direction = 'request',
   sseStream = null,
   assembledReasoning = null,
   assembledResponse = null,
@@ -59,10 +65,20 @@ export function RequestPayloadPane({
         />
       )
     }
-    if (pretty) {
-      return (
+    if (mode === 'pretty') {
+      const parsed = (
+        <ParsedPayloadBlocks
+          body={deferredBody}
+          direction={direction}
+          baseKey={`${title.toLowerCase()}-${deferredBody.slice(0, 20).replace(/[^a-zA-Z0-9]/g, '-')}`}
+        />
+      )
+      const hasParsed = deferredBody.trim().length > 0 && deferredBody.trim().startsWith('{')
+      return hasParsed ? (
+        parsed
+      ) : (
         <RequestJsonHighlight
-          json={pretty}
+          json={pretty ?? deferredBody}
           getScrollElement={() => scrollRef.current}
           className="!h-auto !max-h-none !overflow-visible"
         />
@@ -75,9 +91,11 @@ export function RequestPayloadPane({
     assembledToolCalls,
     assembledCitations,
     deferredBody,
+    direction,
     mode,
     pretty,
     sseStream,
+    title,
   ])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
 
@@ -94,25 +112,11 @@ export function RequestPayloadPane({
 
       <div ref={scrollRef} className="payload-body-scroll min-h-0 flex-1 overflow-auto">
         {headerEntries.length > 0 ? (
-          <div className="headers-scroll border-b border-border">
-            <div className="border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-              Headers
-            </div>
-            <table className="dtable headers-table">
-              <tbody>
-                {headerEntries.map(([k, v]) => (
-                  <tr key={k}>
-                    <td className="mono header-key">{k}</td>
-                    <td className="mono header-value">{maskSensitive(k, v)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <HeadersSection entries={headerEntries} storageKey={`${title.toLowerCase()}-headers-open`} />
         ) : null}
 
         {showPayload ? (
-          mode === 'pretty' && pretty != null ? (
+          mode === 'sse' || mode === 'pretty' ? (
             bodyContent
           ) : (
             <pre className={cn('body-pre border-t-0', '!h-auto !max-h-none !overflow-visible')}>{bodyContent}</pre>
@@ -124,5 +128,42 @@ export function RequestPayloadPane({
         )}
       </div>
     </section>
+  )
+}
+
+function HeadersSection({ entries, storageKey }: { entries: [string, string][]; storageKey: string }) {
+  const [open, toggleOpen] = useStickyToggle(storageKey, false)
+  return (
+    <div className="overflow-hidden border-t border-border text-xs">
+      <div className="flex w-full items-center bg-surface-0">
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
+          onClick={toggleOpen}
+        >
+          <ChevronRight
+            className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
+            strokeWidth={2}
+          />
+          <List size={12} strokeWidth={2} aria-hidden="true" />
+          <span>headers</span>
+          <span className="ml-auto dim normal-case tracking-normal">({entries.length})</span>
+        </button>
+      </div>
+      {open ? (
+        <div className="border-t border-border">
+          <table className="dtable headers-table">
+            <tbody>
+              {entries.map(([k, v]) => (
+                <tr key={k}>
+                  <td className="mono header-key">{k}</td>
+                  <td className="mono header-value">{maskSensitive(k, v)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </div>
   )
 }
