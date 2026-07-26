@@ -179,7 +179,13 @@ describe('streamChatCompletion queue events', () => {
   })
 
   it('non-stream prefers timings_llama_dash body over phase headers', async () => {
-    const events: Array<{ kind: string; queueMs?: number; at?: number }> = []
+    const events: Array<{
+      kind: string
+      queueMs?: number
+      at?: number
+      atMs?: number
+      inferred?: boolean
+    }> = []
     vi.stubGlobal(
       'fetch',
       vi.fn(
@@ -226,9 +232,20 @@ describe('streamChatCompletion queue events', () => {
       sampling: { ...sampling, stream: false },
       onEvent: (ev) => {
         if (ev.kind === 'queued' || ev.kind === 'relayed') {
-          events.push({ kind: ev.kind, queueMs: ev.queueMs, at: ev.at })
-        } else if (ev.kind === 'reasoning-start' || ev.kind === 'content-start') {
-          events.push({ kind: ev.kind, at: ev.at })
+          events.push({
+            kind: ev.kind,
+            queueMs: ev.queueMs,
+            at: ev.at,
+            atMs: 'atMs' in ev ? ev.atMs : undefined,
+            inferred: ev.inferred,
+          })
+        } else if (ev.kind === 'started' || ev.kind === 'reasoning-start' || ev.kind === 'content-start') {
+          events.push({
+            kind: ev.kind,
+            at: 'at' in ev ? ev.at : undefined,
+            atMs: 'atMs' in ev ? ev.atMs : undefined,
+            inferred: 'inferred' in ev ? ev.inferred : undefined,
+          })
         } else {
           events.push({ kind: ev.kind })
         }
@@ -238,6 +255,10 @@ describe('streamChatCompletion queue events', () => {
     }
 
     expect(events.find((e) => e.kind === 'queued')?.queueMs).toBe(400)
+    expect(events.find((e) => e.kind === 'started')).toMatchObject({ inferred: true })
+    expect(events.find((e) => e.kind === 'relayed')).toMatchObject({ inferred: true, atMs: 0 })
+    expect(events.find((e) => e.kind === 'reasoning-start')).toMatchObject({ inferred: true, atMs: 50 })
+    expect(events.find((e) => e.kind === 'content-start')).toMatchObject({ inferred: true, atMs: 120 })
     const relayed = events.find((e) => e.kind === 'relayed')!
     const reason = events.find((e) => e.kind === 'reasoning-start')!
     const respond = events.find((e) => e.kind === 'content-start')!

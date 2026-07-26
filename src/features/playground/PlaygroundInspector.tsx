@@ -124,7 +124,14 @@ export function PlaygroundInspector({ inspector, apiKey }: Props) {
                     <div className="pg-event-card">
                       <div className="pg-event-meta">
                         <span className="pg-event-time">{formatClock(event.at)}</span>
-                        <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          {event.inferred ? (
+                            <span className="pg-event-inferred" title="Reconstructed from timings after the response arrived">
+                              inferred
+                            </span>
+                          ) : null}
+                          <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                        </span>
                       </div>
                       <div className="pg-event-text">{event.text}</div>
                     </div>

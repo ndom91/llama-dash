@@ -32,12 +32,12 @@ export type SamplingParams = {
 export type StreamEvent =
   | { kind: 'request-sent'; body: Record<string, unknown>; url: string; at: number }
   /** Server accepted the request (SSE headers), or request-sent clock for long-poll JSON. Tape: START */
-  | { kind: 'started'; at: number }
-  | { kind: 'queued'; position: number; eta: string; model: string; at: number; queueMs?: number }
+  | { kind: 'started'; at: number; inferred?: boolean }
+  | { kind: 'queued'; position: number; eta: string; model: string; at: number; queueMs?: number; inferred?: boolean }
   /** `atMs` is ms after RELAY (RELAY itself is always 0). Never wall-clock epoch. */
-  | { kind: 'relayed'; at: number; atMs?: number; queueMs?: number }
-  | { kind: 'reasoning-start'; at: number; atMs?: number }
-  | { kind: 'content-start'; at: number; atMs?: number }
+  | { kind: 'relayed'; at: number; atMs?: number; queueMs?: number; inferred?: boolean }
+  | { kind: 'reasoning-start'; at: number; atMs?: number; inferred?: boolean }
+  | { kind: 'content-start'; at: number; atMs?: number; inferred?: boolean }
   | { kind: 'timings'; promptMs?: number; predictedMs?: number; at: number }
   | { kind: 'chunk'; content: string; reasoningContent?: string; at: number }
   | { kind: 'usage'; promptTokens?: number; completionTokens?: number; at: number }
@@ -289,8 +289,8 @@ async function* readJsonCompletion(
   const reasonOffset = fromBody?.reason_ms ?? parseHeaderMs(res.headers.get('x-llama-dash-reason-ms'))
   const respondOffset = fromBody?.respond_ms ?? parseHeaderMs(res.headers.get('x-llama-dash-respond-ms'))
 
-  // Long-poll: headers arrive with the body, so START is the client send clock.
-  opts.onEvent?.({ kind: 'started', at: requestAt })
+  // Long-poll: tape is reconstructed after the body arrives — mark as inferred.
+  opts.onEvent?.({ kind: 'started', at: requestAt, inferred: true })
   if (wasQueued) {
     opts.onEvent?.({
       kind: 'queued',
@@ -299,6 +299,7 @@ async function* readJsonCompletion(
       model: opts.model,
       at: requestAt,
       queueMs,
+      inferred: true,
     })
   }
   const relayedAt = requestAt + queueMs
@@ -307,12 +308,14 @@ async function* readJsonCompletion(
     at: relayedAt,
     atMs: 0,
     queueMs,
+    inferred: true,
   })
   if (reasonOffset != null) {
     opts.onEvent?.({
       kind: 'reasoning-start',
       at: relayedAt + reasonOffset,
       atMs: reasonOffset,
+      inferred: true,
     })
   }
   if (respondOffset != null) {
@@ -320,6 +323,7 @@ async function* readJsonCompletion(
       kind: 'content-start',
       at: relayedAt + respondOffset,
       atMs: respondOffset,
+      inferred: true,
     })
   }
 

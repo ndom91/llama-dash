@@ -2430,6 +2430,18 @@ a,
   color: var(--fg-muted);
   text-transform: uppercase;
 }
+.pg-event-inferred {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--fg-faint);
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
 .pg-event-tag-start,
 .pg-event-tag-end {
   color: var(--info);

@@ -16,7 +16,7 @@ export type InspectorState = {
   timing: InspectorTiming
 }
 
-export type InspectorEvent = { id: string; at: number; tag: string; text: string }
+export type InspectorEvent = { id: string; at: number; tag: string; text: string; inferred?: boolean }
 
 export type InspectorTiming = {
   queueMs: number | null
@@ -130,9 +130,15 @@ export function usePlaygroundChat() {
       let finalized = false
       let estimatedPromptTokens = 0
       const isCurrentRun = () => runSeqRef.current === runId
-      const pushEvent = (tag: string, text: string, at = Date.now()) => {
+      const pushEvent = (tag: string, text: string, at = Date.now(), inferred = false) => {
         if (!isCurrentRun()) return
-        const ev = { id: `ev_${Date.now()}_${evSeq++}`, at, tag, text }
+        const ev: InspectorEvent = {
+          id: `ev_${Date.now()}_${evSeq++}`,
+          at,
+          tag,
+          text,
+          ...(inferred ? { inferred: true } : {}),
+        }
         events.push(ev)
         setInspector((prev) => ({ ...prev, events: [...events] }))
       }
@@ -211,7 +217,7 @@ export function usePlaygroundChat() {
                 break
               case 'started':
                 timings.startedAt = ev.at
-                pushEvent('START', `server received · POST ${lastUrl}`, ev.at)
+                pushEvent('START', `server received · POST ${lastUrl}`, ev.at, ev.inferred === true)
                 break
               case 'queued':
                 timings.wasQueued = true
@@ -222,6 +228,7 @@ export function usePlaygroundChat() {
                     ? `waited ${ev.queueMs}ms · model=${ev.model}`
                     : `position=${ev.position} eta=${ev.eta} model=${ev.model}`,
                   ev.at,
+                  ev.inferred === true,
                 )
                 break
               case 'relayed':
@@ -240,15 +247,15 @@ export function usePlaygroundChat() {
                   ...prev,
                   timing: { ...prev.timing, queueMs: timings.queueMs },
                 }))
-                pushEvent('RELAY', 'relayed', timings.relayedAt)
+                pushEvent('RELAY', 'relayed', timings.relayedAt, ev.inferred === true)
                 break
               case 'reasoning-start':
                 timings.reasoningStartAt = ev.atMs != null && timings.relayedAt ? timings.relayedAt + ev.atMs : ev.at
-                pushEvent('REASON', 'first reasoning', timings.reasoningStartAt)
+                pushEvent('REASON', 'first reasoning', timings.reasoningStartAt, ev.inferred === true)
                 break
               case 'content-start':
                 timings.firstContentAt = ev.atMs != null && timings.relayedAt ? timings.relayedAt + ev.atMs : ev.at
-                pushEvent('RESPOND', 'first content', timings.firstContentAt)
+                pushEvent('RESPOND', 'first content', timings.firstContentAt, ev.inferred === true)
                 break
               case 'usage':
                 if (ev.promptTokens != null) usage.prompt = ev.promptTokens
