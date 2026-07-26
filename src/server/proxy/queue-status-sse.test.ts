@@ -1,12 +1,30 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  createImmediateSseStream,
   createQueuedSseStream,
+  endpointSupportsProgressTape,
   formatQueueComment,
+  formatReasonComment,
   formatRelayedComment,
+  formatRespondComment,
   parseQueueComment,
+  parseReasonComment,
   parseRelayedComment,
+  parseRespondComment,
   sendQueueNotice,
 } from './queue-status-sse.ts'
+
+describe('endpointSupportsProgressTape', () => {
+  it('allows completion endpoints only', () => {
+    expect(endpointSupportsProgressTape('/v1/chat/completions')).toBe(true)
+    expect(endpointSupportsProgressTape('/v1/completions')).toBe(true)
+    expect(endpointSupportsProgressTape('/v1/messages')).toBe(true)
+    expect(endpointSupportsProgressTape('/v1/models')).toBe(false)
+    expect(endpointSupportsProgressTape('/v1/embeddings')).toBe(false)
+    expect(endpointSupportsProgressTape('/v1/messages/count_tokens')).toBe(false)
+    expect(endpointSupportsProgressTape('/v1/audio/speech')).toBe(false)
+  })
+})
 
 describe('formatQueueComment', () => {
   it('formats a valid SSE comment with queue status', () => {
@@ -113,12 +131,25 @@ describe('formatQueueComment', () => {
 })
 
 describe('formatRelayedComment', () => {
-  it('formats a bare relayed marker', () => {
-    expect(formatRelayedComment()).toBe(': relayed')
+  it('formats relayed with at_ms origin 0 by default', () => {
+    expect(formatRelayedComment()).toBe(': relayed at_ms=0')
+  })
+
+  it('formats relayed with explicit RELAY-relative at_ms', () => {
+    expect(formatRelayedComment(0)).toBe(': relayed at_ms=0')
   })
 })
 
-describe('parse queue/relayed comments', () => {
+describe('formatReasonComment / formatRespondComment', () => {
+  it('formats bare and RELAY-relative at_ms phase markers', () => {
+    expect(formatReasonComment()).toBe(': reason')
+    expect(formatReasonComment(100)).toBe(': reason at_ms=100')
+    expect(formatRespondComment()).toBe(': respond')
+    expect(formatRespondComment(200)).toBe(': respond at_ms=200')
+  })
+})
+
+describe('parse queue/relayed/reason/respond comments', () => {
   it('parses queued status comments', () => {
     expect(parseQueueComment(': queued position=3 eta=14s model=llama3 request_id=queue_x')).toEqual({
       position: 3,
@@ -128,11 +159,27 @@ describe('parse queue/relayed comments', () => {
   })
 
   it('parses bare relayed comments', () => {
-    expect(parseRelayedComment(': relayed')).toEqual({ waitMs: null })
+    expect(parseRelayedComment(': relayed')).toEqual({ waitMs: null, atMs: null })
   })
 
   it('parses legacy relayed wait comments', () => {
-    expect(parseRelayedComment(': relayed wait_ms=250')).toEqual({ waitMs: 250 })
+    expect(parseRelayedComment(': relayed wait_ms=250')).toEqual({ waitMs: 250, atMs: null })
+  })
+
+  it('parses relayed at_ms comments', () => {
+    expect(parseRelayedComment(': relayed at_ms=0')).toEqual({
+      waitMs: null,
+      atMs: 0,
+    })
+  })
+
+  it('parses reason and respond comments', () => {
+    expect(parseReasonComment(': reason')).toEqual({ atMs: null })
+    expect(parseReasonComment(': reason at_ms=42')).toEqual({ atMs: 42 })
+    expect(parseRespondComment(': respond')).toEqual({ atMs: null })
+    expect(parseRespondComment(': respond at_ms=99')).toEqual({ atMs: 99 })
+    expect(parseReasonComment(': relayed')).toBeNull()
+    expect(parseRespondComment(': reason')).toBeNull()
   })
 })
 
@@ -476,6 +523,78 @@ describe('createQueuedSseStream', () => {
     expect(idx1).toBeLessThan(idx2)
     expect(idx2).toBeLessThan(idx3)
 
+    vi.useRealTimers()
+  })
+})
+
+describe('createImmediateSseStream wrapJsonAsSse', () => {
+  it('emits relayed then reframes JSON as one data event plus DONE', async () => {
+    const stream = createImmediateSseStream(
+      async () =>
+        Response.json({
+          choices: [{ message: { role: 'assistant', content: 'hi' }, finish_reason: 'stop' }],
+        }),
+      { wrapJsonAsSse: true },
+    )
+
+    const reader = stream.getReader()
+    const chunks: Uint8Array[] = []
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+    }
+
+    const text = new TextDecoder().decode(Buffer.concat(chunks.map((c) => Buffer.from(c))))
+    expect(text.startsWith(': relayed')).toBe(true)
+    expect(text).toContain('at_ms=')
+    expect(text).toContain('"content":"hi"')
+    expect(text).toContain('data: [DONE]')
+  })
+})
+
+describe('createQueuedSseStream wrapJsonAsSse', () => {
+  it('reframes non-SSE JSON after queue wait without emitting RELAY itself', async () => {
+    vi.useFakeTimers()
+    const waitPromise = Promise.resolve(
+      Response.json({
+        choices: [{ message: { role: 'assistant', content: 'queued-hi' }, finish_reason: 'stop' }],
+      }),
+    )
+    const stream = createQueuedSseStream(
+      {
+        getQueuePosition: () => 1,
+        getStatus: () => ({
+          position: 1,
+          queueDepth: 1,
+          maxQueue: 10,
+          activeSlots: 1,
+          maxConcurrency: 1,
+          currentModel: 'llama3',
+          estimatedEtaMs: 0,
+        }),
+        setSseController: vi.fn(),
+        cancelQueued: vi.fn(),
+      } as any,
+      'queue_json',
+      'llama3',
+      waitPromise,
+      { wrapJsonAsSse: true },
+    )
+
+    const reader = stream.getReader()
+    const chunks: Uint8Array[] = []
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+    }
+
+    const text = chunks.map((c) => new TextDecoder().decode(c)).join('')
+    expect(text).toContain(': queued position=1')
+    expect(text).not.toContain(': relayed')
+    expect(text).toContain('"content":"queued-hi"')
+    expect(text).toContain('data: [DONE]')
     vi.useRealTimers()
   })
 })

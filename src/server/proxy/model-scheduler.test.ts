@@ -9,7 +9,11 @@ function makeRequestData(upstream = 'http://test/v1/chat/completions', model = '
     body: JSON.stringify({ model }),
     hasBody: true,
     startedAt: Date.now(),
+    earlyCommitAtMs: null,
+    enqueueAtMs: null,
+    relayedAtMs: null,
     queueMs: 0,
+    assembleNonStream: false,
     endpoint: '/v1/chat/completions',
     reqModel: model,
     reqHeadersJson: '{}',
@@ -573,7 +577,7 @@ describe('ModelScheduler', () => {
     }
   })
 
-  it('records queue wait ms and exposes it on the response header', async () => {
+  it('records queue wait ms as RELAY − START on requestData', async () => {
     scheduler = new ModelScheduler({
       maxConcurrency: 1,
       maxQueueSize: 10,
@@ -586,36 +590,90 @@ describe('ModelScheduler', () => {
     const resolvers: Array<(value: Response) => void> = []
     forwardMock.mockImplementation(async (data: ProxyRequestData) => {
       expect(typeof data.queueMs).toBe('number')
+      expect(data.relayedAtMs).toBeTypeOf('number')
       return new Promise<Response>((resolve) => {
         resolvers.push(resolve)
       })
     })
 
-    const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
+    const firstData = makeRequestData('http://test/v1', 'model-a')
+    firstData.earlyCommitAtMs = Date.now()
+    const first = scheduler.enqueue('req_a', 'model-a', firstData)
     expect(first.status).toBe('immediate')
     if (first.status !== 'immediate') throw new Error('expected immediate')
     const firstDispatch = first.startDispatch()
 
-    const second = scheduler.enqueue('req_b', 'model-b', makeRequestData('http://test/v1', 'model-b'))
+    const secondData = makeRequestData('http://test/v1', 'model-b')
+    secondData.earlyCommitAtMs = Date.now()
+    const second = scheduler.enqueue('req_b', 'model-b', secondData)
     expect(second.status).toBe('queued')
 
     await vi.advanceTimersByTimeAsync(250)
     resolvers[0]?.(Response.json({ id: 'a' }))
     const firstResponse = await firstDispatch
-    expect(firstResponse.headers.get('x-llama-dash-queue-ms')).toBe('0')
+    expect(firstResponse.headers.get('x-llama-dash-queued')).toBeNull()
     await drainResponse(firstResponse)
 
     await vi.advanceTimersByTimeAsync(0)
     expect(forwardMock).toHaveBeenCalledTimes(2)
     const queuedCall = forwardMock.mock.calls[1]?.[0] as ProxyRequestData
     expect(queuedCall.queueMs).toBeGreaterThanOrEqual(250)
+    expect(queuedCall.relayedAtMs).toBeTypeOf('number')
+    expect(queuedCall.earlyCommitAtMs).toBeTypeOf('number')
+    expect(queuedCall.queueMs).toBe(queuedCall.relayedAtMs! - queuedCall.earlyCommitAtMs!)
 
     resolvers[1]?.(Response.json({ id: 'b' }))
     if (second.status === 'queued') {
       const secondResponse = await second.waitPromise
-      expect(secondResponse.headers.get('x-llama-dash-queue-ms')).toBe(String(queuedCall.queueMs))
       await drainResponse(secondResponse)
     }
+  })
+
+  it('writes : relayed at_ms on the SSE controller when dispatching a queued entry', async () => {
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+
+    const resolvers: Array<(value: Response) => void> = []
+    forwardMock.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolvers.push(resolve)
+        }),
+    )
+
+    const first = scheduler.enqueue('req_a', 'model-a', makeRequestData('http://test/v1', 'model-a'))
+    if (first.status !== 'immediate') throw new Error('expected immediate')
+    const firstDispatch = first.startDispatch()
+
+    const secondData = makeRequestData('http://test/v1', 'model-b')
+    secondData.earlyCommitAtMs = 1_000
+    const second = scheduler.enqueue('req_b', 'model-b', secondData)
+    if (second.status !== 'queued') throw new Error('expected queued')
+
+    const chunks: string[] = []
+    const decoder = new TextDecoder()
+    scheduler.setSseController(second.entryId, {
+      enqueue(chunk: Uint8Array) {
+        chunks.push(decoder.decode(chunk))
+      },
+    } as ReadableStreamDefaultController<Uint8Array>)
+
+    resolvers[0]?.(Response.json({ id: 'a' }))
+    await drainResponse(await firstDispatch)
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(chunks.some((c) => /^: relayed at_ms=\d+/.test(c.trim()))).toBe(true)
+    expect(secondData.relayedAtMs).toBeTypeOf('number')
+    expect(secondData.queueMs).toBe(secondData.relayedAtMs! - 1_000)
+
+    resolvers[1]?.(Response.json({ id: 'b' }))
+    await drainResponse(await second.waitPromise)
   })
 
   it('keeps streaming the first body after a second model is queued', async () => {
@@ -754,5 +812,24 @@ describe('ModelScheduler', () => {
     expect(scheduler.cancelQueued(second.entryId)).toBe(true)
     expect(scheduler.getQueueDepth()).toBe(0)
     expect(await waitRejection).toContain('cancelled')
+  })
+})
+
+describe('markRelayed', () => {
+  it('sets queue_ms as RELAY − START from earlyCommitAtMs', async () => {
+    const { markRelayed } = await import('./model-scheduler.ts')
+    const data = makeRequestData()
+    data.earlyCommitAtMs = 1_000
+    expect(markRelayed(data, 1_250)).toBe(1_250)
+    expect(data.relayedAtMs).toBe(1_250)
+    expect(data.queueMs).toBe(250)
+  })
+
+  it('falls back to enqueueAtMs when earlyCommitAtMs is unset', async () => {
+    const { markRelayed } = await import('./model-scheduler.ts')
+    const data = makeRequestData()
+    data.enqueueAtMs = 500
+    markRelayed(data, 800)
+    expect(data.queueMs).toBe(300)
   })
 })

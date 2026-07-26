@@ -231,6 +231,146 @@ describe('handleProxyRequest queue behavior', () => {
     await resp.arrayBuffer()
   })
 
+  it('forces upstream stream and returns assembled JSON for non-stream chat', async () => {
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async (...args: unknown[]) => {
+      const data = args[0] as { body: string; assembleNonStream?: boolean }
+      expect(data.assembleNonStream).toBe(true)
+      expect(JSON.parse(data.body).stream).toBe(true)
+      return Response.json({
+        id: 'chatcmpl_assembled',
+        object: 'chat.completion',
+        choices: [{ message: { role: 'assistant', content: 'hi' }, finish_reason: 'stop' }],
+      })
+    })
+
+    const resp = await handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'llama3', stream: false }),
+      }),
+    )
+
+    expect(resp.status).toBe(200)
+    expect(resp.headers.get('content-type')).toContain('application/json')
+    expect(resp.headers.get('content-type')).not.toContain('text/event-stream')
+    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    expect(resp.headers.get('x-llama-dash-queue-ms')).toBe('0')
+    const body = await resp.json()
+    expect(body.choices[0].message.content).toBe('hi')
+  })
+
+  it('early-commits stream with x-llama-dash-queued false and relayed at_ms', async () => {
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async () => {
+      const encoder = new TextEncoder()
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n'))
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          controller.close()
+        },
+      })
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    })
+
+    const resp = await handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'llama3', stream: true }),
+      }),
+    )
+
+    expect(resp.status).toBe(200)
+    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    const text = await resp.text()
+    expect(text).toMatch(/^: relayed at_ms=\d+/)
+    expect(text).toContain('data: {"choices"')
+  })
+
+  it('queued stream emits QUEUE then RELAY with x-llama-dash-queued true', async () => {
+    vi.useFakeTimers()
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 60_000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30_000,
+      modelGrouping: true,
+    })
+    setModelScheduler(scheduler)
+
+    const resolvers: Array<(value: Response) => void> = []
+    forwardMock.forwardUpstreamAndLog.mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolvers.push(resolve)
+        }),
+    )
+
+    const firstPromise = handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'model-a', stream: true }),
+      }),
+    )
+    const secondPromise = handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'model-b', stream: true }),
+      }),
+    )
+
+    const second = await secondPromise
+    expect(second.status).toBe(200)
+    expect(second.headers.get('x-llama-dash-queued')).toBe('true')
+    expect(second.headers.get('content-type')).toContain('text/event-stream')
+
+    const reader = second.body!.getReader()
+    const decoder = new TextDecoder()
+    const { value: firstChunk } = await reader.read()
+    expect(decoder.decode(firstChunk)).toContain(': queued position=')
+
+    const encoder = new TextEncoder()
+    resolvers[0]?.(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"a"}}]}\n\n'))
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+            controller.close()
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      ),
+    )
+    const first = await firstPromise
+    await first.arrayBuffer()
+    await vi.advanceTimersByTimeAsync(0)
+
+    resolvers[1]?.(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"b"}}]}\n\n'))
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+            controller.close()
+          },
+        }),
+        { status: 200, headers: { 'content-type': 'text/event-stream' } },
+      ),
+    )
+
+    const rest: string[] = []
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      rest.push(decoder.decode(value))
+    }
+    const text = rest.join('')
+    expect(text).toMatch(/: relayed at_ms=\d+/)
+    expect(text).toContain('"content":"b"')
+    vi.useRealTimers()
+  })
+
   it('bypasses scheduler for direct upstream requests', async () => {
     routingRulesMock.listRoutingRules.mockReturnValue([
       makeRule({
@@ -250,6 +390,8 @@ describe('handleProxyRequest queue behavior', () => {
     const lastCall = vi.mocked(forwardUpstreamAndLog).mock.calls[0][0] as { upstream: string }
     expect(lastCall.upstream).toContain('api.openai.com')
     expect(scheduler.getActiveSlots()).toBe(0)
+    expect(response.headers.get('x-llama-dash-queued')).toBeNull()
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream')
   })
 
   it('returns 503 when queue is full', async () => {
@@ -289,7 +431,7 @@ describe('handleProxyRequest queue behavior', () => {
     expect(response.headers.get('retry-after')).toBe('30')
   })
 
-  it('returns 408 when queue timeout is exceeded', async () => {
+  it('returns HTTP 408 on queue timeout for non-stream chat', async () => {
     vi.useFakeTimers()
     scheduler = new ModelScheduler({
       maxConcurrency: 1,
@@ -305,14 +447,14 @@ describe('handleProxyRequest queue behavior', () => {
 
     const r1 = new Request('http://dash.test/v1/chat/completions', {
       method: 'POST',
-      body: JSON.stringify({ model: 'llama3' }),
+      body: JSON.stringify({ model: 'llama3', stream: false }),
     })
     handleProxyRequest(r1)
 
     const r2Promise = handleProxyRequest(
       new Request('http://dash.test/v1/chat/completions', {
         method: 'POST',
-        body: JSON.stringify({ model: 'llama3' }),
+        body: JSON.stringify({ model: 'llama3', stream: false }),
       }),
     )
 
@@ -320,8 +462,47 @@ describe('handleProxyRequest queue behavior', () => {
 
     const response = await r2Promise
     expect(response.status).toBe(408)
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream')
     const body = await response.json()
     expect((body as any).error?.type).toBe('queue_timeout')
+    vi.useRealTimers()
+  })
+
+  it('emits SSE queue_timeout when streamed request times out after early commit', async () => {
+    vi.useFakeTimers()
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 1000,
+      batchWindowMs: 50,
+      fairnessTimeoutMs: 30000,
+      modelGrouping: true,
+    })
+    setModelScheduler(scheduler)
+
+    forwardMock.forwardUpstreamAndLog.mockImplementation(() => new Promise<Response>(() => {}))
+
+    handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'llama3', stream: true }),
+      }),
+    )
+
+    const r2Promise = handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'llama3', stream: true }),
+      }),
+    )
+
+    await vi.advanceTimersByTimeAsync(1100)
+
+    const response = await r2Promise
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/event-stream')
+    const text = await response.text()
+    expect(text).toContain('queue_timeout')
     vi.useRealTimers()
   })
 
@@ -447,7 +628,7 @@ describe('handleProxyRequest queue behavior', () => {
     expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
   })
 
-  it('handles count_tokens endpoint through scheduler', async () => {
+  it('handles count_tokens endpoint through scheduler without SSE wrap', async () => {
     forwardMock.forwardUpstreamAndLog.mockResolvedValue(
       Response.json({ usage: { input_tokens: 10, total_tokens: 10 } }),
     )
@@ -464,6 +645,11 @@ describe('handleProxyRequest queue behavior', () => {
 
     expect(resp.status).toBe(200)
     expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(resp.headers.get('content-type')).toContain('application/json')
+    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    expect(resp.headers.get('x-llama-dash-queue-ms')).toBe('0')
+    const body = await resp.json()
+    expect(body).toEqual({ usage: { input_tokens: 10, total_tokens: 10 } })
   })
 
   it('returns 503 for different models when queue is full', async () => {
@@ -505,7 +691,7 @@ describe('handleProxyRequest queue behavior', () => {
     expect((body as any).error?.type).toBe('queue_overflow')
   })
 
-  it('handles embeddings endpoint through scheduler', async () => {
+  it('handles embeddings endpoint through scheduler without SSE wrap', async () => {
     forwardMock.forwardUpstreamAndLog.mockResolvedValue(Response.json({ data: [{ embedding: [0.1, 0.2, 0.3] }] }))
 
     const request = new Request('http://dash.test/v1/embeddings', {
@@ -516,9 +702,68 @@ describe('handleProxyRequest queue behavior', () => {
 
     expect(resp.status).toBe(200)
     expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(resp.headers.get('content-type')).toContain('application/json')
+    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    const text = await resp.text()
+    expect(text).not.toContain(': relayed')
+    expect(JSON.parse(text)).toEqual({ data: [{ embedding: [0.1, 0.2, 0.3] }] })
   })
 
-  it('returns 408 with correct error format for Anthropic', async () => {
+  it('returns native JSON for /v1/models (no progress SSE)', async () => {
+    forwardMock.forwardUpstreamAndLog.mockResolvedValue(
+      Response.json({ object: 'list', data: [{ id: 'llama3', object: 'model' }] }),
+    )
+
+    const resp = await handleProxyRequest(new Request('http://dash.test/v1/models'))
+
+    expect(resp.status).toBe(200)
+    expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(resp.headers.get('content-type')).toContain('application/json')
+    expect(resp.headers.get('content-type')).not.toContain('text/event-stream')
+    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    const body = await resp.json()
+    expect(body).toEqual({ object: 'list', data: [{ id: 'llama3', object: 'model' }] })
+  })
+
+  it('returns HTTP 408 on queue timeout for non-progress endpoints', async () => {
+    vi.useFakeTimers()
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 10,
+      queueTimeoutMs: 1000,
+      batchWindowMs: 50,
+      fairnessTimeoutMs: 30000,
+      modelGrouping: true,
+    })
+    setModelScheduler(scheduler)
+
+    forwardMock.forwardUpstreamAndLog.mockImplementation(() => new Promise<Response>(() => {}))
+
+    handleProxyRequest(
+      new Request('http://dash.test/v1/embeddings', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'embed', input: 'a' }),
+      }),
+    )
+
+    const r2Promise = handleProxyRequest(
+      new Request('http://dash.test/v1/embeddings', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'embed', input: 'b' }),
+      }),
+    )
+
+    await vi.advanceTimersByTimeAsync(1100)
+
+    const response = await r2Promise
+    expect(response.status).toBe(408)
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream')
+    const body = await response.json()
+    expect((body as any).error?.type).toBe('queue_timeout')
+    vi.useRealTimers()
+  })
+
+  it('emits SSE queue_timeout for Anthropic stream when queue wait exceeds timeout after early commit', async () => {
     vi.useFakeTimers()
     scheduler = new ModelScheduler({
       maxConcurrency: 1,
@@ -538,6 +783,7 @@ describe('handleProxyRequest queue behavior', () => {
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 100,
+          stream: true,
           messages: [{ role: 'user', content: 'Hi' }],
         }),
       }),
@@ -549,6 +795,7 @@ describe('handleProxyRequest queue behavior', () => {
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
           max_tokens: 100,
+          stream: true,
           messages: [{ role: 'user', content: 'Hi' }],
         }),
       }),
@@ -557,11 +804,11 @@ describe('handleProxyRequest queue behavior', () => {
     await vi.advanceTimersByTimeAsync(1100)
 
     const response = await r2Promise
-    expect(response.status).toBe(408)
-    const body = await response.json()
-    expect((body as any).type).toBe('error')
-    expect((body as any).error?.type).toBe('queue_timeout')
-    expect((body as any).error?.message).toContain('timed out')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('text/event-stream')
+    const text = await response.text()
+    expect(text).toContain('queue_timeout')
+    expect(text).toContain('Queue timeout')
     vi.useRealTimers()
   })
 

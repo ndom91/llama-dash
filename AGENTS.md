@@ -328,9 +328,18 @@ paths (proxy will grow middleware; admin will grow CRUD).
    starvation. A batch window (`MODEL_QUEUE_BATCH_WINDOW_MS`, default 2000ms)
    collects same-model requests before dispatch. Queued SSE requests get
    `: queued …` keep-alive comments every 5s while waiting (immediate first
-   ping at enqueue); the playground logs QUEUE once from the first comment.
-   `: relayed` is emitted at backend dispatch. Non-SSE requests use HTTP long-poll (connection held open
-   until slot acquired). The scheduler is notified of model state changes from
+   ping at enqueue); clients log QUEUE once from the first comment.
+   `: relayed` is emitted at backend dispatch. Progress SSE early-commit
+   (including `: reason` / `: respond` on first tokens) applies only when the
+   client sets `stream: true` on `/v1/chat/completions`, `/v1/completions`, or
+   `/v1/messages`. For the same endpoints with `stream: false`, llama-dash still
+   forces upstream `stream: true`, scans phase timings, then assembles an
+   OpenAI/Anthropic JSON completion for the client (plus
+   `x-llama-dash-queued` / `x-llama-dash-queue-ms` / phase offset headers, and a
+   sibling `timings_llama_dash` object on the JSON body next to upstream
+   `timings`). Other local routes long-poll
+   without forcing stream. Direct upstreams bypass
+   the queue and return the upstream body unchanged. The scheduler is notified of model state changes from
    the model-watcher only when the loaded set changes, and only applies them
    while idle. Queue entry ids use a `queue_` prefix (distinct from logged
    `req_` ids). SSE timeouts after early commit emit an SSE `queue_timeout`
@@ -570,22 +579,35 @@ sort lexicographically by creation time).
   `timings.prompt_ms`; model loading is wall RELAY→REASON|RESPOND minus prefill;
   reasoning is wall REASON→RESPOND when both exist; response is
   `timings.predicted_ms` minus reasoning when thinking ran.
-  Queue wait is also exposed as `x-llama-dash-queue-ms` so request detail and
-  the playground can show the queue phase separately from START → RELAY.
-- **SSE queue comments.** Queued SSE requests get `: queued position=N
-  eta=Xs model=...` keep-alive comments every 5s while waiting (immediate first
-  ping at enqueue). Playground / inspector clients log QUEUE once from the first
-  comment; later pings are keep-alives only. Non-SSE requests use HTTP long-poll
-  (connection held, no response committed). After the slot is acquired, SSE
+  Queue wait is persisted as `queue_ms` on the request log, computed as
+  RELAY − START (`relayedAtMs − earlyCommitAtMs`, or 0 when immediate). Early-commit
+  responses advertise queue state with `x-llama-dash-queued: true|false`. Phase
+  comments carry `at_ms` so RELAY/REASON/RESPOND share one server clock with
+  logged model-loading / reasoning.
+- **SSE queue comments.** Only `stream: true` on completion endpoints
+  (`/v1/chat/completions`, `/v1/completions`, `/v1/messages`) early-commits with
+  `: queued position=N eta=Xs model=...` keep-alive comments every 5s while
+  waiting (immediate first ping at enqueue), then `: relayed` at backend
+  dispatch. Clients log QUEUE once from the first comment; later pings are
+  keep-alives only. Streaming bodies also get `: reason` / `: respond` ahead of
+  the first reasoning/content token chunks. For the same endpoints with
+  `stream: false`, upstream is still forced to `stream: true` so phase timings
+  can be scanned; the proxy assembles OpenAI/Anthropic JSON for the client and
+  advertises queue/phase state via headers plus a sibling `timings_llama_dash`
+  object on the JSON body (playground prefers body over headers). SSE `at_ms`
+  values are milliseconds after RELAY (`: relayed at_ms=0`), never wall-clock epoch.
+  Other local routes long-poll without forcing stream. Direct upstreams bypass the
+  queue and return the upstream body as-is. After the slot is acquired, SSE
   emits `: relayed` **when llama-dash dispatches to the inference backend**
   (before waiting on upstream headers), so RELAY marks queue-done + backend
-  send — not first token / upstream headers. Immediate SSE also early-commits
-  and emits `: relayed` before the upstream fetch for the same reason. Both
-  approaches are zero-breaking per SSE and HTTP specs.
-- **Queue timeout after SSE commit.** Non-SSE queue timeouts return HTTP 408
-  with `queue_timeout`. SSE requests that were already committed at 200 while
-  queued emit a single SSE `data:` error event (`type: queue_timeout`) and close
-  the stream — the status line cannot be changed after early commit.
+  send — not first token / upstream headers. Immediate streamed completion
+  requests also early-commit and emit `: relayed` before the upstream fetch for
+  the same reason.
+- **Queue timeout after SSE commit.** Long-poll (non-stream) queue timeouts
+  return HTTP 408 with `queue_timeout`. Streamed progress-tape requests that
+  were already committed at 200 while queued emit a single SSE `data:` error
+  event (`type: queue_timeout`) and close the stream — the status line cannot
+  be changed after early commit.
 
 ## llama-swap API surface we consume
 

@@ -4,7 +4,7 @@ import { analyzeTiming } from '../features/requests/requestDetailUtils.ts'
 import { handleProxyRequest } from '../server/proxy/handler.ts'
 import { ModelScheduler, resetModelScheduler, setModelScheduler } from '../server/proxy/model-scheduler.ts'
 import { makeProxyRequest, openaiChatBody } from './fixtures/request.ts'
-import { listLoggedRequests, resetTestDatabase } from './harness/db.ts'
+import { flushLogs, listLoggedRequests, resetTestDatabase } from './harness/db.ts'
 import {
   buildTimedChatSseChunks,
   delayedJsonResponse,
@@ -76,15 +76,20 @@ describe('proxy request phase timing integration', () => {
       ),
     )
 
-    const response = await settleProxyResponse(
-      await handleProxyRequest(
-        makeProxyRequest({
-          headers: { 'content-type': 'application/json' },
-          body: openaiChatBody('llama3', { stream: true }),
-        }),
-      ),
+    const response = await handleProxyRequest(
+      makeProxyRequest({
+        headers: { 'content-type': 'application/json' },
+        body: openaiChatBody('llama3', { stream: true }),
+      }),
     )
     expect(response.status).toBe(200)
+    expect(response.headers.get('x-llama-dash-queued')).toBe('false')
+    expect(response.headers.get('content-type')).toContain('text/event-stream')
+    const bodyText = await response.text()
+    flushLogs()
+    expect(bodyText).toMatch(/: relayed at_ms=\d+/)
+    expect(bodyText).toMatch(/: respond at_ms=\d+/)
+    expect(bodyText).not.toContain(': reason')
 
     const rows = listLoggedRequests()
     expect(rows).toHaveLength(1)
@@ -97,32 +102,53 @@ describe('proxy request phase timing integration', () => {
     expect(row.reasoningMs).toBeNull()
     expect(row.decodeMs).toBeNull()
     expect(row.streamCloseMs).toBeNull()
-    expect(row.queueMs).toBe(0)
+    // Immediate (not queued): RELAY − START is ~0, allow 1–2ms clock skew.
+    expect(row.queueMs ?? 0).toBeLessThan(20)
 
     const { phases } = expectPhasesSumToDuration(row)
     expect(phases.map((p) => p.key)).toContain('other')
     expect(phases.reduce((acc, p) => acc + p.ms, 0)).toBe(row.durationMs)
   })
 
-  it('non-streaming: GPU phases when present; otherwise other covers duration', async () => {
-    const upstreamWait = randBetween(60, 140)
-    installFakeUpstream(async () => delayedJsonResponse(upstreamWait, openaiChatCompletionJson('llama3')))
-
-    const response = await settleProxyResponse(
-      await handleProxyRequest(
-        makeProxyRequest({
-          headers: { 'content-type': 'application/json' },
-          body: openaiChatBody('llama3', { stream: false }),
+  it('non-streaming: forces upstream SSE, assembles JSON, records phase timings', async () => {
+    installFakeUpstream((call) => {
+      const body = call.body ? JSON.parse(call.body) : {}
+      expect(body.stream).toBe(true)
+      return delayedSseResponse(
+        buildTimedChatSseChunks({
+          prefillMs: 40,
+          tokenGapMs: 20,
+          tokenCount: 3,
+          closePaddingMs: 10,
+          misleadingGpuTimings: { prompt_ms: 100, predicted_ms: 200 },
         }),
-      ),
+      )
+    })
+
+    const response = await handleProxyRequest(
+      makeProxyRequest({
+        headers: { 'content-type': 'application/json' },
+        body: openaiChatBody('llama3', { stream: false }),
+      }),
     )
     expect(response.status).toBe(200)
+    expect(response.headers.get('x-llama-dash-queued')).toBe('false')
+    expect(response.headers.get('x-llama-dash-queue-ms')).toBeTruthy()
+    expect(response.headers.get('x-llama-dash-respond-ms')).toBeTruthy()
+    expect(response.headers.get('content-type')).toContain('application/json')
+    expect(response.headers.get('content-type')).not.toContain('text/event-stream')
+
+    const json = await response.json()
+    flushLogs()
+    expect(json.object).toBe('chat.completion')
+    expect(json.choices[0].message.content).toMatch(/t0t1t2/)
 
     const row = listLoggedRequests()[0]!
     expect(row.streamed).toBe(false)
-    expect(row.streamCloseMs).toBeNull()
-    expect(row.decodeMs).toBeNull()
-    expect(row.queueMs).toBe(0)
+    expect(row.prefillMs).toBe(100)
+    expect(row.gpuPrefillMs).toBe(100)
+    expect(row.responseMs).toBe(200)
+    expect(row.queueMs ?? 0).toBeLessThan(20)
     expectPhasesSumToDuration(row)
   })
 
@@ -176,7 +202,7 @@ describe('proxy request phase timing integration', () => {
     const first = rows.find((r) => r.model === 'model-a') ?? rows[0]!
     const second = rows.find((r) => r.model === 'model-b') ?? rows[1]!
 
-    expect(first.queueMs).toBe(0)
+    expect(first.queueMs ?? 0).toBeLessThan(20)
     expect(second.queueMs).toBeGreaterThanOrEqual(50)
     expectPhasesSumToDuration(first)
     expectPhasesSumToDuration(second)
@@ -198,6 +224,7 @@ describe('proxy request phase timing integration', () => {
     installFakeUpstream((call) => {
       calls++
       const body = call.body ? JSON.parse(call.body) : {}
+      // Non-stream chat is forced to upstream stream:true, so both paths get SSE.
       if (body.stream) {
         return delayedSseResponse(
           buildTimedChatSseChunks({

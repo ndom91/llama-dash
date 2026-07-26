@@ -237,4 +237,14 @@ describe('SseUsageScanner display phases', () => {
     expect(usage.reasoningMs).toBeNull()
     expect(usage.responseMs).toBe(50)
   })
+
+  it('reports newly observed REASON/RESPOND markers from feed()', () => {
+    const scanner = new SseUsageScanner(0)
+    const first = scanner.feed('data: {"choices":[{"delta":{"reasoning_content":"t"}}]}\n\n', 10)
+    expect(first).toEqual({ reason: true, respond: false })
+    const second = scanner.feed('data: {"choices":[{"delta":{"content":"hi"}}]}\n\n', 20)
+    expect(second).toEqual({ reason: false, respond: true })
+    const third = scanner.feed('data: {"choices":[{"delta":{"content":"!"}}]}\n\n', 30)
+    expect(third).toEqual({ reason: false, respond: false })
+  })
 })

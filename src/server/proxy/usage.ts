@@ -190,7 +190,9 @@ export class SseUsageScanner {
 
   constructor(private readonly dispatchAtMs: number) {}
 
-  feed(chunk: string, at: number) {
+  feed(chunk: string, at: number): { reason: boolean; respond: boolean } {
+    const hadReasoning = this.reasoningStartAtMs != null
+    const hadContent = this.firstContentAtMs != null
     this.buf += chunk
     for (;;) {
       const idx = this.buf.indexOf('\n\n')
@@ -199,13 +201,27 @@ export class SseUsageScanner {
       this.buf = this.buf.slice(idx + 2)
       this.processEvent(event, at)
     }
+    return {
+      reason: !hadReasoning && this.reasoningStartAtMs != null,
+      respond: !hadContent && this.firstContentAtMs != null,
+    }
+  }
+
+  /** Force-process any incomplete trailing SSE event (end of stream). */
+  flush(at: number): { reason: boolean; respond: boolean } {
+    if (this.buf.length === 0) return { reason: false, respond: false }
+    const hadReasoning = this.reasoningStartAtMs != null
+    const hadContent = this.firstContentAtMs != null
+    this.processEvent(this.buf, at)
+    this.buf = ''
+    return {
+      reason: !hadReasoning && this.reasoningStartAtMs != null,
+      respond: !hadContent && this.firstContentAtMs != null,
+    }
   }
 
   done(closeAtMs?: number): UsageWithClose {
-    if (this.buf.length > 0) {
-      this.processEvent(this.buf, closeAtMs ?? Date.now())
-      this.buf = ''
-    }
+    this.flush(closeAtMs ?? Date.now())
 
     // Model-loading end: whichever came first (REASON or RESPOND).
     const firstTokenAt =
@@ -236,6 +252,14 @@ export class SseUsageScanner {
       ...phases,
       decodeMs: null,
       streamCloseMs: null,
+    }
+  }
+
+  /** Offsets from RELAY for non-stream clients that reconstruct the event tape from headers. */
+  tokenPhaseOffsets(): { reasonMs: number | null; respondMs: number | null } {
+    return {
+      reasonMs: this.reasoningStartAtMs != null ? Math.max(0, this.reasoningStartAtMs - this.dispatchAtMs) : null,
+      respondMs: this.firstContentAtMs != null ? Math.max(0, this.firstContentAtMs - this.dispatchAtMs) : null,
     }
   }
 

@@ -54,7 +54,7 @@ llama.cpp `timings.prompt_ms` / `predicted_ms` are stored separately as
 `gpu_prefill_ms` / `gpu_decode_ms` for request log/detail only — they are
 **not** stacked into the wall-clock timeline bar.
 
-**Queue wait is measured and persisted** as `queue_ms` on the request log (0 when dispatched immediately). Immediate responses also carry `x-llama-dash-queue-ms`. Queued SSE streams emit `: queued …` keep-alives while waiting (every 5s, plus an immediate first ping), then `: relayed` when the slot is acquired / dispatched to the backend, before upstream `data:` events. Request detail Timing/Phases and the playground inspector (START → QUEUE → RELAY → …) surface this phase; QUEUE is logged once from the first keep-alive.
+**Queue wait is measured and persisted** as `queue_ms` on the request log (0 when dispatched immediately). Early-commit responses carry `x-llama-dash-queued: true|false`. Queued SSE streams emit `: queued …` keep-alives while waiting (every 5s, plus an immediate first ping), then `: relayed` when the slot is acquired / dispatched to the backend, before upstream `data:` events. Request detail Timing/Phases and the playground inspector (START → QUEUE → RELAY → …) surface this phase; QUEUE is logged once from the first keep-alive.
 
 **Direct upstreams completely bypass this system.**
 

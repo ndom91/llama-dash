@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { deriveDisplayPhases } from './timing-phases.ts'
+import { computePlaygroundEventTiming } from './playground-timing.ts'
 import { type ChatMessage, type MessageMetrics, type StreamEvent, streamChatCompletion } from './stream-chat'
 import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
@@ -130,48 +130,35 @@ export function usePlaygroundChat() {
       let finalized = false
       let estimatedPromptTokens = 0
       const isCurrentRun = () => runSeqRef.current === runId
-      const pushEvent = (tag: string, text: string) => {
+      const pushEvent = (tag: string, text: string, at = Date.now()) => {
         if (!isCurrentRun()) return
-        const ev = { id: `ev_${Date.now()}_${evSeq++}`, at: Date.now(), tag, text }
+        const ev = { id: `ev_${Date.now()}_${evSeq++}`, at, tag, text }
         events.push(ev)
         setInspector((prev) => ({ ...prev, events: [...events] }))
       }
       const applyFinalMetrics = (closeAt?: number) => {
-        const endAt = closeAt && timings.doneAt ? Math.max(closeAt, timings.doneAt) : (closeAt ?? timings.doneAt)
-        const totalMs = endAt && timings.requestAt ? endAt - timings.requestAt : undefined
-
-        // Model loading: RELAY → REASON|RESPOND − GPU prefill; unavailable without REASON/RESPOND.
-        const firstTokenAt = timings.reasoningStartAt || timings.firstContentAt || 0
-        const relayAt = timings.relayedAt || 0
-        const relayToFirstTokenMs = relayAt && firstTokenAt ? Math.max(0, firstTokenAt - relayAt) : null
-
-        // Reasoning: REASON → RESPOND only when both exist.
-        const reasoningMs =
-          timings.reasoningStartAt && timings.firstContentAt
-            ? Math.max(0, timings.firstContentAt - timings.reasoningStartAt)
-            : null
-
-        if (timings.queueMs == null && timings.wasQueued && timings.startedAt && timings.relayedAt) {
-          timings.queueMs = Math.max(0, timings.relayedAt - timings.startedAt)
-        } else if (timings.queueMs == null && !timings.wasQueued && timings.relayedAt) {
-          timings.queueMs = 0
-        }
-
-        const phases = deriveDisplayPhases({
-          relayToFirstTokenMs,
-          gpuPrefillMs: timings.promptMs,
-          gpuDecodeMs: timings.predictedMs,
-          reasoningMs,
+        const computed = computePlaygroundEventTiming({
+          startedAt: timings.startedAt,
+          doneAt: timings.doneAt,
+          closeAt: closeAt ?? timings.closeAt,
+          relayedAt: timings.relayedAt,
+          reasoningStartAt: timings.reasoningStartAt,
+          firstContentAt: timings.firstContentAt,
+          wasQueued: timings.wasQueued,
+          queueMs: timings.queueMs,
+          promptMs: timings.promptMs,
+          predictedMs: timings.predictedMs,
         })
+        timings.queueMs = computed.queueMs
 
         const tokOut = usage.completion
-        const responseForRate = phases.responseMs ?? timings.predictedMs
+        const responseForRate = computed.responseMs ?? timings.predictedMs
         const tokPerSec =
           tokOut != null && responseForRate != null && responseForRate > 0
             ? (tokOut / responseForRate) * 1000
             : undefined
         const metrics: MessageMetrics = {
-          totalMs,
+          totalMs: computed.totalMs,
           tokIn: usage.prompt ?? estimatedPromptTokens,
           tokOut,
           tokPerSec,
@@ -184,11 +171,11 @@ export function usePlaygroundChat() {
           lastResponseText: assistantMsg.content,
           lastMetrics: metrics,
           timing: {
-            queueMs: timings.queueMs,
-            modelLoadingMs: phases.modelLoadingMs,
-            prefillMs: phases.prefillMs,
-            reasoningMs: phases.reasoningMs,
-            responseMs: phases.responseMs,
+            queueMs: computed.queueMs,
+            modelLoadingMs: computed.modelLoadingMs,
+            prefillMs: computed.prefillMs,
+            reasoningMs: computed.reasoningMs,
+            responseMs: computed.responseMs,
           },
         }))
       }
@@ -224,15 +211,27 @@ export function usePlaygroundChat() {
                 break
               case 'started':
                 timings.startedAt = ev.at
-                pushEvent('START', `server received · POST ${lastUrl}`)
+                pushEvent('START', `server received · POST ${lastUrl}`, ev.at)
                 break
               case 'queued':
                 timings.wasQueued = true
-                pushEvent('QUEUE', `position=${ev.position} eta=${ev.eta} model=${ev.model}`)
+                if (ev.queueMs != null) timings.queueMs = ev.queueMs
+                pushEvent(
+                  'QUEUE',
+                  ev.queueMs != null
+                    ? `waited ${ev.queueMs}ms · model=${ev.model}`
+                    : `position=${ev.position} eta=${ev.eta} model=${ev.model}`,
+                  ev.at,
+                )
                 break
               case 'relayed':
+                // Anchor RELAY on the client clock; wire atMs is always 0 (RELAY origin).
                 timings.relayedAt = ev.at
-                if (timings.wasQueued && timings.startedAt) {
+                if (ev.queueMs != null) {
+                  timings.queueMs = ev.queueMs
+                  timings.wasQueued = ev.queueMs > 0 || timings.wasQueued
+                } else if (timings.wasQueued && timings.startedAt) {
+                  // Stream path: queue from client START→RELAY when server queue-ms isn't on RELAY.
                   timings.queueMs = Math.max(0, ev.at - timings.startedAt)
                 } else {
                   timings.queueMs = 0
@@ -241,15 +240,15 @@ export function usePlaygroundChat() {
                   ...prev,
                   timing: { ...prev.timing, queueMs: timings.queueMs },
                 }))
-                pushEvent('RELAY', 'relayed')
+                pushEvent('RELAY', 'relayed', timings.relayedAt)
                 break
               case 'reasoning-start':
-                timings.reasoningStartAt = ev.at
-                pushEvent('REASON', 'first reasoning')
+                timings.reasoningStartAt = ev.atMs != null && timings.relayedAt ? timings.relayedAt + ev.atMs : ev.at
+                pushEvent('REASON', 'first reasoning', timings.reasoningStartAt)
                 break
               case 'content-start':
-                timings.firstContentAt = ev.at
-                pushEvent('RESPOND', 'first content')
+                timings.firstContentAt = ev.atMs != null && timings.relayedAt ? timings.relayedAt + ev.atMs : ev.at
+                pushEvent('RESPOND', 'first content', timings.firstContentAt)
                 break
               case 'usage':
                 if (ev.promptTokens != null) usage.prompt = ev.promptTokens
@@ -261,7 +260,7 @@ export function usePlaygroundChat() {
                 break
               case 'done':
                 timings.doneAt = ev.at
-                pushEvent('END', `finished · finish_reason=${ev.finishReason ?? 'stop'}`)
+                pushEvent('END', `finished · finish_reason=${ev.finishReason ?? 'stop'}`, ev.at)
                 if (!finalized) {
                   finalized = true
                   applyFinalMetrics()
@@ -273,7 +272,7 @@ export function usePlaygroundChat() {
                 if (finalized) applyFinalMetrics(ev.at)
                 break
               case 'error':
-                pushEvent('ERROR', ev.message)
+                pushEvent('ERROR', ev.message, ev.at)
                 break
             }
           },
@@ -281,8 +280,9 @@ export function usePlaygroundChat() {
 
         for await (const chunk of stream) {
           if (!isCurrentRun()) break
-          if (chunk.done) continue
 
+          // Non-stream completions arrive as one chunk that may also be marked done.
+          // Always apply text first; never skip the payload because done is set.
           if (chunk.reasoningContent) {
             if (!assistantMsg.reasoningContent) {
               setIsReasoning(true)
@@ -299,6 +299,13 @@ export function usePlaygroundChat() {
           }
 
           if (isCurrentRun()) setMessages([...msgs, { ...assistantMsg }])
+        }
+
+        // If `done` finalized metrics before this loop applied content (legacy ordering),
+        // refresh the chat bubble + inspector response snapshot.
+        if (isCurrentRun() && finalized) {
+          setMessages([...msgs, { ...assistantMsg }])
+          setInspector((prev) => ({ ...prev, lastResponseText: assistantMsg.content }))
         }
 
         if (!finalized) {

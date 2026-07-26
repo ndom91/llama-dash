@@ -14,7 +14,9 @@ import {
 import { queueOverflowError, queueTimeoutError, toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { getModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
-import { createImmediateSseStream, createQueuedSseStream } from './queue-status-sse.ts'
+import { createImmediateSseStream, createQueuedSseStream, endpointSupportsProgressTape } from './queue-status-sse.ts'
+import { forceUpstreamStream } from './assemble-sse-completion.ts'
+import { applyProxyBodyHeaders, applyProxyBodyTransform } from './body.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
@@ -195,7 +197,28 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const reqBody = loggedRequestBody(ctx)
 
   const isLocalBackend = ctx.routingOutcome.targetType !== 'direct'
-  const isSse = ctx.body?.parsedBody?.stream === true
+  const clientRequestedSse = ctx.body?.parsedBody?.stream === true
+  // Progress SSE tape only when the client asked for streaming on a completion
+  // endpoint. Non-stream clients still get JSON — we may force upstream stream
+  // and assemble the completion after the SSE finishes.
+  const useProgressTape = isLocalBackend && clientRequestedSse && endpointSupportsProgressTape(ctx.endpoint)
+
+  // Local completion + client stream:false → upstream stream:true, assemble JSON.
+  let assembleNonStream = false
+  if (
+    isLocalBackend &&
+    !clientRequestedSse &&
+    endpointSupportsProgressTape(ctx.endpoint) &&
+    ctx.body?.parsedBody &&
+    !ctx.body.isMultipart
+  ) {
+    const forced = forceUpstreamStream(ctx.body.parsedBody)
+    if (forced.mutated) {
+      assembleNonStream = true
+      ctx.body = applyProxyBodyTransform(ctx.body, { body: forced.body, mutated: true })
+      applyProxyBodyHeaders(ctx.body, ctx.reqHeaders)
+    }
+  }
 
   if (isLocalBackend) {
     const scheduler = getModelScheduler()
@@ -210,7 +233,11 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       body: forwardBody(ctx),
       hasBody: ctx.body?.hasBody ?? false,
       startedAt: ctx.startedAt,
+      earlyCommitAtMs: null,
+      enqueueAtMs: null,
+      relayedAtMs: null,
       queueMs: 0,
+      assembleNonStream,
       endpoint: ctx.endpoint,
       reqModel: ctx.body?.reqModel ?? null,
       reqHeadersJson,
@@ -252,25 +279,25 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
 
     try {
-      // SSE + queued: commit response early with SSE headers, stream comment
-      // pings while waiting for the slot, then pipe through upstream response.
-      // Timeout after commit cannot become HTTP 408 — see createQueuedSseStream.
-      if (isSse && enqueueResult.status === 'queued') {
-        const sseStream = createQueuedSseStream(scheduler, enqueueResult.entryId, model, enqueueResult.waitPromise)
-        return new Response(sseStream, {
-          status: 200,
-          headers: {
-            'content-type': 'text/event-stream',
-            'cache-control': 'no-cache',
-            connection: 'keep-alive',
-            'x-llama-dash-queued': 'true',
-          },
-        })
-      }
+      if (useProgressTape) {
+        // stream:true completion: early-commit SSE, emit `: queued` / `: relayed`,
+        // pipe upstream SSE (with `: reason` / `: respond` from forward).
+        // Timeout after commit cannot become HTTP 408 — see createQueuedSseStream.
+        requestData.earlyCommitAtMs = Date.now()
 
-      if (isSse && enqueueResult.status === 'immediate') {
-        // Commit SSE immediately and emit RELAY before upstream fetch so RELAY means
-        // "dispatched to backend", not "upstream headers arrived".
+        if (enqueueResult.status === 'queued') {
+          const sseStream = createQueuedSseStream(scheduler, enqueueResult.entryId, model, enqueueResult.waitPromise)
+          return new Response(sseStream, {
+            status: 200,
+            headers: {
+              'content-type': 'text/event-stream',
+              'cache-control': 'no-cache',
+              connection: 'keep-alive',
+              'x-llama-dash-queued': 'true',
+            },
+          })
+        }
+
         const sseStream = createImmediateSseStream(enqueueResult.startDispatch)
         return new Response(sseStream, {
           status: 200,
@@ -278,15 +305,20 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
             'content-type': 'text/event-stream',
             'cache-control': 'no-cache',
             connection: 'keep-alive',
-            'x-llama-dash-queue-ms': '0',
+            'x-llama-dash-queued': 'false',
           },
         })
       }
 
-      if (enqueueResult.status === 'immediate') {
-        return await enqueueResult.startDispatch()
+      // Non-stream (and non-completion) local routes: HTTP long-poll.
+      // Hold until a slot is acquired, return upstream body unchanged.
+      // Queue visibility via response headers for clients (e.g. playground).
+      if (enqueueResult.status === 'queued') {
+        const upstreamResponse = await enqueueResult.waitPromise
+        return withQueueHeaders(upstreamResponse, true, requestData.queueMs ?? 0)
       }
-      return await enqueueResult.waitPromise
+      const upstreamResponse = await enqueueResult.startDispatch()
+      return withQueueHeaders(upstreamResponse, false, requestData.queueMs ?? 0)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       const isTimeout = message.includes('Queue timeout')
@@ -394,6 +426,18 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
 function usesStoredCredentials(ctx: ProxyContext): boolean {
   return Boolean(ctx.routingOutcome.targetCredentialId) || ctx.routingOutcome.credentialBindings.length > 0
+}
+
+/** Attach queue visibility without changing content-type or body framing. */
+function withQueueHeaders(response: Response, queued: boolean, queueMs: number): Response {
+  const headers = new Headers(response.headers)
+  headers.set('x-llama-dash-queued', queued ? 'true' : 'false')
+  headers.set('x-llama-dash-queue-ms', String(Math.max(0, Math.round(queueMs))))
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
 }
 
 function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {

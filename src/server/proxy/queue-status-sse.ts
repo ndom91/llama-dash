@@ -1,18 +1,93 @@
 import type { ModelScheduler, QueueStatus } from './model-scheduler.ts'
 
-export const QUEUE_MS_HEADER = 'x-llama-dash-queue-ms'
-
 /** Keep-alive interval for queued SSE clients. */
 const PING_INTERVAL_MS = 5_000
+
+/**
+ * Completion endpoints that may early-commit the progress SSE tape when the
+ * client sets `stream: true`. Non-stream never uses SSE — long-poll + queue headers.
+ */
+export function endpointSupportsProgressTape(endpoint: string): boolean {
+  return endpoint === '/v1/chat/completions' || endpoint === '/v1/completions' || endpoint === '/v1/messages'
+}
+
+export type SseProgressPipeOptions = {
+  /**
+   * When true, non-SSE upstream bodies are re-framed as one `data:` JSON event
+   * plus `[DONE]` so non-stream shares the `: queued` / `: relayed` tape with stream.
+   */
+  wrapJsonAsSse?: boolean
+}
+
+async function pipeUpstreamToSseController(
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  upstreamResponse: Response,
+  encoder: TextEncoder,
+  opts: {
+    wrapJsonAsSse: boolean
+    stopped: () => boolean
+    setReader: (reader: ReadableStreamDefaultReader<Uint8Array> | null) => void
+  },
+): Promise<void> {
+  if (!upstreamResponse.body) {
+    controller.close()
+    return
+  }
+
+  const contentType = upstreamResponse.headers.get('content-type') ?? ''
+  const upstreamIsSse = contentType.includes('text/event-stream')
+  if (opts.wrapJsonAsSse && !upstreamIsSse) {
+    const text = await upstreamResponse.text()
+    if (opts.stopped()) return
+    const payload = text.trim() || '{}'
+    controller.enqueue(encoder.encode(`data: ${payload}\n\n`))
+    controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+    controller.close()
+    return
+  }
+
+  const reader = upstreamResponse.body.getReader()
+  opts.setReader(reader)
+  while (!opts.stopped()) {
+    const { done, value } = await reader.read()
+    if (done) {
+      controller.close()
+      return
+    }
+    controller.enqueue(value)
+  }
+  await reader.cancel().catch(() => {})
+  try {
+    controller.close()
+  } catch {
+    // already closed
+  }
+}
 
 export function formatQueueComment(status: QueueStatus, model: string, requestId: string): string {
   const eta = status.estimatedEtaMs != null ? `${Math.round(status.estimatedEtaMs / 1000)}s` : '?s'
   return `: queued position=${status.position} eta=${eta} model=${model} request_id=${requestId}`
 }
 
-/** RELAY marker: queue done + dispatched to backend. No wait_ms payload. */
-export function formatRelayedComment(): string {
-  return ': relayed'
+/** RELAY marker: queue done + dispatched to backend. `at_ms` is always 0 (origin). */
+export function formatRelayedComment(atMs = 0): string {
+  return `: relayed at_ms=${Math.max(0, Math.round(atMs))}`
+}
+
+/**
+ * REASON marker: first reasoning token.
+ * `atMs` is milliseconds after RELAY (never wall-clock epoch).
+ */
+export function formatReasonComment(atMs?: number): string {
+  return atMs != null ? `: reason at_ms=${Math.max(0, Math.round(atMs))}` : ': reason'
+}
+
+/**
+ * RESPOND marker: first visible content token.
+ * `atMs` is milliseconds after RELAY (never wall-clock epoch).
+ */
+export function formatRespondComment(atMs?: number): string {
+  return atMs != null ? `: respond at_ms=${Math.max(0, Math.round(atMs))}` : ': respond'
 }
 
 export function parseQueueComment(line: string): { position: number; eta: string; model: string } | null {
@@ -25,12 +100,30 @@ export function parseQueueComment(line: string): { position: number; eta: string
   return { position: Number(position), eta, model }
 }
 
-/** Accepts `: relayed` and legacy `: relayed wait_ms=N`. */
-export function parseRelayedComment(line: string): { waitMs: number | null } | null {
+/** Accepts `: relayed`, `: relayed at_ms=N`, and legacy `: relayed wait_ms=N`. */
+export function parseRelayedComment(line: string): { waitMs: number | null; atMs: number | null } | null {
   const trimmed = line.trim()
   if (trimmed !== ': relayed' && !trimmed.startsWith(': relayed ')) return null
   const wait = /wait_ms=(\d+)/.exec(trimmed)?.[1]
-  return { waitMs: wait != null ? Number(wait) : null }
+  const at = /at_ms=(\d+)/.exec(trimmed)?.[1]
+  return {
+    waitMs: wait != null ? Number(wait) : null,
+    atMs: at != null ? Number(at) : null,
+  }
+}
+
+export function parseReasonComment(line: string): { atMs: number | null } | null {
+  const trimmed = line.trim()
+  if (trimmed !== ': reason' && !trimmed.startsWith(': reason ')) return null
+  const at = /at_ms=(\d+)/.exec(trimmed)?.[1]
+  return { atMs: at != null ? Number(at) : null }
+}
+
+export function parseRespondComment(line: string): { atMs: number | null } | null {
+  const trimmed = line.trim()
+  if (trimmed !== ': respond' && !trimmed.startsWith(': respond ')) return null
+  const at = /at_ms=(\d+)/.exec(trimmed)?.[1]
+  return { atMs: at != null ? Number(at) : null }
 }
 
 export function sendQueueNotice(
@@ -52,12 +145,14 @@ export function sendQueueNotice(
  * Queued SSE: immediate `: queued` keep-alive, then periodic pings while waiting.
  * Scheduler writes `: relayed` at true backend-dispatch time; this stream then pipes upstream.
  *
- * Playground / inspector clients should treat QUEUE as one-shot (first comment only);
+ * Clients should treat QUEUE as one-shot (first comment only);
  * later pings are connection keep-alives with updated position/ETA.
  *
  *   : queued position=3 eta=14s model=llama3 request_id=queue_01j5abc
  *   : queued position=2 eta=6s model=llama3 request_id=queue_01j5abc
  *   : relayed
+ *   : reason
+ *   : respond
  *   data: …
  */
 export function createQueuedSseStream(
@@ -65,8 +160,10 @@ export function createQueuedSseStream(
   entryId: string,
   model: string,
   waitPromise: Promise<Response>,
+  pipeOptions: SseProgressPipeOptions = {},
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
+  const wrapJsonAsSse = pipeOptions.wrapJsonAsSse === true
   let stopped = false
   let pingTimer: ReturnType<typeof setInterval> | null = null
   let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null
@@ -114,27 +211,13 @@ export function createQueuedSseStream(
           }
 
           // `: relayed` was already written by the scheduler at true dispatch time.
-
-          if (!upstreamResponse.body) {
-            controller.close()
-            return
-          }
-
-          upstreamReader = upstreamResponse.body.getReader()
-          while (!stopped) {
-            const { done, value } = await upstreamReader.read()
-            if (done) {
-              controller.close()
-              return
-            }
-            controller.enqueue(value)
-          }
-          await upstreamReader.cancel().catch(() => {})
-          try {
-            controller.close()
-          } catch {
-            // already closed
-          }
+          await pipeUpstreamToSseController(controller, upstreamResponse, encoder, {
+            wrapJsonAsSse,
+            stopped: () => stopped,
+            setReader: (reader) => {
+              upstreamReader = reader
+            },
+          })
         } catch (err) {
           stopPings()
           if (stopped) {
@@ -173,8 +256,12 @@ export function createQueuedSseStream(
 /**
  * Immediate SSE: commit headers, emit `: relayed`, then start upstream dispatch.
  */
-export function createImmediateSseStream(startDispatch: () => Promise<Response>): ReadableStream<Uint8Array> {
+export function createImmediateSseStream(
+  startDispatch: (relayedAtMs: number) => Promise<Response>,
+  pipeOptions: SseProgressPipeOptions = {},
+): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
+  const wrapJsonAsSse = pipeOptions.wrapJsonAsSse === true
   let stopped = false
   let upstreamReader: ReadableStreamDefaultReader<Uint8Array> | null = null
 
@@ -182,7 +269,8 @@ export function createImmediateSseStream(startDispatch: () => Promise<Response>)
     start(controller) {
       void (async () => {
         try {
-          controller.enqueue(encoder.encode(`${formatRelayedComment()}\n\n`))
+          const relayedAtMs = Date.now()
+          controller.enqueue(encoder.encode(`${formatRelayedComment(0)}\n\n`))
           if (stopped) {
             try {
               controller.close()
@@ -192,7 +280,7 @@ export function createImmediateSseStream(startDispatch: () => Promise<Response>)
             return
           }
 
-          const upstreamResponse = await startDispatch()
+          const upstreamResponse = await startDispatch(relayedAtMs)
           if (stopped) {
             await upstreamResponse.body?.cancel().catch(() => {})
             try {
@@ -203,26 +291,13 @@ export function createImmediateSseStream(startDispatch: () => Promise<Response>)
             return
           }
 
-          if (!upstreamResponse.body) {
-            controller.close()
-            return
-          }
-
-          upstreamReader = upstreamResponse.body.getReader()
-          while (!stopped) {
-            const { done, value } = await upstreamReader.read()
-            if (done) {
-              controller.close()
-              return
-            }
-            controller.enqueue(value)
-          }
-          await upstreamReader.cancel().catch(() => {})
-          try {
-            controller.close()
-          } catch {
-            // already closed
-          }
+          await pipeUpstreamToSseController(controller, upstreamResponse, encoder, {
+            wrapJsonAsSse,
+            stopped: () => stopped,
+            setReader: (reader) => {
+              upstreamReader = reader
+            },
+          })
         } catch (err) {
           if (stopped) {
             try {

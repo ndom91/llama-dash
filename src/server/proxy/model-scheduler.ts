@@ -32,8 +32,22 @@ export type ProxyRequestData = {
   body: unknown
   hasBody: boolean
   startedAt: number
+  /**
+   * Wall ms when the early-commit SSE response was created (START).
+   * Preferred basis for queue_ms = RELAY − START.
+   */
+  earlyCommitAtMs: number | null
+  /** Wall ms when the request entered the scheduler queue (fallback START). */
+  enqueueAtMs: number | null
+  /** Wall ms when `: relayed` was emitted (RELAY / scanner dispatch clock). */
+  relayedAtMs: number | null
   /** Milliseconds spent waiting in the concurrency queue before dispatch (0 if immediate). */
   queueMs: number
+  /**
+   * Client asked for non-stream; upstream was forced to `stream: true` so we can
+   * scan phase timings, then assemble JSON for the client.
+   */
+  assembleNonStream: boolean
   endpoint: string
   reqModel: string | null
   reqHeadersJson: string
@@ -43,6 +57,14 @@ export type ProxyRequestData = {
   attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
   routing: unknown
   credentialInjectionJson: string | null
+}
+
+/** Mark RELAY and derive queue_ms = RELAY − START (early-commit, else enqueue). */
+export function markRelayed(requestData: ProxyRequestData, relayedAtMs = Date.now()): number {
+  requestData.relayedAtMs = relayedAtMs
+  const startAt = requestData.earlyCommitAtMs ?? requestData.enqueueAtMs
+  requestData.queueMs = startAt != null ? Math.max(0, relayedAtMs - startAt) : 0
+  return relayedAtMs
 }
 
 type SchedulerConfig = {
@@ -55,7 +77,7 @@ type SchedulerConfig = {
 }
 
 export type EnqueueResult =
-  | { status: 'immediate'; startDispatch: () => Promise<Response> }
+  | { status: 'immediate'; startDispatch: (relayedAtMs?: number) => Promise<Response> }
   | { status: 'queued'; waitPromise: Promise<Response>; entryId: QueueEntryId }
   | { status: 'overflow'; queueDepth: number; maxQueue: number }
 
@@ -117,22 +139,24 @@ export class ModelScheduler {
 
     this.activeSlots++
     this.currentModel = model
-    requestData.queueMs = 0
-    // Slot is held until the response body finishes (or errors), not when headers
-    // arrive — otherwise a second model request can reach the backend mid-stream
-    // and preempt the in-flight generation (e.g. llama.cpp router model swap).
     // Lazily start dispatch so SSE can commit `: relayed` before undiciFetch.
+    // queueMs / relayedAtMs are filled when RELAY is marked.
     return {
       status: 'immediate',
-      startDispatch: () => this.dispatchHoldingSlot(requestData, null),
+      startDispatch: (relayedAtMs = Date.now()) => {
+        markRelayed(requestData, relayedAtMs)
+        return this.dispatchHoldingSlot(requestData, null)
+      },
     }
   }
 
   private enqueueAndWait(entryId: string, model: string, requestData: ProxyRequestData): EnqueueResult {
+    const enqueueTime = Date.now()
+    requestData.enqueueAtMs = enqueueTime
     const entry: QueueEntry = {
       id: entryId,
       model,
-      enqueueTime: Date.now(),
+      enqueueTime,
       requestData,
       resolve: () => {},
       reject: () => {},
@@ -247,7 +271,6 @@ export class ModelScheduler {
 
       this.currentModel = candidate.model
       this.activeSlots++
-      candidate.requestData.queueMs = Math.max(0, Date.now() - candidate.enqueueTime)
 
       // Emit RELAY on the early-committed SSE controller *before* upstream fetch so
       // clients see "queue done + dispatched to backend", not "upstream headers".
@@ -305,17 +328,22 @@ export class ModelScheduler {
     sseController: ReadableStreamDefaultController<Uint8Array> | null,
   ): Promise<Response> {
     // RELAY = queue finished + we are sending to the backend (not upstream headers).
+    // Immediate path marks RELAY in createImmediateSseStream before startDispatch.
     if (sseController) {
+      markRelayed(requestData)
       try {
         const encoder = new TextEncoder()
-        sseController.enqueue(encoder.encode(`${formatRelayedComment()}\n\n`))
+        // Wire `at_ms` is RELAY-relative (always 0); wall clock stays server-internal.
+        sseController.enqueue(encoder.encode(`${formatRelayedComment(0)}\n\n`))
       } catch {
         // Client disconnected — continue dispatch; cancel paths release the slot.
       }
+    } else if (requestData.relayedAtMs == null) {
+      markRelayed(requestData)
     }
     try {
       const response = await this.dispatch(requestData)
-      return this.holdSlotUntilBodyDone(response, requestData.queueMs)
+      return this.holdSlotUntilBodyDone(response)
     } catch (err) {
       this.onDispatchComplete()
       throw err
@@ -330,9 +358,8 @@ export class ModelScheduler {
    *
    * Uses TransformStream + pipeTo so backpressure and cancel propagate correctly.
    */
-  private holdSlotUntilBodyDone(response: Response, queueMs: number): Response {
+  private holdSlotUntilBodyDone(response: Response): Response {
     const headers = new Headers(response.headers)
-    headers.set('x-llama-dash-queue-ms', String(queueMs))
 
     if (!response.body) {
       this.onDispatchComplete()
@@ -366,6 +393,7 @@ export class ModelScheduler {
       const result = await forwardUpstreamAndLog({
         ...(requestData as Parameters<typeof forwardUpstreamAndLog>[0]),
         queueMs: requestData.queueMs,
+        relayedAtMs: requestData.relayedAtMs ?? undefined,
       })
       const latency = Date.now() - start
       this.dispatchLatencies.push(latency)
