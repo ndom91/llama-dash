@@ -5,8 +5,10 @@ Notes for agents (and humans operating as agents) working on this repo.
 ## What this is
 
 llama-dash is a dashboard UI plus a logging, auth-ready proxy for a local
-inference backend. The implemented backend is currently
-[llama-swap](https://github.com/mostlygeek/llama-swap), fronting llama.cpp
+inference backend. Two backends are implemented:
+[llama-swap](https://github.com/mostlygeek/llama-swap) (bundled compose, full feature set)
+and [llama.cpp Router Mode](https://github.com/ggml-org/llama.cpp) (`INFERENCE_BACKEND=llama-cpp-router`,
+direct model management without config editor).
 models through its `/v1/*` OpenAI/Anthropic-compatible endpoint. Feature ideas
 and prioritization live in [`next-plan.md`](./next-plan.md).
 
@@ -89,15 +91,24 @@ src/
     config.ts             — env-var loader (INFERENCE_BASE_URL, DATABASE_PATH, …)
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler for GPU stats
     model-watcher.ts      — polls /running every 15s, writes load/unload events
-    db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
+    db/                   — drizzle schema + SQLite init; pending migrations run on server boot (also via pnpm db:migrate)
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
+    proxy/model-scheduler.ts — upstream concurrency queue, model-aware scheduling, fairness timeout
+    proxy/queue-status-sse.ts — SSE queue keep-alive comments + `: relayed` at dispatch
     admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
     inference/            — selected inference backend facade plus backend-specific adapters and hints
+    backends/llama-cpp-router.ts — adapter for llama.cpp router mode
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
     metrics.ts            — Prometheus text exporter for /metrics
+  test/                   — shared fixtures + integration harness (db reset, fake upstream)
+    fixtures/             — makeRoutingRule, makeApiKeyRow, makeProxyRequest helpers
+    harness/              — :memory: SQLite reset, undici fake upstream, settleProxyResponse
+    integration-setup.ts  — env + undici mock for the integration Vitest project
+    *.integration.test.ts — co-located under src/test/ (or next to modules) for DB+proxy contracts
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
+vitest.config.ts          — unit + integration Vitest projects
 docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llama-dash + llama-swap
 docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llama-dash + llama-swap
 next-plan.md              — feature ideas and prioritization
@@ -119,10 +130,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata.
-- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
+- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Pending migrations are applied on server boot via `runMigrations()` (before `ensureSystemKey()`); `pnpm db:migrate` remains available for offline/preflight use.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
-- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml`, `docker-compose.router.yaml` — production container packaging for llama-dash by itself or bundled withlama-swap or llama.cpp router.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with SSE-driven cache invalidation for request, model, GPU, and system changes plus slow ETag polling fallback.
@@ -155,13 +166,16 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
-   backend currently supports `llama-swap` only and normalizes model list,
+   backend supports `llama-swap` (full feature set) and `llama-cpp-router`
+   (model list, running state, load/unload lifecycle, health, metrics; no config
+   editor or log streams) and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,
    logs, config snippets, config-derived context hints, model capability metadata,
    and model log-name hints.
    Backend support is capability-driven; unsupported operations should return a
    structured `501` and UI routes should hide links or show direct-navigation
-   fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md).
+   fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md)
+   and [`docs/2026_07_22_llama_cpp_router_backend.md`](./docs/2026_07_22_llama_cpp_router_backend.md).
 5. Admin API:
    Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
    `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
@@ -169,6 +183,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/requests` — cursor-paginated list
+   - `/api/requests/inflight` — in-memory live exchanges (not yet logged)
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
@@ -205,8 +220,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
     with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
-    image and transcription testing; timing sidebar shows TTFT, prefill,
-    decode, and stream-close when upstream llama.cpp timing metadata is present), Config editor with explicit
+    image and transcription testing; timing sidebar shows queue, model loading,
+    prefill (GPU), reasoning, response, and other so phases sum to total; event rail uses
+    START / QUEUE / RELAY / REASON / RESPOND / END / ERROR), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls
     and global proxy/privacy/retention defaults), API Keys (list +
     per-key detail), Attribution (header mapping + client setup examples),
@@ -266,9 +282,16 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (string or content-block array, preserved shape).
 12. Request logs persist routing and attribution context. Request detail shows
       matched routing rule/action/auth mode plus client, end-user, and session metadata.
-    Request list supports routing, attribution, and client-host filters, and session IDs
+    Timing/Phases always show queue + model loading + prefill + reasoning +
+    response + other (= duration); 0/null values render as "—". Prefill is
+    llama.cpp `timings.prompt_ms`; model loading is wall RELAY→REASON|RESPOND minus
+    prefill; reasoning is wall REASON→RESPOND when both exist; response is
+    `timings.predicted_ms` minus reasoning. Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
+    For SSE responses, full assembled reasoning and response text are stored in
+    separate columns (not subject to max-stored-body truncation) so the readable
+    completion survives even when the raw stream is trimmed.
     Request rows are classified as `inference` or `mcp_relay`; successful MCP relay
     rows are metadata-only by default, while relay failures keep bounded body/header
     snippets for debugging. Hourly retention pruning removes old inference rows,
@@ -286,8 +309,53 @@ paths (proxy will grow middleware; admin will grow CRUD).
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin
-    entrypoints; page-specific components live with their feature instead of
-    accumulating inside `src/routes/*` or flat shared component files.
+   entrypoints; page-specific components live with their feature instead of
+   accumulating inside `src/routes/*` or flat shared component files.
+16. Upstream concurrency queue + model-aware scheduling. Local backend requests
+   are gated by a configurable concurrency limit (`LOCAL_BACKEND_MAX_CONCURRENT`,
+   default 4). When at capacity, requests enter a bounded FIFO queue
+   (`LOCAL_BACKEND_MAX_QUEUE`, default 20). Queue overflow returns 503 with
+   queue depth info. Queue timeout returns 408 (`LOCAL_BACKEND_QUEUE_TIMEOUT_MS`,
+   default 60000ms; set to -1 to disable). Direct upstreams bypass the queue
+   entirely, as do local catalog lookups (`/v1/models`, `/v1/models/{id}`). A concurrency slot is always held until the server finishes the
+   whole response body or the client disconnects — independent of backend and
+   of concurrency N (headers alone never free the slot). Request display timing
+   is `queue + model loading + prefill + reasoning + response + other = duration`
+   (0/null → "—"). Prefill/response come from llama.cpp `timings.prompt_ms` /
+   `predicted_ms` (also stored raw as `gpu_*`); model loading is wall RELAY→REASON|RESPOND
+   minus prefill; reasoning is wall REASON→RESPOND when both exist. Model
+   grouping (`LOCAL_BACKEND_MODEL_GROUPING`,
+   default true) dispatches same-model requests first, then largest model
+   group, with a fairness timeout (`MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`, default
+   30000ms) that dispatches the oldest request regardless of model to prevent
+   starvation. A batch window (`MODEL_QUEUE_BATCH_WINDOW_MS`, default 2000ms)
+   collects same-model requests before dispatch. Queued SSE requests get
+   `: queued …` keep-alive comments every 5s while waiting (immediate first
+   ping at enqueue); clients log QUEUE once from the first comment.
+   `: relayed` is emitted at backend dispatch. Progress SSE early-commit
+   (including `: reason` / `: respond` on first tokens) applies only when the
+   client sets `stream: true` on `/v1/chat/completions`, `/v1/completions`, or
+   `/v1/messages`. For the same endpoints with `stream: false`, llama-dash still
+   forces upstream `stream: true`, scans phase timings, then assembles an
+   OpenAI/Anthropic JSON completion for the client (plus
+   `x-llama-dash-queued` / `x-llama-dash-queue-ms` / phase offset headers, and a
+   sibling `timings_llama_dash` object on the JSON body next to upstream
+   `timings`). Other local routes long-poll
+   without forcing stream. Direct upstreams and `/v1/models` bypass
+   the queue and return the upstream body unchanged. The scheduler is notified of model state changes from
+   the model-watcher only when the loaded set changes, and only applies them
+   while idle. Queue entry ids use a `queue_` prefix (distinct from logged
+   `req_` ids). SSE timeouts after early commit emit an SSE `queue_timeout`
+   error event rather than HTTP 408.
+17. In-flight request visibility. Long-lived proxy exchanges mint `req_…` at
+   accept and register in an in-memory map (`src/server/proxy/inflight-requests.ts`)
+   with phases `accepted` → `queued` → `active`. `/api/events` publishes
+   `request.started` / `request.updated`; on completion the existing
+   `request.completed` event removes the live row and patches finished list
+   caches. `GET /api/requests/inflight` is the reconnect snapshot. SQLite still
+   inserts only on completion (same id). Dashboard recent + `/requests` overlay
+   live rows at the top with a pulsing phase badge; detail deep-link waits until
+   the row is logged.
 
 ## Tooling
 
@@ -300,9 +368,18 @@ paths (proxy will grow middleware; admin will grow CRUD).
   typechecker for this repo. Don't add `tsc` back. Note: tsgo rejects
   `baseUrl` in tsconfig — use `paths` with root-relative entries.
 - **Package manager**: pnpm only. Don't commit `npm`/`yarn` lockfiles.
+- **Tests**: [Vitest](https://vitest.dev) with two projects in `vitest.config.ts`.
+  Unit tests are co-located `*.test.ts` (mock boundaries). Integration tests are
+  `*.integration.test.ts` against `:memory:` SQLite + a mocked undici fetch; shared
+  helpers live in `src/test/`. Scripts: `pnpm test` (both), `pnpm test:unit`,
+  `pnpm test:integration`. Drain proxy response bodies via `settleProxyResponse`
+  before asserting request-log rows (logs write on stream completion). Both
+  inference backends (`llama-swap`, `llama-cpp-router`) are covered by adapter unit
+  tests plus `src/test/inference-backends.integration.test.ts` driven by the shared
+  dummy HTTP fixtures in `src/test/fixtures/dummy-inference-backend.ts`.
 - **ORM**: Drizzle (`drizzle-orm` + `drizzle-kit`) over better-sqlite3.
   Migrations live in `drizzle/`. Generate with `pnpm db:generate`, apply
-  with `pnpm db:migrate`.
+  on server boot (and via `pnpm db:migrate`).
 - **Runtime validation**: [Valibot](https://valibot.dev) for runtime type
   validation at trust boundaries. Schemas live in `src/lib/schemas/` (shared
   API types) and `src/server/llama-swap/schemas.ts` (upstream response
@@ -445,7 +522,8 @@ sort lexicographically by creation time).
 ## Dev environment
 
 - Copy `.env.example` to `.env` and set `INFERENCE_BASE_URL` to point at your
-  llama-swap instance. Default is `http://localhost:8080`.
+  inference backend (llama-swap or llama.cpp router). Default is `http://localhost:8080`.
+- Set `INFERENCE_BACKEND` to `llama-swap` (default) or `llama-cpp-router`.
 - If your upstream uses HTTPS with a self-signed cert, set
   `INFERENCE_INSECURE=true` so Node accepts it (it sets
   `NODE_TLS_REJECT_UNAUTHORIZED=0` at boot). Off by default.
@@ -456,6 +534,11 @@ sort lexicographically by creation time).
   (default 0); `0` disables.
 - Env vars consumed by the server live in `src/server/config.ts`. Add new
   ones there, not ad-hoc across the codebase.
+- Local backend concurrency queue: `LOCAL_BACKEND_MAX_CONCURRENT` (default 4),
+  `LOCAL_BACKEND_MAX_QUEUE` (default 20), `LOCAL_BACKEND_QUEUE_TIMEOUT_MS`
+  (default 60000, -1 to disable), `LOCAL_BACKEND_MODEL_GROUPING` (default true),
+  `MODEL_QUEUE_BATCH_WINDOW_MS` (default 2000), `MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`
+  (default 30000). Direct upstreams and `/v1/models` catalog lookups bypass the queue entirely.
 
 ## Runtime validation conventions
 
@@ -513,6 +596,49 @@ sort lexicographically by creation time).
   stat-poll watcher to detect config changes and reload automatically. SIGHUP
   reload is also supported upstream, but llama-dash still relies on atomic file
   writes rather than a reload endpoint.
+- **Scheduler gates only local backends.** The concurrency queue in
+  `model-scheduler.ts` applies only to local inference backends. Direct upstream
+  routing (`targetType: 'direct'`) and local catalog lookups (`/v1/models`,
+  `/v1/models/{id}` via `endpointBypassesLocalQueue`) bypass the queue entirely
+  and flow immediately through `forwardUpstreamAndLog()`. For every queued local request,
+  independent of backend and of `LOCAL_BACKEND_MAX_CONCURRENT`, a concurrency
+  slot is held until the server finishes the whole response body or the client
+  disconnects — never when upstream headers alone arrive (otherwise a second
+  model request can preempt an in-flight stream). Phase timings on the request
+  log follow `queue + model loading + prefill + reasoning + response + other =
+  duration_ms` (labels always shown; 0/null → "—"). Prefill is GPU
+  `timings.prompt_ms`; model loading is wall RELAY→REASON|RESPOND minus prefill;
+  reasoning is wall REASON→RESPOND when both exist; response is
+  `timings.predicted_ms` minus reasoning when thinking ran.
+  Queue wait is persisted as `queue_ms` on the request log, computed as
+  RELAY − START (`relayedAtMs − earlyCommitAtMs`, or 0 when immediate). Early-commit
+  responses advertise queue state with `x-llama-dash-queued: true|false`. Phase
+  comments carry `at_ms` so RELAY/REASON/RESPOND share one server clock with
+  logged model-loading / reasoning.
+- **SSE queue comments.** Only `stream: true` on completion endpoints
+  (`/v1/chat/completions`, `/v1/completions`, `/v1/messages`) early-commits with
+  `: queued position=N eta=Xs model=...` keep-alive comments every 5s while
+  waiting (immediate first ping at enqueue), then `: relayed` at backend
+  dispatch. Clients log QUEUE once from the first comment; later pings are
+  keep-alives only. Streaming bodies also get `: reason` / `: respond` ahead of
+  the first reasoning/content token chunks. For the same endpoints with
+  `stream: false`, upstream is still forced to `stream: true` so phase timings
+  can be scanned; the proxy assembles OpenAI/Anthropic JSON for the client and
+  advertises queue/phase state via headers plus a sibling `timings_llama_dash`
+  object on the JSON body (playground prefers body over headers). SSE `at_ms`
+  values are milliseconds after RELAY (`: relayed at_ms=0`), never wall-clock epoch.
+  Other local routes long-poll without forcing stream. Direct upstreams bypass the
+  queue and return the upstream body as-is. After the slot is acquired, SSE
+  emits `: relayed` **when llama-dash dispatches to the inference backend**
+  (before waiting on upstream headers), so RELAY marks queue-done + backend
+  send — not first token / upstream headers. Immediate streamed completion
+  requests also early-commit and emit `: relayed` before the upstream fetch for
+  the same reason.
+- **Queue timeout after SSE commit.** Long-poll (non-stream) queue timeouts
+  return HTTP 408 with `queue_timeout`. Streamed progress-tape requests that
+  were already committed at 200 while queued emit a single SSE `data:` error
+  event (`type: queue_timeout`) and close the stream — the status line cannot
+  be changed after early commit.
 
 ## llama-swap API surface we consume
 

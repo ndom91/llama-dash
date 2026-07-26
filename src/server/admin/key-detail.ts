@@ -3,6 +3,10 @@ import type { ApiKeyModelBreakdown, ApiKeyStats } from '../../lib/schemas/api-ke
 import type { ApiRequest } from '../../lib/schemas/request.ts'
 import { db, schema } from '../db/index.ts'
 
+function rowTokenSum(r: { promptTokens: number | null; completionTokens: number | null }): number {
+  return (r.promptTokens ?? 0) + (r.completionTokens ?? 0)
+}
+
 export function getKeyStats(keyId: string): ApiKeyStats {
   const now = Date.now()
   const thirtyMinAgo = new Date(now - 30 * 60_000)
@@ -12,7 +16,7 @@ export function getKeyStats(keyId: string): ApiKeyStats {
       startedAt: schema.requests.startedAt,
       durationMs: schema.requests.durationMs,
       statusCode: schema.requests.statusCode,
-      totalTokens: schema.requests.totalTokens,
+      promptTokens: schema.requests.promptTokens,
       completionTokens: schema.requests.completionTokens,
     })
     .from(schema.requests)
@@ -32,7 +36,7 @@ export function getKeyStats(keyId: string): ApiKeyStats {
     .map((r) => (r.completionTokens! / r.durationMs) * 1000)
   const avgTokPerSec = tokRates.length > 0 ? Math.round(tokRates.reduce((s, t) => s + t, 0) / tokRates.length) : 0
 
-  const totalPromptTokens = recent.reduce((s, r) => s + (r.totalTokens ?? 0) - (r.completionTokens ?? 0), 0)
+  const totalPromptTokens = recent.reduce((s, r) => s + (r.promptTokens ?? 0), 0)
   const totalCompletionTokens = recent.reduce((s, r) => s + (r.completionTokens ?? 0), 0)
 
   const startBucket = Math.floor(thirtyMinAgo.getTime() / 60_000)
@@ -45,7 +49,7 @@ export function getKeyStats(keyId: string): ApiKeyStats {
     const idx = Math.floor(r.startedAt.getTime() / 60_000) - startBucket
     if (idx >= 0 && idx < count) {
       reqs[idx]++
-      toks[idx] += r.totalTokens ?? 0
+      toks[idx] += rowTokenSum(r)
     }
   }
 
@@ -87,12 +91,16 @@ export function getKeyRequests(
       statusCode: r.statusCode,
       promptTokens: r.promptTokens,
       completionTokens: r.completionTokens,
-      totalTokens: r.totalTokens,
       cacheCreationTokens: r.cacheCreationTokens,
       cacheReadTokens: r.cacheReadTokens,
       costUsd: r.costUsd,
       streamed: r.streamed,
       error: r.error,
+      queueMs: r.queueMs,
+      modelLoadingMs: r.modelLoadingMs,
+      prefillMs: r.prefillMs,
+      reasoningMs: r.reasoningMs,
+      responseMs: r.responseMs,
       keyName: null,
       clientHost: r.clientHost,
       clientName: r.clientName,
@@ -122,7 +130,8 @@ export function getKeyModelBreakdown(keyId: string): Array<ApiKeyModelBreakdown>
     .select({
       model: schema.requests.model,
       statusCode: schema.requests.statusCode,
-      totalTokens: schema.requests.totalTokens,
+      promptTokens: schema.requests.promptTokens,
+      completionTokens: schema.requests.completionTokens,
     })
     .from(schema.requests)
     .where(and(eq(schema.requests.keyId, keyId), gte(schema.requests.startedAt, thirtyMinAgo)))
@@ -134,7 +143,7 @@ export function getKeyModelBreakdown(keyId: string): Array<ApiKeyModelBreakdown>
     const model = raw?.includes('/') ? raw.split('/').pop()! : raw
     const entry = byModel.get(model) ?? { requestCount: 0, totalTokens: 0, errorCount: 0 }
     entry.requestCount++
-    entry.totalTokens += r.totalTokens ?? 0
+    entry.totalTokens += rowTokenSum(r)
     if (r.statusCode >= 400) entry.errorCount++
     byModel.set(model, entry)
   }

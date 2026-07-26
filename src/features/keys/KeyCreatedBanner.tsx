@@ -1,8 +1,9 @@
 import { Check, Copy, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
-import { cn } from '../../lib/cn'
 import type { ApiKeyCreated } from '../../lib/api'
+import { copyToClipboard } from '../../lib/clipboard'
+import { cn } from '../../lib/cn'
 
 type Props = {
   created: ApiKeyCreated
@@ -13,9 +14,11 @@ export function KeyCreatedBanner({ created, onDismiss }: Props) {
   const [copied, setCopied] = useState(false)
 
   const copy = useCallback(() => {
-    navigator.clipboard.writeText(created.rawKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    void copyToClipboard(created.rawKey).then((ok) => {
+      if (!ok) return
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }, [created.rawKey])
 
   return (

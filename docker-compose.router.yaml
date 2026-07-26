@@ -1,0 +1,31 @@
+# llama-dash fronting a llama.cpp router (standalone host process)
+#
+# Prerequisites:
+#   Run llama-server on the host in router mode, e.g.:
+#     llama-server --models-dir ./models --port 8080 --host 0.0.0.0
+#
+# Then start this compose:
+#   docker compose -f docker-compose.router.yaml up -d
+
+services:
+  llama-dash:
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+    environment:
+      INFERENCE_BACKEND: llama-cpp-router
+      INFERENCE_BASE_URL: http://host.docker.internal:8080
+      DATABASE_PATH: /data/dash.db
+    volumes:
+      - llama-dash-data:/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+volumes:
+  llama-dash-data:
+

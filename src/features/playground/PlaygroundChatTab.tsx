@@ -117,20 +117,17 @@ export function PlaygroundChatTab({ chat }: Props) {
           <div className="flex items-center gap-1.5">
             {lastAssistant?.metrics ? (
               <>
-                {lastAssistant.metrics.ttftMs != null ? (
-                  <span>ttft {Math.round(lastAssistant.metrics.ttftMs)}ms</span>
-                ) : null}
                 {lastAssistant.metrics.tokPerSec != null ? (
-                  <>
-                    <span>·</span>
-                    <span>{lastAssistant.metrics.tokPerSec.toFixed(1)} tok/s</span>
-                  </>
+                  <span>{lastAssistant.metrics.tokPerSec.toFixed(1)} tok/s</span>
                 ) : null}
                 {lastAssistant.metrics.tokOut != null ? (
                   <>
-                    <span>·</span>
+                    {lastAssistant.metrics.tokPerSec != null ? <span>·</span> : null}
                     <span>{lastAssistant.metrics.tokOut} tok</span>
                   </>
+                ) : null}
+                {lastAssistant.metrics.tokPerSec == null && lastAssistant.metrics.tokOut == null ? (
+                  <span className="dim">done</span>
                 ) : null}
               </>
             ) : (
@@ -222,7 +219,7 @@ export function PlaygroundChatTab({ chat }: Props) {
         </div>
       </section>
 
-      <PlaygroundInspector model={chat.model} inspector={chat.inspector} apiKey={apiKeyRef.current} />
+      <PlaygroundInspector inspector={chat.inspector} apiKey={apiKeyRef.current} />
     </div>
   )
 }

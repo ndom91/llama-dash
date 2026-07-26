@@ -22,10 +22,10 @@ vi.mock('./gpu-poller.ts', () => ({
   }),
 }))
 
-vi.mock('./llama-swap/client.ts', () => ({
-  llamaSwap: {
-    health: vi.fn(async () => 'OK'),
-    listRunning: vi.fn(async () => ({ running: [{ model: 'local-a' }, { model: 'local-b' }] })),
+vi.mock('./inference/backend.ts', () => ({
+  inferenceBackend: {
+    ping: vi.fn(async () => ({ reachable: true, latencyMs: 67, version: null })),
+    listRunning: vi.fn(async () => [{ model: 'local-a' }, { model: 'local-b' }]),
   },
 }))
 
@@ -68,7 +68,6 @@ vi.mock('./db/index.ts', () => {
               completionTokens: 5,
               cacheCreationTokens: 2,
               cacheReadTokens: 1,
-              totalTokens: 18,
             },
           ])
         }
@@ -86,7 +85,6 @@ vi.mock('./db/index.ts', () => {
         completionTokens: 'completionTokens',
         cacheCreationTokens: 'cacheCreationTokens',
         cacheReadTokens: 'cacheReadTokens',
-        totalTokens: 'totalTokens',
         durationMs: 'durationMs',
         startedAt: 'startedAt',
         credentialInjectionJson: 'credentialInjectionJson',
@@ -104,7 +102,9 @@ describe('renderPrometheusMetrics', () => {
     expect(body).toContain(
       'llama_dash_requests_total{endpoint="/v1/messages",model="claude-test",status_class="2xx",streamed="true"} 2',
     )
-    expect(body).toContain('llama_dash_tokens_total{model="claude-test",type="total"} 18')
+    expect(body).toContain('llama_dash_tokens_total{model="claude-test",type="prompt"} 10')
+    expect(body).toContain('llama_dash_tokens_total{model="claude-test",type="completion"} 5')
+    expect(body).not.toContain('type="total"')
     expect(body).toContain('llama_dash_log_queue_depth 3')
     expect(body).toContain('llama_dash_log_queue_dropped_total 1')
     expect(body).toContain('llama_dash_credential_injections_total{result="success"} 2')

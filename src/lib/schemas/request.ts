@@ -11,12 +11,16 @@ export const ApiRequestSchema = v.object({
   statusCode: v.number(),
   promptTokens: v.nullable(v.number()),
   completionTokens: v.nullable(v.number()),
-  totalTokens: v.nullable(v.number()),
   cacheCreationTokens: v.nullable(v.number()),
   cacheReadTokens: v.nullable(v.number()),
   costUsd: v.nullable(v.number()),
   streamed: v.boolean(),
   error: v.nullable(v.string()),
+  queueMs: v.nullable(v.number()),
+  modelLoadingMs: v.nullable(v.number()),
+  prefillMs: v.nullable(v.number()),
+  reasoningMs: v.nullable(v.number()),
+  responseMs: v.nullable(v.number()),
   keyName: v.nullable(v.string()),
   clientHost: v.nullable(v.string()),
   clientName: v.nullable(v.string()),
@@ -35,28 +39,63 @@ export const ApiRequestSchema = v.object({
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>
 
+/** Live (not yet logged) proxy exchange — in-memory only. */
+export const InflightRequestPhaseSchema = v.picklist(['accepted', 'queued', 'active'])
+export type InflightRequestPhase = v.InferOutput<typeof InflightRequestPhaseSchema>
+
+export const InflightRequestSchema = v.object({
+  id: v.string(),
+  startedAt: v.string(),
+  requestClass: v.picklist(['inference', 'mcp_relay']),
+  method: v.string(),
+  endpoint: v.string(),
+  model: v.nullable(v.string()),
+  streamed: v.nullable(v.boolean()),
+  phase: InflightRequestPhaseSchema,
+  keyName: v.nullable(v.string()),
+  clientHost: v.nullable(v.string()),
+  clientName: v.nullable(v.string()),
+  endUserId: v.nullable(v.string()),
+  sessionId: v.nullable(v.string()),
+  routingRuleName: v.nullable(v.string()),
+  routingTargetType: v.nullable(v.string()),
+})
+
+export type InflightRequest = v.InferOutput<typeof InflightRequestSchema>
+
+export const InflightListResponseSchema = v.object({
+  requests: v.array(InflightRequestSchema),
+})
+
+export const RequestStartedEventSchema = v.object({
+  request: InflightRequestSchema,
+})
+
+export const RequestUpdatedEventSchema = v.object({
+  request: InflightRequestSchema,
+})
+
+export const RequestCompletedEventSchema = v.object({
+  request: ApiRequestSchema,
+})
+
 export const ApiRequestDetailSchema = v.object({
   ...ApiRequestSchema.entries,
   requestHeaders: v.nullable(v.string()),
   requestBody: v.nullable(v.string()),
   responseHeaders: v.nullable(v.string()),
   responseBody: v.nullable(v.string()),
+  assembledReasoning: v.nullable(v.string()),
+  assembledResponse: v.nullable(v.string()),
+  assembledToolCalls: v.nullable(v.string()),
+  assembledCitations: v.nullable(v.string()),
   streamCloseMs: v.nullable(v.number()),
-  clientName: v.nullable(v.string()),
-  endUserId: v.nullable(v.string()),
-  sessionId: v.nullable(v.string()),
+  decodeMs: v.nullable(v.number()),
+  gpuPrefillMs: v.nullable(v.number()),
+  gpuDecodeMs: v.nullable(v.number()),
   routingRuleId: v.nullable(v.string()),
-  routingRuleName: v.nullable(v.string()),
-  routingActionType: v.nullable(v.string()),
-  routingAuthMode: v.nullable(v.string()),
-  routingPreserveAuthorization: v.boolean(),
-  routingTargetType: v.nullable(v.string()),
-  routingTargetBaseUrl: v.nullable(v.string()),
-  routingTargetCredentialId: v.nullable(v.string()),
   routingRequestedModel: v.nullable(v.string()),
-  routingRoutedModel: v.nullable(v.string()),
   routingRejectReason: v.nullable(v.string()),
-  credentialInjectionJson: v.nullable(v.string()),
 })
 
 export type ApiRequestDetail = v.InferOutput<typeof ApiRequestDetailSchema>

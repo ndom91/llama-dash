@@ -27,7 +27,7 @@ export function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>
   const target =
     rule.target.type === 'direct'
       ? `direct upstream ${rule.target.baseUrl}${rule.target.credentialId ? ' · inject credential' : ''}`
-      : 'llama-swap'
+      : 'default upstream'
 
   return {
     when: whenBits.length > 0 ? whenBits : ['matches any request'],

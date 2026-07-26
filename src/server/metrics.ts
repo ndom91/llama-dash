@@ -18,7 +18,6 @@ type TokenMetricRow = {
   completionTokens: number | null
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
-  totalTokens: number | null
 }
 
 type CredentialInjectionMetricRow = { success: number | null; failure: number | null }
@@ -96,7 +95,6 @@ export async function renderPrometheusMetrics(): Promise<string> {
       completionTokens: sql<number>`coalesce(sum(${schema.requests.completionTokens}), 0)`,
       cacheCreationTokens: sql<number>`coalesce(sum(${schema.requests.cacheCreationTokens}), 0)`,
       cacheReadTokens: sql<number>`coalesce(sum(${schema.requests.cacheReadTokens}), 0)`,
-      totalTokens: sql<number>`coalesce(sum(${schema.requests.totalTokens}), 0)`,
     })
     .from(schema.requests)
     .groupBy(schema.requests.model)
@@ -153,7 +151,6 @@ export async function renderPrometheusMetrics(): Promise<string> {
     lines.push(metricLine('llama_dash_tokens_total', row.completionTokens ?? 0, { model, type: 'completion' }))
     lines.push(metricLine('llama_dash_tokens_total', row.cacheCreationTokens ?? 0, { model, type: 'cache_creation' }))
     lines.push(metricLine('llama_dash_tokens_total', row.cacheReadTokens ?? 0, { model, type: 'cache_read' }))
-    lines.push(metricLine('llama_dash_tokens_total', row.totalTokens ?? 0, { model, type: 'total' }))
   }
 
   const credentialInjections = credentialInjectionCounts(credentialInjectionRow)

@@ -6,6 +6,7 @@ import { ThemeToggle } from '../../components/ThemeToggle'
 import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import {
+  useClearAllLogs,
   useCompactDatabase,
   usePrivacySettings,
   usePruneRequestLogs,
@@ -112,12 +113,7 @@ export function SettingsPage() {
   return (
     <div className="content overflow-hidden">
       <div className="page h-full min-h-0 px-0">
-        <PageHeader
-          kicker="cfg · settings"
-          title="Settings"
-          subtitle="application preferences and global proxy defaults"
-          variant="integrated"
-        />
+        <PageHeader title="Settings" variant="integrated" />
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
           <SettingsPanel title="Appearance" subtitle="theme and display mode">
@@ -291,7 +287,8 @@ export function SettingsPage() {
                     Max stored body bytes
                   </label>
                   <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
-                    Truncates persisted request and response bodies. Set to 0 to store no body text.
+                    Truncates persisted request and response bodies (raw SSE). Assembled reasoning/response text is
+                    stored in full separately. Set to 0 to store no raw body text.
                   </span>
                   <NumberInput
                     id="max-stored-body-bytes"
@@ -373,8 +370,97 @@ export function SettingsPage() {
               </div>
             </div>
           </SettingsPanel>
+
+          <SettingsPanel title="Danger Zone" subtitle="irreversible actions">
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div>
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                  <Trash2 className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                  Danger zone
+                </div>
+                <div className="font-mono text-lg font-semibold text-fg">Clear all logs</div>
+                <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                  This will permanently delete all request logs. This action cannot be undone.
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div className="rounded border border-err bg-err/5 p-3">
+                  <div className="font-mono text-xs font-semibold text-err">Warning</div>
+                  <div className="mt-1 font-mono text-[11px] leading-relaxed text-err-faint">
+                    This action will destroy all request logs. Click the button twice within 5 seconds to confirm.
+                  </div>
+                </div>
+
+                <ClearAllLogsButton />
+              </div>
+            </div>
+          </SettingsPanel>
         </div>
       </div>
+    </div>
+  )
+}
+
+function ClearAllLogsButton() {
+  const clearAllLogs = useClearAllLogs()
+  const [firstClick, setFirstClick] = useState(false)
+  const [cooldown, setCooldown] = useState(false)
+  const [countdown, setCountdown] = useState(5)
+
+  const handleClick = () => {
+    if (!firstClick) {
+      setFirstClick(true)
+      setCooldown(true)
+      setCountdown(5)
+
+      // Start countdown timer
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            setFirstClick(false)
+            setCooldown(false)
+            return 5
+          }
+          return prev - 1
+        })
+      }, 1000)
+      return
+    }
+
+    // Second click - confirm and execute
+    setFirstClick(false)
+    setCooldown(false)
+    clearAllLogs.mutate(undefined, {
+      onSuccess: () => {
+        // Reset success state after 3 seconds
+        setTimeout(() => {
+          clearAllLogs.reset()
+        }, 3000)
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <button
+        type="button"
+        className={cn('btn btn-err', firstClick && cooldown && '!bg-err-strong', clearAllLogs.isSuccess && '!bg-ok')}
+        disabled={clearAllLogs.isPending || clearAllLogs.isSuccess}
+        onClick={handleClick}
+      >
+        {clearAllLogs.isSuccess
+          ? 'Cleared Successfully'
+          : clearAllLogs.isPending
+            ? 'Clearing...'
+            : firstClick && cooldown
+              ? `Click again to confirm (${countdown}s)`
+              : 'Clear All Logs'}
+      </button>
+      {firstClick && cooldown && (
+        <div className="font-mono text-[10px] text-err-faint">You have {countdown} seconds to confirm this action.</div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,3 @@
-import { ulid } from 'ulidx'
 import { getApiKeyName } from '../admin/api-keys.ts'
 import { publishAdminEvent } from '../admin/events.ts'
 import { getPrivacySettings } from '../admin/settings.ts'
@@ -6,6 +5,7 @@ import { toRequestRow } from '../admin/requests.ts'
 import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
+import { finishInflight, mintRequestId } from './inflight-requests.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
 
 const MAX_LOG_QUEUE_SIZE = 1_000
@@ -31,6 +31,8 @@ function truncateBody(body: string | null, maxBytes: number): string | null {
 }
 
 export type RequestLogInput = {
+  /** Prefixed ULID; minted at accept when available so inflight→completed shares an id. */
+  id?: string
   startedAt: number
   durationMs: number
   requestClass: 'inference' | 'mcp_relay'
@@ -40,7 +42,6 @@ export type RequestLogInput = {
   statusCode: number
   promptTokens: number | null
   completionTokens: number | null
-  totalTokens: number | null
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
   streamed: boolean
@@ -49,7 +50,23 @@ export type RequestLogInput = {
   requestBody: string | null
   responseHeaders: string | null
   responseBody: string | null
+  /** Full assembled reasoning; stored untruncated when bodies are persisted. */
+  assembledReasoning?: string | null
+  /** Full assembled response; stored untruncated when bodies are persisted. */
+  assembledResponse?: string | null
+  /** Assembled tool calls as JSON; stored untruncated when bodies are persisted. */
+  assembledToolCalls?: string | null
+  /** Assembled citations as JSON; stored untruncated when bodies are persisted. */
+  assembledCitations?: string | null
   streamCloseMs: number | null
+  queueMs: number | null
+  modelLoadingMs: number | null
+  prefillMs: number | null
+  reasoningMs: number | null
+  responseMs: number | null
+  decodeMs: number | null
+  gpuPrefillMs: number | null
+  gpuDecodeMs: number | null
   keyId: string | null
   clientHost: string | null
   clientName: string | null
@@ -109,7 +126,8 @@ function scheduleFlush() {
 }
 
 export function writeRequestLogNow(row: RequestLogInput) {
-  const id = `req_${ulid()}`
+  const id = row.id && row.id.startsWith('req_') ? row.id : mintRequestId()
+  finishInflight(id)
   const { maxBytes } = getBodyLogLimits()
   const privacy = getPrivacySettings()
   const isSuccessfulMcpRelay = row.requestClass === 'mcp_relay' && row.statusCode < 400 && row.error == null
@@ -121,6 +139,11 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const responseBody = persistBodies ? truncateBody(row.responseBody, maxBytes) : null
   const requestHeaders = persistBodies ? row.requestHeaders : null
   const responseHeaders = persistBodies ? row.responseHeaders : null
+  // Assembled content is small vs raw SSE and must survive maxBytes truncation.
+  const assembledReasoning = persistBodies ? (row.assembledReasoning ?? null) : null
+  const assembledResponse = persistBodies ? (row.assembledResponse ?? null) : null
+  const assembledToolCalls = persistBodies ? (row.assembledToolCalls ?? null) : null
+  const assembledCitations = persistBodies ? (row.assembledCitations ?? null) : null
   const costUsd = computeCostUsd(row.model, row)
   db.insert(schema.requests)
     .values({
@@ -134,7 +157,6 @@ export function writeRequestLogNow(row: RequestLogInput) {
       statusCode: row.statusCode,
       promptTokens: row.promptTokens,
       completionTokens: row.completionTokens,
-      totalTokens: row.totalTokens,
       cacheCreationTokens: row.cacheCreationTokens,
       cacheReadTokens: row.cacheReadTokens,
       costUsd,
@@ -144,7 +166,19 @@ export function writeRequestLogNow(row: RequestLogInput) {
       requestBody,
       responseHeaders,
       responseBody,
+      assembledReasoning,
+      assembledResponse,
+      assembledToolCalls,
+      assembledCitations,
       streamCloseMs: row.streamCloseMs,
+      queueMs: row.queueMs,
+      modelLoadingMs: row.modelLoadingMs,
+      prefillMs: row.prefillMs,
+      reasoningMs: row.reasoningMs,
+      responseMs: row.responseMs,
+      decodeMs: row.decodeMs,
+      gpuPrefillMs: row.gpuPrefillMs,
+      gpuDecodeMs: row.gpuDecodeMs,
       keyId: row.keyId,
       clientHost: row.clientHost,
       clientName: row.clientName,
@@ -177,12 +211,16 @@ export function writeRequestLogNow(row: RequestLogInput) {
         statusCode: row.statusCode,
         promptTokens: row.promptTokens,
         completionTokens: row.completionTokens,
-        totalTokens: row.totalTokens,
         cacheCreationTokens: row.cacheCreationTokens,
         cacheReadTokens: row.cacheReadTokens,
         costUsd,
         streamed: row.streamed,
         error: row.error,
+        queueMs: row.queueMs,
+        modelLoadingMs: row.modelLoadingMs,
+        prefillMs: row.prefillMs,
+        reasoningMs: row.reasoningMs,
+        responseMs: row.responseMs,
         clientHost: row.clientHost,
         clientName: row.clientName,
         endUserId: row.endUserId,

@@ -21,12 +21,16 @@ type RequestSummarySource = Pick<
   | 'statusCode'
   | 'promptTokens'
   | 'completionTokens'
-  | 'totalTokens'
   | 'cacheCreationTokens'
   | 'cacheReadTokens'
   | 'costUsd'
   | 'streamed'
   | 'error'
+  | 'queueMs'
+  | 'modelLoadingMs'
+  | 'prefillMs'
+  | 'reasoningMs'
+  | 'responseMs'
   | 'clientHost'
   | 'clientName'
   | 'endUserId'
@@ -58,12 +62,16 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     statusCode: row.statusCode,
     promptTokens: row.promptTokens,
     completionTokens: row.completionTokens,
-    totalTokens: row.totalTokens,
     cacheCreationTokens: row.cacheCreationTokens,
     cacheReadTokens: row.cacheReadTokens,
     costUsd: row.costUsd,
     streamed: row.streamed,
     error: row.error,
+    queueMs: row.queueMs,
+    modelLoadingMs: row.modelLoadingMs,
+    prefillMs: row.prefillMs,
+    reasoningMs: row.reasoningMs,
+    responseMs: row.responseMs,
     keyName,
     clientHost: row.clientHost,
     clientName: row.clientName,
@@ -98,12 +106,16 @@ export function listRecentRequests(opts: { limit: number; cursor?: string; inclu
       statusCode: schema.requests.statusCode,
       promptTokens: schema.requests.promptTokens,
       completionTokens: schema.requests.completionTokens,
-      totalTokens: schema.requests.totalTokens,
       cacheCreationTokens: schema.requests.cacheCreationTokens,
       cacheReadTokens: schema.requests.cacheReadTokens,
       costUsd: schema.requests.costUsd,
       streamed: schema.requests.streamed,
       error: schema.requests.error,
+      queueMs: schema.requests.queueMs,
+      modelLoadingMs: schema.requests.modelLoadingMs,
+      prefillMs: schema.requests.prefillMs,
+      reasoningMs: schema.requests.reasoningMs,
+      responseMs: schema.requests.responseMs,
       keyId: schema.requests.keyId,
       clientHost: schema.requests.clientHost,
       clientName: schema.requests.clientName,
@@ -167,7 +179,6 @@ export function getRequestById(id: string): RequestDetail | null {
     statusCode: r.statusCode,
     promptTokens: r.promptTokens,
     completionTokens: r.completionTokens,
-    totalTokens: r.totalTokens,
     cacheCreationTokens: r.cacheCreationTokens,
     cacheReadTokens: r.cacheReadTokens,
     costUsd: r.costUsd,
@@ -178,7 +189,19 @@ export function getRequestById(id: string): RequestDetail | null {
     requestBody: recent?.requestBody ?? r.requestBody,
     responseHeaders: r.responseHeaders,
     responseBody: recent?.responseBody ?? r.responseBody,
+    assembledReasoning: r.assembledReasoning,
+    assembledResponse: r.assembledResponse,
+    assembledToolCalls: r.assembledToolCalls,
+    assembledCitations: r.assembledCitations,
     streamCloseMs: r.streamCloseMs,
+    queueMs: r.queueMs,
+    modelLoadingMs: r.modelLoadingMs,
+    prefillMs: r.prefillMs,
+    reasoningMs: r.reasoningMs,
+    responseMs: r.responseMs,
+    decodeMs: r.decodeMs,
+    gpuPrefillMs: r.gpuPrefillMs,
+    gpuDecodeMs: r.gpuDecodeMs,
     clientHost: r.clientHost,
     clientName: r.clientName,
     endUserId: r.endUserId,
@@ -217,7 +240,7 @@ export function getRequestStats(): RequestStats {
         count(*) as total,
         sum(case when status_code >= 400 then 1 else 0 end) as errors,
         sum(case when started_at >= ? then 1 else 0 end) as last_minute_total,
-        sum(case when started_at >= ? then coalesce(total_tokens, 0) else 0 end) as last_minute_tokens
+        sum(case when started_at >= ? then coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0) else 0 end) as last_minute_tokens
       from requests
       where ${INFERENCE_REQUEST_SQL} and started_at >= ?`,
     )
@@ -248,7 +271,7 @@ export function getRequestStats(): RequestStats {
       `select
         cast(started_at / 60000 as integer) as bucket,
         count(*) as reqs,
-        sum(coalesce(total_tokens, 0)) as toks,
+        sum(coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0)) as toks,
         avg(duration_ms) as latency,
         sum(case when status_code >= 400 then 1 else 0 end) as errs
       from requests

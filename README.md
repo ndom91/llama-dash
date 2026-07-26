@@ -5,7 +5,7 @@
 
 <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
 
-llama-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. The implemented inference backend is currently [llama-swap](https://github.com/mostlygeek/llama-swap) over llama.cpp.
+llama-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. Two inference backends are supported: [llama-swap](https://github.com/mostlygeek/llama-swap) (bundled compose) and [llama.cpp Router Mode](https://github.com/ggml-org/llama.cpp) (`INFERENCE_BACKEND=llama-cpp-router`).
 
 It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, routing, and backend normalization, your selected inference backend owns local model processes and inference when traffic is routed to local models.
 
@@ -17,8 +17,9 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       dashboard · auth · logs · routing · metrics
              │                     │
              ▼                     ▼
-      llama-swap :8080         direct /v1 upstreams
-  llama.cpp models · peers      OpenAI · Anthropic
+      inference backend          direct /v1 upstreams
+  llama-swap or llama.cpp          OpenAI · Anthropic
+  router mode
 ```
 
 ## ✨ What it does
@@ -26,6 +27,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Watch the box** — live request, token, model, upstream, GPU, and update status in one dashboard.
 - **Manage models** — load/unload models, inspect per-model stats and capability metadata, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose one OpenAI/Anthropic-compatible `/v1/*` endpoint for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
+- **Queue local load** — bound concurrent local-backend requests, queue overflow/timeouts, and model-aware scheduling (same-model batching + fairness). Direct upstreams bypass the queue. Request/playground timing shows `queue + model loading + prefill + reasoning + response + other = total` (0/null → "—"): prefill/response from llama.cpp GPU timings, model loading from wall RELAY→REASON|RESPOND minus prefill, reasoning from REASON→RESPOND. Queue wait is also shown in the playground inspector (START → QUEUE → RELAY).
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, model allow-lists, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
@@ -122,22 +124,48 @@ docker compose -f docker-compose.nvidia.yaml up -d
 
 `docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
+### llama.cpp Router Mode
+
+Use `docker-compose.router.yaml` when running `llama-server` on the host in router mode:
+
+```bash
+# On the host, start llama-server in router mode:
+llama-server --models-dir ./models --port 8080 --host 0.0.0.0
+
+# Then start llama-dash:
+docker compose -f docker-compose.router.yaml up -d
+```
+
+This compose file connects `llama-dash` to your host's `llama-server` process via `host.docker.internal`. Set `INFERENCE_BACKEND=llama-cpp-router` in `.env`. Config editing is not available in this mode — model management is done through the router's REST API (`/models/load`, `/models/unload`) and the llama-dash Models UI.
+
 ## 🏗️ Manual setup
 
 ### Requirements
 
 - Node 24+
 - pnpm
-- A reachable [llama-swap](https://github.com/mostlygeek/llama-swap) instance
+- A reachable inference backend: [llama-swap](https://github.com/mostlygeek/llama-swap) or [llama.cpp](https://github.com/ggml-org/llama.cpp) in router mode
 
 ### Install
 
 ```bash
 cp .env.example .env   # edit INFERENCE_BASE_URL to point at your instance
 pnpm install
-pnpm db:migrate        # creates data/dash.db
+pnpm db:migrate        # optional preflight; also runs automatically on server boot
 pnpm dev               # http://localhost:5173
 ```
+
+## 🧪 Tests
+
+```bash
+pnpm test                 # unit + integration (CI)
+pnpm test:unit            # co-located *.test.ts with mocked boundaries
+pnpm test:integration     # :memory: SQLite + fake upstream proxy contracts
+```
+
+Shared fixtures and harness code live in `src/test/`. Both inference backends
+(`llama-swap` and `llama-cpp-router`) are exercised via dummy HTTP fixtures — see
+[`docs/2026_07_24_test_system.md`](./docs/2026_07_24_test_system.md).
 
 ## 🏔️ Environment
 

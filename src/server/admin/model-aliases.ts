@@ -16,6 +16,11 @@ function invalidateCache() {
   _cache = null
 }
 
+/** Clears the alias map cache. Intended for test harness resets. */
+export function invalidateModelAliasesCacheForTest() {
+  invalidateCache()
+}
+
 export function resolveAlias(model: string): string {
   const cache = getCache()
   return cache.get(model) ?? model

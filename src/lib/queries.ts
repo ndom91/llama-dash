@@ -25,6 +25,7 @@ import {
   type ApiRequestStats,
   type ApiSystemStatus,
   type AttributionSettings,
+  type InflightRequest,
   type ModelAliasItem,
   type McpRelay,
   type PrivacySettings,
@@ -59,6 +60,7 @@ export const qk = {
   models: ['models'] as const,
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
+  requestsInflight: ['requests', 'inflight'] as const,
   requestsRecent: (limit: number) => ['requests', 'recent', limit] as const,
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
@@ -166,6 +168,14 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
   return useQuery({
     queryKey: [...qk.requestsRecent(limit), includeMcp] as const,
     queryFn: () => api.listRequests({ limit, includeMcp }).then((r) => r.requests),
+    refetchInterval: FALLBACK_POLL_MS,
+  })
+}
+
+export function useInflightRequests(): UseQueryResult<Array<InflightRequest>> {
+  return useQuery({
+    queryKey: qk.requestsInflight,
+    queryFn: () => api.listInflightRequests().then((r) => r.requests),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -708,6 +718,20 @@ export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
     },
     onError: (e) => {
       toastMutationError('Failed to prune request logs', e)
+    },
+  })
+}
+
+export function useClearAllLogs(): UseMutationResult<unknown, Error, void> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.clearAllLogs(),
+    onSuccess: () => {
+      invalidateKeys(qc, [qk.requests, qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      toast.success('All logs cleared')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to clear logs', e)
     },
   })
 }

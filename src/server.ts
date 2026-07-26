@@ -9,6 +9,12 @@ if (config.inferenceInsecure) {
 
 const { auth, getDashboardSession } = await import('./server/auth.ts')
 
+// Apply pending migrations before any DB reads/writes. Idempotent via drizzle's
+// journal — safe on every boot, and required for first start against an empty
+// persistent volume (e.g. Docker /data/dash.db).
+const { runMigrations } = await import('./server/db/migrate.ts')
+runMigrations()
+
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
 
@@ -35,8 +41,16 @@ export default createServerEntry({
     }
 
     if (url.pathname.startsWith('/v1/') || url.pathname === '/v1') {
-      const { handleProxyRequest } = await import('./server/proxy/handler.ts')
-      return handleProxyRequest(request)
+      try {
+        const { handleProxyRequest } = await import('./server/proxy/handler.ts')
+        return await handleProxyRequest(request)
+      } catch (err) {
+        console.error('[proxy error]', err)
+        return new Response(JSON.stringify({ error: String(err) }), {
+          status: 500,
+          headers: { 'content-type': 'application/json' },
+        })
+      }
     }
 
     if (url.pathname.startsWith(MCP_RELAY_ENDPOINT_PREFIX)) {
@@ -44,7 +58,7 @@ export default createServerEntry({
       return handleMcpRelayRequest(request)
     }
 
-    if (url.pathname === '/api/login-meta') {
+    if (url.pathname === '/api/login-meta' || url.pathname === '/api/playground-config') {
       const { handleAdminRequest } = await import('./server/admin/handler.ts')
       return handleAdminRequest(request)
     }

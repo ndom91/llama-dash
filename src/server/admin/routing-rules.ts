@@ -21,6 +21,11 @@ function invalidateCache() {
   _cache = null
 }
 
+/** Clears the in-memory routing-rule cache. Intended for test harness resets. */
+export function invalidateRoutingRulesCacheForTest() {
+  invalidateCache()
+}
+
 function parseJson<T>(raw: string, schemaType: v.GenericSchema<T>): T {
   return v.parse(schemaType, JSON.parse(raw))
 }

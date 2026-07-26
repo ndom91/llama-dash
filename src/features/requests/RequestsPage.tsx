@@ -9,10 +9,12 @@ import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
 import { formatCompactNumber } from '../../lib/format'
+import { useAttributionSettings, useInflightRequests, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { inflightPhaseLabel, mergeInflightIntoList } from '../../lib/request-list-items'
 import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
-import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
@@ -45,8 +47,16 @@ export function RequestsPage() {
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
+  const { data: inflightRows } = useInflightRequests()
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!inflightRows?.length) return
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [inflightRows?.length])
 
   const search = routeSearch.q ?? ''
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
@@ -93,7 +103,10 @@ export function RequestsPage() {
     return () => window.clearTimeout(timeout)
   }, [search, searchDraft, updateSearch])
 
-  const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
+  const allRows = useMemo(
+    () => mergeInflightIntoList(data?.pages.flatMap((p) => p.requests) ?? [], inflightRows ?? [], nowMs),
+    [data, inflightRows, nowMs],
+  )
 
   const models = useMemo(() => {
     const set = new Set<string>()
@@ -167,8 +180,8 @@ export function RequestsPage() {
     return sorted
   }, [displayed, sortKey, sortDir])
 
-  const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
-  const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
+  const errCount = useMemo(() => displayed.filter((r) => !r.inflightPhase && r.statusCode >= 400).length, [displayed])
+  const liveCount = useMemo(() => displayed.filter((r) => r.inflightPhase).length, [displayed])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
@@ -247,6 +260,7 @@ export function RequestsPage() {
         setSelectedIdx((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter' && selectedIdx >= 0 && selectedIdx < rows.length) {
         e.preventDefault()
+        if (rows[selectedIdx].inflightPhase) return
         navigate({ to: '/requests/$id', params: { id: rows[selectedIdx].id } })
       }
     },
@@ -294,9 +308,7 @@ export function RequestsPage() {
     <div className="content">
       <div className="page flex min-h-full flex-1">
         <PageHeader
-          kicker="req · log"
-          title="Request log"
-          subtitle="proxied API calls, newest first"
+          title="Requests"
           variant="integrated"
           action={
             <span className="live-badge requests-live-badge">
@@ -551,7 +563,9 @@ export function RequestsPage() {
                 <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
-                    {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                    {displayed.length} rows
+                    {liveCount > 0 ? ` · ${liveCount} live` : ''}
+                    {errCount > 0 ? ` · ${errCount} errors` : ''}
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>
@@ -588,7 +602,7 @@ export function RequestsPage() {
                           </RequestsSortHeader>
                           {showTokIn ? (
                             <RequestsSortHeader
-                              field="totalTokens"
+                              field="promptTokens"
                               current={sortKey}
                               dir={sortDir}
                               onToggle={toggleSort}
@@ -618,11 +632,14 @@ export function RequestsPage() {
                           const r = rows[vRow.index]
                           const keyLabel = requestKeyLabel(r)
                           return (
-                            // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
                             <div
                               key={r.id}
-                              tabIndex={-1}
-                              className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                              className={cn(
+                                'vt-row',
+                                !r.inflightPhase && 'clickable-row',
+                                !r.inflightPhase && clickableRowFocusClass,
+                                vRow.index === selectedIdx && 'selected-row',
+                              )}
                               style={{
                                 position: 'absolute',
                                 top: 0,
@@ -631,10 +648,9 @@ export function RequestsPage() {
                                 height: REQUESTS_ROW_HEIGHT,
                                 transform: `translateY(${vRow.start}px)`,
                               }}
-                              onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
-                              }}
+                              {...(!r.inflightPhase
+                                ? clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))
+                                : { tabIndex: -1 })}
                             >
                               <table className="dtable dtable-virtual">
                                 <RequestsVirtualColgroup widths={colWidths} />
@@ -686,7 +702,16 @@ export function RequestsPage() {
                                       </div>
                                     </td>
                                     <td>
-                                      <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      {r.inflightPhase ? (
+                                        <span className="inline-flex items-baseline gap-1.5 leading-none">
+                                          <StatusDot tone="warn" live />
+                                          <span className="mono text-[11px] text-warn">
+                                            {inflightPhaseLabel(r.inflightPhase)}
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      )}
                                     </td>
                                     {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
                                     {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
@@ -701,7 +726,21 @@ export function RequestsPage() {
                                       </td>
                                     ) : null}
                                     <td>
-                                      <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                                      <DurationBar
+                                        ms={r.durationMs}
+                                        isErr={!r.inflightPhase && r.statusCode >= 400}
+                                        timing={
+                                          r.inflightPhase
+                                            ? undefined
+                                            : {
+                                                queueMs: r.queueMs,
+                                                modelLoadingMs: r.modelLoadingMs,
+                                                prefillMs: r.prefillMs,
+                                                reasoningMs: r.reasoningMs,
+                                                responseMs: r.responseMs,
+                                              }
+                                        }
+                                      />
                                     </td>
                                   </tr>
                                 </tbody>

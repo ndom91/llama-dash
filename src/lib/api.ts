@@ -15,6 +15,7 @@ import { ModelDetailResponseSchema, ModelsResponseSchema, ModelTimelineResponseS
 import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
+  InflightListResponseSchema,
   RequestDetailResponseSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
@@ -31,6 +32,7 @@ export type {
   ApiRequestDetail,
   ApiRequestStats,
   ApiHistogramBucket,
+  InflightRequest,
 } from './schemas/request'
 export type {
   ApiGpuInfo,
@@ -109,6 +111,7 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
   },
+  listInflightRequests: () => getJson('/api/requests/inflight', InflightListResponseSchema),
   getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
@@ -227,6 +230,7 @@ export const api = {
   }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
   pruneRequestLogs: () => sendJson('/api/system/request-logs/prune', v.any(), { method: 'POST', body: {} }),
   compactDatabase: () => sendJson('/api/system/database/compact', OkSchema, { method: 'POST', body: {} }),
+  clearAllLogs: () => sendJson('/api/settings/danger/clear-logs', OkSchema, { method: 'POST', body: {} }),
   extractArticle: (url: string) =>
     sendJson('/api/playground/article-extract', ArticleExtractResponseSchema, { method: 'POST', body: { url } }),
 }

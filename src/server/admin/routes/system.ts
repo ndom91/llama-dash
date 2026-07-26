@@ -8,6 +8,20 @@ import { compactDatabase, pruneRequestLogs } from '../../request-log-maintenance
 import { getUpdateCheck } from '../../update-check.ts'
 import { error, json, type Route } from './types.ts'
 
+export const playgroundConfigRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/playground-config$/,
+    handler: async () => {
+      return json(200, {
+        image: config.playgroundImageEnabled,
+        speech: config.playgroundSpeechEnabled,
+        transcribe: config.playgroundTranscribeEnabled,
+      })
+    },
+  },
+]
+
 const DIRECT_TARGETS = ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']
 
 export const systemRoutes: Route[] = [
@@ -16,9 +30,21 @@ export const systemRoutes: Route[] = [
     pattern: /^\/api\/health$/,
     handler: async () => {
       const health = await inferenceBackend.health()
-      return json(200, {
-        upstream: { ...health, backend: inferenceBackend.info.label, host: inferenceBackend.info.upstreamHost },
-      })
+      const upstream: Record<string, unknown> = {
+        backend: inferenceBackend.info.label,
+        host: inferenceBackend.info.upstreamHost,
+        reachable: health.reachable,
+      }
+      if (health.reachable && 'health' in health) {
+        upstream.health = health.health
+        upstream.latencyMs = health.latencyMs
+        if (health.version) upstream.version = health.version
+        if (health.commit) upstream.commit = health.commit
+      }
+      if (!health.reachable && 'error' in health) {
+        upstream.error = (health as { error?: string }).error
+      }
+      return json(200, { upstream })
     },
   },
   {
@@ -44,7 +70,7 @@ export const systemRoutes: Route[] = [
       const backend = inferenceBackend.info
       const gpu = getGpuSnapshot()
       const now = Date.now()
-      const gitCommit = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
+      const gitCommit = typeof __GIT_COMMIT__ === 'string' && __GIT_COMMIT__ ? __GIT_COMMIT__ : 'unknown'
       return json(200, {
         runtime: {
           uptimeSec: Math.round(process.uptime()),
@@ -87,7 +113,9 @@ export const systemRoutes: Route[] = [
       return json(200, {
         instanceLabel: publicUrl.host || 'local instance',
         uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
-        commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
+        commitLabel: formatLoginCommit(
+          typeof __GIT_COMMIT__ === 'string' && __GIT_COMMIT__ ? __GIT_COMMIT__ : 'unknown',
+        ),
         tlsLabel: publicUrl.protocol === 'https:' ? 'https · tls' : 'http · no tls',
         signupAllowed: !hasDashboardUsers(),
       })

@@ -19,7 +19,7 @@ export function RoutingRuleTargetSection({
       </div>
       <SegmentedControl
         options={[
-          { value: 'llama_swap', label: 'llama-swap' },
+          { value: 'llama_swap', label: 'default upstream' },
           { value: 'direct', label: 'direct upstream' },
         ]}
         value={draft.target.type}

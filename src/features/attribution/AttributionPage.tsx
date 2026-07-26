@@ -33,9 +33,7 @@ export function AttributionPage() {
     <div className="content">
       <div className="page min-h-full flex-1 bg-surface-1">
         <PageHeader
-          kicker="dsh · attribution"
           title="Attribution"
-          subtitle="capture client, user, and session metadata from request headers"
           variant="integrated"
           action={
             data ? (

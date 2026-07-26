@@ -4,25 +4,31 @@ import { useMemo } from 'react'
 import { CopyableCode } from '../../components/CopyableCode'
 import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
-import type { ApiRequest } from '../../lib/api'
+import { StatusDot } from '../../components/StatusDot'
+import { inflightPhaseLabel, type RequestListItem } from '../../lib/request-list-items'
 import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
 import { cn } from '../../lib/cn'
 
 type Props = {
-  requests: Array<ApiRequest> | null
+  requests: Array<RequestListItem> | null
 }
 
 export function DashboardRecentRequestsPanel({ requests }: Props) {
   const navigate = useNavigate()
-  const errCount = useMemo(() => requests?.filter((r) => r.statusCode >= 400).length ?? 0, [requests])
-  const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
+  const errCount = useMemo(
+    () => requests?.filter((r) => !r.inflightPhase && r.statusCode >= 400).length ?? 0,
+    [requests],
+  )
+  const liveCount = useMemo(() => requests?.filter((r) => r.inflightPhase).length ?? 0, [requests])
 
   return (
     <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
       <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
-          newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
+          newest first · {requests?.length ?? 0} shown
+          {liveCount > 0 ? ` · ${liveCount} live` : ''}
+          {errCount > 0 ? ` · ${errCount} errors` : ''}
         </span>
         <Link to="/requests" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">
           view all
@@ -113,8 +119,10 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
               {requests.map((r) => (
                 <tr
                   key={r.id}
-                  className={cn('clickable-row', clickableRowFocusClass)}
-                  {...clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))}
+                  className={cn(!r.inflightPhase && 'clickable-row', !r.inflightPhase && clickableRowFocusClass)}
+                  {...(!r.inflightPhase
+                    ? clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))
+                    : {})}
                 >
                   <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                   <td className="mono" translate="no">
@@ -128,12 +136,33 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
                     </span>
                   </td>
                   <td>
-                    <StatusCell code={r.statusCode} streamed={r.streamed} />
+                    {r.inflightPhase ? (
+                      <span className="inline-flex items-baseline gap-1.5 leading-none">
+                        <StatusDot tone="warn" live />
+                        <span className="mono text-[11px] text-warn">{inflightPhaseLabel(r.inflightPhase)}</span>
+                      </span>
+                    ) : (
+                      <StatusCell code={r.statusCode} streamed={r.streamed} />
+                    )}
                   </td>
                   <td className="num dim">{r.promptTokens ?? '—'}</td>
                   <td className="num">{r.completionTokens ?? '—'}</td>
                   <td>
-                    <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
+                    <DurationBar
+                      ms={r.durationMs}
+                      timing={
+                        r.inflightPhase
+                          ? undefined
+                          : {
+                              queueMs: r.queueMs,
+                              modelLoadingMs: r.modelLoadingMs,
+                              prefillMs: r.prefillMs,
+                              reasoningMs: r.reasoningMs,
+                              responseMs: r.responseMs,
+                            }
+                      }
+                      isErr={!r.inflightPhase && r.statusCode >= 400}
+                    />
                   </td>
                 </tr>
               ))}

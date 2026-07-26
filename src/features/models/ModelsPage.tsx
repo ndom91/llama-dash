@@ -24,9 +24,7 @@ export function ModelsPage() {
     <div className="content">
       <div className="page min-h-full flex-1 bg-surface-1">
         <PageHeader
-          kicker="dsh · models"
           title="Models"
-          subtitle="available models and their current state"
           variant="integrated"
           action={
             <div className="flex items-center gap-2">

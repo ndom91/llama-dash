@@ -149,14 +149,17 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
               </a>
             </Tooltip>
           ) : null}
-          <a
-            href="https://github.com/ndom91/llama-dash"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-[10px] text-fg-faint no-underline hover:text-fg-dim"
-          >
-            {__GIT_COMMIT__}
-          </a>
+          {__GIT_COMMIT__ ? (
+            <a
+              href="https://github.com/ndom91/llama-dash"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-[10px] text-fg-faint no-underline hover:text-fg-dim"
+              title={`commit ${__GIT_COMMIT__}`}
+            >
+              {__GIT_COMMIT__}
+            </a>
+          ) : null}
         </div>
       </div>
 
@@ -283,9 +286,25 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   }, [slide])
   const resident = runningCount > 0 ? running[visibleIdx % runningCount] : null
 
-  const gpuCard = gpu?.available ? gpu.gpus[0] : null
-  const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
+  const allGpus = gpu?.available ? gpu.gpus : []
+  const gpuCard = allGpus[0] ?? null
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
+  const fmtW = (w: number) => w.toFixed(1)
+  const totalMemUsed = allGpus.reduce((s, g) => s + (g.memoryUsedMiB ?? 0), 0)
+  const totalMemTotal = allGpus.reduce((s, g) => s + (g.memoryTotalMiB ?? 0), 0)
+  const totalPower = allGpus.reduce((s, g) => s + (g.powerW ?? 0), 0)
+  const hasPower = allGpus.some((g) => g.powerW != null)
+  const memGpus = allGpus.filter((g) => g.memoryTotalMiB != null)
+  const avgMemPercent =
+    memGpus.length > 0
+      ? Math.round(
+          memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0) > 0
+            ? (memGpus.reduce((s, g) => s + g.memoryUsedMiB!, 0) / memGpus.reduce((s, g) => s + g.memoryTotalMiB!, 0)) *
+                100
+            : 0,
+        )
+      : null
+  const hasVram = totalMemTotal > 0
 
   async function signOut() {
     await authClient.signOut()
@@ -300,10 +319,10 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
               "- W". Apple and rocm-smi hardcode powerW: null in gpu-poller.ts,
               so on those backends that readout was permanently broken-looking by
               design. An absent row is better than a dash with a unit stuck to it. */}
-          <span className="text-fg-muted">{gpuCard?.powerW != null ? `${gpuCard.powerW} W` : ''}</span>
+          <span className="text-fg-muted">{hasPower ? `${fmtW(totalPower)} W` : ''}</span>
           <span className="text-fg-muted">
             {hasVram
-              ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
+              ? `${fmtGiB(totalMemUsed)} / ${fmtGiB(totalMemTotal)} GiB`
               : resident
                 ? // Was `${visibleIdx} of ${totalCount}` — visibleIdx is the
                   // ticker's rotation index, not a count, so one running model of
@@ -318,7 +337,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
             className="h-full bg-accent rounded-pill transition-[width] duration-300"
             style={{
               width: hasVram
-                ? `${gpuCard.memoryPercent ?? 0}%`
+                ? `${avgMemPercent ?? 0}%`
                 : totalCount > 0
                   ? `${(runningCount / totalCount) * 100}%`
                   : '0%',
@@ -327,13 +346,15 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
         </div>
         {resident ? (
           <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
-            <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
+            <div className="font-mono text-xs text-fg leading-[1.3] overflow-hidden text-ellipsis whitespace-nowrap">
               <StatusDot tone={stateTone(resident.state, true)} live />{' '}
-              <span style={{ marginLeft: 6 }} translate="no">
+              <span style={{ marginLeft: 6 }} translate="no" title={resident.id}>
                 {resident.id}
               </span>
             </div>
-            <div className="font-mono text-[10px] text-fg-dim">{system?.inference.label ?? 'backend'}</div>
+            <div className="font-mono text-[10px] text-fg-dim truncate" title={system?.inference.label}>
+              {system?.inference.label ?? 'backend'}
+            </div>
           </div>
         ) : (
           <>
@@ -345,7 +366,11 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
               className="truncate font-mono text-[10px] text-fg-dim"
               title={gpuCard ? `${gpuCard.name}${gpuCard.cores != null ? ` · ${gpuCard.cores} cores` : ''}` : undefined}
             >
-              {gpuCard ? gpuCard.name : 'no models loaded'}
+              {gpuCard
+                ? allGpus.length > 1
+                  ? `${allGpus.length}× ${gpuCard.name}`
+                  : gpuCard.name
+                : 'no models loaded'}
               {gpuCard?.cores != null ? ` · ${gpuCard.cores} cores` : ''}
             </div>
           </>

@@ -21,15 +21,16 @@ import {
   calculateTokPerSec,
   deriveClientLabel,
   deriveRewriteLabel,
-  formatCostUsd,
   formatDuration,
+  formatLocalDateTime,
+  formatPhaseMs,
   parseHeaderMap,
   parseRequestPayload,
   parseSseStream,
 } from './requestDetailUtils'
 import { RequestPayloadPane } from './RequestPayloadPane'
 import { RequestTokenTrace } from './RequestTokenTrace'
-import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
+import { requestKeyLabel } from './requestsListUtils'
 
 type Props = {
   req: ApiRequestDetail
@@ -92,18 +93,38 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     () => (req.streamed && req.responseBody ? parseSseStream(req.responseBody) : null),
     [req.responseBody, req.streamed],
   )
-  const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
+  const timing = useMemo(
+    () =>
+      analyzeTiming({
+        queueMs: req.queueMs,
+        modelLoadingMs: req.modelLoadingMs,
+        prefillMs: req.prefillMs,
+        reasoningMs: req.reasoningMs,
+        responseMs: req.responseMs,
+        decodeMs: req.decodeMs,
+        streamCloseMs: req.streamCloseMs,
+        gpuPrefillMs: req.gpuPrefillMs,
+        gpuDecodeMs: req.gpuDecodeMs,
+        sse: parsedSse,
+      }),
+    [
+      parsedSse,
+      req.decodeMs,
+      req.gpuDecodeMs,
+      req.gpuPrefillMs,
+      req.modelLoadingMs,
+      req.prefillMs,
+      req.queueMs,
+      req.reasoningMs,
+      req.responseMs,
+      req.streamCloseMs,
+    ],
+  )
   const credentialInjection = useMemo(
     () => parseCredentialInjectionSummary(req.credentialInjectionJson),
     [req.credentialInjectionJson],
   )
   const clientLabel = deriveClientLabel(reqHeaders)
-  const kickerParts = ['req', req.id.slice(4, 30)]
-  if (clientLabel) kickerParts.push(clientLabel)
-  if (req.routingRuleName) kickerParts.push(req.routingRuleName)
-  const modelLabel = req.routingRoutedModel
-    ? `${req.model ?? 'request detail'} -> ${req.routingRoutedModel}`
-    : req.model
   const curlCommand = useMemo(
     () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
     [req.endpoint, req.requestBody, reqHeaders],
@@ -113,7 +134,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   // Model names deliberately excluded: requested/served/rewrite live in the
   // Model section, and duplicating them here produced a `routed` row that
   // contradicted `served` (one fell back to req.model, the other to an em-dash).
-  const hasCostInfo = req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null
   const isRouted = Boolean(
     req.routingRuleName ||
       req.routingActionType ||
@@ -124,19 +144,13 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
       credentialInjection,
   )
   const keyLabel = requestKeyLabel(req)
-  const shouldShowKeyInSubtitle = req.keyName != null || isProxyRequestKey(req)
+  const startedAtLabel = formatLocalDateTime(req.startedAt)
 
   return (
     <>
       <PageHeader
-        kicker={kickerParts.join(' · ')}
-        title={`${req.method} ${req.endpoint}`}
-        subtitle={
-          <span translate="no">
-            <span>{modelLabel ?? 'request detail'}</span>
-            {shouldShowKeyInSubtitle ? <span className="text-fg-muted"> · {keyLabel}</span> : null}
-          </span>
-        }
+        parent={{ label: 'Requests', to: '/requests' }}
+        title={req.id}
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
@@ -223,14 +237,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <div className={railSectionTitle}>Summary</div>
             <dl className="detail-meta-list">
               <div>
-                <dt>method</dt>
-                <dd>{req.method}</dd>
-              </div>
-              <div>
-                <dt>endpoint</dt>
-                <dd className="mono">{req.endpoint}</dd>
-              </div>
-              <div>
                 <dt>status</dt>
                 <dd className={statusColor}>
                   {req.statusCode} {ok ? 'OK' : ''}
@@ -254,7 +260,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               </div>
               <div>
                 <dt>date</dt>
-                <dd className="mono">{formatWhen(req.startedAt)}</dd>
+                <dd className="mono justify-start whitespace-nowrap text-left">{startedAtLabel}</dd>
               </div>
             </dl>
           </div>
@@ -407,40 +413,60 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <div className="mono text-[11px] text-fg-dim">no routing rule matched</div>
               )}
             </div>
+          </div>
 
-            <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Timing</div>
-              <dl className="detail-meta-list">
-                {/* `queue` is gone: analyzeTiming() initialises queueMs to null
-                    and never assigns it, so the row could only ever render `—`.
-                    `ttft` is gone too: it was assigned the prefill value
-                    verbatim, so the two rows always printed the same number.
-                    `prefill` is what llama.cpp's `prompt_ms` actually measures —
-                    real TTFT would also include queue and network time, which we
-                    don't capture for logged requests. */}
-                <div>
-                  <dt>prefill</dt>
-                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
-                </div>
-                <div>
-                  <dt>decode</dt>
-                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : '—'}</dd>
-                </div>
-                <div>
-                  <dt>total</dt>
-                  <dd>{formatDuration(req.durationMs)}</dd>
-                </div>
-                <div>
-                  <dt>close</dt>
-                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
-                </div>
-              </dl>
+          <div className="shrink-0 border-t border-border px-3.5 py-4 max-[1200px]:px-3">
+            <div className={railSectionTitle}>Timing</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>queue</dt>
+                <dd>{formatPhaseMs(timing.queueMs)}</dd>
+              </div>
+              <div>
+                <dt>model loading</dt>
+                <dd>{formatPhaseMs(timing.modelLoadingMs)}</dd>
+              </div>
+              <div>
+                <dt>prefill</dt>
+                <dd>{formatPhaseMs(timing.prefillMs)}</dd>
+              </div>
+              <div>
+                <dt>reasoning</dt>
+                <dd>{formatPhaseMs(timing.reasoningMs)}</dd>
+              </div>
+              <div>
+                <dt>response</dt>
+                <dd>{formatPhaseMs(timing.responseMs)}</dd>
+              </div>
+              <div>
+                <dt>total</dt>
+                <dd>{formatDuration(req.durationMs)}</dd>
+              </div>
+            </dl>
+
+            <div className={`${railSectionDivider} grid gap-2`}>
+              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
+              <CopyButton
+                text={getRequestDetailUrl()}
+                label="Copy link"
+                variant="button"
+                icon="link"
+                className="btn btn-ghost btn-sm w-full justify-start"
+              />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm w-full justify-start"
+                onClick={() => downloadRequestJsonl(req)}
+              >
+                <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                Download .jsonl
+              </button>
             </div>
           </div>
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
+          <div className="border-b border-border bg-surface-1 max-[1024px]:border-t max-[1024px]:border-t-border">
             {/* The endpoint cell that used to lead this strip is gone: it
                 repeated the page h1 at 22px, so the duplicate was louder than
                 the original. What remains is a uniform six-metric band. */}
@@ -459,7 +485,11 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               </div>
               <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>total</div>
-                <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
+                <div className={endpointMetricValue}>
+                  {req.promptTokens != null || req.completionTokens != null
+                    ? ((req.promptTokens ?? 0) + (req.completionTokens ?? 0)).toLocaleString()
+                    : '—'}
+                </div>
               </div>
               <div className={statMetricCell}>
                 <div className={endpointMetricLabel}>duration</div>
@@ -472,18 +502,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </div>
           </div>
 
-          {req.streamed && req.completionTokens ? (
-            <RequestTokenTrace
-              durationMs={req.durationMs}
-              completionTokens={req.completionTokens}
-              tokPerSec={tokPerSec}
-              prefillMs={timing.prefillMs}
-              decodeMs={timing.decodeMs}
-            />
-          ) : null}
+          <RequestTokenTrace durationMs={req.durationMs} timing={timing} />
 
           {req.error ? (
-            <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
+            <section className="panel !rounded-none !border-l-0 !border-r-0 !border-b-0 !bg-surface-1">
               <div className="panel-head bg-surface-1 px-4">
                 <span className="panel-title" style={{ color: 'var(--err)' }}>
                   Error
@@ -495,12 +517,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </section>
           ) : null}
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="panel-head bg-surface-1 px-4">
-              <span className="panel-title">Payloads</span>
-              <span className="panel-sub">request • response</span>
-              <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
-            </div>
+          <section className="panel !rounded-none !border-l-0 !border-r-0 !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
             <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
               <RequestPayloadPane
                 key={`${req.id}-request`}
@@ -509,6 +526,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 body={req.requestBody ?? ''}
                 headers={reqHeaders}
                 mode="pretty"
+                direction="request"
               />
               <RequestPayloadPane
                 key={`${req.id}-response`}
@@ -517,69 +535,16 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 body={responseAnalysis.displayBody}
                 headers={resHeaders}
                 mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
+                direction="response"
                 sseStream={parsedSse}
+                assembledReasoning={req.assembledReasoning}
+                assembledResponse={req.assembledResponse}
+                assembledToolCalls={req.assembledToolCalls}
+                assembledCitations={req.assembledCitations}
               />
             </div>
           </section>
         </div>
-
-        {/* The sidecar carries only what appears nowhere else. Its Tokens tiles
-            duplicated the metric strip (and disagreed with it — the strip used
-            toLocaleString while these used a compact formatter, so a 24,000-token
-            prompt read "24,000" and "24k" at the same time), and its Phases list
-            repeated five of the rail's six Timing rows verbatim while being
-            hidden entirely below 1500px. */}
-        <aside className="request-detail-sidecar min-w-0 bg-surface-2 px-3.5 py-3">
-          {hasCostInfo ? (
-            <section>
-              <div className={railSectionTitle}>Cost</div>
-              <dl className="m-0 grid gap-1.5 font-mono text-xs">
-                {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
-                  <>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-fg-dim">cache write</dt>
-                      <dd className="m-0 text-fg">{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-fg-dim">cache read</dt>
-                      <dd className="m-0 text-fg">{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
-                    </div>
-                  </>
-                ) : null}
-                {req.costUsd != null ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-fg-dim">cost</dt>
-                    <dd className="m-0 text-fg">{formatCostUsd(req.costUsd)}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </section>
-          ) : null}
-
-          <section className={hasCostInfo ? railSectionDivider : undefined}>
-            <div className={railSectionTitle}>Request ID</div>
-            <div className="mono wrap-anywhere text-xs text-fg">{req.id}</div>
-          </section>
-
-          <section className={`${railSectionDivider} grid gap-2`}>
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
-            <CopyButton
-              text={getRequestDetailUrl()}
-              label="Copy link"
-              variant="button"
-              icon="link"
-              className="btn btn-ghost btn-sm w-full justify-start"
-            />
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm w-full justify-start"
-              onClick={() => downloadRequestJsonl(req)}
-            >
-              <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-              Download .jsonl
-            </button>
-          </section>
-        </aside>
       </div>
     </>
   )
@@ -649,7 +614,6 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
     streamed: req.streamed,
     promptTokens: req.promptTokens,
     completionTokens: req.completionTokens,
-    totalTokens: req.totalTokens,
     requestHeaders: req.requestHeaders,
     responseHeaders: req.responseHeaders,
     requestBody: req.requestBody,

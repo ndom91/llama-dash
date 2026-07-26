@@ -33,13 +33,8 @@ export function ModelDetailContent({ data }: Props) {
   return (
     <>
       <PageHeader
-        kicker={`mdl · ${model.name.toLowerCase()}`}
+        parent={{ label: 'Models', to: '/models' }}
         title={model.name}
-        subtitle={
-          <span translate="no">
-            {model.id} · {model.kind}
-          </span>
-        }
         variant="integrated"
         action={
           <div className="flex items-center gap-2">

@@ -13,6 +13,7 @@ import { MAX_PROXY_BODY_BYTES, type ProxyForwardBody } from '../proxy/body.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
 import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
+import { clientHostFromHeaderMap, mintRequestId, registerInflight } from '../proxy/inflight-requests.ts'
 import { emptyRoutingOutcome, type RoutingOutcome } from '../proxy/transforms.ts'
 import type { ApiKey } from '../db/schema.ts'
 
@@ -146,7 +147,26 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
     })
   }
   const target = relayTargetUrl(relay.targetUrl, url.search)
+  const requestId = mintRequestId()
+  registerInflight({
+    id: requestId,
+    startedAt,
+    requestClass: 'mcp_relay',
+    method,
+    endpoint,
+    model: null,
+    streamed: null,
+    phase: 'active',
+    keyId: auth.keyId,
+    clientHost: clientHostFromHeaderMap(headers),
+    clientName: attribution.clientName,
+    endUserId: attribution.endUserId,
+    sessionId: attribution.sessionId,
+    routingRuleName: routing.ruleName,
+    routingTargetType: routing.targetType,
+  })
   const forwardedResponse = await forwardUpstreamAndLog({
+    id: requestId,
     upstream: target,
     method,
     headers,
@@ -167,6 +187,7 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
 
   if ('upstreamError' in forwardedResponse) {
     return relayFailure({
+      id: requestId,
       startedAt,
       status: 502,
       method,
@@ -323,6 +344,7 @@ function relayError(input: {
 }
 
 function relayFailure(input: {
+  id?: string
   startedAt: number
   status: number
   method: string
@@ -338,6 +360,7 @@ function relayFailure(input: {
 }): Response {
   const body = { error: { message: input.message, type: input.type } }
   writeProxyLog({
+    id: input.id,
     startedAt: input.startedAt,
     status: input.status,
     requestClass: 'mcp_relay',

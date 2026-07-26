@@ -13,6 +13,7 @@ import {
   type ProxyBodySnapshot,
 } from './body.ts'
 import { filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
+import { mintRequestId } from './inflight-requests.ts'
 import { proxyRoutingNeedsBody } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
@@ -21,6 +22,8 @@ import { REDACTED_INJECTED_CREDENTIAL } from './credential-placeholders.ts'
 
 export type ProxyContext = {
   request: Request
+  /** Prefixed ULID shared by inflight tracking and the eventual log row. */
+  requestId: string
   startedAt: number
   method: string
   url: URL
@@ -47,6 +50,7 @@ export function createProxyContext(request: Request): ProxyContext {
   const defaultUpstream = inferenceBackend.defaultProxyUpstream(url.pathname, url.search)
   return {
     request,
+    requestId: mintRequestId(),
     startedAt: Date.now(),
     method,
     url,

@@ -23,12 +23,7 @@ export function LogsPage() {
     return (
       <div className="content">
         <div className="page min-h-full flex-1 bg-surface-1">
-          <PageHeader
-            kicker="log · stream"
-            title="Logs"
-            subtitle="checking backend log support…"
-            variant="integrated"
-          />
+          <PageHeader title="Logs" variant="integrated" />
           <div className="empty-state px-6 max-md:px-3">loading backend capabilities…</div>
         </div>
       </div>
@@ -39,12 +34,7 @@ export function LogsPage() {
     return (
       <div className="content">
         <div className="page min-h-full flex-1 bg-surface-1">
-          <PageHeader
-            kicker="log · stream"
-            title="Logs"
-            subtitle={`${system.inference.label} does not expose runtime logs through llama-dash.`}
-            variant="integrated"
-          />
+          <PageHeader title="Logs" variant="integrated" />
           <div className="empty-state px-6 max-md:px-3">
             The active inference backend does not support live log streaming yet.
           </div>
@@ -152,9 +142,7 @@ function LlamaSwapLogsPage() {
     <div className="content">
       <div className="page min-h-full flex-1 bg-surface-1">
         <PageHeader
-          kicker="log · stream"
           title="Logs"
-          subtitle="live output from llama-swap"
           variant="integrated"
           action={
             <div className="flex items-center gap-2">

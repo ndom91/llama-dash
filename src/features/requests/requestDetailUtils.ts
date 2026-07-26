@@ -1,17 +1,11 @@
-/**
- * Phase timings scraped from the upstream response.
- *
- * There is deliberately no `queueMs` or `ttftMs` here. `queueMs` was never
- * assigned by analyzeTiming(), so it could only ever render an em-dash, and
- * `ttftMs` was assigned the prefill value verbatim — two rows that always
- * printed the same number. Real time-to-first-token needs queue and network
- * time, which we don't capture for proxied requests (the Playground measures it
- * properly from its own request clock; see use-playground-chat.ts).
- */
+import { deriveDisplayPhases } from '../../lib/timing-phases.ts'
+
 export type RequestTiming = {
+  queueMs: number | null
+  modelLoadingMs: number | null
   prefillMs: number | null
-  decodeMs: number | null
-  streamCloseMs: number | null
+  reasoningMs: number | null
+  responseMs: number | null
 }
 
 export function parseRequestPayload(body: string | null) {
@@ -75,31 +69,45 @@ export function parseSseStream(body: string): ParsedSseStream {
 // Concatenate the assistant's generated text across an SSE stream so the
 // Response pane can show the assembled completion without the user reading
 // every delta chunk. Handles both OpenAI chat-completions
-// (choices[0].delta.content) and Anthropic messages (content_block_delta →
-// delta.text) shapes. Tool-arg deltas (input_json_delta) are intentionally
-// skipped — this is the human-readable text, not tool call payloads.
-export function assembleSseText(stream: ParsedSseStream | null): string {
-  if (!stream) return ''
-  let out = ''
+// (choices[0].delta.content / reasoning_content) and Anthropic messages
+// (content_block_delta → delta.text / thinking) shapes. Tool-arg deltas
+// (input_json_delta) are intentionally skipped.
+export function assembleSseParts(stream: ParsedSseStream | null): { reasoning: string; response: string } {
+  if (!stream) return { reasoning: '', response: '' }
+  let reasoning = ''
+  let response = ''
   for (const e of stream.events) {
     const data = e.parsedData
     if (!data) continue
-    // OpenAI: choices[0].delta.content
     const choices = (data as { choices?: unknown }).choices
     if (Array.isArray(choices)) {
       for (const choice of choices) {
-        const content = (choice as { delta?: { content?: unknown } })?.delta?.content
-        if (typeof content === 'string') out += content
+        const delta = (choice as { delta?: Record<string, unknown> })?.delta
+        if (!delta) continue
+        if (typeof delta.reasoning_content === 'string') reasoning += delta.reasoning_content
+        if (typeof delta.reasoning === 'string') reasoning += delta.reasoning
+        if (typeof delta.content === 'string') response += delta.content
       }
       continue
     }
-    // Anthropic: content_block_delta → delta.text
     if ((data as { type?: unknown }).type === 'content_block_delta') {
-      const delta = (data as { delta?: { type?: unknown; text?: unknown } }).delta
-      if (delta?.type === 'text_delta' && typeof delta.text === 'string') out += delta.text
+      const delta = (data as { delta?: { type?: unknown; text?: unknown; thinking?: unknown } }).delta
+      if (delta?.type === 'thinking_delta' && typeof delta.thinking === 'string') reasoning += delta.thinking
+      if (delta?.type === 'text_delta' && typeof delta.text === 'string') response += delta.text
     }
   }
-  return out
+  return { reasoning, response }
+}
+
+/** @deprecated prefer assembleSseParts — kept for call sites that only need response text. */
+export function assembleSseText(stream: ParsedSseStream | null): string {
+  return assembleSseParts(stream).response
+}
+
+/** Rough token estimate for assembled text display (~4 chars/token). */
+export function estimateTextTokens(text: string): number {
+  if (!text) return 0
+  return Math.max(1, Math.round(text.length / 4))
 }
 
 export type ResponseAnalysis = {
@@ -123,26 +131,74 @@ export function analyzeResponse(responseBody: string | null, streamed: boolean):
   return { displayBody: responseBody, isJson: false, isSse: true }
 }
 
-export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number | null): RequestTiming {
-  const result: RequestTiming = {
-    prefillMs: null,
-    decodeMs: null,
-    streamCloseMs,
+export function analyzeTiming(input: {
+  queueMs?: number | null
+  modelLoadingMs?: number | null
+  prefillMs?: number | null
+  reasoningMs?: number | null
+  responseMs?: number | null
+  /** Legacy wall decode — ignored for display when GPU/new fields exist. */
+  decodeMs?: number | null
+  streamCloseMs?: number | null
+  gpuPrefillMs?: number | null
+  gpuDecodeMs?: number | null
+  /** Fallback for older rows: scrape llama.cpp timings from the SSE body. */
+  sse?: ParsedSseStream | null
+}): RequestTiming {
+  let gpuPrefillMs = input.gpuPrefillMs ?? null
+  let gpuDecodeMs = input.gpuDecodeMs ?? null
+
+  if (gpuPrefillMs == null && gpuDecodeMs == null) {
+    const lastChunk = input.sse?.latestTimingData
+    if (
+      lastChunk &&
+      typeof lastChunk === 'object' &&
+      'timings' in lastChunk &&
+      lastChunk.timings &&
+      typeof lastChunk.timings === 'object'
+    ) {
+      const timings = lastChunk.timings as Record<string, unknown>
+      gpuPrefillMs = typeof timings.prompt_ms === 'number' ? timings.prompt_ms : null
+      gpuDecodeMs = typeof timings.predicted_ms === 'number' ? timings.predicted_ms : null
+    }
   }
-  const lastChunk = sse?.latestTimingData
-  if (
-    !lastChunk ||
-    typeof lastChunk !== 'object' ||
-    !('timings' in lastChunk) ||
-    !lastChunk.timings ||
-    typeof lastChunk.timings !== 'object'
-  ) {
-    return result
+
+  const hasPersistedDisplay =
+    input.modelLoadingMs != null ||
+    input.reasoningMs != null ||
+    input.responseMs != null ||
+    (input.prefillMs != null && gpuPrefillMs != null && input.prefillMs === gpuPrefillMs)
+
+  if (hasPersistedDisplay) {
+    return {
+      queueMs: input.queueMs ?? null,
+      modelLoadingMs: input.modelLoadingMs ?? null,
+      prefillMs: input.prefillMs ?? gpuPrefillMs,
+      reasoningMs: input.reasoningMs ?? null,
+      responseMs:
+        input.responseMs ?? (gpuDecodeMs != null ? Math.max(0, gpuDecodeMs - (input.reasoningMs ?? 0)) : null),
+    }
   }
-  const timings = lastChunk.timings as Record<string, unknown>
-  result.prefillMs = typeof timings.prompt_ms === 'number' ? timings.prompt_ms : null
-  result.decodeMs = typeof timings.predicted_ms === 'number' ? timings.predicted_ms : null
-  return result
+  // Legacy / incomplete rows: derive display phases from GPU only.
+  const derived = deriveDisplayPhases({
+    relayToFirstTokenMs: null,
+    gpuPrefillMs,
+    gpuDecodeMs,
+    reasoningMs: null,
+  })
+  return {
+    queueMs: input.queueMs ?? null,
+    modelLoadingMs: derived.modelLoadingMs,
+    prefillMs: derived.prefillMs,
+    reasoningMs: derived.reasoningMs,
+    responseMs: derived.responseMs,
+  }
+}
+
+/** Format a phase for display: null or ≤0 → "—". */
+export function formatPhaseMs(ms: number | null | undefined): string {
+  if (ms == null || ms <= 0) return '—'
+  return formatDuration(ms)
 }
 
 /**
@@ -367,12 +423,19 @@ export function formatCostUsd(usd: number): string {
 }
 
 export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
+  if (ms < 1000) return `${ms.toFixed(1)} ms`
   const s = ms / 1000
-  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)}s`
+  if (s < 60) return `${s.toFixed(1)} s`
   const m = Math.floor(s / 60)
-  const rem = Math.floor(s % 60)
-  return `${m}m ${rem}s`
+  const rem = s % 60
+  return `${m}m ${rem.toFixed(1)} s`
+}
+
+/** Local wall time as `YYYY-MM-DD HH:MM:SS`. */
+export function formatLocalDateTime(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 export function byteSize(str: string): string {

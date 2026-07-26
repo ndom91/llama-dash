@@ -47,7 +47,7 @@ export function colWidthsFor(visible: ReadonlySet<RequestsColKey>): (number | st
 
 export const REQUESTS_COL_WIDTHS = colWidthsFor(new Set(REQUESTS_ALL_COLS))
 
-export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
+export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'promptTokens'
 export type SortDir = 'asc' | 'desc'
 export type StatusFilter = 'all' | 'ok' | 'err'
 export type RoutingFilter = 'all' | 'routed' | 'unrouted'
@@ -94,8 +94,8 @@ export function sortVal(r: ApiRequest, key: SortKey): number | string {
       return r.durationMs
     case 'statusCode':
       return r.statusCode
-    case 'totalTokens':
-      return r.totalTokens ?? 0
+    case 'promptTokens':
+      return r.promptTokens ?? 0
   }
 }
 

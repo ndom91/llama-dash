@@ -1,21 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Tabs } from '../../components/Tabs'
 import { cn } from '../../lib/cn'
-import { useGpu, useModels } from '../../lib/queries'
 import type { InspectorState } from '../../lib/use-playground-chat'
-import { PlaygroundActiveModelCell } from './PlaygroundActiveModelCell'
 import { PlaygroundCopyButton } from './PlaygroundCopyButton'
 import { PlaygroundInspectorSection } from './PlaygroundInspectorSection'
 import { PlaygroundTimingBars } from './PlaygroundTimingBars'
-import { formatContextLength } from '../models/modelUtils'
 
 type InspectorTab = 'request' | 'response' | 'timing' | 'events' | 'curl'
 
 const TABS: Array<{ id: InspectorTab; label: string }> = [
   { id: 'request', label: 'request' },
   { id: 'response', label: 'response' },
-  { id: 'timing', label: 'timing' },
   { id: 'events', label: 'events' },
+  { id: 'timing', label: 'timing' },
   { id: 'curl', label: 'curl' },
 ]
 
@@ -23,19 +20,12 @@ const inspectorPreClass =
   'm-0 whitespace-pre-wrap break-words rounded border border-border bg-surface-2 p-3 font-mono text-[11px] leading-[1.55] text-fg-muted'
 
 type Props = {
-  model: string
   inspector: InspectorState
   apiKey: string | null
 }
 
-export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
+export function PlaygroundInspector({ inspector, apiKey }: Props) {
   const [tab, setTab] = useState<InspectorTab>('request')
-  const { data: models } = useModels()
-  const { data: gpu } = useGpu()
-
-  const active = models?.find((m) => m.id === model)
-  const residentMiB = gpu?.gpus.reduce((sum, g) => sum + (g.memoryUsedMiB ?? 0), 0) ?? null
-  const contextLabel = formatContextLength(active?.contextLength)
 
   const requestJson = useMemo(() => {
     if (!inspector.lastRequestBody) return ''
@@ -69,38 +59,8 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
       />
 
       <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-4 pt-2 pb-5">
-        <PlaygroundInspectorSection label="active model">
-          <div className="grid grid-cols-2 gap-2">
-            <PlaygroundActiveModelCell
-              label="model"
-              value={active?.id ?? model ?? '—'}
-              sub={active ? (active.kind === 'local' ? 'local' : 'peer') : undefined}
-              mono
-            />
-            <PlaygroundActiveModelCell
-              label="context"
-              value={contextLabel ?? '—'}
-              sub={contextLabel ? 'cfg' : undefined}
-            />
-            <PlaygroundActiveModelCell
-              label="resident"
-              value={residentMiB != null ? (residentMiB / 1024).toFixed(1) : '—'}
-              unit="GB"
-            />
-            <PlaygroundActiveModelCell
-              label="ttft"
-              value={inspector.lastMetrics.ttftMs != null ? String(Math.round(inspector.lastMetrics.ttftMs)) : '—'}
-              unit="ms"
-              sub={inspector.lastMetrics.ttftMs != null ? 'last run' : undefined}
-            />
-          </div>
-        </PlaygroundInspectorSection>
-
         {tab === 'request' ? (
-          <PlaygroundInspectorSection
-            label={`POST ${inspector.lastRequestUrl ?? '/v1/chat/completions'}`}
-            action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}
-          >
+          <PlaygroundInspectorSection action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}>
             {inspector.lastRequestUrl ? (
               <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2">
                 <span className="rounded bg-surface-3 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
@@ -122,7 +82,6 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
 
         {tab === 'response' ? (
           <PlaygroundInspectorSection
-            label="response"
             action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
           >
             {inspector.lastResponseText ? (
@@ -134,7 +93,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         ) : null}
 
         {tab === 'timing' ? (
-          <PlaygroundInspectorSection label="timings">
+          <PlaygroundInspectorSection>
             <PlaygroundTimingBars inspector={inspector} />
             <div className="flex flex-wrap gap-2 font-mono text-[11px] text-fg-dim">
               {inspector.lastMetrics.totalMs != null ? (
@@ -153,7 +112,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         ) : null}
 
         {tab === 'events' ? (
-          <PlaygroundInspectorSection label="event tape">
+          <PlaygroundInspectorSection>
             {inspector.events.length ? (
               <div className="pg-event-timeline">
                 {inspector.events.map((event, index) => (
@@ -165,7 +124,14 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
                     <div className="pg-event-card">
                       <div className="pg-event-meta">
                         <span className="pg-event-time">{formatClock(event.at)}</span>
-                        <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          {event.inferred ? (
+                            <span className="pg-event-inferred" title="Reconstructed from timings after the response arrived">
+                              inferred
+                            </span>
+                          ) : null}
+                          <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                        </span>
                       </div>
                       <div className="pg-event-text">{event.text}</div>
                     </div>
@@ -179,10 +145,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         ) : null}
 
         {tab === 'curl' ? (
-          <PlaygroundInspectorSection
-            label="curl"
-            action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
-          >
+          <PlaygroundInspectorSection action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}>
             {curlCommand ? (
               <pre className={inspectorPreClass}>{curlCommand}</pre>
             ) : (

@@ -7,7 +7,7 @@ import { modelRoutes } from './routes/models.ts'
 import { requestRoutes } from './routes/requests.ts'
 import { routingRoutes } from './routes/routing.ts'
 import { settingRoutes } from './routes/settings.ts'
-import { systemRoutes } from './routes/system.ts'
+import { playgroundConfigRoutes, systemRoutes } from './routes/system.ts'
 import { error, type Route } from './routes/types.ts'
 import { upstreamCredentialRoutes } from './routes/upstream-credentials.ts'
 
@@ -23,6 +23,7 @@ const routes: Route[] = [
   ...mcpRelayRoutes,
   ...upstreamCredentialRoutes,
   ...systemRoutes,
+  ...playgroundConfigRoutes,
 ]
 
 export async function handleAdminRequest(request: Request): Promise<Response> {

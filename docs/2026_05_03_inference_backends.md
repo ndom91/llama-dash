@@ -4,18 +4,26 @@ Date: 2026-05-03
 
 ## Summary
 
-llama-dash now has an inference backend facade between the dashboard/proxy code
-and the concrete inference runtime. The only implemented backend is currently
-`llama-swap`, but the code is structured so another local runtime such as
-Ollama can be added without spreading runtime-specific assumptions through the
-proxy, model routes, System page, logs page, and config editor.
+llama-dash has an inference backend facade between the dashboard/proxy code
+and the concrete inference runtime. Two backends are implemented:
+
+- `llama-swap` — default, full feature set (config editor, log streams, peers).
+- `llama-cpp-router` — host `llama-server` router mode (model list, load/unload,
+  health; no config editor or log streams). See
+  [`2026_07_22_llama_cpp_router_backend.md`](./2026_07_22_llama_cpp_router_backend.md).
+
+Ollama remains a parked candidate; see
+[`2026_05_03_ollama_backend_next_steps.md`](./2026_05_03_ollama_backend_next_steps.md).
 
 The current product stance is:
 
-- llama-swap/llama.cpp remains the default local GGUF runtime path.
+- llama-swap/llama.cpp remains the default local GGUF runtime path when you want
+  bundled compose + config editing.
+- llama.cpp router mode is the alternate local path when `llama-server` already
+  owns model processes.
 - vLLM is not being pursued as the primary homelab runtime path right now.
-- Ollama is the next likely backend candidate, but implementation is parked
-  until the abstraction is stable.
+- Ollama is the next likely additional backend candidate, but implementation is
+  parked until needed.
 
 ## Runtime Configuration
 
@@ -28,13 +36,15 @@ INFERENCE_INSECURE=false
 INFERENCE_CONFIG_FILE=/path/to/config.yaml
 ```
 
-Only `INFERENCE_BACKEND=llama-swap` is supported today. Unsupported values fail
-at startup instead of silently using the wrong runtime.
+Supported values: `llama-swap` (default) and `llama-cpp-router`. Unsupported
+values fail at startup instead of silently using the wrong runtime.
 
-`INFERENCE_CONFIG_FILE` is optional. For llama-swap, it enables the config
-editor and config-derived hints such as context lengths and model log-name
-matching. If it is unset, llama-swap still works as the inference backend, but
-the config editor reports that the config file path is not configured.
+`INFERENCE_CONFIG_FILE` is optional and only meaningful for llama-swap. For
+llama-swap, it enables the config editor and config-derived hints such as
+context lengths and model log-name matching. If it is unset, llama-swap still
+works as the inference backend, but the config editor reports that the config
+file path is not configured. Router mode ignores it (`capabilities.config =
+false`).
 
 ## Facade Shape
 
@@ -97,7 +107,7 @@ Runtime-specific response metadata stays inside the backend adapter.
 The abstraction is intentionally capability-based rather than pretending all
 runtimes can do everything llama-swap can do.
 
-Current llama-swap capabilities:
+llama-swap capabilities:
 
 ```text
 models: supported
@@ -108,7 +118,18 @@ config: supported when INFERENCE_CONFIG_FILE is set for actual reads/writes
 metrics: supported
 ```
 
-For future backends, unsupported operations should return a structured `501`
+llama-cpp-router capabilities:
+
+```text
+models: supported
+runningModels: supported
+lifecycle: supported
+logs: unsupported
+config: unsupported
+metrics: supported
+```
+
+For any backend, unsupported operations should return a structured `501`
 from the admin API rather than throwing generic errors. UI entrypoints should
 either hide unsupported links or show a direct-navigation fallback.
 
@@ -138,16 +159,11 @@ export const inferenceBackend = ...
 ```
 
 This is appropriate while llama-dash has one active inference backend per
-process and only one implemented backend.
+process. A factory selects among implemented adapters (`llama-swap`,
+`llama-cpp-router`).
 
-A registry/selector becomes useful when there are multiple concrete backends:
-
-```ts
-createInferenceBackend(config.inferenceBackend)
-```
-
-or when llama-dash supports multiple active runtimes at the same time. Until
-then, a registry would add indirection without behavior.
+A registry becomes useful when llama-dash supports multiple active runtimes at
+the same time. Until then, a registry would add indirection without behavior.
 
 ## Adding Ollama Later
 

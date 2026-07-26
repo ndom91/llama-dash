@@ -48,6 +48,11 @@ function invalidateCache() {
   _attributionCache = null
 }
 
+/** Clears settings caches. Intended for test harness resets. */
+export function invalidateSettingsCacheForTest() {
+  invalidateCache()
+}
+
 function parseBooleanSetting(value: string | null, fallback: boolean): boolean {
   if (value === 'true') return true
   if (value === 'false') return false

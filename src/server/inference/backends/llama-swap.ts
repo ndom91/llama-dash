@@ -8,6 +8,7 @@ import type {
   InferenceBackend,
   InferenceBackendInfo,
 } from '../backend.ts'
+import { isPrimaryRunningState } from '../running-state.ts'
 import {
   getLlamaSwapConfigContextLengths,
   getLlamaSwapModelConfigSnippet,
@@ -128,6 +129,16 @@ export function createLlamaSwapBackend(): InferenceBackend {
     async listRunning() {
       const { running } = await llamaSwap.listRunning()
       return running.map(mapLlamaSwapRunningModel)
+    },
+    async getCurrentModel() {
+      try {
+        const { running } = await llamaSwap.listRunning()
+        // /running only lists Ready processes; the state string is "ready".
+        const active = running.find((m) => isPrimaryRunningState(m.state))
+        return active?.model ?? running[0]?.model ?? null
+      } catch {
+        return null
+      }
     },
     modelLogNames: getLlamaSwapModelLogNames,
     modelConfigSnippet: getLlamaSwapModelConfigSnippet,
