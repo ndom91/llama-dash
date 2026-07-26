@@ -1,5 +1,6 @@
 import { StatusDot } from '../../components/StatusDot'
 import type { ApiGpuSnapshot, ApiHealth } from '../../lib/api'
+import { formatVersionLabel } from '../../lib/format'
 import { formatMiBGb } from './dashboardUtils'
 
 type Props = {
@@ -25,7 +26,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
         <div className={metaGrid}>
           <dt className="font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">version</dt>
           <dd className="m-0 justify-self-end text-right font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
-            {upstream?.reachable ? `v${upstream.version}` : '—'}
+            {upstream?.reachable ? formatVersionLabel(upstream.version) : '—'}
           </dd>
         </div>
         <div className={metaGrid}>

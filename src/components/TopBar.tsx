@@ -1,6 +1,7 @@
 import { useMatches } from '@tanstack/react-router'
 import { Menu } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
+import { formatVersionLabel } from '../lib/format'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
@@ -65,7 +66,7 @@ function TopBarLiveStats() {
     setMounted(true)
   }, [])
 
-  const versionLabel = mounted && version ? `v${version}` : '—'
+  const versionLabel = mounted ? formatVersionLabel(version) : '—'
   const runningLabel = mounted ? (counts?.running ?? '—') : '—'
   const peerLabel = mounted && counts && counts.peers > 0 ? counts.peers : null
   const reqRateLabel = mounted && stats ? formatRate(stats.reqPerSec) : '—'

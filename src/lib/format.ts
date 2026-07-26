@@ -9,3 +9,8 @@ export function formatCompactNumber(value: number | null | undefined): string {
   if (value < 1000) return value.toLocaleString()
   return compactNumberFormatter.format(value).toLowerCase()
 }
+
+export function formatVersionLabel(value: string | null | undefined): string {
+  if (!value) return '—'
+  return /^v/i.test(value) ? value : `v${value}`
+}
