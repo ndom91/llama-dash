@@ -9,9 +9,12 @@ import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
 import { formatCompactNumber } from '../../lib/format'
 import { useAttributionSettings, useInflightRequests, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { inflightPhaseLabel, mergeInflightIntoList } from '../../lib/request-list-items'
+import { isTypingTarget } from '../../lib/is-typing-target'
+import { isLeaderPending } from '../../lib/nav-leader'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
@@ -228,12 +231,18 @@ export function RequestsPage() {
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName
-      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+      // isTypingTarget walks the composed path, so it also catches
+      // contenteditable and nested wrappers that a bare tagName check missed —
+      // and it doesn't treat <input type="button"> as typing.
+      if (isTypingTarget(e)) {
         setSelectedIdx(-1)
         if (e.key === 'Escape') (e.target as HTMLElement).blur()
         return
       }
+
+      // `g k` navigates to API Keys; without this, it would also move the row
+      // selection up. See nav-leader.ts for why propagation can't be used here.
+      if (isLeaderPending()) return
 
       if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
@@ -623,13 +632,12 @@ export function RequestsPage() {
                           const r = rows[vRow.index]
                           const keyLabel = requestKeyLabel(r)
                           return (
-                            // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
                             <div
                               key={r.id}
-                              tabIndex={-1}
                               className={cn(
                                 'vt-row',
                                 !r.inflightPhase && 'clickable-row',
+                                !r.inflightPhase && clickableRowFocusClass,
                                 vRow.index === selectedIdx && 'selected-row',
                               )}
                               style={{
@@ -640,15 +648,9 @@ export function RequestsPage() {
                                 height: REQUESTS_ROW_HEIGHT,
                                 transform: `translateY(${vRow.start}px)`,
                               }}
-                              onClick={() => {
-                                if (r.inflightPhase) return
-                                navigate({ to: '/requests/$id', params: { id: r.id } })
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !r.inflightPhase) {
-                                  navigate({ to: '/requests/$id', params: { id: r.id } })
-                                }
-                              }}
+                              {...(!r.inflightPhase
+                                ? clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))
+                                : { tabIndex: -1 })}
                             >
                               <table className="dtable dtable-virtual">
                                 <RequestsVirtualColgroup widths={colWidths} />

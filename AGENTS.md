@@ -71,9 +71,8 @@ src/
     requests/              · request list/detail pages and payload helpers
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
-    Sidebar.tsx             · nav + VRAM-resident readout in footer
-    ModelTimeline.tsx        · 30-min model swap timeline (spans + legend)
-    Sparkline.tsx           · SVG sparkline with above-line glow
+    Sidebar.tsx             · nav + `g`-leader shortcuts + VRAM-resident readout in footer
+    Sparkline.tsx           · SVG sparkline with above-line glow; dim hairline when no activity
     DurationBar.tsx         · inline latency bar for request tables
     StatusDot.tsx           · animated status indicator (ok/warn/err/idle)
     StatusCell.tsx          · status code + stream badge
@@ -83,6 +82,9 @@ src/
     api.ts                — typed client-side fetch wrappers for /api/*
     queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
     use-admin-events.ts   — EventSource bridge that invalidates query caches from /api/events
+    series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
+    nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
+    is-typing-target.ts   — shared "is the user typing" guard for global key handlers
     schemas/              — valibot schemas (single source of truth for API types)
   server/                 — everything that runs in Node, never shipped to client
     auth.ts               — Better Auth dashboard session config + first-user signup guard + passkeys
@@ -421,6 +423,24 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
+
+### Status colour vs identity colour
+
+This is a hard rule, and violating it is the single easiest way to make the
+dashboard read as noisy. See
+[`docs/2026_07_25_design_pass.md`](./docs/2026_07_25_design_pass.md).
+
+- `--ok` / `--warn` / `--err` / `--info` report **state**. They must be driven by
+  a value, never by a category, a list position, or a source name. A red element
+  means something is wrong right now; a red element that just means "this widget
+  is about errors" trains the operator to ignore red.
+- To tell **things** apart (models, phases, series in a chart), use the
+  `--series-1` … `--series-5` ramp and assign steps via `assignSeriesSteps()`
+  from `src/lib/series-color.ts`. Never index a colour array by array position —
+  that made a model's colour change when a *different* model unloaded.
+- Do not add a colour to a value that can be zero without checking the zero case.
+  A red sparkline at a 0.0% error rate was the loudest thing on the dashboard.
+- `INFO`-level and other "nothing to see here" states get a neutral, not a hue.
 
 ### UI polish guide
 

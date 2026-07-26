@@ -6,6 +6,8 @@ import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { inflightPhaseLabel, type RequestListItem } from '../../lib/request-list-items'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 
 type Props = {
   requests: Array<RequestListItem> | null
@@ -117,11 +119,10 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
               {requests.map((r) => (
                 <tr
                   key={r.id}
-                  className={r.inflightPhase ? undefined : 'clickable-row'}
-                  onClick={() => {
-                    if (r.inflightPhase) return
-                    navigate({ to: '/requests/$id', params: { id: r.id } })
-                  }}
+                  className={cn(!r.inflightPhase && 'clickable-row', !r.inflightPhase && clickableRowFocusClass)}
+                  {...(!r.inflightPhase
+                    ? clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))
+                    : {})}
                 >
                   <td className="mono dim">{new Date(r.startedAt).toLocaleTimeString([], { hour12: false })}</td>
                   <td className="mono" translate="no">

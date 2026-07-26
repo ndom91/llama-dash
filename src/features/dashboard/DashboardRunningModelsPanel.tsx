@@ -2,6 +2,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import type { ApiModel } from '../../lib/api'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 
 type Props = {
   active: Array<ApiModel>
@@ -77,8 +79,8 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
               return (
                 <tr
                   key={m.id}
-                  className="clickable-row last:border-b last:border-border"
-                  onClick={() => navigate({ to: '/models/$id', params: { id: m.id } })}
+                  className={cn('clickable-row last:border-b last:border-border', clickableRowFocusClass)}
+                  {...clickableRowProps(() => navigate({ to: '/models/$id', params: { id: m.id } }))}
                 >
                   <td>
                     <StatusDot tone={tone} live />

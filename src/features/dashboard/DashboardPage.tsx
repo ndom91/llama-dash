@@ -71,7 +71,7 @@ export function DashboardPage() {
                 value={stats ? stats.errorRate.toFixed(1) : '—'}
                 unit="percent"
                 sparkline={stats?.sparklines.errors}
-                color="var(--err)"
+                tone={stats && stats.errorRate > 0 ? 'err' : 'neutral'}
               />
             </div>
 

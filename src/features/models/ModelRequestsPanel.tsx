@@ -3,6 +3,8 @@ import { ChevronRight } from 'lucide-react'
 import { DurationBar } from '../../components/DurationBar'
 import { StatusCell } from '../../components/StatusCell'
 import type { ApiRequest } from '../../lib/api'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 import { formatWhen } from '../requests/requestsListUtils'
 
 type Props = {
@@ -53,8 +55,8 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
               {rows.map((r) => (
                 <tr
                   key={r.id}
-                  className="clickable-row"
-                  onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                  className={cn('clickable-row', clickableRowFocusClass)}
+                  {...clickableRowProps(() => navigate({ to: '/requests/$id', params: { id: r.id } }))}
                 >
                   <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
                     {formatWhen(r.startedAt)}

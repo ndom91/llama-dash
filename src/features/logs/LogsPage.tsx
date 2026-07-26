@@ -8,50 +8,13 @@ import { cn } from '../../lib/cn'
 import { useSystemStatus } from '../../lib/queries'
 import { useLlamaSwapLogs } from '../../lib/use-llama-swap-logs'
 import { HighlightedText } from './HighlightedText'
+import { LEVEL_CLASS, SOURCE_LABEL, formatLogTime, parseLogLevel } from './logsUtils'
 
 type SourceFilter = 'all' | 'upstream' | 'proxy'
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
-
-function formatLogTime(ts: number) {
-  const d = new Date(ts)
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  const ss = String(d.getSeconds()).padStart(2, '0')
-  const ms = String(d.getMilliseconds()).padStart(3, '0')
-  return `${hh}:${mm}:${ss}.${ms}`
-}
-
-type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'TRACE'
-
-const LEVEL_RE = /^\s*\[(INFO|WARN|WARNING|ERROR|ERR|DEBUG|DBG|TRACE|TRC|FATAL)\]\s*/i
-
-function parseLogLevel(text: string): { level: LogLevel | null; rest: string } {
-  const m = text.match(LEVEL_RE)
-  if (!m) return { level: null, rest: text }
-  const raw = m[1].toUpperCase()
-  let level: LogLevel = 'INFO'
-  if (raw === 'WARN' || raw === 'WARNING') level = 'WARN'
-  else if (raw === 'ERROR' || raw === 'ERR' || raw === 'FATAL') level = 'ERROR'
-  else if (raw === 'DEBUG' || raw === 'DBG') level = 'DEBUG'
-  else if (raw === 'TRACE' || raw === 'TRC') level = 'TRACE'
-  return { level, rest: text.slice(m[0].length) }
-}
-
-const LEVEL_CLASS: Record<LogLevel, string> = {
-  INFO: 'text-info',
-  WARN: 'text-warn',
-  ERROR: 'text-err',
-  DEBUG: 'text-fg-dim',
-  TRACE: 'text-fg-dim',
-}
-
-const SOURCE_LABEL = {
-  upstream: 'llama.cpp',
-  proxy: 'llama-swap',
-} as const
 
 export function LogsPage() {
   const { data: system } = useSystemStatus()
@@ -108,9 +71,13 @@ function LlamaSwapLogsPage() {
   const filtered = useMemo(() => {
     if (!searchRe) return sourceFiltered
     return sourceFiltered.filter((l) => {
+      // Search matches what a row *says*, so the level is only included when it
+      // was actually parsed off the line — searching "DEBUG" no longer matches
+      // every unprefixed upstream line. The source label stays per-line even
+      // though it renders once per chunk: collapsing is presentation only, and
+      // filtering by "llama.cpp" must still match every one of its rows.
       const { level } = parseLogLevel(l.text)
-      const displayLevel = level ?? (l.source === 'upstream' ? 'DEBUG' : 'INFO')
-      const haystack = `${SOURCE_LABEL[l.source]} ${displayLevel} ${l.text}`
+      const haystack = `${SOURCE_LABEL[l.source]} ${level ?? ''} ${l.text}`
       searchRe.lastIndex = 0
       return searchRe.test(haystack)
     })
@@ -274,7 +241,13 @@ function LlamaSwapLogsPage() {
                 {virtualizer.getVirtualItems().map((vi) => {
                   const line = filtered[vi.index]
                   const { level, rest } = parseLogLevel(line.text)
-                  const displayLevel = level ?? (line.source === 'upstream' ? 'DEBUG' : 'INFO')
+                  // The gutter timestamp is *arrival* time, captured once per SSE
+                  // event and stamped onto every line split out of it, so long
+                  // runs share a value. Collapsing repeats was tried and reverted:
+                  // the initial backlog arrives as a single event, so hundreds of
+                  // consecutive lines would render with empty gutters and the
+                  // whole block lost its left edge. The repetition is the lesser
+                  // problem — de-emphasis carries the hierarchy instead.
                   return (
                     <div
                       key={vi.key}
@@ -293,21 +266,16 @@ function LlamaSwapLogsPage() {
                       <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim">
                         {formatLogTime(line.ts)}
                       </span>
-                      <span
-                        className={cn(
-                          'mr-3 inline-block w-[78px] shrink-0 select-none',
-                          line.source === 'proxy' ? 'text-accent' : 'text-ok',
-                        )}
-                      >
+                      <span className="mr-3 inline-block w-[78px] shrink-0 select-none text-fg-dim">
                         {SOURCE_LABEL[line.source]}
                       </span>
                       <span
                         className={cn(
                           'mr-3 inline-block w-[44px] shrink-0 select-none font-semibold uppercase tracking-[0.06em]',
-                          LEVEL_CLASS[displayLevel],
+                          level ? LEVEL_CLASS[level] : undefined,
                         )}
                       >
-                        {displayLevel}
+                        {level ?? ''}
                       </span>
                       <span
                         className={cn(

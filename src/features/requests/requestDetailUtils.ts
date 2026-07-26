@@ -179,7 +179,6 @@ export function analyzeTiming(input: {
         input.responseMs ?? (gpuDecodeMs != null ? Math.max(0, gpuDecodeMs - (input.reasoningMs ?? 0)) : null),
     }
   }
-
   // Legacy / incomplete rows: derive display phases from GPU only.
   const derived = deriveDisplayPhases({
     relayToFirstTokenMs: null,
@@ -200,6 +199,74 @@ export function analyzeTiming(input: {
 export function formatPhaseMs(ms: number | null | undefined): string {
   if (ms == null || ms <= 0) return '—'
   return formatDuration(ms)
+}
+
+/**
+ * Headers that actually matter when debugging a proxied request, in the order an
+ * operator wants to read them.
+ */
+const HEADER_PRIORITY = [
+  'authorization',
+  'content-type',
+  'content-length',
+  'content-encoding',
+  'transfer-encoding',
+  'accept',
+  'user-agent',
+]
+
+/**
+ * Browser-emitted headers that are almost never why a request behaved the way it
+ * did. Rendered flat and in serialization order, eight of these were enough to
+ * push `content-type` below the fold of a pane capped at 50% height.
+ */
+const HEADER_BOILERPLATE_EXACT = new Set([
+  'accept-encoding',
+  'accept-language',
+  'cache-control',
+  'connection',
+  'cookie',
+  'dnt',
+  'origin',
+  'pragma',
+  'priority',
+  'referer',
+  'te',
+  'upgrade-insecure-requests',
+])
+
+const HEADER_BOILERPLATE_PREFIXES = ['sec-ch-ua', 'sec-fetch-', 'sec-gpc']
+
+function isBoilerplateHeader(key: string): boolean {
+  const k = key.toLowerCase()
+  if (HEADER_BOILERPLATE_EXACT.has(k)) return true
+  return HEADER_BOILERPLATE_PREFIXES.some((prefix) => k.startsWith(prefix))
+}
+
+export type GroupedHeaders = {
+  /** Priority headers first in curated order, then everything else A-Z. */
+  primary: Array<[string, string]>
+  /** Browser noise, A-Z. Collapsed in the UI by default. */
+  boilerplate: Array<[string, string]>
+}
+
+export function groupHeaders(entries: Array<[string, string]>): GroupedHeaders {
+  const priority: Array<[string, string]> = []
+  const neutral: Array<[string, string]> = []
+  const boilerplate: Array<[string, string]> = []
+
+  for (const entry of entries) {
+    if (isBoilerplateHeader(entry[0])) boilerplate.push(entry)
+    else if (HEADER_PRIORITY.includes(entry[0].toLowerCase())) priority.push(entry)
+    else neutral.push(entry)
+  }
+
+  priority.sort((a, b) => HEADER_PRIORITY.indexOf(a[0].toLowerCase()) - HEADER_PRIORITY.indexOf(b[0].toLowerCase()))
+  const byKey = (a: [string, string], b: [string, string]) => a[0].localeCompare(b[0])
+  neutral.sort(byKey)
+  boilerplate.sort(byKey)
+
+  return { primary: [...priority, ...neutral], boilerplate }
 }
 
 export function deriveClientLabel(headers: Record<string, string> | null) {

@@ -4,6 +4,8 @@ import { CopyableCode } from '../../components/CopyableCode'
 import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiKeyItem } from '../../lib/api'
+import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
+import { cn } from '../../lib/cn'
 import { useDeleteApiKey, useRevokeApiKey } from '../../lib/queries'
 
 type Props = {
@@ -21,8 +23,8 @@ export function KeyRow({ apiKey }: Props) {
 
   return (
     <tr
-      className={`clickable-row${isRevoked ? ' row-revoked' : ''}`}
-      onClick={() => navigate({ to: '/keys/$id', params: { id: apiKey.id } })}
+      className={cn('clickable-row', isRevoked && 'row-revoked', clickableRowFocusClass)}
+      {...clickableRowProps(() => navigate({ to: '/keys/$id', params: { id: apiKey.id } }))}
     >
       <td>
         <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />

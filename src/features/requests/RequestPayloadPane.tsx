@@ -1,11 +1,11 @@
 import { ChevronRight, List } from 'lucide-react'
-import { useDeferredValue, useMemo, useRef } from 'react'
+import { useDeferredValue, useMemo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { ParsedPayloadBlocks } from './ParsedPayloadBlocks'
 import type { ParsedSseStream } from './requestDetailUtils'
-import { maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
+import { groupHeaders, maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
 import { RequestSseEvents } from './RequestSseEvents'
 
@@ -98,6 +98,7 @@ export function RequestPayloadPane({
     title,
   ])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
+  const groupedHeaders = useMemo(() => groupHeaders(headerEntries), [headerEntries])
 
   return (
     <section className="request-payload-pane flex h-full min-h-0 min-w-0 flex-col border-r border-border last:border-r-0">
@@ -112,7 +113,7 @@ export function RequestPayloadPane({
 
       <div ref={scrollRef} className="payload-body-scroll min-h-0 flex-1 overflow-auto">
         {headerEntries.length > 0 ? (
-          <HeadersSection entries={headerEntries} storageKey={`${title.toLowerCase()}-headers-open`} />
+          <HeadersSection groupedHeaders={groupedHeaders} storageKey={`${title.toLowerCase()}-headers-open`} />
         ) : null}
 
         {showPayload ? (
@@ -131,8 +132,16 @@ export function RequestPayloadPane({
   )
 }
 
-function HeadersSection({ entries, storageKey }: { entries: [string, string][]; storageKey: string }) {
+function HeadersSection({
+  groupedHeaders,
+  storageKey,
+}: {
+  groupedHeaders: ReturnType<typeof groupHeaders>
+  storageKey: string
+}) {
   const [open, toggleOpen] = useStickyToggle(storageKey, false)
+  const [showBoilerplate, setShowBoilerplate] = useState(false)
+  const count = groupedHeaders.primary.length + groupedHeaders.boilerplate.length
   return (
     <div className="overflow-hidden border-t border-border text-xs">
       <div className="flex w-full items-center bg-surface-0">
@@ -147,19 +156,42 @@ function HeadersSection({ entries, storageKey }: { entries: [string, string][]; 
           />
           <List size={12} strokeWidth={2} aria-hidden="true" />
           <span>headers</span>
-          <span className="ml-auto dim normal-case tracking-normal">({entries.length})</span>
+          <span className="ml-auto dim normal-case tracking-normal">({count})</span>
         </button>
       </div>
       {open ? (
         <div className="border-t border-border">
           <table className="dtable headers-table">
             <tbody>
-              {entries.map(([k, v]) => (
+              {groupedHeaders.primary.map(([k, v]) => (
                 <tr key={k}>
                   <td className="mono header-key">{k}</td>
                   <td className="mono header-value">{maskSensitive(k, v)}</td>
                 </tr>
               ))}
+              {showBoilerplate
+                ? groupedHeaders.boilerplate.map(([k, v]) => (
+                    <tr key={k}>
+                      <td className="mono header-key header-key-muted">{k}</td>
+                      <td className="mono header-value">{maskSensitive(k, v)}</td>
+                    </tr>
+                  ))
+                : null}
+              {groupedHeaders.boilerplate.length > 0 ? (
+                <tr>
+                  <td colSpan={2} className="!py-1.5">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setShowBoilerplate((prev) => !prev)}
+                      aria-expanded={showBoilerplate}
+                    >
+                      {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
+                      {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
+                    </button>
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
