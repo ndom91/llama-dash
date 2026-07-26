@@ -21,7 +21,6 @@ import {
   calculateTokPerSec,
   deriveClientLabel,
   deriveRewriteLabel,
-  formatCostUsd,
   formatDuration,
   formatLocalDateTime,
   formatPhaseMs,
@@ -135,7 +134,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
   // Model names deliberately excluded: requested/served/rewrite live in the
   // Model section, and duplicating them here produced a `routed` row that
   // contradicted `served` (one fell back to req.model, the other to an em-dash).
-  const hasCostInfo = req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null
   const isRouted = Boolean(
     req.routingRuleName ||
       req.routingActionType ||
@@ -418,40 +416,57 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           </div>
 
           <div className="shrink-0 border-t border-border px-3.5 py-4 max-[1200px]:px-3">
-            <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Timing</div>
-              <dl className="detail-meta-list">
-                <div>
-                  <dt>queue</dt>
-                  <dd>{formatPhaseMs(timing.queueMs)}</dd>
-                </div>
-                <div>
-                  <dt>model loading</dt>
-                  <dd>{formatPhaseMs(timing.modelLoadingMs)}</dd>
-                </div>
-                <div>
-                  <dt>prefill</dt>
-                  <dd>{formatPhaseMs(timing.prefillMs)}</dd>
-                </div>
-                <div>
-                  <dt>reasoning</dt>
-                  <dd>{formatPhaseMs(timing.reasoningMs)}</dd>
-                </div>
-                <div>
-                  <dt>response</dt>
-                  <dd>{formatPhaseMs(timing.responseMs)}</dd>
-                </div>
-                <div>
-                  <dt>total</dt>
-                  <dd>{formatDuration(req.durationMs)}</dd>
-                </div>
-              </dl>
+            <div className={railSectionTitle}>Timing</div>
+            <dl className="detail-meta-list">
+              <div>
+                <dt>queue</dt>
+                <dd>{formatPhaseMs(timing.queueMs)}</dd>
+              </div>
+              <div>
+                <dt>model loading</dt>
+                <dd>{formatPhaseMs(timing.modelLoadingMs)}</dd>
+              </div>
+              <div>
+                <dt>prefill</dt>
+                <dd>{formatPhaseMs(timing.prefillMs)}</dd>
+              </div>
+              <div>
+                <dt>reasoning</dt>
+                <dd>{formatPhaseMs(timing.reasoningMs)}</dd>
+              </div>
+              <div>
+                <dt>response</dt>
+                <dd>{formatPhaseMs(timing.responseMs)}</dd>
+              </div>
+              <div>
+                <dt>total</dt>
+                <dd>{formatDuration(req.durationMs)}</dd>
+              </div>
+            </dl>
+
+            <div className={`${railSectionDivider} grid gap-2`}>
+              <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
+              <CopyButton
+                text={getRequestDetailUrl()}
+                label="Copy link"
+                variant="button"
+                icon="link"
+                className="btn btn-ghost btn-sm w-full justify-start"
+              />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm w-full justify-start"
+                onClick={() => downloadRequestJsonl(req)}
+              >
+                <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                Download .jsonl
+              </button>
             </div>
           </div>
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
-          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
+          <div className="border-b border-border bg-surface-1 max-[1024px]:border-t max-[1024px]:border-t-border">
             {/* The endpoint cell that used to lead this strip is gone: it
                 repeated the page h1 at 22px, so the duplicate was louder than
                 the original. What remains is a uniform six-metric band. */}
@@ -530,63 +545,6 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </div>
           </section>
         </div>
-        {/* The sidecar carries only what appears nowhere else. Its Tokens tiles
-            duplicated the metric strip (and disagreed with it — the strip used
-            toLocaleString while these used a compact formatter, so a 24,000-token
-            prompt read "24,000" and "24k" at the same time), and its Phases list
-            repeated five of the rail's six Timing rows verbatim while being
-            hidden entirely below 1500px. */}
-        <aside className="request-detail-sidecar min-w-0 bg-surface-2 px-3.5 py-3">
-          {hasCostInfo ? (
-            <section>
-              <div className={railSectionTitle}>Cost</div>
-              <dl className="m-0 grid gap-1.5 font-mono text-xs">
-                {req.cacheCreationTokens != null || req.cacheReadTokens != null ? (
-                  <>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-fg-dim">cache write</dt>
-                      <dd className="m-0 text-fg">{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <dt className="text-fg-dim">cache read</dt>
-                      <dd className="m-0 text-fg">{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
-                    </div>
-                  </>
-                ) : null}
-                {req.costUsd != null ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <dt className="text-fg-dim">cost</dt>
-                    <dd className="m-0 text-fg">{formatCostUsd(req.costUsd)}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </section>
-          ) : null}
-
-          <section className={hasCostInfo ? railSectionDivider : undefined}>
-            <div className={railSectionTitle}>Request ID</div>
-            <div className="mono wrap-anywhere text-xs text-fg">{req.id}</div>
-          </section>
-
-          <section className={`${railSectionDivider} grid gap-2`}>
-            <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
-            <CopyButton
-              text={getRequestDetailUrl()}
-              label="Copy link"
-              variant="button"
-              icon="link"
-              className="btn btn-ghost btn-sm w-full justify-start"
-            />
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm w-full justify-start"
-              onClick={() => downloadRequestJsonl(req)}
-            >
-              <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-              Download .jsonl
-            </button>
-          </section>
-        </aside>
       </div>
     </>
   )

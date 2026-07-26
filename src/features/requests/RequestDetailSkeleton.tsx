@@ -25,10 +25,13 @@ export function RequestDetailSkeleton() {
             <DetailRailSection title="Model" rows={3} />
           </div>
           <div className="shrink-0 border-t border-border px-3.5 py-4 max-[1200px]:px-3">
-            <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
-            <div className="grid gap-2">
-              <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
-              <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
+            <DetailRailSection title="Timing" rows={6} />
+            <div className="mt-3.5 border-t border-border pt-3.5">
+              <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
+              <div className="grid gap-2">
+                <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
+                <span className="skel skel-text" style={{ width: '100%', height: 28 }} />
+              </div>
             </div>
           </div>
         </aside>
