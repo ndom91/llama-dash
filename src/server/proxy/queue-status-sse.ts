@@ -11,6 +11,18 @@ export function endpointSupportsProgressTape(endpoint: string): boolean {
   return endpoint === '/v1/chat/completions' || endpoint === '/v1/completions' || endpoint === '/v1/messages'
 }
 
+/**
+ * Local-backend routes that must not compete for the concurrency queue.
+ *
+ * Rule: anything that can trigger a model switch or run inference must be
+ * queued. Only pure catalog/metadata lookups bypass — today that is
+ * `/v1/models` and `/v1/models/{id}`. Token counting, embeddings, audio,
+ * images, and all completion endpoints stay queued.
+ */
+export function endpointBypassesLocalQueue(endpoint: string): boolean {
+  return endpoint === '/v1/models' || endpoint.startsWith('/v1/models/')
+}
+
 export type SseProgressPipeOptions = {
   /**
    * When true, non-SSE upstream bodies are re-framed as one `data:` JSON event

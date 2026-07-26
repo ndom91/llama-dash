@@ -56,7 +56,11 @@ llama.cpp `timings.prompt_ms` / `predicted_ms` are stored separately as
 
 **Queue wait is measured and persisted** as `queue_ms` on the request log (0 when dispatched immediately). Early-commit responses carry `x-llama-dash-queued: true|false`. Queued SSE streams emit `: queued …` keep-alives while waiting (every 5s, plus an immediate first ping), then `: relayed` when the slot is acquired / dispatched to the backend, before upstream `data:` events. Request detail Timing/Phases and the playground inspector (START → QUEUE → RELAY → …) surface this phase; QUEUE is logged once from the first keep-alive.
 
-**Direct upstreams completely bypass this system.**
+**Direct upstreams completely bypass this system.** Local catalog lookups
+(`/v1/models`, `/v1/models/{id}`) also bypass the queue — they take no
+concurrency slot and forward immediately. Rule of thumb: anything that can
+trigger a model switch or run inference stays queued (completions, messages,
+embeddings, audio, images, `count_tokens`, …).
 
 #### Configuration
 

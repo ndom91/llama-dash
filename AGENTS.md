@@ -317,7 +317,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (`LOCAL_BACKEND_MAX_QUEUE`, default 20). Queue overflow returns 503 with
    queue depth info. Queue timeout returns 408 (`LOCAL_BACKEND_QUEUE_TIMEOUT_MS`,
    default 60000ms; set to -1 to disable). Direct upstreams bypass the queue
-   entirely. A concurrency slot is always held until the server finishes the
+   entirely, as do local catalog lookups (`/v1/models`, `/v1/models/{id}`). A concurrency slot is always held until the server finishes the
    whole response body or the client disconnects — independent of backend and
    of concurrency N (headers alone never free the slot). Request display timing
    is `queue + model loading + prefill + reasoning + response + other = duration`
@@ -341,7 +341,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `x-llama-dash-queued` / `x-llama-dash-queue-ms` / phase offset headers, and a
    sibling `timings_llama_dash` object on the JSON body next to upstream
    `timings`). Other local routes long-poll
-   without forcing stream. Direct upstreams bypass
+   without forcing stream. Direct upstreams and `/v1/models` bypass
    the queue and return the upstream body unchanged. The scheduler is notified of model state changes from
    the model-watcher only when the loaded set changes, and only applies them
    while idle. Queue entry ids use a `queue_` prefix (distinct from logged
@@ -538,7 +538,7 @@ sort lexicographically by creation time).
   `LOCAL_BACKEND_MAX_QUEUE` (default 20), `LOCAL_BACKEND_QUEUE_TIMEOUT_MS`
   (default 60000, -1 to disable), `LOCAL_BACKEND_MODEL_GROUPING` (default true),
   `MODEL_QUEUE_BATCH_WINDOW_MS` (default 2000), `MODEL_QUEUE_FAIRNESS_TIMEOUT_MS`
-  (default 30000). Direct upstreams bypass the queue entirely.
+  (default 30000). Direct upstreams and `/v1/models` catalog lookups bypass the queue entirely.
 
 ## Runtime validation conventions
 
@@ -598,8 +598,9 @@ sort lexicographically by creation time).
   writes rather than a reload endpoint.
 - **Scheduler gates only local backends.** The concurrency queue in
   `model-scheduler.ts` applies only to local inference backends. Direct upstream
-  routing (`targetType: 'direct'`) bypasses the queue entirely and flows
-  immediately through `forwardUpstreamAndLog()`. For every queued local request,
+  routing (`targetType: 'direct'`) and local catalog lookups (`/v1/models`,
+  `/v1/models/{id}` via `endpointBypassesLocalQueue`) bypass the queue entirely
+  and flow immediately through `forwardUpstreamAndLog()`. For every queued local request,
   independent of backend and of `LOCAL_BACKEND_MAX_CONCURRENT`, a concurrency
   slot is held until the server finishes the whole response body or the client
   disconnects — never when upstream headers alone arrive (otherwise a second

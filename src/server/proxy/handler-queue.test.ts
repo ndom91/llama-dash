@@ -710,18 +710,41 @@ describe('handleProxyRequest queue behavior', () => {
     expect(JSON.parse(text)).toEqual({ data: [{ embedding: [0.1, 0.2, 0.3] }] })
   })
 
-  it('returns native JSON for /v1/models (no progress SSE)', async () => {
-    forwardMock.forwardUpstreamAndLog.mockResolvedValue(
-      Response.json({ object: 'list', data: [{ id: 'llama3', object: 'model' }] }),
+  it('bypasses the scheduler for /v1/models (no concurrency slot)', async () => {
+    // Saturate the local backend so a queued request would wait or 503.
+    scheduler = new ModelScheduler({
+      maxConcurrency: 1,
+      maxQueueSize: 0,
+      queueTimeoutMs: 5000,
+      batchWindowMs: 0,
+      fairnessTimeoutMs: 30000,
+      modelGrouping: true,
+    })
+    setModelScheduler(scheduler)
+
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async (...args: unknown[]) => {
+      const input = args[0] as { endpoint?: string }
+      if (input.endpoint === '/v1/models') {
+        return Response.json({ object: 'list', data: [{ id: 'llama3', object: 'model' }] })
+      }
+      return new Promise<Response>(() => {})
+    })
+
+    handleProxyRequest(
+      new Request('http://dash.test/v1/chat/completions', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'busy', messages: [{ role: 'user', content: 'hold slot' }], stream: true }),
+      }),
     )
+    await vi.waitFor(() => expect(scheduler.getActiveSlots()).toBe(1))
 
     const resp = await handleProxyRequest(new Request('http://dash.test/v1/models'))
 
     expect(resp.status).toBe(200)
-    expect(forwardUpstreamAndLog).toHaveBeenCalledTimes(1)
+    expect(scheduler.getActiveSlots()).toBe(1)
+    expect(scheduler.getQueueDepth()).toBe(0)
     expect(resp.headers.get('content-type')).toContain('application/json')
-    expect(resp.headers.get('content-type')).not.toContain('text/event-stream')
-    expect(resp.headers.get('x-llama-dash-queued')).toBe('false')
+    expect(resp.headers.get('x-llama-dash-queued')).toBeNull()
     const body = await resp.json()
     expect(body).toEqual({ object: 'list', data: [{ id: 'llama3', object: 'model' }] })
   })

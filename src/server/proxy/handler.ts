@@ -14,7 +14,12 @@ import {
 import { queueOverflowError, queueTimeoutError, toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { getModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
-import { createImmediateSseStream, createQueuedSseStream, endpointSupportsProgressTape } from './queue-status-sse.ts'
+import {
+  createImmediateSseStream,
+  createQueuedSseStream,
+  endpointBypassesLocalQueue,
+  endpointSupportsProgressTape,
+} from './queue-status-sse.ts'
 import { forceUpstreamStream } from './assemble-sse-completion.ts'
 import { registerProxyInflight, updateInflight } from './inflight-requests.ts'
 import { applyProxyBodyHeaders, applyProxyBodyTransform } from './body.ts'
@@ -202,16 +207,19 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   const reqBody = loggedRequestBody(ctx)
 
   const isLocalBackend = ctx.routingOutcome.targetType !== 'direct'
+  const bypassLocalQueue = isLocalBackend && endpointBypassesLocalQueue(ctx.endpoint)
   const clientRequestedSse = ctx.body?.parsedBody?.stream === true
   // Progress SSE tape only when the client asked for streaming on a completion
   // endpoint. Non-stream clients still get JSON — we may force upstream stream
   // and assemble the completion after the SSE finishes.
-  const useProgressTape = isLocalBackend && clientRequestedSse && endpointSupportsProgressTape(ctx.endpoint)
+  const useProgressTape =
+    isLocalBackend && !bypassLocalQueue && clientRequestedSse && endpointSupportsProgressTape(ctx.endpoint)
 
   // Local completion + client stream:false → upstream stream:true, assemble JSON.
   let assembleNonStream = false
   if (
     isLocalBackend &&
+    !bypassLocalQueue &&
     !clientRequestedSse &&
     endpointSupportsProgressTape(ctx.endpoint) &&
     ctx.body?.parsedBody &&
@@ -225,7 +233,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
   }
 
-  if (isLocalBackend) {
+  if (isLocalBackend && !bypassLocalQueue) {
     const scheduler = getModelScheduler()
     // Queue-entry id is distinct from the logged request id (req_*).
     const entryId = `queue_${ulid()}`

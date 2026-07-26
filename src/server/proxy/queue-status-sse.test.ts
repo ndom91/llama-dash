@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createImmediateSseStream,
   createQueuedSseStream,
+  endpointBypassesLocalQueue,
   endpointSupportsProgressTape,
   formatQueueComment,
   formatReasonComment,
@@ -23,6 +24,22 @@ describe('endpointSupportsProgressTape', () => {
     expect(endpointSupportsProgressTape('/v1/embeddings')).toBe(false)
     expect(endpointSupportsProgressTape('/v1/messages/count_tokens')).toBe(false)
     expect(endpointSupportsProgressTape('/v1/audio/speech')).toBe(false)
+  })
+})
+
+describe('endpointBypassesLocalQueue', () => {
+  it('bypasses model catalog lookups only (no switch / no inference)', () => {
+    expect(endpointBypassesLocalQueue('/v1/models')).toBe(true)
+    expect(endpointBypassesLocalQueue('/v1/models/llama3')).toBe(true)
+    // Everything that can switch or run a model stays queued.
+    expect(endpointBypassesLocalQueue('/v1/chat/completions')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/completions')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/messages')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/messages/count_tokens')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/embeddings')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/audio/transcriptions')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/audio/speech')).toBe(false)
+    expect(endpointBypassesLocalQueue('/v1/images/generations')).toBe(false)
   })
 })
 
