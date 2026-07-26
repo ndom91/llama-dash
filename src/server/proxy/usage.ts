@@ -124,6 +124,7 @@ function tokenKinds(body: RawJson): TokenKinds {
       if (typeof delta.reasoning_content === 'string' && delta.reasoning_content.length > 0) hasReasoning = true
       if (typeof delta.reasoning === 'string' && delta.reasoning.length > 0) hasReasoning = true
       if (typeof delta.content === 'string' && delta.content.length > 0) hasContent = true
+      if (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0) hasContent = true
     }
   }
 
@@ -135,6 +136,11 @@ function tokenKinds(body: RawJson): TokenKinds {
       }
       if (delta.type === 'text_delta' && typeof delta.text === 'string' && delta.text.length > 0) hasContent = true
     }
+  }
+
+  if (body.type === 'content_block_start') {
+    const delta = asRecord(body.delta)
+    if (delta && delta.type === 'tool_use') hasContent = true
   }
 
   return { hasReasoning, hasContent }

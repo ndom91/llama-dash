@@ -179,15 +179,62 @@ describe('SseUsageScanner display phases', () => {
       'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"step2"}}\n\n',
       25,
     )
-    scanner.feed(
-      'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"answer"}}\n\n',
-      60,
-    )
+    scanner.feed('data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"answer"}}\n\n', 60)
     scanner.feed('data: {"type":"message_stop"}\n\n', 70)
     const usage = scanner.done(80)
 
     // reasoningStartAtMs = 10, firstContentAtMs = 60
     expect(usage.reasoningMs).toBe(50) // 60 - 10
     expect(usage.modelLoadingMs).toBe(10) // 10 - 0
+  })
+
+  it('tracks reasoning timing when response is tool calls only (OpenAI)', () => {
+    const dispatchAt = 0
+    const scanner = new SseUsageScanner(dispatchAt)
+    scanner.feed('data: {"choices":[{"delta":{"reasoning_content":"plan"}}]}\n\n', 30)
+    scanner.feed(
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"f","arguments":"{}"}}]}}]}\n\n',
+      80,
+    )
+    scanner.feed('data: [DONE]\n\n', 90)
+    const usage = scanner.done(100)
+
+    expect(usage.reasoningMs).toBe(50) // 80 - 30
+    expect(usage.modelLoadingMs).toBe(30) // 30 - 0
+  })
+
+  it('tracks reasoning timing when response is tool calls only (Anthropic)', () => {
+    const dispatchAt = 0
+    const scanner = new SseUsageScanner(dispatchAt)
+    scanner.feed(
+      'data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"plan"}}\n\n',
+      20,
+    )
+    scanner.feed(
+      'data: {"type":"content_block_start","index":0,"delta":{"type":"tool_use","id":"t_1","name":"f","input":{}}}\n\n',
+      70,
+    )
+    scanner.feed('data: {"type":"message_stop"}\n\n', 80)
+    const usage = scanner.done(90)
+
+    expect(usage.reasoningMs).toBe(50) // 70 - 20
+    expect(usage.modelLoadingMs).toBe(20) // 20 - 0
+  })
+
+  it('sets model loading from tool-call-only response with no reasoning (OpenAI)', () => {
+    const dispatchAt = 0
+    const scanner = new SseUsageScanner(dispatchAt)
+    scanner.feed(
+      'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"f","arguments":"{}"}}]}}]}\n\n',
+      60,
+    )
+    scanner.feed('data: {"timings":{"prompt_ms":10,"predicted_ms":50}}\n\n', 70)
+    scanner.feed('data: [DONE]\n\n', 80)
+    const usage = scanner.done(90)
+
+    expect(usage.modelLoadingMs).toBe(50) // 60 - 10
+    expect(usage.prefillMs).toBe(10)
+    expect(usage.reasoningMs).toBeNull()
+    expect(usage.responseMs).toBe(50)
   })
 })
