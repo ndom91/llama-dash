@@ -1,6 +1,15 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
-import { useGpu, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../../lib/queries'
+import {
+  useGpu,
+  useHealth,
+  useInflightRequests,
+  useModelTimeline,
+  useModels,
+  useRecentRequests,
+  useRequestStats,
+} from '../../lib/queries'
+import { mergeInflightIntoList } from '../../lib/request-list-items'
 import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
 import { DashboardResidencyPanel } from './DashboardResidencyPanel'
 import { DashboardRunningModelsPanel } from './DashboardRunningModelsPanel'
@@ -11,10 +20,23 @@ import { formatLatency, formatRate } from './dashboardUtils'
 export function DashboardPage() {
   const { data: models } = useModels()
   const { data: requests } = useRecentRequests(30)
+  const { data: inflight } = useInflightRequests()
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!inflight?.length) return
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [inflight?.length])
+
+  const mergedRequests = useMemo(
+    () => (requests == null ? null : mergeInflightIntoList(requests, inflight ?? [], nowMs, { includeMcp: false })),
+    [requests, inflight, nowMs],
+  )
 
   const active = useMemo(() => models?.filter((m) => m.running || m.kind === 'peer') ?? [], [models])
   return (
@@ -55,7 +77,7 @@ export function DashboardPage() {
 
             <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
             <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
-            <DashboardRecentRequestsPanel requests={requests ?? null} />
+            <DashboardRecentRequestsPanel requests={mergedRequests} />
           </div>
         </div>
       </div>

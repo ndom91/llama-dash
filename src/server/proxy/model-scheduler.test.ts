@@ -3,6 +3,7 @@ import { ModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
 
 function makeRequestData(upstream = 'http://test/v1/chat/completions', model = 'llama3'): ProxyRequestData {
   return {
+    id: `req_test_${model}`,
     upstream,
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -32,6 +33,10 @@ let dispatchCallCount = vi.hoisted(() => 0)
 
 vi.mock('./forward.ts', () => ({
   forwardUpstreamAndLog: forwardMock,
+}))
+
+vi.mock('./inflight-requests.ts', () => ({
+  updateInflight: vi.fn(),
 }))
 
 function resolvePending() {

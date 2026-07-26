@@ -27,6 +27,8 @@ type Attribution = {
 }
 
 export type ProxyLogInput = {
+  /** Prefixed ULID shared with inflight tracking when registered. */
+  id?: string
   startedAt: number
   status: number
   requestClass?: 'inference' | 'mcp_relay'
@@ -100,6 +102,7 @@ export function writeProxyLog(input: ProxyLogInput) {
   const loggedModel = input.routing.routedModel ?? input.routing.requestedModel ?? input.reqModel ?? input.usage.model
 
   writeRequestLog({
+    id: input.id,
     startedAt: input.startedAt,
     durationMs: Date.now() - input.startedAt,
     requestClass: input.requestClass ?? 'inference',
@@ -183,6 +186,8 @@ export async function forwardUpstreamAndLog(input: {
   startedAt: number
   endpoint: string
   requestClass?: 'inference' | 'mcp_relay'
+  /** Prefixed ULID shared with inflight tracking when registered. */
+  id?: string
   reqModel: string | null
   reqHeadersJson: string
   reqBody: string | null
@@ -228,6 +233,7 @@ export async function forwardUpstreamAndLog(input: {
 
   if (!upstreamResponse.body) {
     writeProxyLog({
+      id: input.id,
       startedAt: input.startedAt,
       status: upstreamResponse.status,
       requestClass: input.requestClass,
@@ -326,6 +332,7 @@ export async function forwardUpstreamAndLog(input: {
           const assembled = finishAssembled()
 
           writeProxyLog({
+            id: input.id,
             startedAt: input.startedAt,
             status: upstreamResponse.status,
             requestClass: input.requestClass,
@@ -375,6 +382,7 @@ export async function forwardUpstreamAndLog(input: {
         const message = err instanceof Error ? err.message : String(err)
         const assembled = finishAssembled()
         writeProxyLog({
+          id: input.id,
           startedAt: input.startedAt,
           status: upstreamResponse.status,
           requestClass: input.requestClass,
@@ -404,6 +412,7 @@ export async function forwardUpstreamAndLog(input: {
       reader.cancel().catch(() => {})
       const assembled = finishAssembled()
       writeProxyLog({
+        id: input.id,
         startedAt: input.startedAt,
         status: upstreamResponse.status,
         requestClass: input.requestClass,
@@ -437,6 +446,7 @@ export async function forwardUpstreamAndLog(input: {
 }
 
 type ForwardInput = {
+  id?: string
   startedAt: number
   endpoint: string
   requestClass?: 'inference' | 'mcp_relay'
@@ -524,6 +534,7 @@ async function assembleUpstreamSseAsJson(opts: {
   const status = jsonResult ? upstreamResponse.status : 502
 
   writeProxyLog({
+    id: input.id,
     startedAt: input.startedAt,
     status,
     requestClass: input.requestClass,

@@ -181,6 +181,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/requests` — cursor-paginated list
+   - `/api/requests/inflight` — in-memory live exchanges (not yet logged)
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
@@ -344,6 +345,15 @@ paths (proxy will grow middleware; admin will grow CRUD).
    while idle. Queue entry ids use a `queue_` prefix (distinct from logged
    `req_` ids). SSE timeouts after early commit emit an SSE `queue_timeout`
    error event rather than HTTP 408.
+17. In-flight request visibility. Long-lived proxy exchanges mint `req_…` at
+   accept and register in an in-memory map (`src/server/proxy/inflight-requests.ts`)
+   with phases `accepted` → `queued` → `active`. `/api/events` publishes
+   `request.started` / `request.updated`; on completion the existing
+   `request.completed` event removes the live row and patches finished list
+   caches. `GET /api/requests/inflight` is the reconnect snapshot. SQLite still
+   inserts only on completion (same id). Dashboard recent + `/requests` overlay
+   live rows at the top with a pulsing phase badge; detail deep-link waits until
+   the row is logged.
 
 ## Tooling
 

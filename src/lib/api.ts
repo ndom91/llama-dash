@@ -15,6 +15,7 @@ import { ModelDetailResponseSchema, ModelsResponseSchema, ModelTimelineResponseS
 import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
+  InflightListResponseSchema,
   RequestDetailResponseSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
@@ -31,6 +32,7 @@ export type {
   ApiRequestDetail,
   ApiRequestStats,
   ApiHistogramBucket,
+  InflightRequest,
 } from './schemas/request'
 export type {
   ApiGpuInfo,
@@ -109,6 +111,7 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
   },
+  listInflightRequests: () => getJson('/api/requests/inflight', InflightListResponseSchema),
   getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),

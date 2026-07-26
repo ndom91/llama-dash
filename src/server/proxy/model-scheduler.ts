@@ -1,5 +1,6 @@
 import { config } from '../config.ts'
 import { forwardUpstreamAndLog } from './forward.ts'
+import { updateInflight } from './inflight-requests.ts'
 import { formatRelayedComment } from './queue-status-sse.ts'
 
 export type QueueEntryId = string
@@ -26,6 +27,8 @@ export type QueueEntry = {
 }
 
 export type ProxyRequestData = {
+  /** Prefixed ULID shared with inflight tracking and the finished log row. */
+  id: string
   upstream: string
   method: string
   headers: Record<string, string>
@@ -64,6 +67,7 @@ export function markRelayed(requestData: ProxyRequestData, relayedAtMs = Date.no
   requestData.relayedAtMs = relayedAtMs
   const startAt = requestData.earlyCommitAtMs ?? requestData.enqueueAtMs
   requestData.queueMs = startAt != null ? Math.max(0, relayedAtMs - startAt) : 0
+  updateInflight(requestData.id, { phase: 'active' })
   return relayedAtMs
 }
 

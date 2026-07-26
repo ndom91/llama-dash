@@ -39,6 +39,46 @@ export const ApiRequestSchema = v.object({
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>
 
+/** Live (not yet logged) proxy exchange — in-memory only. */
+export const InflightRequestPhaseSchema = v.picklist(['accepted', 'queued', 'active'])
+export type InflightRequestPhase = v.InferOutput<typeof InflightRequestPhaseSchema>
+
+export const InflightRequestSchema = v.object({
+  id: v.string(),
+  startedAt: v.string(),
+  requestClass: v.picklist(['inference', 'mcp_relay']),
+  method: v.string(),
+  endpoint: v.string(),
+  model: v.nullable(v.string()),
+  streamed: v.nullable(v.boolean()),
+  phase: InflightRequestPhaseSchema,
+  keyName: v.nullable(v.string()),
+  clientHost: v.nullable(v.string()),
+  clientName: v.nullable(v.string()),
+  endUserId: v.nullable(v.string()),
+  sessionId: v.nullable(v.string()),
+  routingRuleName: v.nullable(v.string()),
+  routingTargetType: v.nullable(v.string()),
+})
+
+export type InflightRequest = v.InferOutput<typeof InflightRequestSchema>
+
+export const InflightListResponseSchema = v.object({
+  requests: v.array(InflightRequestSchema),
+})
+
+export const RequestStartedEventSchema = v.object({
+  request: InflightRequestSchema,
+})
+
+export const RequestUpdatedEventSchema = v.object({
+  request: InflightRequestSchema,
+})
+
+export const RequestCompletedEventSchema = v.object({
+  request: ApiRequestSchema,
+})
+
 export const ApiRequestDetailSchema = v.object({
   ...ApiRequestSchema.entries,
   requestHeaders: v.nullable(v.string()),

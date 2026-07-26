@@ -62,6 +62,7 @@ const apiKeysMock = vi.hoisted(() => ({
 vi.mock('../admin/api-keys.ts', () => ({
   hasAnyUserKeys: apiKeysMock.hasAnyUserKeys,
   findKeyByHash: apiKeysMock.findKeyByHash,
+  getApiKeyName: () => null,
 }))
 
 const logsMock = vi.hoisted(() => ({

@@ -10,7 +10,8 @@ import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { formatCompactNumber } from '../../lib/format'
-import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { useAttributionSettings, useInflightRequests, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { inflightPhaseLabel, mergeInflightIntoList } from '../../lib/request-list-items'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
@@ -43,8 +44,16 @@ export function RequestsPage() {
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
+  const { data: inflightRows } = useInflightRequests()
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!inflightRows?.length) return
+    const timer = window.setInterval(() => setNowMs(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [inflightRows?.length])
 
   const search = routeSearch.q ?? ''
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
@@ -91,7 +100,10 @@ export function RequestsPage() {
     return () => window.clearTimeout(timeout)
   }, [search, searchDraft, updateSearch])
 
-  const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
+  const allRows = useMemo(
+    () => mergeInflightIntoList(data?.pages.flatMap((p) => p.requests) ?? [], inflightRows ?? [], nowMs),
+    [data, inflightRows, nowMs],
+  )
 
   const models = useMemo(() => {
     const set = new Set<string>()
@@ -165,7 +177,8 @@ export function RequestsPage() {
     return sorted
   }, [displayed, sortKey, sortDir])
 
-  const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
+  const errCount = useMemo(() => displayed.filter((r) => !r.inflightPhase && r.statusCode >= 400).length, [displayed])
+  const liveCount = useMemo(() => displayed.filter((r) => r.inflightPhase).length, [displayed])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
@@ -238,6 +251,7 @@ export function RequestsPage() {
         setSelectedIdx((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter' && selectedIdx >= 0 && selectedIdx < rows.length) {
         e.preventDefault()
+        if (rows[selectedIdx].inflightPhase) return
         navigate({ to: '/requests/$id', params: { id: rows[selectedIdx].id } })
       }
     },
@@ -540,7 +554,9 @@ export function RequestsPage() {
                 <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
-                    {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                    {displayed.length} rows
+                    {liveCount > 0 ? ` · ${liveCount} live` : ''}
+                    {errCount > 0 ? ` · ${errCount} errors` : ''}
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>
@@ -611,7 +627,11 @@ export function RequestsPage() {
                             <div
                               key={r.id}
                               tabIndex={-1}
-                              className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                              className={cn(
+                                'vt-row',
+                                !r.inflightPhase && 'clickable-row',
+                                vRow.index === selectedIdx && 'selected-row',
+                              )}
                               style={{
                                 position: 'absolute',
                                 top: 0,
@@ -620,9 +640,14 @@ export function RequestsPage() {
                                 height: REQUESTS_ROW_HEIGHT,
                                 transform: `translateY(${vRow.start}px)`,
                               }}
-                              onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                              onClick={() => {
+                                if (r.inflightPhase) return
+                                navigate({ to: '/requests/$id', params: { id: r.id } })
+                              }}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                                if (e.key === 'Enter' && !r.inflightPhase) {
+                                  navigate({ to: '/requests/$id', params: { id: r.id } })
+                                }
                               }}
                             >
                               <table className="dtable dtable-virtual">
@@ -675,7 +700,16 @@ export function RequestsPage() {
                                       </div>
                                     </td>
                                     <td>
-                                      <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      {r.inflightPhase ? (
+                                        <span className="inline-flex items-baseline gap-1.5 leading-none">
+                                          <StatusDot tone="warn" live />
+                                          <span className="mono text-[11px] text-warn">
+                                            {inflightPhaseLabel(r.inflightPhase)}
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      )}
                                     </td>
                                     {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
                                     {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
@@ -692,14 +726,18 @@ export function RequestsPage() {
                                     <td>
                                       <DurationBar
                                         ms={r.durationMs}
-                                        isErr={r.statusCode >= 400}
-                                        timing={{
-                                          queueMs: r.queueMs,
-                                          modelLoadingMs: r.modelLoadingMs,
-                                          prefillMs: r.prefillMs,
-                                          reasoningMs: r.reasoningMs,
-                                          responseMs: r.responseMs,
-                                        }}
+                                        isErr={!r.inflightPhase && r.statusCode >= 400}
+                                        timing={
+                                          r.inflightPhase
+                                            ? undefined
+                                            : {
+                                                queueMs: r.queueMs,
+                                                modelLoadingMs: r.modelLoadingMs,
+                                                prefillMs: r.prefillMs,
+                                                reasoningMs: r.reasoningMs,
+                                                responseMs: r.responseMs,
+                                              }
+                                        }
                                       />
                                     </td>
                                   </tr>

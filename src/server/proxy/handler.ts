@@ -16,6 +16,7 @@ import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { getModelScheduler, type ProxyRequestData } from './model-scheduler.ts'
 import { createImmediateSseStream, createQueuedSseStream, endpointSupportsProgressTape } from './queue-status-sse.ts'
 import { forceUpstreamStream } from './assemble-sse-completion.ts'
+import { registerProxyInflight, updateInflight } from './inflight-requests.ts'
 import { applyProxyBodyHeaders, applyProxyBodyTransform } from './body.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
@@ -61,6 +62,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
     }
     writeProxyLog({
+      id: ctx.requestId,
       startedAt: ctx.startedAt,
       status: authResult.status,
       method: ctx.method,
@@ -102,6 +104,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       ctx.routingOutcome = transformResult.routing
       if (!transformResult.ok) {
         writeProxyLog({
+          id: ctx.requestId,
           startedAt: ctx.startedAt,
           status: transformResult.status,
           method: ctx.method,
@@ -139,6 +142,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       },
     }
     writeProxyLog({
+      id: ctx.requestId,
       startedAt: ctx.startedAt,
       status: 401,
       method: ctx.method,
@@ -168,6 +172,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   ctx.redactedInjectedHeaderNames = credentialInjection.redactedHeaderNames
   if (!credentialInjection.ok) {
     writeProxyLog({
+      id: ctx.requestId,
       startedAt: ctx.startedAt,
       status: credentialInjection.status,
       method: ctx.method,
@@ -226,7 +231,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     const entryId = `queue_${ulid()}`
     const model = ctx.body?.reqModel ?? ctx.routingOutcome.routedModel ?? 'unknown'
 
+    registerProxyInflight(ctx, {
+      phase: 'accepted',
+      streamed: clientRequestedSse ? true : assembleNonStream ? false : null,
+    })
+
     const requestData: ProxyRequestData = {
+      id: ctx.requestId,
       upstream: ctx.upstream,
       method: ctx.method,
       headers: ctx.reqHeaders,
@@ -251,9 +262,14 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
     const enqueueResult = scheduler.enqueue(entryId, model, requestData)
 
+    if (enqueueResult.status === 'queued') {
+      updateInflight(ctx.requestId, { phase: 'queued' })
+    }
+
     if (enqueueResult.status === 'overflow') {
       const overflow = queueOverflowError(enqueueResult.queueDepth, enqueueResult.maxQueue)
       writeProxyLog({
+        id: ctx.requestId,
         startedAt: ctx.startedAt,
         status: overflow.status,
         method: ctx.method,
@@ -325,6 +341,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       if (isTimeout) {
         const timeoutErr = queueTimeoutError(config.localBackendQueueTimeoutMs)
         writeProxyLog({
+          id: ctx.requestId,
           startedAt: ctx.startedAt,
           status: timeoutErr.status,
           method: ctx.method,
@@ -350,6 +367,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       }
 
       writeProxyLog({
+        id: ctx.requestId,
         startedAt: ctx.startedAt,
         status: 502,
         method: ctx.method,
@@ -376,7 +394,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     }
   }
 
+  registerProxyInflight(ctx, {
+    phase: 'active',
+    streamed: clientRequestedSse ? true : null,
+  })
+
   const forwardedResponse = await forwardUpstreamAndLog({
+    id: ctx.requestId,
     upstream: ctx.upstream,
     method: ctx.method,
     headers: ctx.reqHeaders,
@@ -396,6 +420,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   if ('upstreamError' in forwardedResponse) {
     writeProxyLog({
+      id: ctx.requestId,
       startedAt: ctx.startedAt,
       status: 502,
       method: ctx.method,
@@ -444,6 +469,7 @@ function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
   const message = err instanceof Error ? err.message : String(err)
   const body = { error: { message, type: 'request_too_large' } }
   writeProxyLog({
+    id: ctx.requestId,
     startedAt: ctx.startedAt,
     status: 413,
     method: ctx.method,

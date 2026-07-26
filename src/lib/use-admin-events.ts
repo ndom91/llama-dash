@@ -5,11 +5,13 @@ import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
 import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
-import { ApiRequestSchema, type ApiRequest } from './schemas/request'
+import { ApiRequestSchema, InflightRequestSchema, type ApiRequest, type InflightRequest } from './schemas/request'
 
 type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
+const RequestStartedEventSchema = v.object({ request: InflightRequestSchema })
+const RequestUpdatedEventSchema = v.object({ request: InflightRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
@@ -52,6 +54,24 @@ function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) 
   }
 }
 
+function upsertInflightCache(queryClient: QueryClient, request: InflightRequest) {
+  queryClient.setQueryData<Array<InflightRequest>>(qk.requestsInflight, (old) => {
+    const rows = old ?? []
+    const idx = rows.findIndex((row) => row.id === request.id)
+    if (idx === -1) return [request, ...rows]
+    const next = rows.slice()
+    next[idx] = request
+    return next
+  })
+}
+
+function removeInflightCache(queryClient: QueryClient, id: string) {
+  queryClient.setQueryData<Array<InflightRequest>>(qk.requestsInflight, (old) => {
+    if (!old?.length) return old
+    return old.filter((row) => row.id !== id)
+  })
+}
+
 function isMcpRelayRequest(request: ApiRequest): boolean {
   return request.requestClass === 'mcp_relay'
 }
@@ -80,8 +100,27 @@ export function useAdminEvents() {
       }
 
       scheduleRequestStatsInvalidation()
+      removeInflightCache(queryClient, data.request.id)
       updateRecentRequestCaches(queryClient, data.request)
       updateRequestsListCache(queryClient, data.request)
+    }
+
+    const onRequestStarted = (event: MessageEvent) => {
+      const data = parseEventData(RequestStartedEventSchema, event)
+      if (!data) {
+        queryClient.invalidateQueries({ queryKey: qk.requestsInflight })
+        return
+      }
+      upsertInflightCache(queryClient, data.request)
+    }
+
+    const onRequestUpdated = (event: MessageEvent) => {
+      const data = parseEventData(RequestUpdatedEventSchema, event)
+      if (!data) {
+        queryClient.invalidateQueries({ queryKey: qk.requestsInflight })
+        return
+      }
+      upsertInflightCache(queryClient, data.request)
     }
 
     const invalidateModels = () => {
@@ -101,6 +140,8 @@ export function useAdminEvents() {
     }
 
     events.addEventListener('request.completed', updateRequests)
+    events.addEventListener('request.started', onRequestStarted)
+    events.addEventListener('request.updated', onRequestUpdated)
     events.addEventListener('model.changed', invalidateModels)
     events.addEventListener('gpu.updated', updateGpu)
     events.addEventListener('system.changed', invalidateSystem)

@@ -1,4 +1,3 @@
-import { ulid } from 'ulidx'
 import { getApiKeyName } from '../admin/api-keys.ts'
 import { publishAdminEvent } from '../admin/events.ts'
 import { getPrivacySettings } from '../admin/settings.ts'
@@ -6,6 +5,7 @@ import { toRequestRow } from '../admin/requests.ts'
 import { getBodyLogLimits } from '../admin/settings.ts'
 import { db, schema } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
+import { finishInflight, mintRequestId } from './inflight-requests.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
 
 const MAX_LOG_QUEUE_SIZE = 1_000
@@ -31,6 +31,8 @@ function truncateBody(body: string | null, maxBytes: number): string | null {
 }
 
 export type RequestLogInput = {
+  /** Prefixed ULID; minted at accept when available so inflight→completed shares an id. */
+  id?: string
   startedAt: number
   durationMs: number
   requestClass: 'inference' | 'mcp_relay'
@@ -124,7 +126,8 @@ function scheduleFlush() {
 }
 
 export function writeRequestLogNow(row: RequestLogInput) {
-  const id = `req_${ulid()}`
+  const id = row.id && row.id.startsWith('req_') ? row.id : mintRequestId()
+  finishInflight(id)
   const { maxBytes } = getBodyLogLimits()
   const privacy = getPrivacySettings()
   const isSuccessfulMcpRelay = row.requestClass === 'mcp_relay' && row.statusCode < 400 && row.error == null

@@ -6,6 +6,7 @@ import {
   getRequestStats,
   listRecentRequests,
 } from '../requests.ts'
+import { listInflight } from '../../proxy/inflight-requests.ts'
 import { clamp, error, json, type Route } from './types.ts'
 
 export const requestRoutes: Route[] = [
@@ -24,6 +25,11 @@ export const requestRoutes: Route[] = [
         mcpHiddenCount: includeMcp ? 0 : countRecentMcpRequests({ cursor: cursor ?? undefined }),
       })
     },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/inflight$/,
+    handler: async () => json(200, { requests: listInflight() }),
   },
   {
     method: 'GET',
