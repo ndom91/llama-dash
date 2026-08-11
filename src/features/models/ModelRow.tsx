@@ -1,5 +1,6 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Play, Power } from 'lucide-react'
+import { CopyButton } from '../../components/CopyButton'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/api'
@@ -39,6 +40,11 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
           <span className="mono" translate="no">
             {model.id}
           </span>
+          <Tooltip label="Copy model slug" side="top">
+            <span className="inline-flex shrink-0">
+              <CopyButton text={model.id} variant="icon" ariaLabel={`Copy model slug ${model.id}`} stopPropagation />
+            </span>
+          </Tooltip>
           {capabilityBadges.length > 0 ? (
             <span className="contents">
               <span className="sr-only">Capabilities: </span>

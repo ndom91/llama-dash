@@ -14,6 +14,7 @@ type Props = {
   icon?: CopyButtonIcon
   className?: string
   iconStrokeWidth?: number
+  stopPropagation?: boolean
 }
 
 const variantClasses: Record<CopyButtonVariant, string> = {
@@ -31,11 +32,13 @@ export function CopyButton({
   icon = 'copy',
   className,
   iconStrokeWidth = 2,
+  stopPropagation = false,
 }: Props) {
   const [copied, setCopied] = useState(false)
   const Icon = icon === 'link' ? Link : Copy
 
-  const copy = () => {
+  const copy = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (stopPropagation) event.stopPropagation()
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
