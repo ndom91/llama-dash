@@ -16,7 +16,7 @@ export function EndpointsPage() {
   const activeKeys = useMemo(() => (keys ?? []).filter((k) => !k.disabledAt), [keys])
   const hasKeys = activeKeys.length > 0
   const keyDisplay = hasKeys ? `${activeKeys[selectedKeyIdx]?.keyPrefix}…` : 'sk-your-key-here'
-  const firstModel = models?.[0]?.id ?? 'your-model'
+  const exampleModel = models?.find((model) => model.running && model.kind === 'local')?.id ?? 'your-model'
 
   return (
     <div className="content">
@@ -75,7 +75,7 @@ export function EndpointsPage() {
           </div>
           <Tabs items={ENDPOINT_TABS} value={tab} onChange={setTab} ariaLabel="Endpoint examples" />
           <div className="p-4">
-            <CodeExample tab={tab} baseUrl={baseUrl} apiKey={keyDisplay} model={firstModel} />
+            <CodeExample tab={tab} baseUrl={baseUrl} apiKey={keyDisplay} model={exampleModel} />
           </div>
         </section>
       </div>
