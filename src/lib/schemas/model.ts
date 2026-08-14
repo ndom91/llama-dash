@@ -10,11 +10,20 @@ export const ApiModelCapabilitiesSchema = v.object({
 
 export type ApiModelCapabilities = v.InferOutput<typeof ApiModelCapabilitiesSchema>
 
+export const ApiModelSelectorSchema = v.object({
+  strategy: v.string(),
+  targets: v.array(v.string()),
+  spillover: v.nullable(v.number()),
+})
+
+export type ApiModelSelector = v.InferOutput<typeof ApiModelSelectorSchema>
+
 export const ApiModelSchema = v.object({
   id: v.string(),
   name: v.string(),
-  kind: v.union([v.literal('local'), v.literal('peer')]),
+  kind: v.union([v.literal('local'), v.literal('peer'), v.literal('selector')]),
   peerId: v.nullable(v.string()),
+  selector: v.nullable(ApiModelSelectorSchema),
   contextLength: v.nullable(v.number()),
   state: v.string(),
   running: v.boolean(),

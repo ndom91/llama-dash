@@ -118,7 +118,7 @@ export function useRunningCount() {
 
 export function useModelCounts() {
   return useModels((models) => ({
-    running: models.filter((m) => m.running && m.kind !== 'peer').length,
+    running: models.filter((m) => m.running && m.kind === 'local').length,
     peers: models.filter((m) => m.kind === 'peer').length,
   }))
 }

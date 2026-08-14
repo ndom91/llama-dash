@@ -46,8 +46,8 @@ policies/filters, and logging all hang off.
 src/
   routes/                 — TanStack Router file-routes (UI + __root.tsx)
     index.tsx               · / dashboard home
-    models.index.tsx        · /models list + load/unload actions
-    models.$id.tsx          · /models/:id detail (stats, history, config snippet)
+    models.index.tsx        · /models list + load/unload actions + llama-swap selector routing
+    models.$id.tsx          · /models/:id detail (stats, history, config snippet, selector targets)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
     keys.index.tsx          · /keys list + create/revoke/delete
@@ -200,7 +200,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    15s, diffs against known state, inserts `load`/`unload` events into SQLite,
    and publishes model-change dashboard events.
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
-    recent requests), Models (list + load/unload + capability badges + per-model detail),
+    recent requests), Models (list + load/unload + capability badges + llama-swap selector routing + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     update status, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS

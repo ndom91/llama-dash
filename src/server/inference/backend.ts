@@ -30,10 +30,18 @@ export type InferenceHealth = {
 export type BackendModel = {
   id: string
   name: string
-  kind: 'local' | 'peer'
+  kind: 'local' | 'peer' | 'selector'
   peerId: string | null
+  selector: BackendModelSelector | null
+  running: boolean
   contextLength: number | null
   capabilities: BackendModelCapabilities
+}
+
+export type BackendModelSelector = {
+  strategy: string
+  targets: Array<string>
+  spillover: number | null
 }
 
 export type BackendModelCapabilities = {

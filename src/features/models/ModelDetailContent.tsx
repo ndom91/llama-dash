@@ -29,6 +29,7 @@ export function ModelDetailContent({ data }: Props) {
   const configMeta = useMemo(() => parseModelConfigSnippet(configSnippet), [configSnippet])
   const contextLabel = formatContextLength(model.contextLength) ?? configMeta.ctxSize
   const capabilityBadges = getModelCapabilityBadges(model)
+  const isSelector = model.kind === 'selector'
 
   return (
     <>
@@ -86,20 +87,54 @@ export function ModelDetailContent({ data }: Props) {
                 <dt>kind</dt>
                 <dd>{model.kind}</dd>
               </div>
-              <div>
-                <dt>ctx</dt>
-                <dd>{contextLabel ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>ttl</dt>
-                <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
-              </div>
-              <div>
-                <dt>port</dt>
-                <dd>{configMeta.port ?? '—'}</dd>
-              </div>
+              {!isSelector ? (
+                <>
+                  <div>
+                    <dt>ctx</dt>
+                    <dd>{contextLabel ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>ttl</dt>
+                    <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>port</dt>
+                    <dd>{configMeta.port ?? '—'}</dd>
+                  </div>
+                </>
+              ) : null}
             </dl>
           </div>
+
+          {model.selector ? (
+            <div className="detail-meta-section">
+              <div className="detail-meta-kicker">Selector</div>
+              <dl className="detail-meta-list">
+                <div>
+                  <dt>strategy</dt>
+                  <dd className="mono">{model.selector.strategy}</dd>
+                </div>
+                <div>
+                  <dt>targets</dt>
+                  <dd className="flex flex-wrap gap-x-2 gap-y-1">
+                    {model.selector.targets.length > 0
+                      ? model.selector.targets.map((target) => (
+                          <Link key={target} to="/models/$id" params={{ id: target }} className="detail-meta-link">
+                            {target}
+                          </Link>
+                        ))
+                      : '—'}
+                  </dd>
+                </div>
+                {model.selector.spillover != null ? (
+                  <div>
+                    <dt>spillover</dt>
+                    <dd>{model.selector.spillover}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+          ) : null}
 
           {configMeta.aliases.length > 0 ? (
             <div className="detail-meta-section">
@@ -161,27 +196,29 @@ export function ModelDetailContent({ data }: Props) {
             </section>
           ) : null}
 
-          <section className="detail-sidecar-section">
-            <div className="detail-sidecar-title">Resident</div>
-            <dl className="detail-sidecar-metrics">
-              <div>
-                <dt>kind</dt>
-                <dd>{model.kind}</dd>
-              </div>
-              <div>
-                <dt>ttl</dt>
-                <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
-              </div>
-              <div>
-                <dt>ctx</dt>
-                <dd>{contextLabel ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>port</dt>
-                <dd>{configMeta.port ?? '—'}</dd>
-              </div>
-            </dl>
-          </section>
+          {!isSelector ? (
+            <section className="detail-sidecar-section">
+              <div className="detail-sidecar-title">Resident</div>
+              <dl className="detail-sidecar-metrics">
+                <div>
+                  <dt>kind</dt>
+                  <dd>{model.kind}</dd>
+                </div>
+                <div>
+                  <dt>ttl</dt>
+                  <dd>{model.ttl != null ? formatTtl(model.ttl) : '—'}</dd>
+                </div>
+                <div>
+                  <dt>ctx</dt>
+                  <dd>{contextLabel ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>port</dt>
+                  <dd>{configMeta.port ?? '—'}</dd>
+                </div>
+              </dl>
+            </section>
+          ) : null}
 
           <section className="detail-sidecar-section detail-sidecar-danger">
             <div className="detail-sidecar-title">Actions</div>

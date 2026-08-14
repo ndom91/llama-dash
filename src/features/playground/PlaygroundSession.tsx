@@ -11,7 +11,7 @@ import { PlaygroundToggle } from './PlaygroundToggle'
 type Props = {
   model: string
   setModel: (v: string) => void
-  models: Array<{ id: string; kind: 'local' | 'peer'; running: boolean; contextLength: number | null }>
+  models: Array<{ id: string; kind: 'local' | 'peer' | 'selector'; running: boolean; contextLength: number | null }>
   systemPrompt: string
   setSystemPrompt: (v: string) => void
   sampling: SamplingParams
@@ -37,6 +37,7 @@ export function PlaygroundSession({
 }: Props) {
   const localModels = models.filter((m) => m.kind === 'local')
   const peerModels = models.filter((m) => m.kind === 'peer')
+  const selectors = models.filter((m) => m.kind === 'selector')
 
   return (
     <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-1 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
@@ -85,6 +86,16 @@ export function PlaygroundSession({
               {peerModels.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.id}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          {selectors.length > 0 ? (
+            <optgroup label="Selectors">
+              {selectors.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id}
+                  {m.running ? ' ●' : ''}
                 </option>
               ))}
             </optgroup>

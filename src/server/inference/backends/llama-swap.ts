@@ -52,12 +52,22 @@ function extractCtxSize(value: unknown): number | null {
 }
 
 function mapLlamaSwapModel(model: OpenAiModel): BackendModel {
-  const peerId = model.meta?.llamaswap?.peerID ?? null
+  const llamaSwapMeta = model.meta?.llamaswap
+  const isSelector = llamaSwapMeta?.type === 'selector'
+  const peerId = isSelector ? null : (llamaSwapMeta?.peerID ?? null)
   return {
     id: model.id,
     name: model.name ?? model.id,
-    kind: peerId ? 'peer' : 'local',
+    kind: isSelector ? 'selector' : peerId ? 'peer' : 'local',
     peerId,
+    selector: isSelector
+      ? {
+          strategy: llamaSwapMeta.strategy ?? 'unknown',
+          targets: llamaSwapMeta.targets ?? [],
+          spillover: llamaSwapMeta.spillover ?? null,
+        }
+      : null,
+    running: model.status?.value === 'loaded',
     contextLength: pickLlamaSwapModelContextLength(model),
     capabilities: pickLlamaSwapModelCapabilities(model),
   }

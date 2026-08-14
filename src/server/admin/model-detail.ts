@@ -192,11 +192,12 @@ export function buildApiModel(
     name: model.name,
     kind: model.kind,
     peerId: model.peerId,
+    selector: model.selector,
     contextLength:
       model.contextLength ??
-      (model.kind === 'peer' ? null : (running?.contextLength ?? configContextLengths.get(model.id) ?? null)),
-    state: running?.state ?? 'stopped',
-    running: Boolean(running),
+      (model.kind === 'local' ? (running?.contextLength ?? configContextLengths.get(model.id) ?? null) : null),
+    state: running?.state ?? (model.running ? 'ready' : 'stopped'),
+    running: Boolean(running) || model.running,
     ttl: running?.ttl ?? null,
     capabilities: model.capabilities,
   }

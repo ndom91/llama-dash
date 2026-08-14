@@ -19,6 +19,11 @@ export const OpenAiModelSchema = v.object({
   context_length: v.optional(v.number()),
   contextLength: v.optional(v.number()),
   n_ctx: v.optional(v.number()),
+  status: v.optional(
+    v.object({
+      value: v.string(),
+    }),
+  ),
   meta: v.optional(
     v.object({
       context_length: v.optional(v.number()),
@@ -26,7 +31,11 @@ export const OpenAiModelSchema = v.object({
       n_ctx: v.optional(v.number()),
       llamaswap: v.optional(
         v.object({
+          type: v.optional(v.string()),
           peerID: v.optional(v.string()),
+          strategy: v.optional(v.string()),
+          targets: v.optional(v.array(v.string())),
+          spillover: v.optional(v.number()),
           context_length: v.optional(v.number()),
           contextLength: v.optional(v.number()),
           n_ctx: v.optional(v.number()),

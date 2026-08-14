@@ -16,7 +16,10 @@ export function DashboardPage() {
   const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
 
-  const active = useMemo(() => models?.filter((m) => m.running || m.kind === 'peer') ?? [], [models])
+  const active = useMemo(
+    () => models?.filter((m) => m.kind !== 'selector' && (m.running || m.kind === 'peer')) ?? [],
+    [models],
+  )
   return (
     <div className="content">
       <div className="page min-h-full px-0">
