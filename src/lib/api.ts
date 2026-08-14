@@ -49,6 +49,7 @@ export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing
 export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
+export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>

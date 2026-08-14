@@ -2,6 +2,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { useSystemStatus } from '../../lib/queries'
+import { InferenceHostPanel } from './InferenceHostPanel'
 
 type Tone = 'ok' | 'warn' | 'err' | 'idle'
 
@@ -288,6 +289,8 @@ export function SystemPage() {
                   {primaryGpu?.powerW != null ? <MetaRow label="power" value={`${primaryGpu.powerW} W`} /> : null}
                 </SystemPanel>
               </div>
+
+              {data.inferenceHardware ? <InferenceHostPanel hardware={data.inferenceHardware} /> : null}
 
               <div className="grid xl:grid-cols-2 flex-1">
                 <SystemPanel title="Runtime">

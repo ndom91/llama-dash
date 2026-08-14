@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { InferenceHardwareSchema, type InferenceHardware } from '../../lib/schemas/inference-hardware.ts'
 import { config } from '../config.ts'
 import {
   ModelsListResponseSchema,
@@ -8,7 +9,7 @@ import {
   type RunningModel,
 } from './schemas.ts'
 
-export type { OpenAiModel, RunningModel }
+export type { InferenceHardware, OpenAiModel, RunningModel }
 
 const callText = async (path: string, init?: RequestInit): Promise<string> => {
   const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)
@@ -40,4 +41,5 @@ export const llamaSwap = {
   unloadAll: () => callJson('/api/models/unload', v.object({ msg: v.string() }), { method: 'POST' }),
   health: () => callText('/health'),
   version: () => callJson('/api/version', VersionResponseSchema),
+  hardware: () => callJson('/api/hardware', InferenceHardwareSchema),
 }

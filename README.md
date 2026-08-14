@@ -23,7 +23,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 ## ✨ What it does
 
-- **Watch the box** — live request, token, model, upstream, GPU, and update status in one dashboard.
+- **Watch the box** — live request, token, model, upstream, GPU, update status, and static inference-host inventory in one dashboard.
 - **Manage models** — load/unload models, inspect per-model stats, capabilities, and llama-swap selector routing, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose one OpenAI/Anthropic-compatible `/v1/*` endpoint for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.

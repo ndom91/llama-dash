@@ -139,6 +139,7 @@ export function createLlamaSwapBackend(): InferenceBackend {
       const { running } = await llamaSwap.listRunning()
       return running.map(mapLlamaSwapRunningModel)
     },
+    hardware: () => llamaSwap.hardware(),
     modelLogNames: getLlamaSwapModelLogNames,
     modelConfigSnippet: getLlamaSwapModelConfigSnippet,
     modelContextLengthHints: getLlamaSwapConfigContextLengths,

@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { GpuInfoSchema } from './gpu'
+import { InferenceHardwareSchema } from './inference-hardware'
 
 export const ApiSystemStatusSchema = v.object({
   runtime: v.object({
@@ -36,6 +37,7 @@ export const ApiSystemStatusSchema = v.object({
       metrics: v.boolean(),
     }),
   }),
+  inferenceHardware: v.nullable(InferenceHardwareSchema),
   logging: v.object({
     queued: v.number(),
     dropped: v.number(),

@@ -1,4 +1,5 @@
 import { config } from '../config.ts'
+import type { InferenceHardware } from '../../lib/schemas/inference-hardware.ts'
 import { createLlamaSwapBackend } from './backends/llama-swap.ts'
 
 export type InferenceBackendKind = 'llama-swap'
@@ -66,6 +67,7 @@ export type InferenceBackend = {
   eventStreamUrl?: string
   listModels(): Promise<Array<BackendModel>>
   listRunning?(): Promise<Array<BackendRunningModel>>
+  hardware?(): Promise<InferenceHardware>
   modelLogNames?(modelId: string): Array<string>
   modelConfigSnippet?(modelId: string): string | null
   modelContextLengthHints?(): Map<string, number>

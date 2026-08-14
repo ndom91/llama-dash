@@ -45,12 +45,16 @@ export const systemRoutes: Route[] = [
       const gpu = getGpuSnapshot()
       const now = Date.now()
       const gitCommit = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
+      const [update, inferenceHardware] = await Promise.all([
+        getUpdateCheck(gitCommit),
+        inferenceBackend.hardware?.().catch(() => null) ?? Promise.resolve(null),
+      ])
       return json(200, {
         runtime: {
           uptimeSec: Math.round(process.uptime()),
           nodeVersion: process.version,
           gitCommit,
-          update: await getUpdateCheck(gitCommit),
+          update,
         },
         database: {
           path: databasePathInfo.filename,
@@ -67,6 +71,7 @@ export const systemRoutes: Route[] = [
           label: backend.label,
           capabilities: backend.capabilities,
         },
+        inferenceHardware,
         logging: getRequestLogQueueStats(),
         gpu: {
           available: gpu.available,
