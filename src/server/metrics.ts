@@ -32,6 +32,7 @@ const ENDPOINT_ALLOWLIST = new Set([
   '/v1/audio/transcriptions',
   '/v1/audio/speech',
   '/v1/images/generations',
+  '/audioapi/v1/tasks/run',
 ])
 
 function metricLine(name: string, value: number, labels?: Record<string, string | number | boolean | null>): string {

@@ -34,7 +34,7 @@ export default createServerEntry({
       return auth.handler(request)
     }
 
-    if (url.pathname.startsWith('/v1/') || url.pathname === '/v1') {
+    if (url.pathname.startsWith('/v1/') || url.pathname === '/v1' || url.pathname.startsWith('/audioapi/v1/')) {
       const { handleProxyRequest } = await import('./server/proxy/handler.ts')
       return handleProxyRequest(request)
     }
