@@ -3,9 +3,8 @@ export type Usage = {
   promptTokens: number | null
   completionTokens: number | null
   totalTokens: number | null
-  // Anthropic prompt-caching counters. Cached prompt tokens are billed at a
-  // different rate (creation ~1.25x, read ~0.1x of input) so we track them
-  // separately rather than folding into promptTokens.
+  // Prompt-caching counters stay separate from prompt tokens because providers
+  // may bill or report cache reads differently.
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
 }
@@ -58,6 +57,12 @@ const pickUsage = (body: RawJson): Partial<Usage> => {
     return {
       promptTokens: num(t.prompt_n),
       completionTokens: num(t.predicted_n),
+    }
+  }
+  if ('timings/prompt_n' in body || 'timings/predicted_n' in body) {
+    return {
+      promptTokens: num(body['timings/prompt_n']),
+      completionTokens: num(body['timings/predicted_n']),
     }
   }
   return {}
