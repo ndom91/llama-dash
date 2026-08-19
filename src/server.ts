@@ -2,6 +2,7 @@ import { createStartHandler, defaultStreamHandler } from '@tanstack/react-start/
 import { createServerEntry } from '@tanstack/react-start/server-entry'
 import { MCP_RELAY_ENDPOINT_PREFIX } from './lib/mcp-relays.ts'
 import { config } from './server/config.ts'
+import { isInferenceProxyPath } from './server/proxy-path.ts'
 
 if (config.inferenceInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
@@ -34,7 +35,7 @@ export default createServerEntry({
       return auth.handler(request)
     }
 
-    if (url.pathname.startsWith('/v1/') || url.pathname === '/v1' || url.pathname.startsWith('/audioapi/v1/')) {
+    if (isInferenceProxyPath(url.pathname)) {
       const { handleProxyRequest } = await import('./server/proxy/handler.ts')
       return handleProxyRequest(request)
     }

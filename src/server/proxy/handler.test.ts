@@ -221,6 +221,69 @@ describe('handleProxyRequest auth/body ordering', () => {
     expect(lastForward().upstream).toBe('http://llama-swap.test/v1/chat/completions')
   })
 
+  it('proxies authenticated native infill requests with their body unchanged', async () => {
+    const rawKey = 'sk-infill'
+    const body = {
+      input_prefix: 'def add(a, b):\n    return ',
+      input_suffix: '\n',
+      input_extra: [{ filename: 'helpers.py', text: 'def sub(a, b):\n    return a - b' }],
+      prompt: '',
+      model: 'qwen3.8-27b',
+      n_predict: 128,
+      temperature: 0,
+      stream: false,
+      cache_prompt: true,
+    }
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    const request = new Request('http://dash.test/infill', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(200)
+    const forwarded = lastForward()
+    expect(forwarded.upstream).toBe('http://llama-swap.test/infill')
+    expect(forwarded.body).toBe(JSON.stringify(body))
+  })
+
+  it('rejects unauthenticated native infill requests', async () => {
+    const request = new Request('http://dash.test/infill', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ input_prefix: 'return ' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(401)
+    expect(response.headers.get('content-type')).toContain('application/json')
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
+  })
+
+  it('returns native infill upstream errors without OpenAI response wrapping', async () => {
+    const rawKey = 'sk-infill-error'
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    forwardMock.forwardUpstreamAndLog.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'infill model is unavailable' }), {
+        status: 503,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+    const request = new Request('http://dash.test/infill', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ input_prefix: 'return ' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({ error: 'infill model is unavailable' })
+  })
+
   it('honors rule order: a require_key rule above a passthrough rule wins when its key matches', async () => {
     const rawKey = 'sk-opencode'
     apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
