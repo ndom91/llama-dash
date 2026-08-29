@@ -1175,6 +1175,8 @@
   pointer-events: none;
   color: var(--fg);
   scrollbar-width: none;
+  /* widths are set from JS to mirror the textarea's scrollbar gutters */
+  border: 0 solid transparent;
 }
 .config-highlight::-webkit-scrollbar {
   display: none;

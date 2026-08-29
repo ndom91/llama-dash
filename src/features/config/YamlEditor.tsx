@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef } from 'react'
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { highlightYaml, highlightedToJsx } from './configUtils'
 
 type Props = {
@@ -14,14 +14,33 @@ export function YamlEditor({ value, onChange }: Props) {
   const lineCount = useMemo(() => countLines(value), [value])
   const highlighted = useMemo(() => highlightYaml(deferredValue), [deferredValue])
 
-  const syncScroll = () => {
+  const syncScroll = useCallback(() => {
     const ta = textareaRef.current
     const pre = preRef.current
-    if (ta && pre) {
-      pre.scrollTop = ta.scrollTop
-      pre.scrollLeft = ta.scrollLeft
-    }
-  }
+    if (!ta || !pre) return
+    // The textarea reserves space for its scrollbars; the overlay hides its own.
+    // Without mirroring that gutter the overlay's client box is taller, so it
+    // bottoms out a scrollbar-height early and the highlighted text drifts out
+    // of alignment near the end of the file.
+    pre.style.borderBottomWidth = `${ta.offsetHeight - ta.clientHeight}px`
+    pre.style.borderRightWidth = `${ta.offsetWidth - ta.clientWidth}px`
+    pre.scrollTop = ta.scrollTop
+    pre.scrollLeft = ta.scrollLeft
+  }, [])
+
+  // No dep list: content changes are what make the scrollbars appear or
+  // disappear, so the gutters have to be re-measured after every render.
+  useLayoutEffect(() => {
+    syncScroll()
+  })
+
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const observer = new ResizeObserver(syncScroll)
+    observer.observe(ta)
+    return () => observer.disconnect()
+  }, [syncScroll])
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab') {
