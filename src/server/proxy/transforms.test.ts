@@ -93,6 +93,7 @@ describe('applyTransforms', () => {
   it('allows a rewrite whose target model is allow-listed even if the requested model is not', () => {
     const keyRow = {
       id: 'key_opencode',
+      modelAccessMode: 'restricted',
       allowedModels: JSON.stringify(['qwen3.6-35b']),
       systemPrompt: null,
     } as unknown as Parameters<typeof applyTransforms>[1]['keyRow']
@@ -122,6 +123,7 @@ describe('applyTransforms', () => {
   it('still rejects when the effective model is not allow-listed', () => {
     const keyRow = {
       id: 'key_opencode',
+      modelAccessMode: 'restricted',
       allowedModels: JSON.stringify(['qwen3.6-35b']),
       systemPrompt: null,
     } as unknown as Parameters<typeof applyTransforms>[1]['keyRow']
@@ -129,6 +131,23 @@ describe('applyTransforms', () => {
     const result = applyTransforms(
       { model: 'claude-haiku-4-5-20251001' },
       { keyRow, endpoint: '/v1/messages', method: 'POST', routingDecision: noMatchDecision },
+    )
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.body.error.type).toBe('model_not_allowed')
+  })
+
+  it('rejects every model for a restricted key with an empty allow-list', () => {
+    const keyRow = {
+      id: 'key_opencode',
+      modelAccessMode: 'restricted',
+      allowedModels: '[]',
+      systemPrompt: null,
+    } as unknown as Parameters<typeof applyTransforms>[1]['keyRow']
+
+    const result = applyTransforms(
+      { model: 'qwen3.6-35b' },
+      { keyRow, endpoint: '/v1/chat/completions', method: 'POST', routingDecision: noMatchDecision },
     )
 
     expect(result.ok).toBe(false)

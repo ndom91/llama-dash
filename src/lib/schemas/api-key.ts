@@ -1,6 +1,10 @@
 import * as v from 'valibot'
 import { ApiRequestSchema } from './request'
 
+export const ModelAccessModeSchema = v.picklist(['all', 'restricted'])
+
+export type ModelAccessMode = v.InferOutput<typeof ModelAccessModeSchema>
+
 export const ApiKeySchema = v.object({
   id: v.string(),
   name: v.string(),
@@ -8,6 +12,7 @@ export const ApiKeySchema = v.object({
   createdAt: v.string(),
   disabledAt: v.nullable(v.string()),
   expiresAt: v.nullable(v.string()),
+  modelAccessMode: ModelAccessModeSchema,
   allowedModels: v.array(v.string()),
   allowedMcpRelays: v.array(v.string()),
   rateLimitRpm: v.nullable(v.number()),
@@ -31,6 +36,7 @@ export type ApiKeyCreated = v.InferOutput<typeof ApiKeyCreatedSchema>
 
 export const CreateApiKeyBodySchema = v.object({
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
+  modelAccessMode: v.optional(ModelAccessModeSchema),
   allowedModels: v.optional(v.array(v.string()), []),
   allowedMcpRelays: v.optional(v.array(v.string()), []),
   rateLimitRpm: v.optional(v.nullable(v.number())),
@@ -44,6 +50,7 @@ export type CreateApiKeyBody = v.InferOutput<typeof CreateApiKeyBodySchema>
 
 export const UpdateApiKeyBodySchema = v.object({
   name: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(100))),
+  modelAccessMode: v.optional(ModelAccessModeSchema),
   allowedModels: v.optional(v.array(v.string())),
   allowedMcpRelays: v.optional(v.array(v.string())),
   systemPrompt: v.optional(v.nullable(v.pipe(v.string(), v.maxLength(10000)))),

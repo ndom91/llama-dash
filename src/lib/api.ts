@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
+import type { ModelAccessMode } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
@@ -42,7 +43,14 @@ export type {
   ApiConfigValidation,
   ApiConfigSaveResult,
 } from './schemas/config'
-export type { ApiKeyItem, ApiKeyCreated, ApiKeyDetail, ApiKeyStats, ApiKeyModelBreakdown } from './schemas/api-key'
+export type {
+  ApiKeyItem,
+  ApiKeyCreated,
+  ApiKeyDetail,
+  ApiKeyStats,
+  ApiKeyModelBreakdown,
+  ModelAccessMode,
+} from './schemas/api-key'
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
@@ -139,6 +147,7 @@ export const api = {
   listKeys: () => getJson('/api/keys', ApiKeyListResponseSchema),
   createKey: (body: {
     name: string
+    modelAccessMode?: ModelAccessMode
     allowedModels?: Array<string>
     allowedMcpRelays?: Array<string>
     rateLimitRpm?: number | null
@@ -148,8 +157,8 @@ export const api = {
     expiresAt?: string | null
   }) => sendJson('/api/keys', ApiKeyCreatedSchema, { method: 'POST', body }),
   renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
-  updateKeyModels: (id: string, allowedModels: Array<string>) =>
-    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedModels } }),
+  updateKeyModels: (id: string, modelAccessMode: ModelAccessMode, allowedModels: Array<string>) =>
+    sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { modelAccessMode, allowedModels } }),
   updateKeyMcpRelays: (id: string, allowedMcpRelays: Array<string>) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { allowedMcpRelays } }),
   updateKeySystemPrompt: (id: string, systemPrompt: string | null) =>

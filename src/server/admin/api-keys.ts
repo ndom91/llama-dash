@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { and, desc, eq } from 'drizzle-orm'
 import { ulid } from 'ulidx'
-import type { ApiKeyItem } from '../../lib/schemas/api-key.ts'
+import type { ApiKeyItem, ModelAccessMode } from '../../lib/schemas/api-key.ts'
 import { db, schema } from '../db/index.ts'
 
 export function listApiKeys(): Array<ApiKeyItem> {
@@ -26,6 +26,7 @@ export function getApiKeyById(id: string): ApiKeyItem | null {
 
 export function createApiKey(input: {
   name: string
+  modelAccessMode?: ModelAccessMode
   allowedModels?: Array<string>
   allowedMcpRelays?: Array<string>
   rateLimitRpm?: number | null
@@ -48,6 +49,7 @@ export function createApiKey(input: {
     createdAt: now,
     disabledAt: null,
     expiresAt: input.expiresAt ?? null,
+    modelAccessMode: input.modelAccessMode ?? (input.allowedModels?.length ? 'restricted' : 'all'),
     allowedModels: JSON.stringify(input.allowedModels ?? []),
     allowedMcpRelays: JSON.stringify(input.allowedMcpRelays ?? []),
     rateLimitRpm: input.rateLimitRpm ?? null,
@@ -91,6 +93,7 @@ export function updateApiKey(
   id: string,
   fields: {
     name?: string
+    modelAccessMode?: ModelAccessMode
     allowedModels?: Array<string>
     allowedMcpRelays?: Array<string>
     systemPrompt?: string | null
@@ -98,6 +101,7 @@ export function updateApiKey(
 ): boolean {
   const set: Record<string, unknown> = {}
   if (fields.name != null) set.name = fields.name
+  if (fields.modelAccessMode != null) set.modelAccessMode = fields.modelAccessMode
   if (fields.allowedModels != null) set.allowedModels = JSON.stringify(fields.allowedModels)
   if (fields.allowedMcpRelays != null) set.allowedMcpRelays = JSON.stringify(fields.allowedMcpRelays)
   if (fields.systemPrompt !== undefined) set.systemPrompt = fields.systemPrompt
@@ -187,6 +191,7 @@ export function ensureSystemKey(): void {
       keyPrefix: rawKey.slice(0, 10),
       createdAt: new Date(),
       disabledAt: null,
+      modelAccessMode: 'all',
       allowedModels: '[]',
       allowedMcpRelays: '[]',
       rateLimitRpm: null,
@@ -233,6 +238,7 @@ function toApiShape(row: schema.ApiKey): ApiKeyItem {
     createdAt: row.createdAt.toISOString(),
     disabledAt: row.disabledAt?.toISOString() ?? null,
     expiresAt: row.expiresAt?.toISOString() ?? null,
+    modelAccessMode: row.modelAccessMode,
     allowedModels: JSON.parse(row.allowedModels),
     allowedMcpRelays: JSON.parse(row.allowedMcpRelays),
     rateLimitRpm: row.rateLimitRpm,

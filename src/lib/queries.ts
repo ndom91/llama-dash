@@ -27,6 +27,7 @@ import {
   type AttributionSettings,
   type ModelAliasItem,
   type McpRelay,
+  type ModelAccessMode,
   type PrivacySettings,
   type RoutingRule,
   type UpstreamCredential,
@@ -352,12 +353,19 @@ export function useRenameApiKey(): UseMutationResult<{ ok: true }, Error, { id: 
 export function useUpdateKeyModels(): UseMutationResult<
   { ok: true },
   Error,
-  { id: string; allowedModels: Array<string> }
+  { id: string; modelAccessMode: ModelAccessMode; allowedModels: Array<string> }
 > {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, allowedModels }: { id: string; allowedModels: Array<string> }) =>
-      api.updateKeyModels(id, allowedModels),
+    mutationFn: ({
+      id,
+      modelAccessMode,
+      allowedModels,
+    }: {
+      id: string
+      modelAccessMode: ModelAccessMode
+      allowedModels: Array<string>
+    }) => api.updateKeyModels(id, modelAccessMode, allowedModels),
     onSuccess: (_data, { id }) => {
       invalidateKeys(qc, [qk.keys, qk.keyDetail(id)])
     },

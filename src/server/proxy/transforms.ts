@@ -205,8 +205,9 @@ export function checkModelAllowed(
 ): TransformErr | null {
   if (!keyRow) return null
 
+  if (keyRow.modelAccessMode === 'all') return null
+
   const allowedModels: Array<string> = JSON.parse(keyRow.allowedModels)
-  if (allowedModels.length === 0) return null
 
   const model = typeof body.model === 'string' ? body.model : null
   if (!model) return null

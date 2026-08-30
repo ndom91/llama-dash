@@ -56,11 +56,18 @@ export const keyRoutes: Route[] = [
       const result = v.safeParse(UpdateApiKeyBodySchema, parsed.value)
       if (!result.success) return error(400, 'Body must have "name" (string) and/or "allowedModels" (string[])')
       const body = result.output
-      if (!body.name && !body.allowedModels && !body.allowedMcpRelays && body.systemPrompt === undefined) {
+      if (
+        !body.name &&
+        !body.modelAccessMode &&
+        !body.allowedModels &&
+        !body.allowedMcpRelays &&
+        body.systemPrompt === undefined
+      ) {
         return error(400, 'At least one field to update is required')
       }
       const ok = updateApiKey(match[1], {
         name: body.name?.trim(),
+        modelAccessMode: body.modelAccessMode,
         allowedModels: body.allowedModels,
         allowedMcpRelays: body.allowedMcpRelays,
         systemPrompt: body.systemPrompt,

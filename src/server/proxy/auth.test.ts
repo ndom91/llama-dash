@@ -27,6 +27,7 @@ function makeKey(rawKey: string): ApiKey {
     createdAt: new Date(0),
     disabledAt: null,
     expiresAt: null,
+    modelAccessMode: 'all',
     allowedModels: '[]',
     allowedMcpRelays: '[]',
     rateLimitRpm: null,

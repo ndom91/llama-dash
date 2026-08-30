@@ -34,8 +34,10 @@ export function KeyDetailContent({ data }: Props) {
   const [rotatedRawKey, setRotatedRawKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const lastUsedAt = requests.rows[0]?.startedAt ?? null
-  const scopedModels =
-    key.allowedModels.length === 0 ? 'all' : `${key.allowedModels.length} of ${models?.length ?? '—'}`
+  const availableAllowedModels = models
+    ? key.allowedModels.filter((modelId) => models.some((model) => model.id === modelId)).length
+    : key.allowedModels.length
+  const scopedModels = key.modelAccessMode === 'all' ? 'all' : `${availableAllowedModels} of ${models?.length ?? '—'}`
 
   useEffect(() => {
     if (!editingName) return
@@ -279,6 +281,7 @@ export function KeyDetailContent({ data }: Props) {
           <KeySystemPromptPanel keyId={key.id} systemPrompt={key.systemPrompt} isRevoked={isRevoked} />
           <KeyModelAccessPanel
             keyId={key.id}
+            modelAccessMode={key.modelAccessMode}
             allowedModels={key.allowedModels}
             breakdown={modelBreakdown}
             isRevoked={isRevoked}

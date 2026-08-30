@@ -183,7 +183,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
    - `/api/config/validate` — validate config content against llama-swap's published JSON schema
    - `/api/keys` — CRUD for API keys (create, list, revoke, delete)
-   - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `allowedModels`, `allowedMcpRelays`, `systemPrompt`
+    - `/api/keys/:id` — key detail (stats, model breakdown, recent requests); PATCH accepts `name`, `modelAccessMode`, `allowedModels`, `allowedMcpRelays`, `systemPrompt`
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
@@ -218,7 +218,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
-   limiting (in-memory, resets on restart). Per-key model allow-lists and MCP relay allow-lists.
+   limiting (in-memory, resets on restart). Per-key model access is explicitly `all` or `restricted`; a restricted key may allow zero models. The API Key detail page identifies unavailable configured models and offers explicit cleanup without broadening access. MCP relay allow-lists remain separate.
    Routing rules can explicitly opt into `passthrough` auth, which skips
    llama-dash key enforcement for matching requests and can preserve the
    client's `Authorization` header for upstream OAuth/API-key validation.

@@ -10,9 +10,10 @@ import { useDeleteApiKey, useRevokeApiKey } from '../../lib/queries'
 
 type Props = {
   apiKey: ApiKeyItem
+  modelIds?: Array<string>
 }
 
-export function KeyRow({ apiKey }: Props) {
+export function KeyRow({ apiKey, modelIds }: Props) {
   const navigate = useNavigate()
   const revokeKey = useRevokeApiKey()
   const deleteKey = useDeleteApiKey()
@@ -20,6 +21,11 @@ export function KeyRow({ apiKey }: Props) {
   const isExpired = apiKey.expiresAt != null && new Date(apiKey.expiresAt) < new Date()
   const expiresSoon =
     !isExpired && apiKey.expiresAt != null && new Date(apiKey.expiresAt).getTime() - Date.now() < 7 * 86400_000
+  const knownModelIds = modelIds ? new Set(modelIds) : null
+  const availableModels = knownModelIds
+    ? apiKey.allowedModels.filter((modelId) => knownModelIds.has(modelId))
+    : apiKey.allowedModels
+  const unavailableModelCount = knownModelIds ? apiKey.allowedModels.length - availableModels.length : 0
 
   return (
     <tr
@@ -40,11 +46,14 @@ export function KeyRow({ apiKey }: Props) {
         </div>
       </td>
       <td className="hide-mobile">
-        {apiKey.allowedModels.length === 0 ? (
+        {apiKey.modelAccessMode === 'all' ? (
           <span className="dim">all</span>
         ) : (
           <span className="mono" style={{ fontSize: 11 }}>
-            {apiKey.allowedModels.join(', ')}
+            {availableModels.length > 0 ? availableModels.join(', ') : 'no available models'}
+            {unavailableModelCount > 0 ? (
+              <span className="text-warn"> · +{unavailableModelCount} unavailable</span>
+            ) : null}
           </span>
         )}
       </td>

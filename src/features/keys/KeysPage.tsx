@@ -4,7 +4,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import type { ApiKeyCreated } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useApiKeys } from '../../lib/queries'
+import { useApiKeys, useModels } from '../../lib/queries'
 import { CreateKeyForm } from './CreateKeyForm'
 import { KeyCreatedBanner } from './KeyCreatedBanner'
 import { KeyRow } from './KeyRow'
@@ -13,6 +13,7 @@ import { KeysPageSkeleton } from './KeysPageSkeleton'
 
 export function KeysPage() {
   const { data: keys, error, isLoading } = useApiKeys()
+  const { data: models } = useModels()
   const [showCreate, setShowCreate] = useState(false)
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
 
@@ -76,7 +77,7 @@ export function KeysPage() {
               </thead>
               <tbody>
                 {keys.map((k) => (
-                  <KeyRow key={k.id} apiKey={k} />
+                  <KeyRow key={k.id} apiKey={k} modelIds={models?.map((model) => model.id)} />
                 ))}
               </tbody>
             </table>
