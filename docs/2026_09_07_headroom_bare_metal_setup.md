@@ -16,14 +16,15 @@ credentials.
 
 ## Install Headroom
 
-Install `uv` using its documented method, then create a dedicated service user
-and environment. Headroom publishes Linux x86_64 wheels for Python 3.10 through
-3.13; use Python 3.13 to match its recommended installation path.
+Create a dedicated service user and virtual environment. Ubuntu 24.04's system
+Python 3.12 is supported by Headroom and avoids a virtualenv interpreter
+symlink into a root-owned `uv` installation.
 
 ```bash
 sudo useradd --system --home-dir /var/lib/headroom --create-home --shell /usr/sbin/nologin headroom
 sudo install -d -o headroom -g headroom /opt/headroom
-sudo -u headroom uv venv --python 3.13 /opt/headroom/venv
+sudo apt install python3.12-venv
+sudo -H -u headroom /usr/bin/python3.12 -m venv /opt/headroom/venv
 sudo -u headroom /opt/headroom/venv/bin/pip install 'headroom-ai[proxy]==<version>'
 ```
 
@@ -40,15 +41,14 @@ sudo tee /etc/llama-dash/headroom.env >/dev/null <<'EOF'
 HEADROOM_HOST=127.0.0.1
 HEADROOM_PORT=8787
 HEADROOM_BEACON=off
-HEADROOM_TELEMETRY=on
+HEADROOM_TELEMETRY=off
 EOF
 sudo chmod 0640 /etc/llama-dash/headroom.env
 sudo chown root:headroom /etc/llama-dash/headroom.env
 ```
 
-`HEADROOM_BEACON=off` disables Headroom's anonymous usage beacon.
-`HEADROOM_TELEMETRY=on` enables only Headroom's local usage statistics and is
-optional. The MVP uses marker-free, lossless compression: the systemd unit
+`HEADROOM_BEACON=off` and `HEADROOM_TELEMETRY=off` disable Headroom telemetry.
+The MVP uses marker-free, lossless compression: the systemd unit
 passes `--no-ccr --lossless`, so Headroom never injects a
 `headroom_retrieve` tool, stores retrieval markers, or falls back to lossy
 compression.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NumberInput } from '../../components/NumberInput'
 import type { ContextCompressionMatch } from '../../lib/api'
 import {
   useCreateContextCompressionPolicy,
@@ -104,17 +105,18 @@ export function ContextCompressionPanel() {
             value={match.stream}
             onChange={(stream) => setMatch({ ...match, stream })}
           />
-          <label className="block font-mono text-[11px] text-fg-dim">
-            Minimum estimated message tokens
-            <input
-              className="input mt-1 w-full"
-              inputMode="numeric"
+          <div className="space-y-1.5">
+            <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">
+              Minimum estimated message tokens
+            </div>
+            <NumberInput
+              aria-label="Minimum estimated message tokens"
+              min={0}
+              prefix="min"
               value={match.minEstimatedPromptTokens}
-              onChange={(event) =>
-                setMatch({ ...match, minEstimatedPromptTokens: event.target.value.replace(/\D/g, '') })
-              }
+              onChange={(event) => setMatch({ ...match, minEstimatedPromptTokens: event.target.value })}
             />
-          </label>
+          </div>
           <button
             type="button"
             className="btn btn-primary btn-xs"
