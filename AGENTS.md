@@ -67,6 +67,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
+    policies/              · routing, credentials, MCP relays, and context-compression policies
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
     Sidebar.tsx             · nav + `g`-leader shortcuts + VRAM-resident readout in footer
@@ -135,7 +136,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    metadata + optional bodies/headers), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
-   `routing_rules` (ordered request routing rules), `upstream_credentials`
+    `routing_rules` (ordered request routing rules), `context_compression_policies`
+   (ordered Headroom compression policy matchers), `upstream_credentials`
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
    MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
@@ -430,6 +432,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ApiKey      | `key`  |
 | ModelAlias  | `mal`  |
 | McpRelay    | `mrl`  |
+| ContextCompressionPolicy | `ccp` |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

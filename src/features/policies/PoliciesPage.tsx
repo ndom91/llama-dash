@@ -4,6 +4,7 @@ import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
 import { useUpstreamCredentials } from '../../lib/queries'
 import { CredentialVaultPanelContainer } from './CredentialVaultPanelContainer'
+import { ContextCompressionPanel } from './ContextCompressionPanel'
 import { McpRelayPanelContainer } from './McpRelayPanelContainer'
 import { POLICY_TABS, type PolicyTab, isPolicyTab } from './policy-tabs'
 import { RoutingPanel } from './RoutingPanel'
@@ -48,6 +49,9 @@ export function PoliciesPage({ searchTab }: Props) {
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="contents" hidden={tab !== 'routing'}>
             <RoutingPanel credentials={credentialState?.credentials ?? []} />
+          </div>
+          <div className="contents" hidden={tab !== 'compression'}>
+            <ContextCompressionPanel />
           </div>
           <div className="contents" hidden={tab !== 'credentials'}>
             <CredentialVaultPanelContainer />

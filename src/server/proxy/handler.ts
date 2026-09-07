@@ -16,6 +16,7 @@ import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
+import { applyContextCompression } from './context-compression.ts'
 import { config } from '../config.ts'
 
 const HARD_BODY_CAP = 20 * 1024 * 1024
@@ -72,6 +73,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
       credentialInjectionJson: ctx.credentialInjectionJson,
+      compression: ctx.compressionOutcome,
     })
     return new Response(JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)), {
       status: authResult.status,
@@ -113,10 +115,21 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
           attribution: ctx.attribution,
           routing: ctx.routingOutcome,
           credentialInjectionJson: ctx.credentialInjectionJson,
+          compression: ctx.compressionOutcome,
         })
         return Response.json(toErrorBody(ctx.endpoint, transformResult.body), { status: transformResult.status })
       }
       applyTransformResultToContext(ctx, transformResult)
+      if (transformResult.body) {
+        const compression = await applyContextCompression({
+          body: transformResult.body,
+          endpoint: ctx.endpoint,
+          keyId: ctx.keyId,
+        })
+        ctx.compressionOutcome = compression.outcome
+        if (compression.mutated)
+          applyTransformResultToContext(ctx, { ...transformResult, body: compression.body, mutated: true })
+      }
     }
   }
 
@@ -149,7 +162,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       reqModel: ctx.body?.reqModel ?? null,
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
-      credentialInjectionJson: ctx.credentialInjectionJson,
+      compression: ctx.compressionOutcome,
     })
     return Response.json(toErrorBody(ctx.endpoint, body), { status: 401 })
   }
@@ -179,6 +192,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
       credentialInjectionJson: ctx.credentialInjectionJson,
+      compression: ctx.compressionOutcome,
     })
     return Response.json(
       toErrorBody(ctx.endpoint, {
@@ -206,6 +220,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     attribution: ctx.attribution,
     routing: ctx.routingOutcome,
     credentialInjectionJson: ctx.credentialInjectionJson,
+    compression: ctx.compressionOutcome,
   })
 
   if ('upstreamError' in forwardedResponse) {
@@ -226,6 +241,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       attribution: ctx.attribution,
       routing: ctx.routingOutcome,
       credentialInjectionJson: ctx.credentialInjectionJson,
+      compression: ctx.compressionOutcome,
     })
     return Response.json(
       toErrorBody(ctx.endpoint, {
@@ -262,6 +278,7 @@ function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
     attribution: ctx.attribution,
     routing: ctx.routingOutcome,
     credentialInjectionJson: ctx.credentialInjectionJson,
+    compression: ctx.compressionOutcome,
   })
   return Response.json(toErrorBody(ctx.endpoint, body), { status: 413 })
 }

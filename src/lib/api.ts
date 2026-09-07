@@ -6,6 +6,10 @@ import type { ModelAccessMode } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
+import {
+  ContextCompressionPolicyListResponseSchema,
+  ContextCompressionPolicySchema,
+} from './schemas/context-compression'
 import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
 import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
 import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
@@ -54,6 +58,7 @@ export type {
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
+export type { ContextCompressionPolicy, ContextCompressionMatch } from './schemas/context-compression'
 export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
@@ -173,6 +178,19 @@ export const api = {
     sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
+  listContextCompressionPolicies: () =>
+    getJson('/api/context-compression/policies', ContextCompressionPolicyListResponseSchema),
+  createContextCompressionPolicy: (body: { name: string; enabled: boolean; match: object }) =>
+    sendJson('/api/context-compression/policies', ContextCompressionPolicySchema, { method: 'POST', body }),
+  updateContextCompressionPolicy: (id: string, body: { name?: string; enabled?: boolean; match?: object }) =>
+    sendJson(`/api/context-compression/policies/${id}`, ContextCompressionPolicySchema, { method: 'PATCH', body }),
+  deleteContextCompressionPolicy: (id: string) =>
+    sendEmpty(`/api/context-compression/policies/${id}`, OkSchema, 'DELETE'),
+  reorderContextCompressionPolicies: (ids: string[]) =>
+    sendJson('/api/context-compression/policies/reorder', ContextCompressionPolicyListResponseSchema, {
+      method: 'POST',
+      body: { ids },
+    }),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
   listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
   createMcpRelay: (body: {

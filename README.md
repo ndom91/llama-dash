@@ -29,6 +29,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, explicit allow-all or restricted model access, unavailable-model cleanup, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
+- **Compress agent context** — optional, policy-scoped Headroom sidecar compression for large OpenAI and Anthropic message histories, with fail-open forwarding.
 - **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.
 - **Export ops data** — raw log streams, retention controls, request auditing, and low-cardinality Prometheus metrics at `/metrics`.
 - **Move fast** — `g`-leader keyboard navigation (`g d` dashboard, `g r` requests, `g l` logs, …), `j`/`k`/`Enter` through the request list, and `H`/`L` between request details.
@@ -138,6 +139,8 @@ pnpm install
 pnpm db:migrate        # creates data/dash.db
 pnpm dev               # http://localhost:5173
 ```
+
+For optional bare-metal Headroom context compression, see the [Headroom setup guide](./docs/2026_09_07_headroom_bare_metal_setup.md).
 
 ## 🏔️ Environment
 

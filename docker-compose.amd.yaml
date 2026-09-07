@@ -1,4 +1,15 @@
 services:
+  headroom:
+    image: ghcr.io/headroomlabs-ai/headroom:0.37.0
+    environment:
+      HEADROOM_BEACON: 'off'
+      HEADROOM_NO_CCR: '1'
+      HEADROOM_LOSSLESS: '1'
+      HEADROOM_COMPRESS_ALLOW_REMOTE: '1'
+    networks:
+      - internal
+    restart: unless-stopped
+
   llama-swap:
     image: ghcr.io/mostlygeek/llama-swap:rocm
     command: ['-config', '/config/config.yaml', '-watch-config']
@@ -32,6 +43,7 @@ services:
       INFERENCE_BASE_URL: http://llama-swap:8080
       INFERENCE_CONFIG_FILE: /config/config.yaml
       DATABASE_PATH: /data/dash.db
+      HEADROOM_BASE_URL: http://headroom:8787
     volumes:
       # Keep the config directory mounted: llama-dash writes config.yaml via atomic rename.
       - ./config:/config

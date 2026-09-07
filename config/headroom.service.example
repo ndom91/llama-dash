@@ -1,0 +1,23 @@
+[Unit]
+Description=Headroom context-compression sidecar for llama-dash
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=headroom
+Group=headroom
+WorkingDirectory=/var/lib/headroom
+EnvironmentFile=/etc/llama-dash/headroom.env
+ExecStart=/opt/headroom/venv/bin/headroom proxy --host 127.0.0.1 --port 8787 --no-ccr --lossless
+Restart=on-failure
+RestartSec=3
+StateDirectory=headroom
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/headroom
+
+[Install]
+WantedBy=multi-user.target

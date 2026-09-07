@@ -1,6 +1,7 @@
 import { articleRoutes } from './routes/article.ts'
 import { aliasRoutes } from './routes/aliases.ts'
 import { configRoutes } from './routes/config.ts'
+import { contextCompressionRoutes } from './routes/context-compression.ts'
 import { keyRoutes } from './routes/keys.ts'
 import { mcpRelayRoutes } from './routes/mcp-relays.ts'
 import { modelRoutes } from './routes/models.ts'
@@ -16,6 +17,7 @@ const routes: Route[] = [
   ...modelRoutes,
   ...requestRoutes,
   ...configRoutes,
+  ...contextCompressionRoutes,
   ...routingRoutes,
   ...aliasRoutes,
   ...settingRoutes,

@@ -332,6 +332,42 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               </dl>
             </div>
 
+            {req.compressionStatus ? (
+              <div className={railSectionDivider}>
+                <div className={railSectionTitle}>Context Compression</div>
+                <dl className="detail-meta-list">
+                  <div>
+                    <dt>status</dt>
+                    <dd>{req.compressionStatus}</dd>
+                  </div>
+                  {req.compressionPolicyName ? (
+                    <div>
+                      <dt>policy</dt>
+                      <dd>{req.compressionPolicyName}</dd>
+                    </div>
+                  ) : null}
+                  {req.compressionInputTokens != null ? (
+                    <div>
+                      <dt>estimated input</dt>
+                      <dd>{req.compressionInputTokens.toLocaleString()} tokens</dd>
+                    </div>
+                  ) : null}
+                  {req.compressionOutputTokens != null ? (
+                    <div>
+                      <dt>estimated output</dt>
+                      <dd>{req.compressionOutputTokens.toLocaleString()} tokens</dd>
+                    </div>
+                  ) : null}
+                  {req.compressionElapsedMs != null ? (
+                    <div>
+                      <dt>sidecar</dt>
+                      <dd>{formatDuration(req.compressionElapsedMs)}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </div>
+            ) : null}
+
             <div className={railSectionDivider}>
               <div className={railSectionTitle}>Routing</div>
               {isRouted ? (

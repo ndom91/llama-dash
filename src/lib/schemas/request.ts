@@ -31,6 +31,12 @@ export const ApiRequestSchema = v.object({
   routingTargetCredentialId: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
   credentialInjectionJson: v.nullable(v.string()),
+  compressionPolicyId: v.optional(v.nullable(v.string())),
+  compressionPolicyName: v.optional(v.nullable(v.string())),
+  compressionStatus: v.optional(v.nullable(v.string())),
+  compressionInputTokens: v.optional(v.nullable(v.number())),
+  compressionOutputTokens: v.optional(v.nullable(v.number())),
+  compressionElapsedMs: v.optional(v.nullable(v.number())),
 })
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>

@@ -31,6 +31,7 @@ export const config = {
   // until the full result is rendered. Defaults to 10 min headers / no body cap.
   upstreamHeadersTimeoutMs: parseMs(process.env.UPSTREAM_HEADERS_TIMEOUT_MS, 600_000),
   upstreamBodyTimeoutMs: parseMs(process.env.UPSTREAM_BODY_TIMEOUT_MS, 0),
+  headroomBaseUrl: process.env.HEADROOM_BASE_URL ? stripTrailingSlash(process.env.HEADROOM_BASE_URL) : null,
   metricsToken: process.env.METRICS_TOKEN ?? null,
 }
 

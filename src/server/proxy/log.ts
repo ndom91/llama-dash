@@ -67,6 +67,12 @@ export type RequestLogInput = {
   routingRoutedModel: string | null
   routingRejectReason: string | null
   credentialInjectionJson?: string | null
+  compressionPolicyId?: string | null
+  compressionPolicyName?: string | null
+  compressionStatus?: string | null
+  compressionInputTokens?: number | null
+  compressionOutputTokens?: number | null
+  compressionElapsedMs?: number | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -162,6 +168,12 @@ export function writeRequestLogNow(row: RequestLogInput) {
       routingRoutedModel: row.routingRoutedModel,
       routingRejectReason: row.routingRejectReason,
       credentialInjectionJson: row.credentialInjectionJson ?? null,
+      compressionPolicyId: row.compressionPolicyId ?? null,
+      compressionPolicyName: row.compressionPolicyName ?? null,
+      compressionStatus: row.compressionStatus ?? null,
+      compressionInputTokens: row.compressionInputTokens ?? null,
+      compressionOutputTokens: row.compressionOutputTokens ?? null,
+      compressionElapsedMs: row.compressionElapsedMs ?? null,
     })
     .run()
   publishAdminEvent('request.completed', {
