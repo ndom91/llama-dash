@@ -348,13 +348,13 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                   ) : null}
                   {req.compressionInputTokens != null ? (
                     <div>
-                      <dt>estimated input</dt>
+                      <dt>before</dt>
                       <dd>{req.compressionInputTokens.toLocaleString()} tokens</dd>
                     </div>
                   ) : null}
                   {req.compressionOutputTokens != null ? (
                     <div>
-                      <dt>estimated output</dt>
+                      <dt>after</dt>
                       <dd>{req.compressionOutputTokens.toLocaleString()} tokens</dd>
                     </div>
                   ) : null}
