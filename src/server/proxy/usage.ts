@@ -31,18 +31,24 @@ const pickModel = (body: RawJson): string | null => {
   if (typeof body.model === 'string') return body.model
   const msg = asRecord(body.message)
   if (msg && typeof msg.model === 'string') return msg.model
+  const response = asRecord(body.response)
+  if (response && typeof response.model === 'string') return response.model
   return null
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
 
-const readUsageRecord = (rec: RawJson): Partial<Usage> => ({
-  promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
-  completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
-  totalTokens: num(rec.total_tokens),
-  cacheCreationTokens: num(rec.cache_creation_input_tokens),
-  cacheReadTokens: num(rec.cache_read_input_tokens),
-})
+const readUsageRecord = (rec: RawJson): Partial<Usage> => {
+  const inputTokenDetails = asRecord(rec.input_tokens_details)
+  return {
+    promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
+    completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
+    totalTokens: num(rec.total_tokens),
+    cacheCreationTokens: num(rec.cache_creation_input_tokens),
+    cacheReadTokens:
+      num(rec.cache_read_input_tokens) ?? (inputTokenDetails ? num(inputTokenDetails.cached_tokens) : null),
+  }
+}
 
 const pickUsage = (body: RawJson): Partial<Usage> => {
   const u = asRecord(body.usage)
@@ -51,6 +57,11 @@ const pickUsage = (body: RawJson): Partial<Usage> => {
   if (msg) {
     const mu = asRecord(msg.usage)
     if (mu) return readUsageRecord(mu)
+  }
+  const response = asRecord(body.response)
+  if (response) {
+    const ru = asRecord(response.usage)
+    if (ru) return readUsageRecord(ru)
   }
   const t = asRecord(body.timings)
   if (t) {
@@ -131,8 +142,15 @@ export class SseUsageScanner {
         if (u.totalTokens != null) this.usage.totalTokens = u.totalTokens
         if (u.cacheCreationTokens != null) this.usage.cacheCreationTokens = u.cacheCreationTokens
         if (u.cacheReadTokens != null) this.usage.cacheReadTokens = u.cacheReadTokens
-        // Anthropic terminates streams with {type:"message_stop"}; treat it like [DONE].
-        if (body.type === 'message_stop' && this.doneAtMs == null) this.doneAtMs = at
+        // Anthropic and OpenAI Responses terminate streams with an explicit event rather than [DONE].
+        if (
+          (body.type === 'message_stop' ||
+            body.type === 'response.completed' ||
+            body.type === 'response.failed' ||
+            body.type === 'response.incomplete') &&
+          this.doneAtMs == null
+        )
+          this.doneAtMs = at
       } catch {
         // ignore malformed chunks
       }
