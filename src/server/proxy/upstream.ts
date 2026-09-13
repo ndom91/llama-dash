@@ -2,7 +2,7 @@ import { isAllowedDirectUpstream } from '../../lib/schemas/routing-rule.ts'
 
 export function buildDirectUpstream(baseUrl: string, endpoint: string, search: string): string {
   if (!isAllowedDirectUpstream(baseUrl)) {
-    throw new Error('Direct upstreams are currently limited to api.openai.com and api.anthropic.com')
+    throw new Error('Direct upstreams are currently limited to api.openai.com, api.anthropic.com, and chatgpt.com')
   }
   const base = new URL(baseUrl)
   if (endpoint === '/v1') {

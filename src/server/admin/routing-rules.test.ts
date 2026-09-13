@@ -206,8 +206,12 @@ describe('direct passthrough rule schema safety', () => {
     expect(result.success).toBe(false)
   })
 
-  it('allows matched direct passthrough rules for OpenAI and Anthropic', () => {
-    for (const baseUrl of ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']) {
+  it('allows matched direct passthrough rules for OpenAI, Anthropic, and ChatGPT Codex', () => {
+    for (const baseUrl of [
+      'https://api.openai.com/v1',
+      'https://api.anthropic.com/v1',
+      'https://chatgpt.com/backend-api/codex',
+    ]) {
       const result = v.safeParse(CreateRoutingRuleBodySchema, {
         name: 'Safe passthrough',
         enabled: true,

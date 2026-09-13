@@ -11,6 +11,7 @@ export type CredentialBindingMode = v.InferOutput<typeof CredentialBindingModeSc
 
 const NonEmptyStringArraySchema = v.array(v.pipe(v.string(), v.minLength(1), v.maxLength(200)))
 const OptionalPositiveIntStringSchema = v.pipe(v.string(), v.regex(/^\d*$/))
+const CHATGPT_CODEX_UPSTREAM_PATH = '/backend-api/codex'
 
 export const RoutingMatchSchema = v.object({
   endpoints: NonEmptyStringArraySchema,
@@ -83,12 +84,14 @@ export const DirectTargetSchema = v.pipe(
         !url.password &&
         !url.search &&
         !url.hash &&
-        url.pathname.replace(/\/$/, '').endsWith('/v1')
+        (url.pathname.replace(/\/$/, '').endsWith('/v1') ||
+          (url.hostname.toLowerCase() === 'chatgpt.com' &&
+            url.pathname.replace(/\/$/, '') === CHATGPT_CODEX_UPSTREAM_PATH))
       )
     } catch {
       return false
     }
-  }, 'Direct upstream URL must use HTTPS, include no query or hash, and end with /v1'),
+  }, 'Direct upstream URL must use HTTPS, include no query or hash, and end with /v1 or /backend-api/codex'),
 )
 
 export const RoutingTargetSchema = v.variant('type', [LlamaSwapTargetSchema, DirectTargetSchema])
@@ -105,7 +108,7 @@ export const CredentialBindingSchema = v.object({
 })
 export type CredentialBinding = v.InferOutput<typeof CredentialBindingSchema>
 
-export const ALLOWED_DIRECT_UPSTREAM_HOSTS = new Set(['api.openai.com', 'api.anthropic.com'])
+export const ALLOWED_DIRECT_UPSTREAM_HOSTS = new Set(['api.openai.com', 'api.anthropic.com', 'chatgpt.com'])
 
 export function isAllowedDirectUpstream(baseUrl: string): boolean {
   try {
@@ -163,7 +166,7 @@ export const CreateRoutingRuleBodySchema = v.pipe(
   CreateRoutingRuleBodyBaseSchema,
   v.check(
     (input) => isSafeRoutingRule(input),
-    'Direct passthrough rules require at least one matcher and direct upstreams are currently limited to OpenAI and Anthropic',
+    'Direct passthrough rules require at least one matcher and direct upstreams are currently limited to OpenAI, Anthropic, and ChatGPT',
   ),
 )
 export type CreateRoutingRuleBody = v.InferOutput<typeof CreateRoutingRuleBodyBaseSchema>
