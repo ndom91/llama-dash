@@ -114,7 +114,7 @@ export function updateRoutingRule(id: string, fields: UpdateRoutingRuleBody): Ro
 
 function validateRoutingRuleSafety(rule: Pick<RoutingRule, 'authMode' | 'match' | 'target'>) {
   if (rule.target.type === 'direct' && !isAllowedDirectUpstream(rule.target.baseUrl)) {
-    throw new Error('Direct upstreams are currently limited to api.openai.com and api.anthropic.com')
+    throw new Error('Direct upstreams are currently limited to api.openai.com, api.anthropic.com, and chatgpt.com')
   }
   if (rule.target.type === 'direct' && rule.authMode === 'passthrough' && !hasAnyRoutingMatcher(rule.match)) {
     throw new Error('Direct passthrough routing rules require at least one matcher')
