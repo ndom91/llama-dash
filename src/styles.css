@@ -598,7 +598,11 @@
   .t-acc-chevron,
   .motion-panel,
   .motion-toggle,
-  .motion-toggle-thumb {
+  .motion-toggle-thumb,
+  .copy-icon-swap-from,
+  .copy-icon-swap-to,
+  .copy-text-swap-from,
+  .copy-text-swap-to {
     transition: none !important;
   }
 }
@@ -3205,20 +3209,55 @@ a,
 }
 .copy-icon-swap-from,
 .copy-icon-swap-to {
-  transition: opacity var(--duration-normal) var(--ease-out),
-    transform var(--duration-normal) var(--ease-out);
+  transition:
+    opacity var(--motion-duration-fast) var(--motion-ease-in-out),
+    transform var(--motion-duration-fast) var(--motion-ease-in-out),
+    filter var(--motion-duration-fast) var(--motion-ease-in-out);
 }
 .copy-icon-swap-to {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(var(--motion-scale-medium));
+  filter: blur(var(--motion-blur-small));
 }
 .copy-icon-swap-done .copy-icon-swap-from {
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(var(--motion-scale-medium));
+  filter: blur(var(--motion-blur-small));
 }
 .copy-icon-swap-done .copy-icon-swap-to {
   opacity: 1;
   transform: scale(1);
+  filter: blur(0);
+}
+
+/* Copy labels retain their widest state in the layout while the visible text
+   crosses over in place, preventing button width from jumping on confirmation. */
+.copy-text-swap {
+  display: inline-grid;
+}
+.copy-text-swap-from,
+.copy-text-swap-to {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  transition:
+    opacity var(--motion-duration-quick) var(--motion-ease-in-out),
+    transform var(--motion-duration-quick) var(--motion-ease-in-out),
+    filter var(--motion-duration-quick) var(--motion-ease-in-out);
+}
+.copy-text-swap-to {
+  opacity: 0;
+  transform: translateY(var(--motion-distance-micro));
+  filter: blur(var(--motion-blur-small));
+}
+.copy-text-swap-done .copy-text-swap-from {
+  opacity: 0;
+  transform: translateY(calc(var(--motion-distance-micro) * -1));
+  filter: blur(var(--motion-blur-small));
+}
+.copy-text-swap-done .copy-text-swap-to {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
 }
