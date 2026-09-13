@@ -108,4 +108,68 @@ describe('writeProxyLog', () => {
       }),
     )
   })
+
+  it('captures a JSON Responses API reply without a content type', async () => {
+    const body = JSON.stringify({
+      model: 'gpt-5.6-terra',
+      output: [{ type: 'message', content: [{ type: 'output_text', text: 'Hello' }] }],
+      usage: { input_tokens: 10, output_tokens: 20, total_tokens: 30 },
+    })
+    undiciFetch.mockResolvedValue(new Response(body, { headers: { 'content-type': '' } }))
+
+    const response = await forwardUpstreamAndLog({
+      upstream: 'https://chatgpt.com/backend-api/codex/responses?include=reasoning.encrypted_content',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/responses',
+      reqModel: 'gpt-5.6-terra',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: 'opencode', endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    await (response as Response).text()
+
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseBody: body,
+        promptTokens: 10,
+        completionTokens: 20,
+        totalTokens: 30,
+      }),
+    )
+  })
+
+  it('does not capture an untyped Responses API reply from another upstream', async () => {
+    undiciFetch.mockResolvedValue(new Response(new Uint8Array([0, 255, 1])))
+
+    const response = await forwardUpstreamAndLog({
+      upstream: 'https://upstream.test/v1/responses',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/responses',
+      reqModel: 'test-model',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    await (response as Response).arrayBuffer()
+
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({ responseBody: null, promptTokens: null, completionTokens: null, totalTokens: null }),
+    )
+  })
 })

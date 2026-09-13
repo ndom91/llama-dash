@@ -56,6 +56,11 @@ export function nullUsage(model?: string | null): UsageWithClose {
   }
 }
 
+function isChatGptCodexResponsesUrl(upstream: string): boolean {
+  const url = new URL(upstream)
+  return url.origin === 'https://chatgpt.com' && url.pathname === '/backend-api/codex/responses'
+}
+
 function deriveClientHost(reqHeadersJson: string | null): string | null {
   if (!reqHeadersJson) return null
   try {
@@ -189,7 +194,11 @@ export async function forwardUpstreamAndLog(input: {
   const resHeadersJson = JSON.stringify(redactSensitiveHeaders(headersToRecord(upstreamResponse.headers)))
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
   const isSse = contentType.includes('text/event-stream')
-  const isJson = contentType.includes('application/json')
+  // ChatGPT's Codex endpoint omits Content-Type for non-streaming Responses
+  // API replies, even though its body is JSON.
+  const isJson =
+    contentType.includes('application/json') ||
+    (!contentType && isChatGptCodexResponsesUrl(input.upstream))
   const isBinaryResponse = !isSse && !isJson
   const captureResponseBodies = getPrivacySettings().captureResponseBodies
 
