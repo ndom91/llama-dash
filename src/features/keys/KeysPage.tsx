@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import type { ApiKeyCreated } from '../../lib/api'
@@ -11,11 +11,27 @@ import { KeyRow } from './KeyRow'
 import { KeysEmptyState } from './KeysEmptyState'
 import { KeysPageSkeleton } from './KeysPageSkeleton'
 
+const CREATE_FORM_EXIT_TIMEOUT_MS = 400
+
 export function KeysPage() {
   const { data: keys, error, isLoading } = useApiKeys()
   const { data: models } = useModels()
   const [showCreate, setShowCreate] = useState(false)
+  const [renderCreate, setRenderCreate] = useState(false)
+  const [createFormKey, setCreateFormKey] = useState(0)
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
+
+  useEffect(() => {
+    if (showCreate || !renderCreate) return
+    const timeout = window.setTimeout(() => setRenderCreate(false), CREATE_FORM_EXIT_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [renderCreate, showCreate])
+
+  function openCreate() {
+    setCreateFormKey((key) => key + 1)
+    setRenderCreate(true)
+    setShowCreate(true)
+  }
 
   if (error) {
     return <RouteError kicker="dsh · keys" title="Failed to load API keys" message={error.message} />
@@ -30,7 +46,7 @@ export function KeysPage() {
           subtitle="manage proxy authentication and rate limits"
           variant="integrated"
           action={
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
               <Plus size={14} strokeWidth={2} />
               Create key
             </button>
@@ -38,13 +54,16 @@ export function KeysPage() {
         />
 
         {created ? <KeyCreatedBanner created={created} onDismiss={() => setCreated(null)} /> : null}
-        {showCreate ? (
+        {renderCreate ? (
           <CreateKeyForm
+            key={createFormKey}
+            open={showCreate}
             onCreated={(result) => {
               setCreated(result)
               setShowCreate(false)
             }}
             onCancel={() => setShowCreate(false)}
+            onExited={() => setRenderCreate(false)}
           />
         ) : null}
 

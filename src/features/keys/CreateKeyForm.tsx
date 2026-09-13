@@ -6,11 +6,13 @@ import { cn } from '../../lib/cn'
 import { useCreateApiKey, useMcpRelays, useModels } from '../../lib/queries'
 
 type Props = {
+  open: boolean
   onCreated: (r: ApiKeyCreated) => void
   onCancel: () => void
+  onExited: () => void
 }
 
-export function CreateKeyForm({ onCreated, onCancel }: Props) {
+export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
   const createKey = useCreateApiKey()
   const { data: models } = useModels()
   const { data: mcpRelays } = useMcpRelays()
@@ -67,7 +69,14 @@ export function CreateKeyForm({ onCreated, onCancel }: Props) {
   }
 
   return (
-    <form className="panel !rounded-none !border-x-0 !bg-surface-1 px-6 py-4 max-md:px-3" onSubmit={submit}>
+    <form
+      className="motion-panel panel !rounded-none !border-x-0 !bg-surface-1 px-6 py-4 max-md:px-3"
+      onSubmit={submit}
+      onTransitionEnd={(event) => {
+        if (event.target === event.currentTarget && event.propertyName === 'opacity' && !open) onExited()
+      }}
+      hidden={!open}
+    >
       <div className="mb-4 flex items-center gap-2 border-b border-border pb-3 text-sm">
         <KeyRound size={16} strokeWidth={2} />
         <strong>New API key</strong>
