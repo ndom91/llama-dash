@@ -299,6 +299,34 @@
   --duration-micro: 100ms;
   --duration-normal: 150ms;
   --duration-slow: 250ms;
+
+  /* New motion primitives are intentionally namespaced. The dashboard already
+     has established --duration-* and --ease-* values used throughout its UI. */
+  --motion-duration-stagger: 40ms;
+  --motion-duration-micro: 80ms;
+  --motion-duration-quick: 150ms;
+  --motion-duration-fast: 250ms;
+  --motion-duration-medium: 350ms;
+  --motion-duration-slow: 400ms;
+  --motion-duration-very-slow: 500ms;
+  --motion-ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-in-out: ease-in-out;
+  --motion-ease-out: ease-out;
+  --motion-ease-linear: linear;
+  --motion-ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --motion-ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+  --motion-distance-micro: 4px;
+  --motion-distance-small: 6px;
+  --motion-distance-base: 8px;
+  --motion-distance-medium: 12px;
+  --motion-distance-large: 30px;
+  --motion-scale-large: 0.96;
+  --motion-scale-medium: 0.97;
+  --motion-scale-small: 0.98;
+  --motion-scale-tiny: 0.99;
+  --motion-blur-small: 2px;
+  --motion-blur-medium: 3px;
+  --motion-blur-large: 8px;
 }
 
 /*
@@ -1431,14 +1459,27 @@ textarea:focus-visible {
   box-shadow: none;
 }
 
-/* Honor reduced-motion preference — instrument panels don't need to breathe */
+/* Honor reduced motion without compressing every transition to a near-zero
+   duration, which can make state changes more abrupt or break animation-driven
+   UI. New motion primitives provide their own local reduced-motion rule. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+  .animate-pulse,
+  .animate-pulse-ok,
+  .animate-pulse-warn,
+  .animate-pg-pulse,
+  .animate-skel-pulse,
+  .animate-spin,
+  .spin,
+  .stream-flow-bar,
+  .ticker-in,
+  .ticker-out,
+  [class*='animate-['] {
+    animation: none !important;
+  }
+
+  .requests-refresh-ring {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 
