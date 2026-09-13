@@ -1,7 +1,38 @@
 import { describe, expect, it } from 'vitest'
-import { groupHeaders } from './requestDetailUtils'
+import { assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
 
 const keys = (entries: Array<[string, string]>) => entries.map(([k]) => k)
+
+describe('assembleSseText', () => {
+  it('assembles OpenAI Responses API text deltas', () => {
+    const stream = parseSseStream([
+      'event: response.output_text.delta',
+      'data: {"type":"response.output_text.delta","delta":"Hello"}',
+      '',
+      'event: response.output_text.delta',
+      'data: {"type":"response.output_text.delta","delta":" world"}',
+      '',
+    ].join('\n'))
+
+    expect(assembleSseText(stream)).toBe('Hello world')
+  })
+
+  it('uses completed Responses API output when no text deltas were captured', () => {
+    const stream = parseSseStream([
+      'event: response.output_text.done',
+      'data: {"type":"response.output_text.done","text":"first"}',
+      '',
+      'event: response.output_text.done',
+      'data: {"type":"response.output_text.done","text":" part"}',
+      '',
+      'event: response.completed',
+      'data: {"type":"response.completed","response":{"output":[{"content":[{"type":"output_text","text":"first part"}]},{"content":[{"type":"output_text","text":" and second part"}]}]}}',
+      '',
+    ].join('\n'))
+
+    expect(assembleSseText(stream)).toBe('first part and second part')
+  })
+})
 
 describe('groupHeaders', () => {
   it('puts priority headers first, in curated order', () => {

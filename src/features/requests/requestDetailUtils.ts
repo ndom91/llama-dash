@@ -74,13 +74,13 @@ export function parseSseStream(body: string): ParsedSseStream {
 
 // Concatenate the assistant's generated text across an SSE stream so the
 // Response pane can show the assembled completion without the user reading
-// every delta chunk. Handles both OpenAI chat-completions
-// (choices[0].delta.content) and Anthropic messages (content_block_delta →
-// delta.text) shapes. Tool-arg deltas (input_json_delta) are intentionally
+// every delta chunk. Handles OpenAI chat-completions and Responses API events,
+// plus Anthropic messages. Tool-arg deltas (input_json_delta) are intentionally
 // skipped — this is the human-readable text, not tool call payloads.
 export function assembleSseText(stream: ParsedSseStream | null): string {
   if (!stream) return ''
   let out = ''
+  let completedText = ''
   for (const e of stream.events) {
     const data = e.parsedData
     if (!data) continue
@@ -93,13 +93,41 @@ export function assembleSseText(stream: ParsedSseStream | null): string {
       }
       continue
     }
+    // OpenAI Responses: response.output_text.delta → delta. When only the
+    // terminal event was captured, fall back to its completed output below.
+    if ((data as { type?: unknown }).type === 'response.output_text.delta') {
+      const delta = (data as { delta?: unknown }).delta
+      if (typeof delta === 'string') out += delta
+      continue
+    }
+    if ((data as { type?: unknown }).type === 'response.output_text.done') {
+      const text = (data as { text?: unknown }).text
+      if (typeof text === 'string') completedText += text
+      continue
+    }
+    if ((data as { type?: unknown }).type === 'response.completed') {
+      const output = (data as { response?: { output?: unknown } }).response?.output
+      if (Array.isArray(output)) {
+        const text: Array<string> = []
+        for (const item of output) {
+          const content = (item as { content?: unknown }).content
+          if (!Array.isArray(content)) continue
+          for (const part of content) {
+            const outputText = part as { type?: unknown; text?: unknown }
+            if (outputText.type === 'output_text' && typeof outputText.text === 'string') text.push(outputText.text)
+          }
+        }
+        if (text.length > 0) completedText = text.join('')
+      }
+      continue
+    }
     // Anthropic: content_block_delta → delta.text
     if ((data as { type?: unknown }).type === 'content_block_delta') {
       const delta = (data as { delta?: { type?: unknown; text?: unknown } }).delta
       if (delta?.type === 'text_delta' && typeof delta.text === 'string') out += delta.text
     }
   }
-  return out
+  return out || completedText
 }
 
 export type ResponseAnalysis = {

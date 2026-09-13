@@ -61,6 +61,15 @@ function isChatGptCodexResponsesUrl(upstream: string): boolean {
   return url.origin === 'https://chatgpt.com' && url.pathname === '/backend-api/codex/responses'
 }
 
+function isStreamingRequest(body: ProxyForwardBody): boolean {
+  if (typeof body !== 'string') return false
+  try {
+    return JSON.parse(body).stream === true
+  } catch {
+    return false
+  }
+}
+
 function deriveClientHost(reqHeadersJson: string | null): string | null {
   if (!reqHeadersJson) return null
   try {
@@ -193,12 +202,11 @@ export async function forwardUpstreamAndLog(input: {
   const resHeadersObj = filterResponseHeaders(upstreamResponse.headers)
   const resHeadersJson = JSON.stringify(redactSensitiveHeaders(headersToRecord(upstreamResponse.headers)))
   const contentType = upstreamResponse.headers.get('content-type') ?? ''
-  const isSse = contentType.includes('text/event-stream')
-  // ChatGPT's Codex endpoint omits Content-Type for non-streaming Responses
-  // API replies, even though its body is JSON.
-  const isJson =
-    contentType.includes('application/json') ||
-    (!contentType && isChatGptCodexResponsesUrl(input.upstream))
+  const isHeaderlessCodex = !contentType && isChatGptCodexResponsesUrl(input.upstream)
+  // ChatGPT's Codex endpoint omits Content-Type. Its stream mode still uses
+  // SSE, which needs the event scanner for usage and assembled-text logging.
+  const isSse = contentType.includes('text/event-stream') || (isHeaderlessCodex && isStreamingRequest(input.body))
+  const isJson = contentType.includes('application/json') || (isHeaderlessCodex && !isSse)
   const isBinaryResponse = !isSse && !isJson
   const captureResponseBodies = getPrivacySettings().captureResponseBodies
 

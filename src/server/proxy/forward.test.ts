@@ -121,7 +121,7 @@ describe('writeProxyLog', () => {
       upstream: 'https://chatgpt.com/backend-api/codex/responses?include=reasoning.encrypted_content',
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: '{}',
+      body: '{"stream":false}',
       hasBody: true,
       startedAt: Date.now(),
       endpoint: '/v1/responses',
@@ -139,6 +139,47 @@ describe('writeProxyLog', () => {
     expect(writeRequestLog).toHaveBeenCalledWith(
       expect.objectContaining({
         responseBody: body,
+        promptTokens: 10,
+        completionTokens: 20,
+        totalTokens: 30,
+      }),
+    )
+  })
+
+  it('scans a headerless Codex Responses API stream', async () => {
+    const body = [
+      'event: response.output_text.delta',
+      'data: {"type":"response.output_text.delta","delta":"Hello"}',
+      '',
+      'event: response.completed',
+      'data: {"type":"response.completed","response":{"model":"gpt-5.6-terra","usage":{"input_tokens":10,"output_tokens":20,"total_tokens":30}}}',
+      '',
+    ].join('\n')
+    undiciFetch.mockResolvedValue(new Response(body, { headers: { 'content-type': '' } }))
+
+    const response = await forwardUpstreamAndLog({
+      upstream: 'https://chatgpt.com/backend-api/codex/responses',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"stream":true}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/responses',
+      reqModel: 'gpt-5.6-terra',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: 'opencode', endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    await (response as Response).text()
+
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseBody: body,
+        streamed: true,
         promptTokens: 10,
         completionTokens: 20,
         totalTokens: 30,
