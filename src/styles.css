@@ -332,6 +332,21 @@
   --acc-collapse: var(--motion-duration-fast);
   --acc-chevron: var(--motion-duration-fast);
   --acc-ease: var(--motion-ease-smooth-out);
+
+  --check-opacity-dur: var(--motion-duration-very-slow);
+  --check-rotate-dur: var(--motion-duration-very-slow);
+  --check-rotate-from: 20deg;
+  --check-bob-dur: var(--motion-duration-very-slow);
+  --check-y-amount: var(--motion-distance-base);
+  --check-blur-dur: var(--motion-duration-very-slow);
+  --check-blur-from: var(--motion-blur-large);
+  --check-path-dur: var(--motion-duration-very-slow);
+  --check-path-delay: var(--motion-duration-micro);
+  --check-ease-out: var(--motion-ease-smooth-out);
+  --check-ease-opacity: var(--motion-ease-smooth-out);
+  --check-ease-rotate: var(--motion-ease-smooth-out);
+  --check-ease-bob: var(--motion-ease-bounce);
+  --check-ease-path: var(--motion-ease-smooth-out);
 }
 
 /*
@@ -592,6 +607,47 @@
   transition: transform var(--motion-duration-fast) var(--motion-ease-smooth-out);
 }
 
+.t-success-check {
+  display: inline-block;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+.t-success-check svg { display: block; overflow: visible; }
+.t-success-check svg path {
+  stroke-dasharray: 18;
+  stroke-dashoffset: 18;
+}
+.t-success-check[data-state='in'] {
+  animation:
+    t-check-fade var(--check-opacity-dur) var(--check-ease-opacity) forwards,
+    t-check-rotate var(--check-rotate-dur) var(--check-ease-rotate) forwards,
+    t-check-blur var(--check-blur-dur) var(--check-ease-out) forwards,
+    t-check-bob var(--check-bob-dur) var(--check-ease-bob) forwards;
+}
+.t-success-check[data-state='in'] svg path {
+  animation: t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay, 0ms) forwards;
+}
+@keyframes t-check-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes t-check-rotate {
+  from { transform: rotate(var(--check-rotate-from)); }
+  to { transform: rotate(0deg); }
+}
+@keyframes t-check-blur {
+  from { filter: blur(var(--check-blur-from)); }
+  to { filter: blur(0); }
+}
+@keyframes t-check-bob {
+  from { translate: 0 var(--check-y-amount); }
+  to { translate: 0 0; }
+}
+@keyframes t-check-draw {
+  to { stroke-dashoffset: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .t-acc-panel,
   .t-acc-panel-inner,
@@ -599,11 +655,22 @@
   .motion-panel,
   .motion-toggle,
   .motion-toggle-thumb,
+  .t-success-check,
   .copy-icon-swap-from,
   .copy-icon-swap-to,
   .copy-text-swap-from,
   .copy-text-swap-to {
     transition: none !important;
+  }
+
+  .t-success-check {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .t-success-check svg path {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
   }
 }
 

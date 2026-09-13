@@ -1,5 +1,6 @@
 import { Check, Copy, X } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { SuccessCheck } from '../../components/SuccessCheck'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import type { ApiKeyCreated } from '../../lib/api'
@@ -21,7 +22,7 @@ export function KeyCreatedBanner({ created, onDismiss }: Props) {
   return (
     <div className="mx-6 mt-3 rounded border border-ok bg-ok-bg px-4 py-3 max-md:mx-3">
       <div className="mb-2 flex items-center gap-2 text-[13px]">
-        <Check size={16} strokeWidth={2} style={{ color: 'var(--ok)' }} />
+        <SuccessCheck className="text-ok" />
         <strong>Key created — copy it now, it won't be shown again</strong>
         <button type="button" className="btn btn-ghost btn-icon" onClick={onDismiss} style={{ marginLeft: 'auto' }}>
           <X size={14} strokeWidth={2} />

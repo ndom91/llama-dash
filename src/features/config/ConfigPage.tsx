@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { parseDocument } from 'yaml'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
+import { SuccessCheck } from '../../components/SuccessCheck'
 import { api, type ApiConfigSaveResult } from '../../lib/api'
 import { useSystemStatus } from '../../lib/queries'
 import { YamlEditor } from './YamlEditor'
@@ -151,7 +152,7 @@ export function ConfigPage() {
                 ) : null}
                 {saveResult && 'saved' in saveResult && saveResult.saved ? (
                   <span className="inline-flex items-center gap-1 rounded-sm border border-ok bg-ok-bg px-2 py-0.5 font-mono text-[11px] font-medium text-ok animate-[badge-in_var(--duration-normal)_var(--ease-out)]">
-                    <Check size={14} strokeWidth={2} /> saved
+                    <SuccessCheck size={14} /> saved
                   </span>
                 ) : null}
                 {validation?.valid ? (
