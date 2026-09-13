@@ -74,7 +74,7 @@ export function Tabs<T extends string>({
       {variant === 'accent' ? (
         <span
           ref={indicatorRef}
-          className="pointer-events-none absolute top-0.5 bottom-0.5 left-0 z-0 rounded-sm border border-accent/75 bg-accent/15 opacity-0 transition-[transform,width,opacity] duration-[var(--motion-duration-fast)] [transition-timing-function:var(--motion-ease-smooth-out)] data-[ready=true]:opacity-100 motion-reduce:transition-none"
+          className="pointer-events-none absolute top-0 bottom-0 left-0 z-0 border-x border-accent/75 bg-accent/15 opacity-0 transition-[transform,width,opacity] duration-[var(--motion-duration-fast)] [transition-timing-function:var(--motion-ease-smooth-out)] data-[ready=true]:opacity-100 motion-reduce:transition-none"
           aria-hidden="true"
         />
       ) : null}
