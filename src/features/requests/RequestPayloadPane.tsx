@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
@@ -77,31 +78,41 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
                   <td className="mono header-value">{maskSensitive(k, v)}</td>
                 </tr>
               ))}
-              {showBoilerplate
-                ? groupedHeaders.boilerplate.map(([k, v]) => (
-                    <tr key={k}>
-                      <td className="mono header-key header-key-muted">{k}</td>
-                      <td className="mono header-value">{maskSensitive(k, v)}</td>
-                    </tr>
-                  ))
-                : null}
-              {groupedHeaders.boilerplate.length > 0 ? (
-                <tr>
-                  <td colSpan={2} className="!py-1.5">
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-xs"
-                      onClick={() => setShowBoilerplate((prev) => !prev)}
-                      aria-expanded={showBoilerplate}
-                    >
-                      {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
-                      {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
-                    </button>
-                  </td>
-                </tr>
-              ) : null}
             </tbody>
           </table>
+          {groupedHeaders.boilerplate.length > 0 ? (
+            <div className="t-acc border-t border-border" data-open={showBoilerplate}>
+              <button
+                type="button"
+                className="t-acc-head flex w-full items-center gap-1.5 bg-surface-0 px-3.5 py-1.5 text-left"
+                onClick={() => setShowBoilerplate((prev) => !prev)}
+                aria-expanded={showBoilerplate}
+                aria-controls={`request-${title}-browser-headers`}
+              >
+                <span className="t-acc-chevron">
+                  <ChevronDown className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                </span>
+                <span className="font-mono text-[11px] text-fg-dim">
+                  {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
+                  {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
+                </span>
+              </button>
+              <div id={`request-${title}-browser-headers`} className="t-acc-panel" aria-hidden={!showBoilerplate}>
+                <div className="t-acc-panel-inner">
+                  <table className="dtable headers-table">
+                    <tbody>
+                      {groupedHeaders.boilerplate.map(([k, v]) => (
+                        <tr key={k}>
+                          <td className="mono header-key header-key-muted">{k}</td>
+                          <td className="mono header-value">{maskSensitive(k, v)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

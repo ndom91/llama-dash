@@ -1,4 +1,4 @@
-import { ChevronRight, GitBranch, Pencil, RefreshCw } from 'lucide-react'
+import { ChevronDown, GitBranch, Pencil, RefreshCw } from 'lucide-react'
 import { type FormEvent, useCallback, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
@@ -75,27 +75,30 @@ export function PlaygroundMessage({
       </div>
 
       {isAssistant && message.reasoningContent ? (
-        <div className="overflow-hidden rounded-sm border border-border text-xs">
+        <div className="t-acc overflow-hidden rounded-sm border border-border text-xs" data-open={reasoningOpen}>
           <button
             type="button"
-            className="flex w-full items-center gap-1.5 bg-surface-0 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
+            className="t-acc-head flex w-full items-center gap-1.5 bg-surface-0 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
             onClick={() => setReasoningOpen(!reasoningOpen)}
+            aria-expanded={reasoningOpen}
+            aria-controls={`playground-reasoning-${index}`}
           >
-            <ChevronRight
-              className={cn('size-3 shrink-0 transition-transform duration-150', reasoningOpen && 'rotate-90')}
-              strokeWidth={2}
-            />
+            <span className="t-acc-chevron">
+              <ChevronDown className="size-3 shrink-0" strokeWidth={2} />
+            </span>
             <span>reasoning</span>
             {isReasoning && isLast ? <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pg-pulse" /> : null}
             {message.reasoningTimeMs ? (
               <span className="dim">{(message.reasoningTimeMs / 1000).toFixed(1)}s</span>
             ) : null}
           </button>
-          {reasoningOpen ? (
-            <pre className="m-0 max-h-[300px] overflow-y-auto px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg-dim">
-              {message.reasoningContent}
-            </pre>
-          ) : null}
+          <div id={`playground-reasoning-${index}`} className="t-acc-panel" aria-hidden={!reasoningOpen}>
+            <div className="t-acc-panel-inner">
+              <pre className="m-0 max-h-[300px] overflow-y-auto px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg-dim">
+                {message.reasoningContent}
+              </pre>
+            </div>
+          </div>
         </div>
       ) : null}
 

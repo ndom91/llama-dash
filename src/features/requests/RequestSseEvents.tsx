@@ -1,7 +1,6 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { useMemo } from 'react'
 import { CopyButton } from '../../components/CopyButton'
-import { cn } from '../../lib/cn'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { assembleSseText, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
 import { RequestJsonHighlight } from './RequestJsonHighlight'
@@ -22,27 +21,30 @@ export function RequestSseEvents({ body, stream }: Props) {
   return (
     <div className="sse-events">
       {assembled ? (
-        <div className="mb-2 overflow-hidden rounded-sm border border-border text-xs">
+        <div className="t-acc mb-2 overflow-hidden rounded-sm border border-border text-xs" data-open={open}>
           <div className="flex w-full items-center bg-surface-0">
             <button
               type="button"
-              className="flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
+              className="t-acc-head flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"
               onClick={toggleOpen}
+              aria-expanded={open}
+              aria-controls="request-sse-assembled"
             >
-              <ChevronRight
-                className={cn('size-3 shrink-0 transition-transform duration-150', open && 'rotate-90')}
-                strokeWidth={2}
-              />
+              <span className="t-acc-chevron">
+                <ChevronDown className="size-3 shrink-0" strokeWidth={2} />
+              </span>
               <span>assembled text</span>
               <span className="dim normal-case tracking-normal">{assembled.length.toLocaleString()} chars</span>
             </button>
             <CopyButton text={assembled} variant="icon" icon="clipboard" ariaLabel="Copy assembled text" />
           </div>
-          {open ? (
-            <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
-              {assembled}
-            </pre>
-          ) : null}
+          <div id="request-sse-assembled" className="t-acc-panel" aria-hidden={!open}>
+            <div className="t-acc-panel-inner">
+              <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
+                {assembled}
+              </pre>
+            </div>
+          </div>
         </div>
       ) : null}
       {events.map((e, i) => (
