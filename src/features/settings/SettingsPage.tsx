@@ -60,14 +60,14 @@ function PrivacyToggle({
         disabled={disabled}
         aria-label={`${enabled ? 'Disable' : 'Enable'} ${title.toLowerCase()}`}
         className={cn(
-          'relative inline-flex h-5 w-8 shrink-0 items-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+          'motion-toggle relative inline-flex h-5 w-8 shrink-0 items-center rounded-full border disabled:cursor-not-allowed disabled:opacity-50',
           enabled ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
         )}
         aria-pressed={enabled}
       >
         <span
           className={cn(
-            'inline-block h-3.5 w-3.5 rounded-full bg-fg transition-transform',
+            'motion-toggle-thumb inline-block h-3.5 w-3.5 rounded-full bg-fg',
             enabled ? 'translate-x-[14px]' : 'translate-x-[2px]',
           )}
         />

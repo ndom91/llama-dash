@@ -583,11 +583,22 @@
   filter: blur(var(--motion-blur-small));
 }
 
+.motion-toggle {
+  transition:
+    background-color var(--motion-duration-fast) var(--motion-ease-smooth-out),
+    border-color var(--motion-duration-fast) var(--motion-ease-smooth-out);
+}
+.motion-toggle-thumb {
+  transition: transform var(--motion-duration-fast) var(--motion-ease-smooth-out);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .t-acc-panel,
   .t-acc-panel-inner,
   .t-acc-chevron,
-  .motion-panel {
+  .motion-panel,
+  .motion-toggle,
+  .motion-toggle-thumb {
     transition: none !important;
   }
 }

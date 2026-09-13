@@ -65,14 +65,14 @@ export function RoutingRuleEditor({
                 type="button"
                 onClick={() => onChange({ ...draft, enabled: !draft.enabled })}
                 className={cn(
-                  'relative inline-flex h-5 w-8 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:shadow-focus',
+                  'motion-toggle relative inline-flex h-5 w-8 items-center rounded-full border focus-visible:outline-none focus-visible:shadow-focus',
                   draft.enabled ? 'border-accent bg-accent/30' : 'border-border bg-surface-3',
                 )}
                 aria-pressed={draft.enabled}
               >
                 <span
                   className={cn(
-                    'inline-block h-3.5 w-3.5 rounded-full bg-fg transition-transform',
+                    'motion-toggle-thumb inline-block h-3.5 w-3.5 rounded-full bg-fg',
                     draft.enabled ? 'translate-x-[14px]' : 'translate-x-[2px]',
                   )}
                 />
