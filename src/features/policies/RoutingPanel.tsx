@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { RoutingRule, UpstreamCredential } from '../../lib/api'
 import {
   useApiKeys,
@@ -14,6 +14,7 @@ import { RoutingRuleEditor } from './RoutingRuleEditor'
 import { RoutingRuleRow } from './RoutingRuleRow'
 
 const INITIAL_RULES: RoutingRule[] = []
+const RULE_EDITOR_EXIT_TIMEOUT_MS = 400
 
 function emptyRule(order: number): RoutingRule {
   return {
@@ -54,6 +55,12 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
   const [draft, setDraft] = useState<RoutingRule | null>(null)
 
+  useEffect(() => {
+    if (editingRuleId || !draft) return
+    const timeout = window.setTimeout(() => setDraft(null), RULE_EDITOR_EXIT_TIMEOUT_MS)
+    return () => window.clearTimeout(timeout)
+  }, [draft, editingRuleId])
+
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
   const modelOptions = models.map((model) => model.id)
 
@@ -77,7 +84,6 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
 
   const discardDraft = () => {
     setEditingRuleId(null)
-    setDraft(null)
   }
 
   const saveDraft = () => {
@@ -99,7 +105,6 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
         {
           onSuccess: () => {
             setEditingRuleId(null)
-            setDraft(null)
           },
         },
       )
@@ -108,7 +113,6 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
     createRuleMutation.mutate(body, {
       onSuccess: () => {
         setEditingRuleId(null)
-        setDraft(null)
       },
     })
   }
@@ -202,6 +206,8 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
                       onChange={setDraft}
                       onDiscard={discardDraft}
                       onSave={saveDraft}
+                      open={editingRuleId === draft.id}
+                      onExited={() => setDraft((current) => (editingRuleId === null ? null : current))}
                     />
                   ) : null}
                 </div>
@@ -238,6 +244,8 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
                 onChange={setDraft}
                 onDiscard={discardDraft}
                 onSave={saveDraft}
+                open={editingRuleId === draft.id}
+                onExited={() => setDraft((current) => (editingRuleId === null ? null : current))}
               />
             ) : null}
           </div>
@@ -259,6 +267,8 @@ function RuleDraftEditor({
   onChange,
   onDiscard,
   onSave,
+  open,
+  onExited,
 }: {
   draft: RoutingRule
   credentials: UpstreamCredential[]
@@ -271,9 +281,17 @@ function RuleDraftEditor({
   onChange: (draft: RoutingRule) => void
   onDiscard: () => void
   onSave: () => void
+  open: boolean
+  onExited: () => void
 }) {
   return (
-    <>
+    <div
+      className="motion-panel space-y-3"
+      onTransitionEnd={(event) => {
+        if (event.target === event.currentTarget && event.propertyName === 'opacity' && !open) onExited()
+      }}
+      hidden={!open}
+    >
       <RoutingRuleEditor
         draft={draft}
         credentials={credentials}
@@ -287,7 +305,7 @@ function RuleDraftEditor({
         onSave={onSave}
       />
       <ObservabilityPanel rule={draft} keyMap={keyMap} totalRules={totalRules} />
-    </>
+    </div>
   )
 }
 
