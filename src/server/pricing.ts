@@ -251,6 +251,7 @@ export type UsageForPricing = {
   completionTokens: number | null
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
+  cacheReadTokensIncludedInPrompt?: boolean
 }
 
 export function computeCostUsd(model: string | null, usage: UsageForPricing): number | null {
@@ -260,11 +261,14 @@ export function computeCostUsd(model: string | null, usage: UsageForPricing): nu
   if (usage.promptTokens == null || usage.completionTokens == null) return null
   if ((usage.cacheCreationTokens ?? 0) > 0 && p.cacheWrite == null) return null
   if ((usage.cacheReadTokens ?? 0) > 0 && p.cacheRead == null) return null
+  const cacheReadTokens = usage.cacheReadTokens ?? 0
+  const billablePromptTokens = usage.promptTokens - (usage.cacheReadTokensIncludedInPrompt ? cacheReadTokens : 0)
+  if (billablePromptTokens < 0) return null
   const cost =
-    (usage.promptTokens * p.input +
+    (billablePromptTokens * p.input +
       usage.completionTokens * p.output +
       (usage.cacheCreationTokens ?? 0) * (p.cacheWrite ?? 0) +
-      (usage.cacheReadTokens ?? 0) * (p.cacheRead ?? 0)) /
+      cacheReadTokens * (p.cacheRead ?? 0)) /
     1_000_000
   return cost > 0 ? cost : null
 }

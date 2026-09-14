@@ -43,6 +43,8 @@ export type RequestLogInput = {
   totalTokens: number | null
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
+  // Used only to price this log entry; it is not persisted.
+  cacheReadTokensIncludedInPrompt?: boolean
   streamed: boolean
   error: string | null
   requestHeaders: string | null

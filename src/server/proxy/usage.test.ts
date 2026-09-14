@@ -39,8 +39,31 @@ describe('usageFromJsonBody', () => {
       promptTokens: 28712,
       completionTokens: 40,
       totalTokens: 28752,
+        cacheCreationTokens: null,
+        cacheReadTokens: 2048,
+        cacheReadTokensIncludedInPrompt: true,
+    })
+  })
+
+  it('keeps Anthropic cache reads separate from prompt tokens', () => {
+    expect(
+      usageFromJsonBody(
+        JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          usage: {
+            input_tokens: 100,
+            cache_read_input_tokens: 900,
+            output_tokens: 10,
+          },
+        }),
+      ),
+    ).toEqual({
+      model: 'claude-sonnet-4-5',
+      promptTokens: 100,
+      completionTokens: 10,
+      totalTokens: 110,
       cacheCreationTokens: null,
-      cacheReadTokens: 2048,
+      cacheReadTokens: 900,
     })
   })
 })
@@ -86,6 +109,7 @@ describe('SseUsageScanner', () => {
       totalTokens: 28752,
       cacheCreationTokens: null,
       cacheReadTokens: 2048,
+      cacheReadTokensIncludedInPrompt: true,
       streamCloseMs: 10,
     })
   })

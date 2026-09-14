@@ -99,6 +99,27 @@ describe('model pricing', () => {
     ).toBeNull()
   })
 
+  it('charges OpenAI cached input at the cache-read rate instead of the full input rate', () => {
+    const pricing = buildModelPricingFromModelsDev({
+      openai: {
+        models: {
+          'gpt-4o': { id: 'gpt-4o', cost: { input: 2.5, output: 10, cache_read: 1.25 } },
+        },
+      },
+    })
+    resetModelPricingForTest(pricing)
+
+    expect(
+      computeCostUsd('gpt-4o', {
+        promptTokens: 1_000_000,
+        completionTokens: 0,
+        cacheCreationTokens: null,
+        cacheReadTokens: 1_000_000,
+        cacheReadTokensIncludedInPrompt: true,
+      }),
+    ).toBe(1.25)
+  })
+
   it('prefers duplicate records with cache pricing when provider priority ties', () => {
     const pricing = buildModelPricingFromModelsDev({
       openai: {

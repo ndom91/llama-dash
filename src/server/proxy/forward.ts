@@ -106,6 +106,7 @@ export function writeProxyLog(input: ProxyLogInput) {
     totalTokens: input.usage.totalTokens,
     cacheCreationTokens: input.usage.cacheCreationTokens,
     cacheReadTokens: input.usage.cacheReadTokens,
+    cacheReadTokensIncludedInPrompt: input.usage.cacheReadTokensIncludedInPrompt,
     streamed: input.streamed,
     error: input.error,
     requestHeaders: input.reqHeaders,
