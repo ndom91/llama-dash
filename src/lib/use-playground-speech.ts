@@ -96,9 +96,10 @@ export function usePlaygroundSpeech() {
           signal: abort.signal,
         })
         const createdAt = Date.now()
+        const id = `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`
         setEntries((prev) => [
           {
-            id: `speech_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+            id,
             audioUrl: result.audioUrl,
             input,
             voice: voice.trim() || 'default',
@@ -109,6 +110,11 @@ export function usePlaygroundSpeech() {
           },
           ...prev,
         ])
+        void readAudioDuration(result.audioUrl).then((audioDurationSec) => {
+          setEntries((prev) =>
+            prev.map((entry) => (entry.id === id ? { ...entry, audioDurationSec } : entry)),
+          )
+        })
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
         setError(err instanceof Error ? err.message : String(err))
@@ -187,6 +193,21 @@ export function usePlaygroundSpeech() {
               }
             }),
           )
+
+          // Metadata loading can be throttled in a background tab. It is only
+          // needed for the duration display, so do not hold up playback or the
+          // next segment while waiting for it.
+          void readAudioDuration(segment.audioUrl).then((audioDurationSec) => {
+            setEntries((prev) =>
+              prev.map((entry) => {
+                if (entry.id !== id) return entry
+                const segments = (entry.segments ?? []).map((item) =>
+                  item.id === segment.id ? { ...item, audioDurationSec } : item,
+                )
+                return { ...entry, segments, audioDurationSec: sumSegmentDuration(segments) }
+              }),
+            )
+          })
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -354,7 +375,7 @@ async function requestSpeech(input: {
   return {
     audioUrl,
     renderMs: performance.now() - startedAt,
-    audioDurationSec: await readAudioDuration(audioUrl),
+    audioDurationSec: null,
   }
 }
 
