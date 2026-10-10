@@ -46,7 +46,8 @@ const readUsageRecord = (rec: RawJson): Partial<Usage> => {
     promptTokens: num(rec.prompt_tokens) ?? num(rec.input_tokens),
     completionTokens: num(rec.completion_tokens) ?? num(rec.output_tokens),
     totalTokens: num(rec.total_tokens),
-    cacheCreationTokens: num(rec.cache_creation_input_tokens) ?? (inputTokenDetails ? num(inputTokenDetails.cache_write_tokens) : null),
+    cacheCreationTokens:
+      num(rec.cache_creation_input_tokens) ?? (inputTokenDetails ? num(inputTokenDetails.cache_write_tokens) : null),
     cacheReadTokens: num(rec.cache_read_input_tokens) ?? cachedTokens,
     // OpenAI Responses includes cache reads in input_tokens; Anthropic's
     // cache_read_input_tokens is a separate counter.

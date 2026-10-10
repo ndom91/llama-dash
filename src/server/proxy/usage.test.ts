@@ -39,9 +39,9 @@ describe('usageFromJsonBody', () => {
       promptTokens: 28712,
       completionTokens: 40,
       totalTokens: 28752,
-        cacheCreationTokens: null,
-        cacheReadTokens: 2048,
-        cacheReadTokensIncludedInPrompt: true,
+      cacheCreationTokens: null,
+      cacheReadTokens: 2048,
+      cacheReadTokensIncludedInPrompt: true,
     })
   })
 

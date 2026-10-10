@@ -111,9 +111,7 @@ export function usePlaygroundSpeech() {
           ...prev,
         ])
         void readAudioDuration(result.audioUrl).then((audioDurationSec) => {
-          setEntries((prev) =>
-            prev.map((entry) => (entry.id === id ? { ...entry, audioDurationSec } : entry)),
-          )
+          setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, audioDurationSec } : entry)))
         })
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return
