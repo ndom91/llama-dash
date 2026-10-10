@@ -5,6 +5,7 @@ import type { GpuInfo, GpuSnapshot } from '../lib/schemas/gpu'
 export type { GpuInfo, GpuSnapshot }
 
 import { publishAdminEvent } from './admin/events.ts'
+import { pollCpuUtilizationPercent } from './cpu-poller.ts'
 
 const POLL_INTERVAL_MS = 10_000
 const EXEC_TIMEOUT_MS = 5_000
@@ -12,7 +13,7 @@ const EXEC_TIMEOUT_MS = 5_000
 type Driver = 'nvidia' | 'amd-top' | 'amd' | 'apple'
 type SchemaDriver = 'nvidia' | 'amd' | 'apple'
 
-let cached: GpuSnapshot = { available: false, driver: null, gpus: [], polledAt: 0 }
+let cached: GpuSnapshot = { available: false, cpuUtilizationPercent: null, driver: null, gpus: [], polledAt: 0 }
 let lastPublishedFingerprint = ''
 let detectedDriver: Driver | null = null
 let started = false
@@ -324,7 +325,13 @@ async function detectDriver(): Promise<Driver | null> {
 }
 
 async function poll() {
-  if (!detectedDriver) return
+  const cpuUtilizationPercent = await pollCpuUtilizationPercent()
+  if (!detectedDriver) {
+    cached = { available: false, cpuUtilizationPercent, driver: null, gpus: [], polledAt: Date.now() }
+    publishGpuUpdateIfChanged(cached)
+    return
+  }
+
   try {
     let gpus: Array<GpuInfo>
     switch (detectedDriver) {
@@ -341,16 +348,33 @@ async function poll() {
         gpus = await pollApple()
         break
     }
-    cached = { available: true, driver: schemaDriver(detectedDriver), gpus, polledAt: Date.now() }
+    cached = {
+      available: true,
+      cpuUtilizationPercent,
+      driver: schemaDriver(detectedDriver),
+      gpus,
+      polledAt: Date.now(),
+    }
     publishGpuUpdateIfChanged(cached)
   } catch {
-    cached = { available: false, driver: schemaDriver(detectedDriver), gpus: [], polledAt: Date.now() }
+    cached = {
+      available: false,
+      cpuUtilizationPercent,
+      driver: schemaDriver(detectedDriver),
+      gpus: [],
+      polledAt: Date.now(),
+    }
     publishGpuUpdateIfChanged(cached)
   }
 }
 
 function publishGpuUpdateIfChanged(snapshot: GpuSnapshot) {
-  const fingerprint = JSON.stringify({ available: snapshot.available, driver: snapshot.driver, gpus: snapshot.gpus })
+  const fingerprint = JSON.stringify({
+    available: snapshot.available,
+    cpuUtilizationPercent: snapshot.cpuUtilizationPercent,
+    driver: snapshot.driver,
+    gpus: snapshot.gpus,
+  })
   if (fingerprint === lastPublishedFingerprint) return
   lastPublishedFingerprint = fingerprint
   publishAdminEvent('gpu.updated', snapshot)
@@ -361,11 +385,6 @@ export async function startGpuPoller() {
   started = true
 
   detectedDriver = await detectDriver()
-  if (!detectedDriver) {
-    cached = { available: false, driver: null, gpus: [], polledAt: Date.now() }
-    return
-  }
-
   await poll()
   setInterval(poll, POLL_INTERVAL_MS)
 }

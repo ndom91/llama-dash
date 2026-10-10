@@ -44,6 +44,7 @@ export const ApiSystemStatusSchema = v.object({
   }),
   gpu: v.object({
     available: v.boolean(),
+    cpuUtilizationPercent: v.nullable(v.number()),
     driver: v.nullable(v.union([v.literal('nvidia'), v.literal('amd'), v.literal('apple')])),
     gpuCount: v.number(),
     polledAt: v.number(),

@@ -17,6 +17,7 @@ export type GpuInfo = v.InferOutput<typeof GpuInfoSchema>
 
 export const GpuSnapshotSchema = v.object({
   available: v.boolean(),
+  cpuUtilizationPercent: v.nullable(v.number()),
   driver: v.nullable(v.union([v.literal('nvidia'), v.literal('amd'), v.literal('apple')])),
   gpus: v.array(GpuInfoSchema),
   polledAt: v.number(),

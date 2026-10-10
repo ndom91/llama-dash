@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('./gpu-poller.ts', () => ({
   getGpuSnapshot: () => ({
     available: true,
+    cpuUtilizationPercent: 40,
     driver: 'nvidia',
     polledAt: Date.now(),
     gpus: [
@@ -111,6 +112,7 @@ describe('renderPrometheusMetrics', () => {
     expect(body).toContain('llama_dash_credential_injections_total{result="failure"} 1')
     expect(body).toContain('llama_dash_upstream_reachable 1')
     expect(body).toContain('llama_dash_models_running 2')
+    expect(body).toContain('llama_dash_cpu_utilization_percent 40')
     expect(body).toContain('llama_dash_gpu_memory_used_bytes{index="0",name="RTX Test",driver="nvidia"} 1073741824')
   })
 })

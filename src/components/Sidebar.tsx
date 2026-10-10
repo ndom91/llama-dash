@@ -284,6 +284,8 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   const resident = runningCount > 0 ? running[visibleIdx % runningCount] : null
 
   const gpuCard = gpu?.available ? gpu.gpus[0] : null
+  const cpuUtilizationPercent = gpu?.cpuUtilizationPercent
+  const gpuUtilizationPercent = gpuCard?.utilizationPercent
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
 
@@ -325,6 +327,12 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
             }}
           />
         </div>
+        {cpuUtilizationPercent != null || gpuUtilizationPercent != null ? (
+          <div className="flex items-center gap-3 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-muted">
+            {cpuUtilizationPercent != null ? <span>CPU {cpuUtilizationPercent}%</span> : null}
+            {gpuUtilizationPercent != null ? <span>GPU {gpuUtilizationPercent}%</span> : null}
+          </div>
+        ) : null}
         {resident ? (
           <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
             <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">

@@ -75,6 +75,7 @@ export const systemRoutes: Route[] = [
         logging: getRequestLogQueueStats(),
         gpu: {
           available: gpu.available,
+          cpuUtilizationPercent: gpu.cpuUtilizationPercent,
           driver: gpu.driver,
           gpuCount: gpu.gpus.length,
           polledAt: gpu.polledAt,

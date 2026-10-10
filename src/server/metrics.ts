@@ -189,6 +189,12 @@ export async function renderPrometheusMetrics(): Promise<string> {
   lines.push('# TYPE llama_dash_models_running gauge')
   lines.push(metricLine('llama_dash_models_running', runningModels))
 
+  if (gpu.cpuUtilizationPercent != null) {
+    lines.push('# HELP llama_dash_cpu_utilization_percent CPU utilization reported by the inference host.')
+    lines.push('# TYPE llama_dash_cpu_utilization_percent gauge')
+    lines.push(metricLine('llama_dash_cpu_utilization_percent', gpu.cpuUtilizationPercent))
+  }
+
   for (const gpuEntry of gpu.gpus) {
     const labels = { index: gpuEntry.index, name: gpuEntry.name, driver: gpu.driver }
     if (gpuEntry.memoryUsedMiB != null) {
