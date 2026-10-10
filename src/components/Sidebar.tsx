@@ -288,6 +288,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   const gpuUtilizationPercent = gpuCard?.utilizationPercent
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
+  const meterWidth = (percent: number | null | undefined) => `${Math.min(Math.max(percent ?? 0, 0), 100)}%`
 
   async function signOut() {
     await authClient.signOut()
@@ -297,42 +298,54 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   return (
     <div className="p-2.5 border-t border-border flex flex-col gap-2">
       <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
-        <div className="flex justify-between items-center gap-2 text-[10px] font-mono tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-          {/* The unit used to render outside the fallback, producing a literal
-              "- W". Apple and rocm-smi hardcode powerW: null in gpu-poller.ts,
-              so on those backends that readout was permanently broken-looking by
-              design. An absent row is better than a dash with a unit stuck to it. */}
-          <span className="text-fg-muted">{gpuCard?.powerW != null ? `${gpuCard.powerW} W` : ''}</span>
-          <span className="text-fg-muted">
-            {hasVram
-              ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
-              : resident
-                ? // Was `${visibleIdx} of ${totalCount}` — visibleIdx is the
-                  // ticker's rotation index, not a count, so one running model of
-                  // twelve displayed "0 of 12" while the meter below used
-                  // runningCount and disagreed.
-                  `${runningCount} of ${totalCount}`
-                : 'idle'}
-          </span>
-        </div>
-        <div className="h-1 rounded-pill bg-surface-4 overflow-hidden my-1">
-          <div
-            className="h-full bg-accent rounded-pill transition-[width] duration-300"
-            style={{
-              width: hasVram
-                ? `${gpuCard.memoryPercent ?? 0}%`
-                : totalCount > 0
-                  ? `${(runningCount / totalCount) * 100}%`
-                  : '0%',
-            }}
-          />
-        </div>
-        {cpuUtilizationPercent != null || gpuUtilizationPercent != null ? (
-          <div className="flex items-center gap-3 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-muted">
-            {cpuUtilizationPercent != null ? <span>CPU {cpuUtilizationPercent}%</span> : null}
-            {gpuUtilizationPercent != null ? <span>GPU {gpuUtilizationPercent}%</span> : null}
+        <div className="flex flex-col gap-2">
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
+              <span>{hasVram ? 'vram' : 'models'}</span>
+              <span className="text-fg-muted">
+                {hasVram
+                  ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
+                  : resident
+                    ? `${runningCount} of ${totalCount}`
+                    : 'idle'}
+              </span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
+              <div
+                className="h-full rounded-pill bg-accent transition-[width] duration-300"
+                style={{
+                  width: meterWidth(
+                    hasVram ? gpuCard.memoryPercent : totalCount > 0 ? (runningCount / totalCount) * 100 : 0,
+                  ),
+                }}
+              />
+            </div>
           </div>
-        ) : null}
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
+              <span>cpu</span>
+              <span className="text-fg-muted">{cpuUtilizationPercent != null ? `${cpuUtilizationPercent}%` : '—'}</span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
+              <div
+                className="h-full rounded-pill bg-accent transition-[width] duration-300"
+                style={{ width: meterWidth(cpuUtilizationPercent) }}
+              />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
+              <span>gpu</span>
+              <span className="text-fg-muted">{gpuUtilizationPercent != null ? `${gpuUtilizationPercent}%` : '—'}</span>
+            </div>
+            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
+              <div
+                className="h-full rounded-pill bg-accent transition-[width] duration-300"
+                style={{ width: meterWidth(gpuUtilizationPercent) }}
+              />
+            </div>
+          </div>
+        </div>
         {resident ? (
           <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
             <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
