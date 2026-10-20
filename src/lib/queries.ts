@@ -24,6 +24,8 @@ import {
   type ApiRequestDetail,
   type ApiRequestStats,
   type ApiSystemStatus,
+  type ApiUsageReport,
+  type ApiUsageSummary,
   type AttributionSettings,
   type ModelAliasItem,
   type McpRelay,
@@ -33,6 +35,7 @@ import {
   type ContextCompressionPolicy,
   type UpstreamCredential,
   type RequestLimits,
+  type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
@@ -65,6 +68,8 @@ export const qk = {
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
   gpu: ['gpu'] as const,
+  usageReport: (days: number) => ['usage', 'report', days] as const,
+  usageSummary: ['usage', 'summary'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
   modelDetail: (id: string) => ['models', id] as const,
@@ -131,6 +136,26 @@ export function useRequestStats(): UseQueryResult<ApiRequestStats> {
     queryKey: qk.requestStats,
     queryFn: () => api.requestStats(),
     refetchInterval: FALLBACK_POLL_MS,
+  })
+}
+
+/** Usage aggregates move slowly; poll rather than refetch on every request event. */
+const USAGE_POLL_MS = 30_000
+
+export function useUsageReport(days: UsagePeriodDays): UseQueryResult<ApiUsageReport> {
+  return useQuery({
+    queryKey: qk.usageReport(days),
+    queryFn: () => api.usage(days),
+    refetchInterval: USAGE_POLL_MS,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useUsageSummary(): UseQueryResult<ApiUsageSummary> {
+  return useQuery({
+    queryKey: qk.usageSummary,
+    queryFn: () => api.usageSummary(),
+    refetchInterval: USAGE_POLL_MS,
   })
 }
 

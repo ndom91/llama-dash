@@ -23,6 +23,7 @@ import {
   RequestDetailResponseSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
+import { ApiUsageReportSchema, ApiUsageSummarySchema, type UsagePeriodDays } from './schemas/usage'
 
 export type {
   ApiModel,
@@ -64,6 +65,17 @@ export type { AttributionSettings, PrivacySettings, RequestLimits } from './sche
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
+export type {
+  ApiUsageClient,
+  ApiUsageDay,
+  ApiUsageKey,
+  ApiUsageModel,
+  ApiUsageReport,
+  ApiUsageSummary,
+  ApiUsageTotals,
+  ApiUsageWindow,
+  UsagePeriodDays,
+} from './schemas/usage'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 type CachedJson = { etag: string | null; data: unknown }
@@ -141,6 +153,8 @@ export const api = {
     return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema)
   },
   gpu: () => getJson('/api/gpu', GpuSnapshotSchema),
+  usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
+  usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),
   requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))
