@@ -2,7 +2,7 @@ import { Tooltip } from '../../components/Tooltip'
 import type { ApiUsageDay } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { UsageLegendSwatch } from './UsageLegendSwatch'
-import { formatTokens, formatUsageDay, type UsageChartMode, usageChartBars } from './usageUtils'
+import { formatAxisTokens, formatUsageDay, type UsageChartMode, usageChartBars } from './usageUtils'
 
 type Props = {
   daily: Array<ApiUsageDay>
@@ -10,6 +10,8 @@ type Props = {
 }
 
 const CHART_PX = 168
+/** Left gutter for the y-axis labels; the date row is indented by the same amount. */
+const GUTTER = 'pl-11'
 /** Generated tokens are the headline series; prompt tokens are context for it. */
 export const GENERATED_SERIES = 'var(--accent)'
 export const PROMPT_SERIES = 'color-mix(in srgb, var(--fg-dim) 45%, transparent)'
@@ -17,23 +19,38 @@ export const PROMPT_SERIES = 'color-mix(in srgb, var(--fg-dim) 45%, transparent)
 /**
  * Per-day tokens. In `all` mode prompt is stacked on generated, with generated
  * on the baseline; `generated` mode drops prompt and rescales so generated
- * counts stay readable when prompt tokens dwarf them. Linear scale so bar
- * height reads as magnitude.
+ * counts stay readable when prompt tokens dwarf them. Linear scale against a
+ * "nice numbers" axis, so bar tops line up with the gridline labels.
  */
 export function UsageDailyChart({ daily, mode }: Props) {
-  const { peak, bars } = usageChartBars(daily, mode)
+  const { scale, bars } = usageChartBars(daily, mode)
   const labelEvery = daily.length <= 7 ? 1 : daily.length <= 30 ? 7 : 15
 
   return (
-    <div className="px-4 pt-3 pb-3">
-      <div className="relative" style={{ height: CHART_PX }}>
-        <div className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-border" />
-        <div className="pointer-events-none absolute inset-x-0 top-1/2 border-t border-dashed border-border opacity-60" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-border" />
-        <span className="pointer-events-none absolute top-1 left-0 rounded-sm bg-surface-1/80 px-1 font-mono text-[10px] tabular-nums text-fg-faint">
-          {peak > 0 ? formatTokens(peak) : ''}
-        </span>
-        <div className={cn('absolute inset-0 flex items-end', daily.length > 45 ? 'gap-px' : 'gap-[2px]')}>
+    <div className="px-4 pt-4 pb-3">
+      <div className={cn('relative', GUTTER)} style={{ height: CHART_PX }}>
+        {scale.ticks.map((tick) => {
+          const bottom = (tick / scale.max) * CHART_PX
+          return (
+            <div key={tick} className="pointer-events-none absolute inset-x-0" style={{ bottom }} aria-hidden="true">
+              <div
+                className={cn(
+                  'ml-11 border-t',
+                  tick === 0 ? 'border-border' : 'border-dashed border-border opacity-60',
+                )}
+              />
+              <span className="absolute left-0 w-9 -translate-y-1/2 text-right font-mono text-[10px] leading-none tabular-nums text-fg-faint">
+                {formatAxisTokens(tick)}
+              </span>
+            </div>
+          )
+        })}
+        <div
+          className={cn(
+            'absolute inset-y-0 right-0 left-11 flex items-end',
+            daily.length > 45 ? 'gap-px' : 'gap-[2px]',
+          )}
+        >
           {daily.map((d, i) => {
             const total = mode === 'generated' ? d.completionTokens : d.promptTokens + d.completionTokens
             const promptPx = bars[i].prompt * CHART_PX
@@ -80,7 +97,7 @@ export function UsageDailyChart({ daily, mode }: Props) {
           })}
         </div>
       </div>
-      <div className="mt-1.5 flex font-mono text-[10px] tabular-nums text-fg-faint">
+      <div className={cn('mt-2 flex font-mono text-[10px] tabular-nums text-fg-faint', GUTTER)}>
         {daily.map((d, i) => {
           const fromEnd = daily.length - 1 - i
           const show = fromEnd % labelEvery === 0
