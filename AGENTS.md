@@ -50,6 +50,7 @@ src/
     models.$id.tsx          · /models/:id detail (stats, history, config snippet, selector targets)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
+    usage.tsx               · /usage token usage by day, app, model and key (7/30/90 days)
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     attribution.tsx         · /attribution header mapping + client setup examples
@@ -67,6 +68,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
+    usage/                 · usage page: period switch, per-day chart, app/model/key breakdowns
     policies/              · routing, credentials, MCP relays, and context-compression policies
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
@@ -122,7 +124,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata and v247 inference-host hardware snapshots.
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
-- `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
+- `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic. Each run first refreshes the daily usage rollup (`src/server/usage-rollup.ts`) so pruning never loses usage history; startup backfills every day still in the log.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
@@ -134,7 +136,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
 1. TanStack Start app on `:5173`.
 2. SQLite (`data/dash.db`) + Drizzle. Runtime tables plus query indexes for common
    request/model-event lookups: `requests` (per-call
-   metadata + optional bodies/headers), `model_events` (load/unload
+   metadata + optional bodies/headers), `request_daily_stats` (per UTC day ×
+   model × client × key usage rollup that outlives request-log retention), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
     `routing_rules` (ordered request routing rules), `context_compression_policies`
@@ -175,6 +178,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
+   - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, by client/model/key
+   - `/api/usage/summary` — generated-token totals for today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
     - `/api/events` — lightweight llama-dash dashboard invalidation/data events
