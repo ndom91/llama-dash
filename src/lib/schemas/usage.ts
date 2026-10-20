@@ -1,6 +1,8 @@
 import * as v from 'valibot'
 
-export const UsagePeriodDaysSchema = v.picklist([7, 30, 90])
+export const USAGE_PERIODS = [7, 30, 90] as const
+
+export const UsagePeriodDaysSchema = v.picklist(USAGE_PERIODS)
 
 export type UsagePeriodDays = v.InferOutput<typeof UsagePeriodDaysSchema>
 

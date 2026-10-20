@@ -1,11 +1,20 @@
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
-import { useGpu, useHealth, useModelTimeline, useModels, useRecentRequests, useRequestStats } from '../../lib/queries'
+import {
+  useGpu,
+  useHealth,
+  useModels,
+  useModelTimeline,
+  useRecentRequests,
+  useRequestStats,
+  useUsageSummary,
+} from '../../lib/queries'
 import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
 import { DashboardResidencyPanel } from './DashboardResidencyPanel'
 import { DashboardRunningModelsPanel } from './DashboardRunningModelsPanel'
 import { DashboardStatCard } from './DashboardStatCard'
 import { DashboardTelemetryPanel } from './DashboardTelemetryPanel'
+import { DashboardUsageCard } from './DashboardUsageCard'
 import { formatLatency, formatRate } from './dashboardUtils'
 
 export function DashboardPage() {
@@ -15,6 +24,7 @@ export function DashboardPage() {
   const { data: health } = useHealth()
   const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
+  const { data: usage } = useUsageSummary()
 
   const active = useMemo(
     () => models?.filter((m) => m.kind !== 'selector' && (m.running || m.kind === 'peer')) ?? [],
@@ -59,6 +69,11 @@ export function DashboardPage() {
                 sparkline={stats?.sparklines.errors}
                 tone={stats && stats.errorRate > 0 ? 'err' : 'neutral'}
               />
+            </div>
+            <div className="grid grid-cols-3 gap-0 border-b border-border max-[700px]:grid-cols-1">
+              <DashboardUsageCard label="generated · today" window={usage?.today} against="vs yday" days={7} />
+              <DashboardUsageCard label="generated · 7 days" window={usage?.days7} against="vs prev 7d" days={7} />
+              <DashboardUsageCard label="generated · 30 days" window={usage?.days30} against="vs prev 30d" days={30} />
             </div>
 
             <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />

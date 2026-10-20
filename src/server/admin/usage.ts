@@ -1,19 +1,18 @@
 import type Database from 'better-sqlite3'
-import type {
-  ApiUsageClient,
-  ApiUsageKey,
-  ApiUsageModel,
-  ApiUsageReport,
-  ApiUsageSummary,
-  ApiUsageTotals,
-  UsagePeriodDays,
+import {
+  type ApiUsageClient,
+  type ApiUsageKey,
+  type ApiUsageModel,
+  type ApiUsageReport,
+  type ApiUsageSummary,
+  type ApiUsageTotals,
+  USAGE_PERIODS,
+  type UsagePeriodDays,
 } from '../../lib/schemas/usage'
 import { addDays, type DailyUsageRow, loadDailyRows, utcDay, utcDayStartMs } from '../usage-rollup.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
-
-export const USAGE_PERIODS: ReadonlyArray<UsagePeriodDays> = [7, 30, 90]
 
 export function parseUsageDays(value: string | null): UsagePeriodDays {
   const n = Number(value)
