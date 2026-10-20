@@ -2,25 +2,24 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { PageHeader } from '../../components/PageHeader'
 import type { UsagePeriodDays } from '../../lib/api'
 import { useUsageReport } from '../../lib/queries'
+import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { UsageClientsPanel } from './UsageClientsPanel'
 import { GENERATED_SERIES, PROMPT_SERIES, UsageDailyChart } from './UsageDailyChart'
 import { UsageKeysPanel } from './UsageKeysPanel'
+import { UsageLegendSwatch } from './UsageLegendSwatch'
 import { UsageModelsPanel } from './UsageModelsPanel'
 import { UsagePanel } from './UsagePanel'
 import { UsagePeriodSwitch } from './UsagePeriodSwitch'
+import { UsageSegmentedControl } from './UsageSegmentedControl'
 import { UsageTotalsRow } from './UsageTotalsRow'
-import { formatUsageDay } from './usageUtils'
+import { formatUsageDay, type UsageChartMode } from './usageUtils'
 
 const usageRouteApi = getRouteApi('/usage')
 
-function LegendSwatch({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="flex items-center gap-1.5 font-mono text-[11px] text-fg-dim">
-      <span className="inline-block size-2 shrink-0 rounded-sm" style={{ background: color }} aria-hidden="true" />
-      {label}
-    </span>
-  )
-}
+const CHART_MODES: ReadonlyArray<{ value: UsageChartMode; label: string }> = [
+  { value: 'all', label: 'all' },
+  { value: 'generated', label: 'generated' },
+]
 
 export function UsagePage() {
   const navigate = useNavigate()
@@ -28,6 +27,10 @@ export function UsagePage() {
   const { data: report, error } = useUsageReport(days)
   const setDays = (next: UsagePeriodDays) => navigate({ to: '/usage', search: { days: next }, replace: true })
   const isEmpty = report != null && report.oldestDay == null
+  // localStorage-backed like other UI toggles. Hydration-safe here because the
+  // chart only renders once the client-side usage query has data.
+  const [generatedOnly, toggleGeneratedOnly] = useStickyToggle('usage-chart-generated-only', false)
+  const chartMode: UsageChartMode = generatedOnly ? 'generated' : 'all'
 
   return (
     <div className="content">
@@ -59,15 +62,25 @@ export function UsagePage() {
             <UsageTotalsRow report={report} />
             <UsagePanel
               title="Tokens per day"
-              sub={`last ${days} days`}
+              sub={<span className="max-[520px]:hidden">{`last ${days} days`}</span>}
               aside={
                 <>
-                  <LegendSwatch color={GENERATED_SERIES} label="generated" />
-                  <LegendSwatch color={PROMPT_SERIES} label="prompt" />
+                  <span className="flex items-center gap-3 max-[520px]:hidden">
+                    <UsageLegendSwatch color={GENERATED_SERIES} label="generated" />
+                    {chartMode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="prompt" /> : null}
+                  </span>
+                  <UsageSegmentedControl
+                    legend="Chart series"
+                    options={CHART_MODES}
+                    value={chartMode}
+                    onChange={(mode) => {
+                      if (mode !== chartMode) toggleGeneratedOnly()
+                    }}
+                  />
                 </>
               }
             >
-              <UsageDailyChart daily={report.daily} />
+              <UsageDailyChart daily={report.daily} mode={chartMode} />
             </UsagePanel>
             <div className="grid min-w-0 grid-cols-2 max-[1100px]:grid-cols-1">
               <div className="min-w-0 border-r border-border max-[1100px]:border-r-0">

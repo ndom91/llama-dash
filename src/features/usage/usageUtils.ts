@@ -1,4 +1,4 @@
-import type { UsagePeriodDays } from '../../lib/api'
+import type { ApiUsageDay, UsagePeriodDays } from '../../lib/api'
 import { USAGE_PERIODS } from '../../lib/schemas/usage'
 
 export type UsageDelta =
@@ -42,4 +42,32 @@ export function formatUsageDay(day: string, options: Intl.DateTimeFormatOptions 
 export function parseUsagePeriod(value: unknown): UsagePeriodDays | undefined {
   const n = Number(value)
   return USAGE_PERIODS.find((days) => days === n)
+}
+
+export type UsageChartMode = 'all' | 'generated'
+
+export type UsageChartBar = {
+  day: string
+  /** Bar segment heights as a fraction (0..1) of the chart height. */
+  generated: number
+  prompt: number
+}
+
+/**
+ * Scales the per-day series for the chart. `all` stacks prompt on generated and
+ * scales to the largest daily total; `generated` drops prompt tokens and scales
+ * to the largest generated day so small generated counts stay readable.
+ */
+export function usageChartBars(
+  daily: ReadonlyArray<ApiUsageDay>,
+  mode: UsageChartMode,
+): { peak: number; bars: UsageChartBar[] } {
+  const value = (d: ApiUsageDay) => (mode === 'generated' ? d.completionTokens : d.completionTokens + d.promptTokens)
+  const peak = Math.max(0, ...daily.map(value))
+  const bars = daily.map((d) => ({
+    day: d.day,
+    generated: peak > 0 ? d.completionTokens / peak : 0,
+    prompt: peak > 0 && mode === 'all' ? d.promptTokens / peak : 0,
+  }))
+  return { peak, bars }
 }

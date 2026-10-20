@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatShare, formatTokens, formatUsageDay, parseUsagePeriod, usageDelta } from './usageUtils'
+import { formatShare, formatTokens, formatUsageDay, parseUsagePeriod, usageChartBars, usageDelta } from './usageUtils'
 
 describe('usageDelta', () => {
   it('reports direction and rounded percent', () => {
@@ -35,5 +35,39 @@ describe('usage formatting', () => {
     expect(parseUsagePeriod('30')).toBe(30)
     expect(parseUsagePeriod(90)).toBe(90)
     expect(parseUsagePeriod('14')).toBeUndefined()
+  })
+})
+
+describe('usageChartBars', () => {
+  const daily = [
+    { day: '2026-03-09', requests: 1, promptTokens: 900, completionTokens: 100 },
+    { day: '2026-03-10', requests: 1, promptTokens: 0, completionTokens: 50 },
+  ]
+
+  it('stacks prompt on generated scaled to the largest daily total', () => {
+    expect(usageChartBars(daily, 'all')).toEqual({
+      peak: 1000,
+      bars: [
+        { day: '2026-03-09', generated: 0.1, prompt: 0.9 },
+        { day: '2026-03-10', generated: 0.05, prompt: 0 },
+      ],
+    })
+  })
+
+  it('drops prompt tokens and rescales to generated only', () => {
+    expect(usageChartBars(daily, 'generated')).toEqual({
+      peak: 100,
+      bars: [
+        { day: '2026-03-09', generated: 1, prompt: 0 },
+        { day: '2026-03-10', generated: 0.5, prompt: 0 },
+      ],
+    })
+  })
+
+  it('handles an empty or all-zero series', () => {
+    expect(usageChartBars([], 'all')).toEqual({ peak: 0, bars: [] })
+    expect(
+      usageChartBars([{ day: '2026-03-10', requests: 0, promptTokens: 0, completionTokens: 0 }], 'generated'),
+    ).toEqual({ peak: 0, bars: [{ day: '2026-03-10', generated: 0, prompt: 0 }] })
   })
 })

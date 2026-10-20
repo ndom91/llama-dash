@@ -1,10 +1,12 @@
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiUsageDay } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { formatTokens, formatUsageDay } from './usageUtils'
+import { UsageLegendSwatch } from './UsageLegendSwatch'
+import { formatTokens, formatUsageDay, type UsageChartMode, usageChartBars } from './usageUtils'
 
 type Props = {
   daily: Array<ApiUsageDay>
+  mode: UsageChartMode
 }
 
 const CHART_PX = 168
@@ -13,12 +15,13 @@ export const GENERATED_SERIES = 'var(--accent)'
 export const PROMPT_SERIES = 'color-mix(in srgb, var(--fg-dim) 45%, transparent)'
 
 /**
- * Per-day tokens, prompt stacked on generated. Generated sits on the baseline so
- * it stays readable when prompt tokens dwarf it. Linear scale so bar height
- * reads as magnitude.
+ * Per-day tokens. In `all` mode prompt is stacked on generated, with generated
+ * on the baseline; `generated` mode drops prompt and rescales so generated
+ * counts stay readable when prompt tokens dwarf them. Linear scale so bar
+ * height reads as magnitude.
  */
-export function UsageDailyChart({ daily }: Props) {
-  const peak = Math.max(0, ...daily.map((d) => d.promptTokens + d.completionTokens))
+export function UsageDailyChart({ daily, mode }: Props) {
+  const { peak, bars } = usageChartBars(daily, mode)
   const labelEvery = daily.length <= 7 ? 1 : daily.length <= 30 ? 7 : 15
 
   return (
@@ -31,10 +34,10 @@ export function UsageDailyChart({ daily }: Props) {
           {peak > 0 ? formatTokens(peak) : ''}
         </span>
         <div className={cn('absolute inset-0 flex items-end', daily.length > 45 ? 'gap-px' : 'gap-[2px]')}>
-          {daily.map((d) => {
-            const total = d.promptTokens + d.completionTokens
-            const promptPx = peak > 0 ? (d.promptTokens / peak) * CHART_PX : 0
-            const generatedPx = peak > 0 ? (d.completionTokens / peak) * CHART_PX : 0
+          {daily.map((d, i) => {
+            const total = mode === 'generated' ? d.completionTokens : d.promptTokens + d.completionTokens
+            const promptPx = bars[i].prompt * CHART_PX
+            const generatedPx = bars[i].generated * CHART_PX
             const label = (
               <div className="flex flex-col gap-0.5 font-mono text-[11px] tabular-nums">
                 <span className="text-fg">{formatUsageDay(d.day, { weekday: 'short' })} · UTC</span>
@@ -48,7 +51,7 @@ export function UsageDailyChart({ daily }: Props) {
                 <div
                   className="group flex h-full min-w-0 flex-1 cursor-default flex-col justify-end"
                   role="img"
-                  aria-label={`${d.day}: ${total} tokens`}
+                  aria-label={`${d.day}: ${total} ${mode === 'generated' ? 'generated ' : ''}tokens`}
                 >
                   {total === 0 ? (
                     <div className="h-px w-full bg-fg-faint opacity-40" />
@@ -93,6 +96,11 @@ export function UsageDailyChart({ daily }: Props) {
         })}
       </div>
       <div className="h-3" />
+      {/* On phones the panel head only has room for the mode switch; the legend moves here. */}
+      <div className="mt-1 hidden items-center gap-3 max-[520px]:flex">
+        <UsageLegendSwatch color={GENERATED_SERIES} label="generated" />
+        {mode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="prompt" /> : null}
+      </div>
     </div>
   )
 }
