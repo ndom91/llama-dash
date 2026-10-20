@@ -50,7 +50,7 @@ src/
     models.$id.tsx          · /models/:id detail (stats, history, config snippet, selector targets)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
-    usage.tsx               · /usage token usage by day, app, model and key (7/30/90 days)
+    usage.tsx               · /usage token usage by day plus three configurable breakdowns (7/30/90 days)
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     attribution.tsx         · /attribution header mapping + client setup examples
@@ -68,7 +68,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
-    usage/                 · usage page: period switch, per-day chart, app/model/key breakdowns
+    usage/                 · usage page: period switch, per-day chart, generic breakdown panels
     policies/              · routing, credentials, MCP relays, and context-compression policies
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
@@ -137,7 +137,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
 2. SQLite (`data/dash.db`) + Drizzle. Runtime tables plus query indexes for common
    request/model-event lookups: `requests` (per-call
    metadata + optional bodies/headers), `request_daily_stats` (per UTC day ×
-   model × client × key usage rollup that outlives request-log retention), `model_events` (load/unload
+   model × client × key × status class × routing action × client host × end
+   user usage rollup that outlives request-log retention; sessions are not
+   rolled up), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
     `routing_rules` (ordered request routing rules), `context_compression_policies`
@@ -178,7 +180,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
-   - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, by client/model/key
+   - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, and the three breakdowns configured in `/api/settings/usage` (client, key, model, status class, routing action, host, end user, or session)
    - `/api/usage/summary` — generated-token totals for today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
@@ -197,6 +199,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
     - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
     - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+    - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    credential injection success/failure, latency-window, queue, upstream,

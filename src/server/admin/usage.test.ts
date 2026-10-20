@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
+import type { UsageDimension } from '../../lib/schemas/usage'
 import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
 import { refreshDailyStats, utcDayStartMs } from '../usage-rollup'
 import { getUsageReport, getUsageSummary, parseUsageDays } from './usage'
@@ -11,8 +12,16 @@ const NOW = Date.UTC(2026, 2, 10, 15, 30)
 const TODAY = utcDayStartMs(NOW)
 const KEY_NAMES = new Map([['k1', 'laptop']])
 
-function report(sqlite: Database.Database, days: 7 | 30 | 90) {
-  return getUsageReport(sqlite, { days, now: NOW, retentionDays: 30, keyNames: KEY_NAMES })
+function report(
+  sqlite: Database.Database,
+  days: 7 | 30 | 90,
+  panels: [UsageDimension, UsageDimension, UsageDimension] = ['client', 'model', 'key'],
+) {
+  return getUsageReport(sqlite, { days, now: NOW, retentionDays: 30, keyNames: KEY_NAMES, panels })
+}
+
+function counts(row: { requests: number; promptTokens: number; completionTokens: number; totalTokens: number }) {
+  return [row.requests, row.promptTokens, row.completionTokens, row.totalTokens]
 }
 
 describe('parseUsageDays', () => {
@@ -40,9 +49,11 @@ describe('usage report', () => {
       oldestDay: null,
       totals: { requests: 0, errors: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, costUsd: null },
       previous: { requests: 0, totalTokens: 0 },
-      byClient: [],
-      byModel: [],
-      byKey: [],
+      panels: [
+        { dimension: 'client', values: 0, rows: [], others: null, partial: false },
+        { dimension: 'model', values: 0, rows: [], others: null, partial: false },
+        { dimension: 'key', values: 0, rows: [], others: null, partial: false },
+      ],
     })
     expect(r.daily).toHaveLength(7)
     expect(r.daily[0]).toEqual({ day: '2026-03-04', requests: 0, promptTokens: 0, completionTokens: 0 })
@@ -98,13 +109,15 @@ describe('usage report', () => {
     refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
 
     const r = report(sqlite, 7)
-    expect(r.byClient).toEqual([
-      { clientName: 'chat-ui', requests: 2, promptTokens: 20, completionTokens: 400, totalTokens: 420 },
-      { clientName: null, requests: 2, promptTokens: 20, completionTokens: 60, totalTokens: 80 },
+    const [byClient, byModel, byKey] = r.panels
+    expect(byClient.rows.map((row) => [row.value, row.label, ...counts(row)])).toEqual([
+      ['chat-ui', null, 2, 20, 400, 420],
+      [null, null, 2, 20, 60, 80],
     ])
-    expect(r.byModel).toEqual([
+    expect(byModel.rows).toEqual([
       {
-        model: 'model-a',
+        value: 'model-a',
+        label: null,
         requests: 2,
         errors: 0,
         promptTokens: 20,
@@ -113,7 +126,8 @@ describe('usage report', () => {
         avgGenTokPerSec: 200,
       },
       {
-        model: 'model-b',
+        value: 'model-b',
+        label: null,
         requests: 2,
         errors: 1,
         promptTokens: 20,
@@ -122,17 +136,87 @@ describe('usage report', () => {
         avgGenTokPerSec: 50,
       },
     ])
-    expect(r.byKey).toEqual([
-      { keyId: 'k1', keyName: 'laptop', requests: 2, promptTokens: 20, completionTokens: 400, totalTokens: 420 },
-      { keyId: null, keyName: null, requests: 1, promptTokens: 10, completionTokens: 50, totalTokens: 60 },
-      { keyId: 'deleted-key', keyName: null, requests: 1, promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+    expect(byKey.rows.map((row) => [row.value, row.label, ...counts(row)])).toEqual([
+      ['k1', 'laptop', 2, 20, 400, 420],
+      [null, null, 1, 10, 50, 60],
+      ['deleted-key', null, 1, 10, 10, 20],
     ])
     expect(r.totals.errors).toBe(1)
   })
 
   it('reports no generation speed when there were no successful streamed requests', () => {
     insertTestRequests(sqlite, [{ id: 'a', startedAt: TODAY + HOUR_MS, streamed: false }])
-    expect(report(sqlite, 7).byModel[0].avgGenTokPerSec).toBeNull()
+    expect(report(sqlite, 7).panels[1].rows[0].avgGenTokPerSec).toBeNull()
+  })
+
+  it('breaks usage down by status class, routing action, client host and end user', () => {
+    insertTestRequests(sqlite, [
+      { id: 'a', startedAt: TODAY + HOUR_MS, clientHost: 'laptop', endUserId: 'alice', routingActionType: 'continue' },
+      { id: 'b', startedAt: TODAY + HOUR_MS, statusCode: 502, clientHost: 'laptop' },
+      { id: 'c', startedAt: TODAY - 3 * DAY_MS, statusCode: 200, error: 'stream aborted', endUserId: 'bob' },
+    ])
+    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+
+    const [status, routing, host] = report(sqlite, 7, ['status', 'routing', 'host']).panels
+    expect(status.rows.map((row) => [row.value, row.requests, row.errors])).toEqual([
+      ['2xx', 1, 0],
+      ['5xx', 1, 1],
+      ['error', 1, 1],
+    ])
+    expect(routing.rows.map((row) => [row.value, row.requests])).toEqual([
+      [null, 2],
+      ['continue', 1],
+    ])
+    expect(host.rows.map((row) => [row.value, row.requests])).toEqual([
+      ['laptop', 2],
+      [null, 1],
+    ])
+    const endUser = report(sqlite, 7, ['endUser', 'model', 'key']).panels[0]
+    expect(endUser.rows.map((row) => [row.value, row.requests])).toEqual([
+      ['alice', 1],
+      ['bob', 1],
+      [null, 1],
+    ])
+  })
+
+  it('keeps the top rows and folds the rest into an others row', () => {
+    insertTestRequests(
+      sqlite,
+      Array.from({ length: 13 }, (_, i) => ({
+        id: `r${i}`,
+        startedAt: TODAY + HOUR_MS,
+        clientName: `app-${String(i).padStart(2, '0')}`,
+        completionTokens: 100 + i,
+      })),
+    )
+    const clients = report(sqlite, 7).panels[0]
+    expect(clients.values).toBe(13)
+    expect(clients.rows).toHaveLength(10)
+    expect(clients.rows[0].value).toBe('app-12')
+    expect(clients.others).toMatchObject({ value: null, label: '3 more', requests: 3, completionTokens: 303 })
+  })
+
+  it('computes sessions from the raw log only and flags periods longer than retention', () => {
+    insertTestRequests(sqlite, [
+      { id: 'a', startedAt: TODAY + HOUR_MS, sessionId: 's-1', completionTokens: 5 },
+      { id: 'b', startedAt: TODAY - 2 * DAY_MS, sessionId: 's-1', completionTokens: 7 },
+      { id: 'c', startedAt: TODAY - 2 * DAY_MS, sessionId: 's-2' },
+      { id: 'd', startedAt: TODAY - 2 * DAY_MS },
+      // before the 7-day period
+      { id: 'e', startedAt: TODAY - 9 * DAY_MS, sessionId: 's-1' },
+      { id: 'mcp', startedAt: TODAY, requestClass: 'mcp_relay', sessionId: 's-1' },
+    ])
+    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+
+    const sessions = report(sqlite, 7, ['session', 'model', 'key']).panels[0]
+    expect(sessions.rows.map((row) => [row.value, row.requests, row.completionTokens])).toEqual([
+      ['s-1', 2, 12],
+      ['s-2', 1, 20],
+      [null, 1, 20],
+    ])
+    expect(sessions.partial).toBe(false)
+    expect(report(sqlite, 90, ['session', 'model', 'key']).panels[0].partial).toBe(true)
+    expect(report(sqlite, 90, ['client', 'model', 'key']).panels[0].partial).toBe(false)
   })
 
   it('sums cost only when some request was priced', () => {

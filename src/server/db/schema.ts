@@ -65,8 +65,10 @@ export type NewRequest = typeof requests.$inferInsert
 
 /**
  * Per-day usage rollup of inference requests, keyed by (UTC day, model, client,
- * key). Rebuilt from `requests` by the maintenance job before retention pruning
- * so token/usage history outlives the raw request log.
+ * key, status class, routing action, client host, end user). Rebuilt from
+ * `requests` by the maintenance job before retention pruning so token/usage
+ * history outlives the raw request log. Session ids are deliberately not a
+ * dimension: they are near-unique per conversation.
  */
 export const requestDailyStats = sqliteTable(
   'request_daily_stats',
@@ -77,6 +79,15 @@ export const requestDailyStats = sqliteTable(
     model: text('model'),
     clientName: text('client_name'),
     keyId: text('key_id'),
+    /**
+     * `2xx` / `3xx` / `4xx` / `5xx`, or `error` for a failure logged without an
+     * HTTP error status. Null on rows rolled up before this dimension existed.
+     */
+    statusClass: text('status_class'),
+    /** Routing rule action type; null when no rule matched. */
+    routingAction: text('routing_action'),
+    clientHost: text('client_host'),
+    endUserId: text('end_user_id'),
     requests: integer('requests').notNull(),
     errors: integer('errors').notNull(),
     promptTokens: integer('prompt_tokens').notNull(),

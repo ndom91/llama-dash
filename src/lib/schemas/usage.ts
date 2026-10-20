@@ -32,33 +32,69 @@ export const ApiUsageDaySchema = v.object({
 
 export type ApiUsageDay = v.InferOutput<typeof ApiUsageDaySchema>
 
-export const ApiUsageClientSchema = v.object({
-  /** Null for requests without an attributed client. */
-  clientName: v.nullable(v.string()),
-  ...TokenCountsEntries,
-})
+/**
+ * Dimensions a usage panel can break down by, mirroring the Requests page
+ * filters. `status` groups into 2xx/3xx/4xx/5xx/error; `session` is computed
+ * from the raw request log only (it is not rolled up).
+ */
+export const USAGE_DIMENSIONS = ['client', 'key', 'model', 'status', 'routing', 'host', 'endUser', 'session'] as const
 
-export type ApiUsageClient = v.InferOutput<typeof ApiUsageClientSchema>
+export const UsageDimensionSchema = v.picklist(USAGE_DIMENSIONS)
 
-export const ApiUsageModelSchema = v.object({
-  model: v.nullable(v.string()),
+export type UsageDimension = v.InferOutput<typeof UsageDimensionSchema>
+
+export const UsagePanelsSchema = v.tuple([UsageDimensionSchema, UsageDimensionSchema, UsageDimensionSchema])
+
+export type UsagePanels = v.InferOutput<typeof UsagePanelsSchema>
+
+/** Chart 1 (half, left), Chart 2 (half, right), Chart 3 (full width). */
+export const DEFAULT_USAGE_PANELS: UsagePanels = ['client', 'key', 'model']
+
+export const UsagePanelSettingsSchema = v.object({ panels: UsagePanelsSchema })
+
+export type UsagePanelSettings = v.InferOutput<typeof UsagePanelSettingsSchema>
+
+export const UpdateUsagePanelSettingsBodySchema = UsagePanelSettingsSchema
+
+export type UpdateUsagePanelSettingsBody = v.InferOutput<typeof UpdateUsagePanelSettingsBodySchema>
+
+/** Parses the stored `usage_panels` setting; anything missing or invalid falls back to the defaults. */
+export function parseUsagePanelsSetting(raw: string | null): UsagePanels {
+  if (raw == null) return [...DEFAULT_USAGE_PANELS]
+  try {
+    const result = v.safeParse(UsagePanelsSchema, JSON.parse(raw))
+    return result.success ? result.output : [...DEFAULT_USAGE_PANELS]
+  } catch {
+    return [...DEFAULT_USAGE_PANELS]
+  }
+}
+
+export const ApiUsageBreakdownRowSchema = v.object({
+  /** Dimension value (model id, client name, status class, key id, …); null when not attributed. */
+  value: v.nullable(v.string()),
+  /** Display label when it differs from `value` (API key name, "N more"). */
+  label: v.nullable(v.string()),
   ...TokenCountsEntries,
   errors: v.number(),
   /** Completion tokens per second of wall time over successful streamed requests. */
   avgGenTokPerSec: v.nullable(v.number()),
 })
 
-export type ApiUsageModel = v.InferOutput<typeof ApiUsageModelSchema>
+export type ApiUsageBreakdownRow = v.InferOutput<typeof ApiUsageBreakdownRowSchema>
 
-export const ApiUsageKeySchema = v.object({
-  /** Null for requests made without an API key. */
-  keyId: v.nullable(v.string()),
-  /** Null when the key has been deleted (or for keyless requests). */
-  keyName: v.nullable(v.string()),
-  ...TokenCountsEntries,
+export const ApiUsagePanelSchema = v.object({
+  dimension: UsageDimensionSchema,
+  /** Distinct values in the period, including those folded into `others`. */
+  values: v.number(),
+  /** Top rows by tokens. */
+  rows: v.array(ApiUsageBreakdownRowSchema),
+  /** Everything beyond the top rows, folded together; null when nothing was folded. */
+  others: v.nullable(ApiUsageBreakdownRowSchema),
+  /** True when the period reaches past the raw-log retention window for a raw-only dimension (sessions). */
+  partial: v.boolean(),
 })
 
-export type ApiUsageKey = v.InferOutput<typeof ApiUsageKeySchema>
+export type ApiUsagePanel = v.InferOutput<typeof ApiUsagePanelSchema>
 
 export const ApiUsageReportSchema = v.object({
   days: UsagePeriodDaysSchema,
@@ -71,9 +107,10 @@ export const ApiUsageReportSchema = v.object({
   /** The same number of days immediately before `from`. */
   previous: ApiUsageTotalsSchema,
   daily: v.array(ApiUsageDaySchema),
-  byClient: v.array(ApiUsageClientSchema),
-  byModel: v.array(ApiUsageModelSchema),
-  byKey: v.array(ApiUsageKeySchema),
+  /** Request-log retention in days, for the session panel's note. */
+  retentionDays: v.number(),
+  /** The three configured breakdowns (see `UsagePanels`). */
+  panels: v.array(ApiUsagePanelSchema),
 })
 
 export type ApiUsageReport = v.InferOutput<typeof ApiUsageReportSchema>

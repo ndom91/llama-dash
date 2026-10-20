@@ -35,6 +35,8 @@ import {
   type ContextCompressionPolicy,
   type UpstreamCredential,
   type RequestLimits,
+  type UpdateUsagePanelSettingsBody,
+  type UsagePanelSettings,
   type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
@@ -68,6 +70,7 @@ export const qk = {
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
   gpu: ['gpu'] as const,
+  usage: ['usage'] as const,
   usageReport: (days: number) => ['usage', 'report', days] as const,
   usageSummary: ['usage', 'summary'] as const,
   modelTimeline: ['model-timeline'] as const,
@@ -83,6 +86,7 @@ export const qk = {
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
+  usagePanelSettings: ['settings', 'usage'] as const,
 }
 
 // ---- queries ----
@@ -764,6 +768,32 @@ export function useUpdatePrivacySettings(): UseMutationResult<PrivacySettings, E
     },
     onError: (e) => {
       toastMutationError('Failed to update privacy settings', e)
+    },
+  })
+}
+
+export function useUsagePanelSettings(): UseQueryResult<UsagePanelSettings> {
+  return useQuery({
+    queryKey: qk.usagePanelSettings,
+    queryFn: () => api.getUsagePanelSettings(),
+  })
+}
+
+export function useUpdateUsagePanelSettings(): UseMutationResult<
+  UsagePanelSettings,
+  Error,
+  UpdateUsagePanelSettingsBody
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.updateUsagePanelSettings(body),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.usagePanelSettings, settings)
+      invalidateKeys(qc, [qk.usage])
+      toast.success('Usage panels updated')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update usage panels', e)
     },
   })
 }

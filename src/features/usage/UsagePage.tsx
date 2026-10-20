@@ -1,20 +1,24 @@
-import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
+import { Settings2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
 import type { UsagePeriodDays } from '../../lib/api'
+import { cn } from '../../lib/cn'
 import { useUsageReport } from '../../lib/queries'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
-import { UsageClientsPanel } from './UsageClientsPanel'
+import { UsageBreakdownPanel } from './UsageBreakdownPanel'
 import { GENERATED_SERIES, PROMPT_SERIES, UsageDailyChart } from './UsageDailyChart'
-import { UsageKeysPanel } from './UsageKeysPanel'
 import { UsageLegendSwatch } from './UsageLegendSwatch'
-import { UsageModelsPanel } from './UsageModelsPanel'
 import { UsagePanel } from './UsagePanel'
 import { UsagePeriodSwitch } from './UsagePeriodSwitch'
 import { UsageSegmentedControl } from './UsageSegmentedControl'
 import { UsageTotalsRow } from './UsageTotalsRow'
+import { USAGE_DIMENSION_META } from './usageDimensions'
 import { formatUsageDay, type UsageChartMode } from './usageUtils'
 
 const usageRouteApi = getRouteApi('/usage')
+
+/** Panels are positional: Chart 1 and 2 (half width), Chart 3 (full width). */
+const PANEL_SLOTS = ['chart-1', 'chart-2', 'chart-3']
 
 const CHART_MODES: ReadonlyArray<{ value: UsageChartMode; label: string }> = [
   { value: 'all', label: 'all' },
@@ -82,15 +86,34 @@ export function UsagePage() {
             >
               <UsageDailyChart daily={report.daily} mode={chartMode} />
             </UsagePanel>
-            <div className="grid min-w-0 grid-cols-2 max-[1100px]:grid-cols-1">
-              <div className="min-w-0 border-r border-border max-[1100px]:border-r-0">
-                <UsageClientsPanel clients={report.byClient} />
-              </div>
-              <div className="min-w-0">
-                <UsageKeysPanel keys={report.byKey} />
-              </div>
+            <div className="flex h-9 items-center gap-2.5 border-b border-border bg-surface-1 px-4">
+              <span className="panel-title">Breakdowns</span>
+              <span className="panel-sub truncate max-[520px]:hidden">
+                {report.panels.map((panel) => USAGE_DIMENSION_META[panel.dimension].title).join(' · ')}
+              </span>
+              <Link
+                to="/settings"
+                hash="usage"
+                className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]"
+              >
+                <Settings2 className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                configure
+              </Link>
             </div>
-            <UsageModelsPanel models={report.byModel} />
+            <div className="grid min-w-0 grid-cols-2 max-[1100px]:grid-cols-1">
+              {report.panels.map((panel, i) => (
+                <div
+                  key={PANEL_SLOTS[i]}
+                  className={cn(
+                    'min-w-0',
+                    i === 0 && 'border-r border-border max-[1100px]:border-r-0',
+                    i >= 2 && 'col-span-2 max-[1100px]:col-span-1',
+                  )}
+                >
+                  <UsageBreakdownPanel panel={panel} retentionDays={report.retentionDays} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

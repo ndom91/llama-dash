@@ -21,6 +21,10 @@ export type DailyUsageRow = {
   model: string | null
   clientName: string | null
   keyId: string | null
+  statusClass: string | null
+  routingAction: string | null
+  clientHost: string | null
+  endUserId: string | null
   requests: number
   errors: number
   promptTokens: number
@@ -53,6 +57,9 @@ export function addDays(day: string, delta: number): string {
 }
 
 const OK_SQL = 'status_code < 400 and error is null'
+/** `error` marks a failure logged without an HTTP error status (e.g. an aborted stream). */
+const STATUS_CLASS_SQL =
+  "case when error is not null and status_code < 400 then 'error' else (status_code / 100) || 'xx' end"
 const GEN_SQL = `${OK_SQL} and streamed = 1 and completion_tokens > 0 and duration_ms > 0`
 
 /**
@@ -65,6 +72,10 @@ const AGGREGATE_SQL = `
     coalesce(routing_routed_model, model) as model,
     client_name as clientName,
     key_id as keyId,
+    ${STATUS_CLASS_SQL} as statusClass,
+    routing_action_type as routingAction,
+    client_host as clientHost,
+    end_user_id as endUserId,
     count(*) as requests,
     sum(case when ${OK_SQL} then 0 else 1 end) as errors,
     coalesce(sum(prompt_tokens), 0) as promptTokens,
@@ -76,9 +87,9 @@ const AGGREGATE_SQL = `
     coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs
   from requests
   where request_class = 'inference' and started_at >= ? and started_at < ?
-  group by 1, 2, 3, 4`
+  group by 1, 2, 3, 4, 5, 6, 7, 8`
 
-const ROLLUP_COLUMNS = `day, model, clientName, keyId, requests, errors, promptTokens, completionTokens,
+const ROLLUP_COLUMNS = `day, model, clientName, keyId, statusClass, routingAction, clientHost, endUserId, requests, errors, promptTokens, completionTokens,
   totalTokens, durationMsSum, costUsdSum, genCompletionTokens, genDurationMs`
 
 /** Rebuilds the rollup rows of the given UTC days from the raw request log. */
@@ -87,7 +98,7 @@ export function rebuildDailyStats(sqlite: Database.Database, days: ReadonlyArray
   const remove = sqlite.prepare('delete from request_daily_stats where day = ?')
   const insert = sqlite.prepare(
     `insert into request_daily_stats (
-      day, model, client_name, key_id, requests, errors, prompt_tokens, completion_tokens,
+      day, model, client_name, key_id, status_class, routing_action, client_host, end_user_id, requests, errors, prompt_tokens, completion_tokens,
       total_tokens, duration_ms_sum, cost_usd_sum, gen_completion_tokens, gen_duration_ms
     ) select ${ROLLUP_COLUMNS} from (${AGGREGATE_SQL})`,
   )
@@ -167,7 +178,8 @@ export function loadDailyRows(sqlite: Database.Database, options: LoadOptions): 
     rows.push(
       ...(sqlite
         .prepare(
-          `select day, model, client_name as clientName, key_id as keyId, requests, errors,
+          `select day, model, client_name as clientName, key_id as keyId, status_class as statusClass,
+            routing_action as routingAction, client_host as clientHost, end_user_id as endUserId, requests, errors,
             prompt_tokens as promptTokens, completion_tokens as completionTokens, total_tokens as totalTokens,
             duration_ms_sum as durationMsSum, cost_usd_sum as costUsdSum,
             gen_completion_tokens as genCompletionTokens, gen_duration_ms as genDurationMs
@@ -184,4 +196,40 @@ export function loadDailyRows(sqlite: Database.Database, options: LoadOptions): 
     )
   }
   return rows
+}
+
+export type SessionUsageRow = Omit<
+  DailyUsageRow,
+  'day' | 'model' | 'clientName' | 'keyId' | 'statusClass' | 'routingAction' | 'clientHost' | 'endUserId'
+> & {
+  sessionId: string | null
+}
+
+/**
+ * Usage per session id for `[fromDay, toDay]`, from the raw request log only:
+ * session ids are near-unique per conversation, so they are not rolled up and
+ * disappear with request-log retention.
+ */
+export function loadSessionRows(
+  sqlite: Database.Database,
+  options: { fromDay: string; toDay: string },
+): SessionUsageRow[] {
+  return sqlite
+    .prepare(
+      `select
+        session_id as sessionId,
+        count(*) as requests,
+        sum(case when ${OK_SQL} then 0 else 1 end) as errors,
+        coalesce(sum(prompt_tokens), 0) as promptTokens,
+        coalesce(sum(completion_tokens), 0) as completionTokens,
+        coalesce(sum(coalesce(total_tokens, coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0))), 0) as totalTokens,
+        coalesce(sum(duration_ms), 0) as durationMsSum,
+        sum(cost_usd) as costUsdSum,
+        coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
+        coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs
+      from requests
+      where request_class = 'inference' and started_at >= ? and started_at < ?
+      group by session_id`,
+    )
+    .all(dayToMs(options.fromDay), dayToMs(options.toDay) + DAY_MS) as SessionUsageRow[]
 }

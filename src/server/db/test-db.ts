@@ -26,6 +26,10 @@ export type TestRequestRow = {
   error?: string | null
   keyId?: string | null
   clientName?: string | null
+  clientHost?: string | null
+  endUserId?: string | null
+  sessionId?: string | null
+  routingActionType?: string | null
 }
 
 /** Test-only: insert minimal `requests` rows. */
@@ -34,8 +38,8 @@ export function insertTestRequests(sqlite: Database.Database, rows: ReadonlyArra
     `insert into requests (
       id, started_at, duration_ms, request_class, method, endpoint, model, status_code,
       prompt_tokens, completion_tokens, total_tokens, cost_usd, streamed, error, key_id,
-      client_name, routing_routed_model
-    ) values (?, ?, ?, ?, 'POST', '/v1/chat/completions', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      client_name, routing_routed_model, client_host, end_user_id, session_id, routing_action_type
+    ) values (?, ?, ?, ?, 'POST', '/v1/chat/completions', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
   for (const row of rows) {
     const prompt = row.promptTokens === undefined ? 10 : row.promptTokens
@@ -56,6 +60,10 @@ export function insertTestRequests(sqlite: Database.Database, rows: ReadonlyArra
       row.keyId ?? null,
       row.clientName ?? null,
       row.routedModel ?? null,
+      row.clientHost ?? null,
+      row.endUserId ?? null,
+      row.sessionId ?? null,
+      row.routingActionType ?? null,
     )
   }
 }

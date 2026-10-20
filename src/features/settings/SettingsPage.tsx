@@ -1,4 +1,4 @@
-import { Database, KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
+import { ChartColumnStacked, Database, KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
 import { PageHeader } from '../../components/PageHeader'
@@ -12,20 +12,23 @@ import {
   useUpdatePrivacySettings,
 } from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
+import { UsagePanelSettingsForm } from './UsagePanelSettingsForm'
 
 function SettingsPanel({
+  id,
   title,
   subtitle,
   children,
   bodyClassName,
 }: {
+  id?: string
   title: string
   subtitle: string
   children: React.ReactNode
   bodyClassName?: string
 }) {
   return (
-    <section className="panel shrink-0 !rounded-none !border-x-0 border-t-1 first:border-t-0 !bg-surface-1">
+    <section id={id} className="panel shrink-0 !rounded-none !border-x-0 border-t-1 first:border-t-0 !bg-surface-1">
       <div className="panel-head bg-transparent px-6 max-md:px-4">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· {subtitle}</span>
@@ -371,6 +374,22 @@ export function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </SettingsPanel>
+
+          <SettingsPanel id="usage" title="Usage" subtitle="usage page breakdowns">
+            <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+              <div>
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">
+                  <ChartColumnStacked className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+                  Usage page
+                </div>
+                <div className="font-mono text-lg font-semibold text-fg">Breakdowns</div>
+                <div className="mt-1 font-mono text-xs leading-relaxed text-fg-dim">
+                  Pick the dimension each panel under the tokens-per-day chart breaks usage down by.
+                </div>
+              </div>
+              <UsagePanelSettingsForm />
             </div>
           </SettingsPanel>
         </div>

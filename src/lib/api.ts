@@ -23,7 +23,13 @@ import {
   RequestDetailResponseSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
-import { ApiUsageReportSchema, ApiUsageSummarySchema, type UsagePeriodDays } from './schemas/usage'
+import {
+  ApiUsageReportSchema,
+  ApiUsageSummarySchema,
+  type UpdateUsagePanelSettingsBody,
+  type UsagePeriodDays,
+  UsagePanelSettingsSchema,
+} from './schemas/usage'
 
 export type {
   ApiModel,
@@ -66,14 +72,17 @@ export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
 export type {
-  ApiUsageClient,
+  ApiUsageBreakdownRow,
   ApiUsageDay,
-  ApiUsageKey,
-  ApiUsageModel,
+  ApiUsagePanel,
   ApiUsageReport,
   ApiUsageSummary,
   ApiUsageTotals,
   ApiUsageWindow,
+  UpdateUsagePanelSettingsBody,
+  UsageDimension,
+  UsagePanelSettings,
+  UsagePanels,
   UsagePeriodDays,
 } from './schemas/usage'
 
@@ -155,6 +164,9 @@ export const api = {
   gpu: () => getJson('/api/gpu', GpuSnapshotSchema),
   usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
   usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),
+  getUsagePanelSettings: () => getJson('/api/settings/usage', UsagePanelSettingsSchema),
+  updateUsagePanelSettings: (body: UpdateUsagePanelSettingsBody) =>
+    sendJson('/api/settings/usage', UsagePanelSettingsSchema, { method: 'PATCH', body }),
   requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))

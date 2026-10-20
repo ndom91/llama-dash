@@ -1,6 +1,6 @@
 import { sqliteDb } from '../../db/index.ts'
 import { getApiKeyNameMap } from '../api-keys.ts'
-import { getPrivacySettings } from '../settings.ts'
+import { getPrivacySettings, getUsagePanelSettings } from '../settings.ts'
 import { getUsageReport, getUsageSummary, parseUsageDays } from '../usage.ts'
 import { json, type Route } from './types.ts'
 
@@ -16,6 +16,7 @@ export const usageRoutes: Route[] = [
           days,
           retentionDays: getPrivacySettings().requestLogRetentionDays,
           keyNames: getApiKeyNameMap(),
+          panels: getUsagePanelSettings().panels,
         }),
       )
     },

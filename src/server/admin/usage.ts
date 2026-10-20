@@ -1,15 +1,24 @@
 import type Database from 'better-sqlite3'
 import {
-  type ApiUsageClient,
-  type ApiUsageKey,
-  type ApiUsageModel,
+  type ApiUsageBreakdownRow,
+  type ApiUsagePanel,
   type ApiUsageReport,
   type ApiUsageSummary,
   type ApiUsageTotals,
   USAGE_PERIODS,
+  type UsageDimension,
+  type UsagePanels,
   type UsagePeriodDays,
 } from '../../lib/schemas/usage'
-import { addDays, type DailyUsageRow, loadDailyRows, utcDay, utcDayStartMs } from '../usage-rollup.ts'
+import {
+  addDays,
+  type DailyUsageRow,
+  loadDailyRows,
+  loadSessionRows,
+  type SessionUsageRow,
+  utcDay,
+  utcDayStartMs,
+} from '../usage-rollup.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
@@ -24,6 +33,25 @@ type ReportOptions = {
   now?: number
   retentionDays: number
   keyNames: ReadonlyMap<string, string>
+  panels: UsagePanels
+}
+
+/** Rows shown per panel before the rest is folded into an "others" row. */
+const PANEL_TOP_ROWS = 10
+
+type MeasureRow = Pick<
+  DailyUsageRow,
+  'requests' | 'errors' | 'promptTokens' | 'completionTokens' | 'totalTokens' | 'genCompletionTokens' | 'genDurationMs'
+>
+
+const ROLLUP_DIMENSION: Record<Exclude<UsageDimension, 'session'>, (row: DailyUsageRow) => string | null> = {
+  client: (row) => row.clientName,
+  key: (row) => row.keyId,
+  model: (row) => row.model,
+  status: (row) => row.statusClass,
+  routing: (row) => row.routingAction,
+  host: (row) => row.clientHost,
+  endUser: (row) => row.endUserId,
 }
 
 /**
@@ -64,25 +92,22 @@ export function getUsageReport(sqlite: Database.Database, options: ReportOptions
     totals: sumTotals(current),
     previous: sumTotals(previous),
     daily,
-    byClient: groupBy(current, (row) => row.clientName).map(([clientName, group]) => ({
-      clientName,
-      ...tokenCounts(group),
-    })) satisfies ApiUsageClient[],
-    byModel: groupBy(current, (row) => row.model).map(([model, group]) => {
-      const genTokens = sum(group, (row) => row.genCompletionTokens)
-      const genMs = sum(group, (row) => row.genDurationMs)
-      return {
-        model,
-        ...tokenCounts(group),
-        errors: sum(group, (row) => row.errors),
-        avgGenTokPerSec: genTokens > 0 && genMs > 0 ? Math.round((genTokens / genMs) * 1000 * 10) / 10 : null,
+    retentionDays: options.retentionDays,
+    panels: options.panels.map((dimension) => {
+      if (dimension === 'session') {
+        return buildPanel(
+          dimension,
+          groupBy(loadSessionRows(sqlite, { fromDay: from, toDay: to }), (row: SessionUsageRow) => row.sessionId),
+          () => null,
+          options.days > options.retentionDays,
+        )
       }
-    }) satisfies ApiUsageModel[],
-    byKey: groupBy(current, (row) => row.keyId).map(([keyId, group]) => ({
-      keyId,
-      keyName: keyId != null ? (options.keyNames.get(keyId) ?? null) : null,
-      ...tokenCounts(group),
-    })) satisfies ApiUsageKey[],
+      const labelFor =
+        dimension === 'key'
+          ? (keyId: string | null) => (keyId != null ? (options.keyNames.get(keyId) ?? null) : null)
+          : () => null
+      return buildPanel(dimension, groupBy(current, ROLLUP_DIMENSION[dimension]), labelFor, false)
+    }),
   }
 }
 
@@ -150,6 +175,46 @@ export function getUsageSummary(sqlite: Database.Database, options: SummaryOptio
   }
 }
 
+function breakdownRow(
+  value: string | null,
+  label: string | null,
+  group: ReadonlyArray<MeasureRow>,
+): ApiUsageBreakdownRow {
+  const genTokens = sum(group, (row) => row.genCompletionTokens)
+  const genMs = sum(group, (row) => row.genDurationMs)
+  return {
+    value,
+    label,
+    ...tokenCounts(group),
+    errors: sum(group, (row) => row.errors),
+    avgGenTokPerSec: genTokens > 0 && genMs > 0 ? Math.round((genTokens / genMs) * 1000 * 10) / 10 : null,
+  }
+}
+
+function buildPanel<R extends MeasureRow>(
+  dimension: UsageDimension,
+  groups: Array<[string | null, R[]]>,
+  labelFor: (value: string | null) => string | null,
+  partial: boolean,
+): ApiUsagePanel {
+  const top = groups.slice(0, PANEL_TOP_ROWS)
+  const rest = groups.slice(PANEL_TOP_ROWS)
+  return {
+    dimension,
+    values: groups.length,
+    rows: top.map(([value, group]) => breakdownRow(value, labelFor(value), group)),
+    others:
+      rest.length > 0
+        ? breakdownRow(
+            null,
+            `${rest.length} more`,
+            rest.flatMap(([, group]) => group),
+          )
+        : null,
+    partial,
+  }
+}
+
 function dayRange(from: string, count: number): string[] {
   return Array.from({ length: count }, (_, i) => addDays(from, i))
 }
@@ -160,13 +225,13 @@ function minDay(a: string | null, b: string | null): string | null {
   return a < b ? a : b
 }
 
-function sum(rows: ReadonlyArray<DailyUsageRow>, pick: (row: DailyUsageRow) => number): number {
+function sum<R>(rows: ReadonlyArray<R>, pick: (row: R) => number): number {
   let total = 0
   for (const row of rows) total += pick(row)
   return total
 }
 
-function tokenCounts(rows: ReadonlyArray<DailyUsageRow>) {
+function tokenCounts(rows: ReadonlyArray<MeasureRow>) {
   return {
     requests: sum(rows, (row) => row.requests),
     promptTokens: sum(rows, (row) => row.promptTokens),
@@ -185,11 +250,11 @@ function sumTotals(rows: ReadonlyArray<DailyUsageRow>): ApiUsageTotals {
 }
 
 /** Groups rows by `key`, ordered by total tokens, then requests, then name. */
-function groupBy<K extends string | null>(
-  rows: ReadonlyArray<DailyUsageRow>,
-  key: (row: DailyUsageRow) => K,
-): Array<[K, DailyUsageRow[]]> {
-  const groups = new Map<K, DailyUsageRow[]>()
+function groupBy<R extends MeasureRow, K extends string | null>(
+  rows: ReadonlyArray<R>,
+  key: (row: R) => K,
+): Array<[K, R[]]> {
+  const groups = new Map<K, R[]>()
   for (const row of rows) {
     const k = key(row)
     const group = groups.get(k)

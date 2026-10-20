@@ -12,11 +12,12 @@ const TODAY = utcDayStartMs(NOW)
 function rollupRows(sqlite: Database.Database) {
   return sqlite
     .prepare(
-      `select day, model, client_name as clientName, key_id as keyId, requests, errors,
+      `select day, model, client_name as clientName, key_id as keyId, status_class as statusClass,
+        routing_action as routingAction, client_host as clientHost, end_user_id as endUserId, requests, errors,
         prompt_tokens as promptTokens, completion_tokens as completionTokens, total_tokens as totalTokens,
         duration_ms_sum as durationMsSum, cost_usd_sum as costUsdSum,
         gen_completion_tokens as genCompletionTokens, gen_duration_ms as genDurationMs
-       from request_daily_stats order by day, model, client_name, key_id`,
+       from request_daily_stats order by day, model, client_name, key_id, status_class`,
     )
     .all() as Array<Record<string, unknown>>
 }
@@ -60,6 +61,10 @@ describe('request daily stats rollup', () => {
         model: 'model-a',
         clientName: 'app',
         keyId: 'k1',
+        statusClass: '2xx',
+        routingAction: null,
+        clientHost: null,
+        endUserId: null,
         requests: 1,
         errors: 0,
         promptTokens: 10,
@@ -75,6 +80,10 @@ describe('request daily stats rollup', () => {
         model: 'model-a',
         clientName: null,
         keyId: null,
+        statusClass: '5xx',
+        routingAction: null,
+        clientHost: null,
+        endUserId: null,
         requests: 1,
         errors: 1,
         promptTokens: 5,
@@ -90,6 +99,10 @@ describe('request daily stats rollup', () => {
         model: 'model-a',
         clientName: 'app',
         keyId: 'k1',
+        statusClass: '2xx',
+        routingAction: null,
+        clientHost: null,
+        endUserId: null,
         requests: 3,
         errors: 0,
         promptTokens: 30,
@@ -105,6 +118,10 @@ describe('request daily stats rollup', () => {
         model: 'model-b',
         clientName: 'app',
         keyId: null,
+        statusClass: '2xx',
+        routingAction: null,
+        clientHost: null,
+        endUserId: null,
         requests: 1,
         errors: 0,
         promptTokens: 10,
@@ -115,6 +132,68 @@ describe('request daily stats rollup', () => {
         genCompletionTokens: 20,
         genDurationMs: 1000,
       },
+    ])
+  })
+
+  it('rolls up status class, routing action, client host and end user as dimensions', () => {
+    insertTestRequests(sqlite, [
+      {
+        id: 'ok',
+        startedAt: TODAY + HOUR_MS,
+        clientHost: '10.0.0.2',
+        endUserId: 'alice',
+        routingActionType: 'continue',
+      },
+      {
+        id: 'ok2',
+        startedAt: TODAY + HOUR_MS,
+        clientHost: '10.0.0.2',
+        endUserId: 'alice',
+        routingActionType: 'continue',
+      },
+      { id: 'redirect', startedAt: TODAY + HOUR_MS, statusCode: 302 },
+      { id: 'client-err', startedAt: TODAY + HOUR_MS, statusCode: 429 },
+      { id: 'aborted', startedAt: TODAY + HOUR_MS, statusCode: 200, error: 'client disconnected' },
+      { id: 'rejected', startedAt: TODAY + HOUR_MS, statusCode: 403, routingActionType: 'reject' },
+      { id: 'session-only', startedAt: TODAY + HOUR_MS, sessionId: 's-1' },
+    ])
+    rebuildDailyStats(sqlite, [utcDay(TODAY)])
+
+    const rows = rollupRows(sqlite).map((r) => [
+      r.statusClass,
+      r.routingAction,
+      r.clientHost,
+      r.endUserId,
+      r.requests,
+      r.errors,
+    ])
+    expect(rows.sort()).toEqual(
+      [
+        ['2xx', 'continue', '10.0.0.2', 'alice', 2, 0],
+        // session ids are not a rollup dimension: this row merges with other unattributed 2xx traffic
+        ['2xx', null, null, null, 1, 0],
+        ['3xx', null, null, null, 1, 0],
+        ['4xx', null, null, null, 1, 1],
+        ['4xx', 'reject', null, null, 1, 1],
+        ['error', null, null, null, 1, 1],
+      ].sort(),
+    )
+  })
+
+  it('upgrades rollups written before the extra dimensions on backfill, keeping pruned days as they are', () => {
+    const legacy = sqlite.prepare(
+      `insert into request_daily_stats (day, model, requests, errors, prompt_tokens, completion_tokens, total_tokens,
+        duration_ms_sum, gen_completion_tokens, gen_duration_ms) values (?, 'model-a', 1, 0, 10, 20, 30, 1000, 20, 1000)`,
+    )
+    legacy.run(utcDay(TODAY - 40 * DAY_MS)) // raw rows long pruned
+    legacy.run(utcDay(TODAY - 2 * DAY_MS)) // raw rows still retained
+    insertTestRequests(sqlite, [{ id: 'a', startedAt: TODAY - 2 * DAY_MS + HOUR_MS, clientHost: 'box' }])
+
+    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+
+    expect(rollupRows(sqlite).map((r) => [r.day, r.statusClass, r.clientHost])).toEqual([
+      [utcDay(TODAY - 40 * DAY_MS), null, null],
+      [utcDay(TODAY - 2 * DAY_MS), '2xx', 'box'],
     ])
   })
 
