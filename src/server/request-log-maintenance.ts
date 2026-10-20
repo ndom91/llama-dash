@@ -1,6 +1,7 @@
 import { getPrivacySettings } from './admin/settings.ts'
 import { sqliteDb } from './db/index.ts'
 import { deleteRecentBodies } from './proxy/recent-bodies.ts'
+import { refreshDailyStats } from './usage-rollup.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const MAINTENANCE_INTERVAL_MS = 60 * 60 * 1000
@@ -17,10 +18,25 @@ export type RequestLogPruneResult = {
 export function startRequestLogMaintenance() {
   if (started) return
   started = true
+  // Roll up every day still in the request log before anything is pruned, so
+  // usage history from before this feature existed is kept.
+  refreshUsageRollupsSafely({ backfill: true })
   setTimeout(() => {
-    pruneRequestLogsSafely()
-    setInterval(pruneRequestLogsSafely, MAINTENANCE_INTERVAL_MS).unref?.()
+    runMaintenance()
+    setInterval(runMaintenance, MAINTENANCE_INTERVAL_MS).unref?.()
   }, 60_000).unref?.()
+}
+
+/**
+ * Refreshes the daily usage rollups for the days that pruning could touch.
+ * Always runs before deleting request rows.
+ */
+export function refreshUsageRollups(options: { now?: number; backfill?: boolean } = {}) {
+  return refreshDailyStats(sqliteDb, {
+    now: options.now,
+    backfill: options.backfill,
+    retentionDays: getPrivacySettings().requestLogRetentionDays,
+  })
 }
 
 export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
@@ -83,7 +99,19 @@ export function compactDatabase(): { ok: true } {
   return { ok: true }
 }
 
-function pruneRequestLogsSafely() {
+function refreshUsageRollupsSafely(options: { backfill?: boolean } = {}): boolean {
+  try {
+    refreshUsageRollups(options)
+    return true
+  } catch (err) {
+    console.warn('Failed to refresh usage rollups', err)
+    return false
+  }
+}
+
+function runMaintenance() {
+  // Never prune rows whose usage has not been rolled up.
+  if (!refreshUsageRollupsSafely()) return
   try {
     pruneRequestLogs()
   } catch (err) {

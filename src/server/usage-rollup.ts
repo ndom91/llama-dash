@@ -1,0 +1,187 @@
+import type Database from 'better-sqlite3'
+
+/**
+ * Daily usage rollups (`request_daily_stats`).
+ *
+ * The raw `requests` log is pruned after `requestLogRetentionDays`, so token and
+ * usage history is aggregated per (UTC day, model, client, key) first. Rollups
+ * are rebuilt from the raw log (delete + insert per day), which makes every
+ * refresh idempotent. A day whose raw rows may already be partially pruned is
+ * never rebuilt over an existing rollup, so pruning can only ever remove raw
+ * detail, never usage history.
+ *
+ * Functions take the SQLite handle explicitly so they can run against a
+ * throwaway database in tests.
+ */
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+export type DailyUsageRow = {
+  day: string
+  model: string | null
+  clientName: string | null
+  keyId: string | null
+  requests: number
+  errors: number
+  promptTokens: number
+  completionTokens: number
+  totalTokens: number
+  durationMsSum: number
+  costUsdSum: number | null
+  genCompletionTokens: number
+  genDurationMs: number
+}
+
+/** UTC calendar day (`YYYY-MM-DD`) containing `ms`. */
+export function utcDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10)
+}
+
+/** Start (ms) of the UTC day containing `ms`. */
+export function utcDayStartMs(ms: number): number {
+  return Math.floor(ms / DAY_MS) * DAY_MS
+}
+
+/** Start (ms) of a `YYYY-MM-DD` UTC day. */
+export function dayToMs(day: string): number {
+  return Date.parse(`${day}T00:00:00.000Z`)
+}
+
+/** `day` shifted by `delta` UTC days. */
+export function addDays(day: string, delta: number): string {
+  return utcDay(dayToMs(day) + delta * DAY_MS)
+}
+
+const OK_SQL = 'status_code < 400 and error is null'
+const GEN_SQL = `${OK_SQL} and streamed = 1 and completion_tokens > 0 and duration_ms > 0`
+
+/**
+ * Aggregates raw inference requests in `[fromMs, toMs)` into day rows. Shared by
+ * the rollup writer and the live read path so both produce identical numbers.
+ */
+const AGGREGATE_SQL = `
+  select
+    date(started_at / 1000, 'unixepoch') as day,
+    coalesce(routing_routed_model, model) as model,
+    client_name as clientName,
+    key_id as keyId,
+    count(*) as requests,
+    sum(case when ${OK_SQL} then 0 else 1 end) as errors,
+    coalesce(sum(prompt_tokens), 0) as promptTokens,
+    coalesce(sum(completion_tokens), 0) as completionTokens,
+    coalesce(sum(coalesce(total_tokens, coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0))), 0) as totalTokens,
+    coalesce(sum(duration_ms), 0) as durationMsSum,
+    sum(cost_usd) as costUsdSum,
+    coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
+    coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs
+  from requests
+  where request_class = 'inference' and started_at >= ? and started_at < ?
+  group by 1, 2, 3, 4`
+
+const ROLLUP_COLUMNS = `day, model, clientName, keyId, requests, errors, promptTokens, completionTokens,
+  totalTokens, durationMsSum, costUsdSum, genCompletionTokens, genDurationMs`
+
+/** Rebuilds the rollup rows of the given UTC days from the raw request log. */
+export function rebuildDailyStats(sqlite: Database.Database, days: ReadonlyArray<string>): void {
+  if (days.length === 0) return
+  const remove = sqlite.prepare('delete from request_daily_stats where day = ?')
+  const insert = sqlite.prepare(
+    `insert into request_daily_stats (
+      day, model, client_name, key_id, requests, errors, prompt_tokens, completion_tokens,
+      total_tokens, duration_ms_sum, cost_usd_sum, gen_completion_tokens, gen_duration_ms
+    ) select ${ROLLUP_COLUMNS} from (${AGGREGATE_SQL})`,
+  )
+  sqlite.transaction(() => {
+    for (const day of days) {
+      const start = dayToMs(day)
+      remove.run(day)
+      insert.run(start, start + DAY_MS)
+    }
+  })()
+}
+
+type RefreshOptions = {
+  now?: number
+  retentionDays: number
+  /** Also roll up every older day still present in the raw log (startup). */
+  backfill?: boolean
+}
+
+/**
+ * Brings the rollup up to date: today and yesterday on every call, plus every
+ * day still in the raw log when `backfill` is set. A day that already has
+ * rollup rows is only rebuilt while all of its raw rows are still retained.
+ */
+export function refreshDailyStats(sqlite: Database.Database, options: RefreshOptions): string[] {
+  const now = options.now ?? Date.now()
+  const today = utcDay(now)
+  const candidates = new Set([addDays(today, -1), today])
+
+  if (options.backfill) {
+    const rawDays = sqlite
+      .prepare(
+        `select distinct date(started_at / 1000, 'unixepoch') as day
+         from requests where request_class = 'inference'`,
+      )
+      .all() as Array<{ day: string }>
+    for (const row of rawDays) candidates.add(row.day)
+  }
+
+  const rolledUp = new Set(
+    (sqlite.prepare('select distinct day from request_daily_stats').all() as Array<{ day: string }>).map((r) => r.day),
+  )
+  const days = [...candidates]
+    .filter((day) => day <= today)
+    .filter((day) => !rolledUp.has(day) || isFullyRetained(day, now, options.retentionDays))
+    .sort()
+  rebuildDailyStats(sqlite, days)
+  return days
+}
+
+/** True while no raw request of `day` can have been pruned yet. */
+function isFullyRetained(day: string, now: number, retentionDays: number): boolean {
+  return dayToMs(day) >= now - retentionDays * DAY_MS
+}
+
+type LoadOptions = {
+  fromDay: string
+  toDay: string
+  now?: number
+  retentionDays: number
+}
+
+/**
+ * Day rows for `[fromDay, toDay]` (inclusive). Today and yesterday are read live
+ * from the raw log (the rollup lags by up to an hour); older days come from the
+ * rollup, which is the only place they survive after pruning.
+ */
+export function loadDailyRows(sqlite: Database.Database, options: LoadOptions): DailyUsageRow[] {
+  const now = options.now ?? Date.now()
+  const today = utcDay(now)
+  const yesterday = addDays(today, -1)
+  const liveFrom = isFullyRetained(yesterday, now, options.retentionDays) ? yesterday : today
+  const rollupTo = options.toDay < liveFrom ? options.toDay : addDays(liveFrom, -1)
+
+  const rows: DailyUsageRow[] = []
+  if (options.fromDay <= rollupTo) {
+    rows.push(
+      ...(sqlite
+        .prepare(
+          `select day, model, client_name as clientName, key_id as keyId, requests, errors,
+            prompt_tokens as promptTokens, completion_tokens as completionTokens, total_tokens as totalTokens,
+            duration_ms_sum as durationMsSum, cost_usd_sum as costUsdSum,
+            gen_completion_tokens as genCompletionTokens, gen_duration_ms as genDurationMs
+           from request_daily_stats where day >= ? and day <= ?`,
+        )
+        .all(options.fromDay, rollupTo) as DailyUsageRow[]),
+    )
+  }
+
+  const liveStart = options.fromDay > liveFrom ? options.fromDay : liveFrom
+  if (liveStart <= options.toDay) {
+    rows.push(
+      ...(sqlite.prepare(AGGREGATE_SQL).all(dayToMs(liveStart), dayToMs(options.toDay) + DAY_MS) as DailyUsageRow[]),
+    )
+  }
+  return rows
+}

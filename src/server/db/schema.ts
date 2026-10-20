@@ -63,6 +63,36 @@ export const requests = sqliteTable(
 export type Request = typeof requests.$inferSelect
 export type NewRequest = typeof requests.$inferInsert
 
+/**
+ * Per-day usage rollup of inference requests, keyed by (UTC day, model, client,
+ * key). Rebuilt from `requests` by the maintenance job before retention pruning
+ * so token/usage history outlives the raw request log.
+ */
+export const requestDailyStats = sqliteTable(
+  'request_daily_stats',
+  {
+    /** UTC calendar day, `YYYY-MM-DD`. */
+    day: text('day').notNull(),
+    /** Routed model when a routing rule rewrote it, otherwise the requested model. */
+    model: text('model'),
+    clientName: text('client_name'),
+    keyId: text('key_id'),
+    requests: integer('requests').notNull(),
+    errors: integer('errors').notNull(),
+    promptTokens: integer('prompt_tokens').notNull(),
+    completionTokens: integer('completion_tokens').notNull(),
+    totalTokens: integer('total_tokens').notNull(),
+    durationMsSum: integer('duration_ms_sum').notNull(),
+    costUsdSum: real('cost_usd_sum'),
+    /** Completion tokens and wall time of successful streamed requests, for avg generation speed. */
+    genCompletionTokens: integer('gen_completion_tokens').notNull(),
+    genDurationMs: integer('gen_duration_ms').notNull(),
+  },
+  (table) => [index('idx_request_daily_stats_day').on(table.day)],
+)
+
+export type RequestDailyStat = typeof requestDailyStats.$inferSelect
+
 export const contextCompressionPolicies = sqliteTable('context_compression_policies', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
