@@ -10,11 +10,13 @@ import {
   Link2,
   LogOut,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   ScrollText,
   ServerCog,
   Settings,
-  SlidersHorizontal,
   Shield,
+  SlidersHorizontal,
   Terminal,
   TriangleAlert,
 } from 'lucide-react'
@@ -22,12 +24,12 @@ import { useEffect, useRef, useState } from 'react'
 import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { LEADER_KEY } from '../lib/nav-leader'
-import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
 import type { ApiSystemStatus } from '../lib/schemas/system'
 import { useColorTheme } from '../lib/use-color-theme'
-import { StatusDot, stateTone } from './StatusDot'
+import { useMobileMenu } from '../lib/use-mobile-menu'
 import { Logo } from './Logo'
+import { StatusDot, stateTone } from './StatusDot'
 import { Tooltip } from './Tooltip'
 
 type NavTarget =
@@ -116,11 +118,14 @@ const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_
 type SidebarSession = ReturnType<typeof authClient.useSession>['data']
 
 type SidebarProps = {
+  /** Desktop only: an icon rail. Phones keep the slide-in menu at full width. */
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
   initialSession?: SidebarSession | null
   initialCapabilities?: ApiSystemStatus['inference']['capabilities'] | null
 }
 
-export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
+export function Sidebar({ collapsed = false, onToggleCollapsed, initialSession, initialCapabilities }: SidebarProps) {
   const { open, close } = useMobileMenu()
   const { data: system } = useSystemStatus()
   const updateAvailable = system?.runtime.update.status === 'available'
@@ -133,9 +138,16 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
         open && 'max-md:translate-x-0',
       )}
     >
-      <div className="flex items-center gap-2.5 px-4 border-b border-border h-12">
-        <Logo />
-        <div className="ml-auto flex items-center gap-1.5">
+      <div
+        className={cn(
+          'flex items-center gap-2.5 px-4 border-b border-border h-12',
+          collapsed && 'md:justify-center md:px-0',
+        )}
+      >
+        <div className={cn(collapsed && 'md:hidden')}>
+          <Logo />
+        </div>
+        <div className={cn('ml-auto flex items-center gap-1.5', collapsed && 'md:hidden')}>
           {updateAvailable ? (
             <Tooltip label="Update available" side="bottom" align="end">
               <a
@@ -158,10 +170,29 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
             {__GIT_COMMIT__}
           </a>
         </div>
+        {onToggleCollapsed ? (
+          <Tooltip label={collapsed ? 'Expand sidebar  [' : 'Collapse sidebar  ['} side="right">
+            <button
+              type="button"
+              className={cn('btn btn-ghost btn-icon max-md:hidden', !collapsed && '-mr-2')}
+              onClick={onToggleCollapsed}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
+            >
+              {collapsed ? (
+                <PanelLeftOpen className="size-4" strokeWidth={1.75} aria-hidden="true" />
+              ) : (
+                <PanelLeftClose className="size-4" strokeWidth={1.75} aria-hidden="true" />
+              )}
+            </button>
+          </Tooltip>
+        ) : null}
       </div>
 
-      <SidebarNav onNavigate={close} initialCapabilities={initialCapabilities} />
-      <SidebarLiveStatus initialSession={initialSession} />
+      <SidebarNav onNavigate={close} initialCapabilities={initialCapabilities} collapsed={collapsed} />
+      <div className={cn(collapsed && 'md:hidden')}>
+        <SidebarLiveStatus initialSession={initialSession} />
+      </div>
     </aside>
   )
 }
@@ -169,9 +200,11 @@ export function Sidebar({ initialSession, initialCapabilities }: SidebarProps) {
 function SidebarNav({
   onNavigate,
   initialCapabilities,
+  collapsed = false,
 }: {
   onNavigate: () => void
   initialCapabilities?: ApiSystemStatus['inference']['capabilities'] | null
+  collapsed?: boolean
 }) {
   const { data: running = [] } = useRunningModels()
   const { data: system } = useSystemStatus()
@@ -197,12 +230,18 @@ function SidebarNav({
       )}
       {visibleSections.map((section) => (
         <div key={section.title}>
-          <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint px-2.5 pt-3 pb-1.5">
+          <div
+            className={cn(
+              'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint px-2.5 pt-3 pb-1.5',
+              collapsed && 'md:sr-only',
+            )}
+          >
             {section.title}
           </div>
+          {collapsed ? <div className="max-md:hidden mx-2 my-2 border-t border-border" aria-hidden="true" /> : null}
           {section.items.map(({ to, label, leader, Icon }) => {
             const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
-            return (
+            const link = (
               <Link
                 key={to}
                 to={to}
@@ -217,15 +256,29 @@ function SidebarNav({
                     specified for key combinations, so "G D" would be announced
                     as two independent shortcuts. The sr-only text says it
                     properly instead. */}
-                <span className="nav-key flex w-7 shrink-0 items-center gap-px" aria-hidden="true">
+                <span
+                  className={cn('nav-key flex w-7 shrink-0 items-center gap-px', collapsed && 'md:hidden')}
+                  aria-hidden="true"
+                >
                   <kbd className="nav-key-leader">{LEADER_KEY}</kbd>
                   <kbd className="nav-key-target">{leader}</kbd>
                 </span>
                 <Icon className="size-4 shrink-0 text-current" strokeWidth={1.75} aria-hidden="true" />
-                <span>{label}</span>
+                <span className={cn(collapsed && 'md:sr-only')}>{label}</span>
                 <span className="sr-only">{`, shortcut ${LEADER_KEY} then ${leader}`}</span>
-                {badge != null ? <span className="ml-auto font-mono text-[10px] text-fg-dim">{badge}</span> : null}
+                {badge != null ? (
+                  <span className={cn('ml-auto font-mono text-[10px] text-fg-dim', collapsed && 'md:hidden')}>
+                    {badge}
+                  </span>
+                ) : null}
               </Link>
+            )
+            return collapsed ? (
+              <Tooltip key={to} label={badge != null ? `${label} · ${badge} running` : label} side="right">
+                {link}
+              </Tooltip>
+            ) : (
+              link
             )
           })}
         </div>
