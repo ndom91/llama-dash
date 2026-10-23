@@ -3238,8 +3238,8 @@ a,
 
 /* Skeleton loading placeholders */
 @keyframes skel-pulse {
-  0%, 100% { opacity: 0.10; }
-  50% { opacity: 0.16; }
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.13; }
 }
 .skel {
   display: inline-block;
@@ -3250,7 +3250,7 @@ a,
 @media (prefers-reduced-motion: reduce) {
   .skel {
     animation: none;
-    opacity: 0.12;
+    opacity: 0.10;
   }
 }
 .skel-text {
