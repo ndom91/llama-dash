@@ -15,13 +15,14 @@ export function KeyDetailSkeleton() {
           <div className="flex items-center gap-2">
             <span className="skel skel-text" style={{ width: 60, height: 28 }} />
             <span className="skel skel-text" style={{ width: 64, height: 28 }} />
+            <span className="skel skel-text" style={{ width: 62, height: 28 }} />
           </div>
         }
       />
 
       <div className="detail-sidecar-shell">
         <aside className="detail-meta-rail">
-          <DetailRailSection title="Key" rows={4} />
+          <DetailRailSection title="Key" rows={5} />
           <DetailRailSection title="Limits" rows={3} />
         </aside>
 
@@ -43,7 +44,6 @@ export function KeyDetailSkeleton() {
             ))}
           </div>
 
-          <DetailPanelSkeleton title="Default model" rows={2} actionWidth={46} />
           <DetailPanelSkeleton title="System prompt" rows={3} actionWidth={46} />
 
           <section className="panel detail-stacked-section">
@@ -55,11 +55,17 @@ export function KeyDetailSkeleton() {
             <table className="dtable">
               <thead>
                 <tr>
-                  <th style={{ width: 72 }}>enabled</th>
+                  <th style={{ width: 32 }} aria-label="enabled" />
                   <th>model</th>
-                  <th style={{ width: 84 }}>requests</th>
-                  <th style={{ width: 84 }}>tokens</th>
-                  <th style={{ width: 84 }}>errors</th>
+                  <th className="num" style={{ width: 100 }}>
+                    requests
+                  </th>
+                  <th className="num" style={{ width: 100 }}>
+                    tokens
+                  </th>
+                  <th className="num" style={{ width: 80 }}>
+                    errors
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -86,6 +92,37 @@ export function KeyDetailSkeleton() {
             </table>
           </section>
 
+          <section className="panel detail-stacked-section">
+            <div className="panel-head">
+              <span className="panel-title text-fg-muted">MCP relay access</span>
+              <span className="panel-sub">· loading</span>
+            </div>
+            <table className="dtable">
+              <thead>
+                <tr>
+                  <th style={{ width: 32 }} aria-label="enabled" />
+                  <th className="mono">relay</th>
+                  <th className="mono">target</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 3 }, (_, index) => `relay-${index}`).map((row) => (
+                  <tr key={row}>
+                    <td>
+                      <span className="skel skel-text" style={{ width: 16, height: 16, borderRadius: 4 }} />
+                    </td>
+                    <td>
+                      <span className="skel skel-text" style={{ width: '48%' }} />
+                    </td>
+                    <td>
+                      <span className="skel skel-text" style={{ width: '62%' }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
           <section className="panel detail-stacked-section flex min-h-0 flex-1 flex-col">
             <div className="panel-head">
               <span className="panel-title text-fg-muted">Recent requests</span>
@@ -95,7 +132,7 @@ export function KeyDetailSkeleton() {
             <table className="dtable">
               <thead>
                 <tr>
-                  <th className="mono" style={{ width: 80 }}>
+                  <th className="mono" style={{ width: 132 }}>
                     t
                   </th>
                   <th className="mono">endpoint</th>
@@ -107,9 +144,7 @@ export function KeyDetailSkeleton() {
                   <th className="num" style={{ width: 72 }}>
                     tok-out
                   </th>
-                  <th className="num" style={{ width: 180 }}>
-                    duration
-                  </th>
+                  <th style={{ width: 120 }}>duration</th>
                 </tr>
               </thead>
               <tbody>

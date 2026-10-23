@@ -1,16 +1,19 @@
-import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { LEADER_TIMEOUT_MS, useLeaderPendingTracker } from '../lib/nav-leader'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
+import { HotkeysProvider } from '@tanstack/react-hotkeys'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
+import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
-import { TopBar } from '../components/TopBar'
 import { TooltipProvider } from '../components/Tooltip'
+import { TopBar } from '../components/TopBar'
 import { getShellContext } from '../lib/auth-functions'
+import { writeClientCookie } from '../lib/cookies'
+import { isTypingTarget } from '../lib/is-typing-target'
+import { LEADER_TIMEOUT_MS, useLeaderPendingTracker } from '../lib/nav-leader'
+import { SIDEBAR_COOKIE, sidebarCookieValue } from '../lib/sidebar'
 import { THEME_INIT_SCRIPT } from '../lib/theme-init-script'
 import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
@@ -138,10 +141,27 @@ function AuthenticatedShell({
 }) {
   useAdminEvents()
   useLeaderPendingTracker()
+  const [collapsed, setCollapsed] = useState(rootContext?.sidebarCollapsed ?? false)
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      writeClientCookie(SIDEBAR_COOKIE, sidebarCookieValue(!prev))
+      return !prev
+    })
+  }, [])
+  // `[` toggles the sidebar (the usual editor binding), never while typing.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== '[' || event.metaKey || event.ctrlKey || event.altKey || isTypingTarget(event)) return
+      event.preventDefault()
+      toggleCollapsed()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleCollapsed])
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>
-      <div className="app-shell">
+      <div className={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
         <button
           type="button"
           className={`sidebar-backdrop${open ? ' sidebar-backdrop-visible' : ''}`}
@@ -151,6 +171,8 @@ function AuthenticatedShell({
           aria-hidden={!open}
         />
         <Sidebar
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
           initialSession={rootContext?.session ?? null}
           initialCapabilities={rootContext?.inference?.capabilities ?? null}
         />

@@ -1,14 +1,14 @@
-import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from 'undici'
+import { Agent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } from 'undici'
 import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { ProxyForwardBody } from './body.ts'
-import { headersToRecord, filterResponseHeaders, redactSensitiveHeaders } from './headers.ts'
+import type { CompressionOutcome } from './context-compression.ts'
+import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import { BoundedTextCapture } from './text-capture.ts'
 import type { RoutingOutcome } from './transforms.ts'
-import type { CompressionOutcome } from './context-compression.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
 
 type Attribution = {
@@ -239,11 +239,19 @@ export async function forwardUpstreamAndLog(input: {
   const decoder = isBinaryResponse ? null : new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner() : null
   const responseCapture = decoder ? new BoundedTextCapture() : null
+  // A client may hang up while a read is pending (SSE clients often close the
+  // socket as soon as they see `data: [DONE]`). cancel() then logs the request;
+  // the pending pull must not touch the controller or log a second row --
+  // closing a cancelled stream throws "Invalid state: Controller is already
+  // closed".
+  let cancelled = false
+  let logged = false
 
   const responseBody = new ReadableStream<Uint8Array>({
     async pull(controller) {
       try {
         const { value, done } = await reader.read()
+        if (cancelled) return
         if (done) {
           controller.close()
           if (decoder) {
@@ -268,6 +276,7 @@ export async function forwardUpstreamAndLog(input: {
             usage.totalTokens = usage.promptTokens
           }
 
+          logged = true
           writeProxyLog({
             startedAt: input.startedAt,
             status: upstreamResponse.status,
@@ -301,8 +310,10 @@ export async function forwardUpstreamAndLog(input: {
           if (sseScanner) sseScanner.feed(text, Date.now())
         }
       } catch (err) {
+        if (cancelled || logged) return
         controller.error(err)
         const message = err instanceof Error ? err.message : String(err)
+        logged = true
         writeProxyLog({
           startedAt: input.startedAt,
           status: upstreamResponse.status,
@@ -326,7 +337,10 @@ export async function forwardUpstreamAndLog(input: {
       }
     },
     cancel() {
+      cancelled = true
       reader.cancel().catch(() => {})
+      if (logged) return
+      logged = true
       writeProxyLog({
         startedAt: input.startedAt,
         status: upstreamResponse.status,
@@ -335,7 +349,8 @@ export async function forwardUpstreamAndLog(input: {
         endpoint: input.endpoint,
         usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel),
         streamed: isSse,
-        error: 'Client disconnected',
+        // A client that read the stream to [DONE] got the whole reply.
+        error: sseScanner?.sawDone ? null : 'Client disconnected',
         reqHeaders: input.reqHeadersJson,
         reqBody: input.reqBody,
         resHeaders: resHeadersJson,

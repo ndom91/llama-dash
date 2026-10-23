@@ -9,6 +9,7 @@ type Props = {
 export function YamlEditor({ value, onChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const preRef = useRef<HTMLPreElement>(null)
+  const lineNumbersRef = useRef<HTMLDivElement>(null)
 
   const deferredValue = useDeferredValue(value)
   const lineCount = useMemo(() => countLines(value), [value])
@@ -17,7 +18,8 @@ export function YamlEditor({ value, onChange }: Props) {
   const syncScroll = useCallback(() => {
     const ta = textareaRef.current
     const pre = preRef.current
-    if (!ta || !pre) return
+    const lineNumbers = lineNumbersRef.current
+    if (!ta || !pre || !lineNumbers) return
     // The textarea reserves space for its scrollbars; the overlay hides its own.
     // Without mirroring that gutter the overlay's client box is taller, so it
     // bottoms out a scrollbar-height early and the highlighted text drifts out
@@ -26,6 +28,7 @@ export function YamlEditor({ value, onChange }: Props) {
     pre.style.borderRightWidth = `${ta.offsetWidth - ta.clientWidth}px`
     pre.scrollTop = ta.scrollTop
     pre.scrollLeft = ta.scrollLeft
+    lineNumbers.scrollTop = ta.scrollTop
   }, [])
 
   // No dep list: content changes are what make the scrollbars appear or
@@ -62,12 +65,13 @@ export function YamlEditor({ value, onChange }: Props) {
   return (
     <div className="flex min-h-0 flex-1 font-mono text-[13px] leading-[1.6]">
       <div
+        ref={lineNumbersRef}
         className="flex min-w-11 flex-col overflow-hidden border-r border-border bg-surface-3 py-3 text-right tabular-nums text-fg-faint select-none"
         aria-hidden="true"
       >
         {Array.from({ length: lineCount }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: line numbers are sequential and never reorder
-          <span key={i} className="px-2.5 pl-2 text-[11px] leading-[1.6]">
+          <span key={i} className="px-2.5 pl-2 text-[11px] leading-[20.8px]">
             {i + 1}
           </span>
         ))}
