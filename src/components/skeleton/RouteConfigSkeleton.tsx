@@ -5,19 +5,21 @@ const EDITOR_ROWS = Array.from({ length: 20 }, (_, index) => `pending-editor-${i
 export function RouteConfigSkeleton() {
   return (
     <SkeletonPageFrame>
-      <PageHeaderSkeleton kickerWidth={112} titleWidth={190} />
+      <PageHeaderSkeleton kickerWidth={112} titleWidth={190} action="none" />
       <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
-        <div className="flex items-center gap-2 border-b border-border bg-surface-3 px-3.5 py-2 font-mono text-[11px] text-fg-dim">
-          <SkeletonLine width={96} />
-          <SkeletonLine width={120} className="ml-auto" />
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden bg-surface-0 p-4 font-mono text-xs max-md:p-3">
-          {EDITOR_ROWS.map((row, index) => (
-            <div key={row} className="mb-3 grid grid-cols-[36px_minmax(0,1fr)] gap-4">
-              <SkeletonLine width={22} />
-              <SkeletonLine width={`${34 + (index % 7) * 8}%`} />
-            </div>
-          ))}
+        <div className="grid min-h-0 flex-1 grid-cols-[44px_minmax(0,1fr)] overflow-hidden bg-surface-0 font-mono text-xs">
+          <div className="border-r border-border bg-surface-3 px-2.5 pt-3">
+            {EDITOR_ROWS.map((row) => (
+              <SkeletonLine key={row} width={16} height={11} className="mb-[9.8px] block ml-auto" />
+            ))}
+          </div>
+          <div className="p-3">
+            {EDITOR_ROWS.map((row, index) => (
+              <div key={row} className="mb-[9.8px]">
+                <SkeletonLine width={`${34 + (index % 7) * 8}%`} />
+              </div>
+            ))}
+          </div>
         </div>
         <div className="border-t border-border bg-surface-3 px-3.5 py-2">
           <SkeletonLine width={360} className="max-w-[80%]" />

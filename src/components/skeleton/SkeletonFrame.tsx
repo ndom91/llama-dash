@@ -37,9 +37,11 @@ export function SkeletonPageFrame({ children }: { children: ReactNode }) {
 export function PageHeaderSkeleton({
   kickerWidth = 120,
   titleWidth = 180,
+  action = 'buttons',
 }: {
   kickerWidth?: number
   titleWidth?: number
+  action?: 'buttons' | 'live' | 'none'
 }) {
   return (
     <div className="page-header page-header-integrated flex items-start justify-between gap-4">
@@ -51,10 +53,18 @@ export function PageHeaderSkeleton({
           <SkeletonLine width={120} height={11} className="max-sm:hidden" />
         </div>
       </div>
-      <div className="page-header-action hidden shrink-0 items-center gap-1.5 sm:flex">
-        <SkeletonLine width={60} height={28} className="rounded-sm" />
-        <SkeletonLine width={16} height={16} className="rounded-full" />
-      </div>
+      {action === 'buttons' ? (
+        <div className="page-header-action hidden shrink-0 items-center gap-1.5 sm:flex">
+          <SkeletonLine width={60} height={28} className="rounded-sm" />
+          <SkeletonLine width={16} height={16} className="rounded-full" />
+        </div>
+      ) : null}
+      {action === 'live' ? (
+        <div className="page-header-action hidden shrink-0 items-center gap-1.5 sm:flex">
+          <SkeletonLine width={8} height={8} className="rounded-full" />
+          <SkeletonLine width={28} height={11} />
+        </div>
+      ) : null}
     </div>
   )
 }

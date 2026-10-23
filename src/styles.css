@@ -3238,14 +3238,20 @@ a,
 
 /* Skeleton loading placeholders */
 @keyframes skel-pulse {
-  0%, 100% { opacity: 0.12; }
-  50% { opacity: 0.22; }
+  0%, 100% { opacity: 0.10; }
+  50% { opacity: 0.16; }
 }
 .skel {
   display: inline-block;
   background: var(--fg);
   border-radius: var(--radius-sm, 4px);
   animation: skel-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel {
+    animation: none;
+    opacity: 0.12;
+  }
 }
 .skel-text {
   height: 12px;

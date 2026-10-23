@@ -5,10 +5,10 @@ const TABLE_ROWS = Array.from({ length: 11 }, (_, index) => `pending-row-${index
 export function RouteRequestsSkeleton() {
   return (
     <SkeletonPageFrame>
-      <PageHeaderSkeleton kickerWidth={104} titleWidth={142} />
-      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch max-[900px]:grid-cols-1">
+      <PageHeaderSkeleton kickerWidth={104} titleWidth={142} action="live" />
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
         <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-b">
-          {['Search', 'Status', 'Model', 'Key', 'Routing'].map((label) => (
+          {['Search', 'Status', 'Model', 'Key', 'Routing', 'Host', 'Client', 'End user', 'Session'].map((label) => (
             <div key={label} className="mb-4 flex flex-col gap-1.5">
               <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">{label}</div>
               <SkeletonLine width="100%" height={32} />
@@ -42,6 +42,8 @@ export function RouteRequestsSkeleton() {
                   <th>status</th>
                   <th className="num">tok-in</th>
                   <th className="num">tok-out</th>
+                  <th className="num">cache</th>
+                  <th className="num">cost</th>
                   <th className="num">duration</th>
                 </tr>
               </thead>
@@ -62,6 +64,12 @@ export function RouteRequestsSkeleton() {
                     </td>
                     <td className="num">
                       <SkeletonLine width={32} />
+                    </td>
+                    <td className="num">
+                      <SkeletonLine width={28} />
+                    </td>
+                    <td className="num">
+                      <SkeletonLine width={42} />
                     </td>
                     <td className="num">
                       <SkeletonLine width={32} />
