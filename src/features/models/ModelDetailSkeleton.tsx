@@ -44,8 +44,8 @@ export function ModelDetailSkeleton() {
             <table className="dtable">
               <thead>
                 <tr>
-                  <th style={{ width: 88 }}>type</th>
-                  <th>time</th>
+                  <th style={{ width: 18 }} aria-label="type" />
+                  <th style={{ width: 160 }}>time</th>
                   <th>event</th>
                 </tr>
               </thead>
@@ -53,10 +53,10 @@ export function ModelDetailSkeleton() {
                 {HISTORY_ROWS.map((row) => (
                   <tr key={row}>
                     <td>
-                      <span className="skel skel-text" style={{ width: 42 }} />
+                      <span className="skel skel-text" style={{ width: 8, height: 8, borderRadius: 999 }} />
                     </td>
                     <td>
-                      <span className="skel skel-text" style={{ width: 132 }} />
+                      <span className="skel skel-text" style={{ width: 152 }} />
                     </td>
                     <td>
                       <span className="skel skel-text" style={{ width: 84 }} />
@@ -76,7 +76,7 @@ export function ModelDetailSkeleton() {
             <table className="dtable">
               <thead>
                 <tr>
-                  <th className="mono" style={{ width: 80 }}>
+                  <th className="mono" style={{ width: 132 }}>
                     t
                   </th>
                   <th className="mono">endpoint</th>

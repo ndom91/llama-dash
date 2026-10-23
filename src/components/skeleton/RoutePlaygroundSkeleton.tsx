@@ -8,10 +8,10 @@ const OUTPUT_ROWS = ['seed', 'n', 'stream', 'logprobs']
 export function RoutePlaygroundSkeleton() {
   return (
     <SkeletonPageFrame>
-      <PageHeaderSkeleton kickerWidth={156} titleWidth={170} />
-      <div className="flex gap-2 border-b border-border bg-surface-0 px-6 py-3 max-md:px-3">
+      <PageHeaderSkeleton kickerWidth={156} titleWidth={170} action="none" />
+      <div className="flex overflow-hidden border-b border-border bg-surface-0 px-6 max-md:px-3">
         {['Chat', 'Image', 'Speech', 'Transcribe'].map((tab, index) => (
-          <div key={tab} className="rounded border border-border bg-surface-1 px-3 py-2">
+          <div key={tab} className="px-3.5 py-2.5">
             <SkeletonLine width={index === 3 ? 80 : 46} />
           </div>
         ))}

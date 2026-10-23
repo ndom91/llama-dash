@@ -130,7 +130,10 @@ export function createLlamaSwapBackend(): InferenceBackend {
     defaultProxyUpstream(pathname, search) {
       return `${config.inferenceBaseUrl}${pathname}${search}`
     },
-    eventStreamUrl: `${config.inferenceBaseUrl}/api/events`,
+    // llama-swap v259 split log traffic from dashboard events. Request the two
+    // streams rendered by llama-dash's Logs page; the upstream sends backlog
+    // followed by live SSE logData envelopes.
+    eventStreamUrl: `${config.inferenceBaseUrl}/api/events/logs?stream=proxy&stream=upstream`,
     async listModels() {
       const models = await llamaSwap.listModels()
       return models.data.map(mapLlamaSwapModel)

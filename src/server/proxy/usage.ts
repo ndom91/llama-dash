@@ -117,6 +117,11 @@ export class SseUsageScanner {
     }
   }
 
+  /** True once the stream's `data: [DONE]` terminator has been seen. */
+  get sawDone(): boolean {
+    return this.doneAtMs != null
+  }
+
   done(closeAtMs?: number): UsageWithClose {
     if (this.buf.length > 0) {
       this.processEvent(this.buf, closeAtMs ?? Date.now())

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { forwardUpstreamAndLog, writeProxyLog, type ProxyLogInput } from './forward'
+import { forwardUpstreamAndLog, type ProxyLogInput, writeProxyLog } from './forward'
 
 const writeRequestLog = vi.hoisted(() => vi.fn())
 const undiciFetch = vi.hoisted(() => vi.fn())
@@ -185,6 +185,84 @@ describe('writeProxyLog', () => {
         totalTokens: 30,
       }),
     )
+  })
+
+  describe('a client that hangs up', () => {
+    // An upstream SSE stream that sends its events, then stays open until `end()`.
+    function heldOpenStream(events: string) {
+      let end!: () => void
+      const ended = new Promise<void>((resolve) => {
+        end = resolve
+      })
+      const body = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode(events))
+          await ended
+          controller.close()
+        },
+      })
+      return { body, end }
+    }
+
+    function forwardStream(body: ReadableStream<Uint8Array>) {
+      undiciFetch.mockResolvedValue(new Response(body, { headers: { 'content-type': 'text/event-stream' } }))
+      return forwardUpstreamAndLog({
+        upstream: 'http://llama-swap:8080/v1/chat/completions',
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"stream":true}',
+        hasBody: true,
+        startedAt: Date.now(),
+        endpoint: '/v1/chat/completions',
+        reqModel: 'halogen-qwen3.8-flash-next',
+        reqHeadersJson: '{}',
+        reqBody: null,
+        keyId: null,
+        keyRow: null,
+        attribution: { clientName: 'relic', endUserId: null, sessionId: null },
+        routing: input().routing,
+      })
+    }
+
+    async function readUntil(response: Response, marker: string | null) {
+      const reader = (response.body as ReadableStream<Uint8Array>).getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (marker == null || !text.includes(marker)) {
+        const { value, done } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        if (marker == null) break
+      }
+      await reader.cancel()
+      return text
+    }
+
+    it('logs a stream it read to [DONE] once, as completed', async () => {
+      const upstream = heldOpenStream(
+        'data: {"model":"halogen-qwen3.8-flash-next","choices":[{"delta":{"content":"Hi"}}]}\n\ndata: [DONE]\n\n',
+      )
+      const response = (await forwardStream(upstream.body)) as Response
+
+      await readUntil(response, '[DONE]')
+      upstream.end()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      expect(writeRequestLog).toHaveBeenCalledTimes(1)
+      expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ error: null, streamed: true }))
+    })
+
+    it('logs a stream abandoned before [DONE] once, as a disconnect', async () => {
+      const upstream = heldOpenStream('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n')
+      const response = (await forwardStream(upstream.body)) as Response
+
+      await readUntil(response, null)
+      upstream.end()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      expect(writeRequestLog).toHaveBeenCalledTimes(1)
+      expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ error: 'Client disconnected' }))
+    })
   })
 
   it('does not capture an untyped Responses API reply from another upstream', async () => {

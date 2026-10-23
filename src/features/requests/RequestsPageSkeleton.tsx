@@ -2,9 +2,9 @@ const ROWS = Array.from({ length: 10 }, (_, index) => `request-row-${index}`)
 
 export function RequestsPageSkeleton() {
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[900px]:grid-cols-1">
+    <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
       <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
-        {['Search', 'Status', 'Model', 'Key'].map((label) => (
+        {['Search', 'Status', 'Model', 'Key', 'Routing', 'Host', 'Client', 'End user', 'Session'].map((label) => (
           <div key={label} className="mb-4 flex flex-col gap-1.5">
             <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">{label}</div>
             <span className="skel skel-text" style={{ width: '100%', height: 32 }} />
