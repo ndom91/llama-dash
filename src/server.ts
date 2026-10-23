@@ -8,6 +8,9 @@ if (config.inferenceInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 }
 
+const { runMigrations } = await import('./server/db/migrate.ts')
+runMigrations()
+
 const { auth, getDashboardSession } = await import('./server/auth.ts')
 
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
