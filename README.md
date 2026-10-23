@@ -98,14 +98,18 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 Choose the compose file that matches your GPU vendor. Both setups pull the published `ghcr.io/ndom91/llama-dash:latest` image, use `./config/config.yaml` for llama-swap config, mount `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
 
-First create your env and config files, then set the required secrets:
+Clone the repository for its Compose files and example configuration, then create the local environment and llama-swap config:
 
 ```bash
-cp .env.example .env       # then set BETTER_AUTH_SECRET and CREDENTIAL_ENCRYPTION_KEY
-cp config/config.example.yaml config/config.yaml   # edit models
+git clone https://github.com/ndom91/llama-dash.git
+cd llama-dash
+cp .env.example .env
+cp config/config.example.yaml config/config.yaml
 ```
 
-The compose files load `.env` via `env_file` and won't start without it. Generate a session secret with `openssl rand -base64 33`. See the [Environment](#️-environment) table for all values.
+Set `BETTER_AUTH_SECRET` in `.env` to the output of `openssl rand -base64 33`. The compose files load `.env` via `env_file` and won't start without it. `CREDENTIAL_ENCRYPTION_KEY` is only needed if you later store upstream provider credentials.
+
+Place a GGUF model in `./models/`, then set the matching path and model ID in `config/config.yaml`. The supplied example expects `./models/llama-3.gguf` and declares it as `llama3`.
 
 ### AMD / ROCm
 
@@ -130,6 +134,8 @@ Set `LLAMA_DASH_IMAGE_TAG` to a release tag to pin llama-dash to a specific vers
 ```bash
 docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
 ```
+
+Open `http://localhost:3000`, create the first dashboard user, then load your configured model from **Models**. llama-dash runs database migrations automatically when it starts.
 
 ## 🏗️ Manual setup
 
