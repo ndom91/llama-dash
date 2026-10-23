@@ -28,7 +28,7 @@ services:
       retries: 3
 
   llama-dash:
-    build: .
+    image: ghcr.io/ndom91/llama-dash:${LLAMA_DASH_IMAGE_TAG:-latest}
     ports:
       - '3000:3000'
     env_file:

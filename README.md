@@ -96,7 +96,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 ## ⚡ Quick start (Docker Compose)
 
-Choose the compose file that matches your GPU vendor. Both setups use `./config/config.yaml` for llama-swap config, `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
+Choose the compose file that matches your GPU vendor. Both setups pull the published `ghcr.io/ndom91/llama-dash:latest` image, use `./config/config.yaml` for llama-swap config, mount `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
 
 First create your env and config files, then set the required secrets:
 
@@ -110,6 +110,7 @@ The compose files load `.env` via `env_file` and won't start without it. Generat
 ### AMD / ROCm
 
 ```bash
+docker compose -f docker-compose.amd.yaml pull
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
@@ -118,10 +119,17 @@ docker compose -f docker-compose.amd.yaml up -d
 ### NVIDIA / CUDA
 
 ```bash
+docker compose -f docker-compose.nvidia.yaml pull
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
 `docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+
+Set `LLAMA_DASH_IMAGE_TAG` to a release tag to pin llama-dash to a specific version. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
+
+```bash
+docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
+```
 
 ## 🏗️ Manual setup
 
