@@ -1,11 +1,12 @@
-type Props = { size?: number; withWordmark?: boolean; className?: string }
+type Props = { size?: number; withWordmark?: boolean; decorative?: boolean; className?: string }
 
-export function Logo({ size = 20, withWordmark = false, className }: Props) {
+export function Logo({ size = 20, withWordmark = false, decorative = false, className }: Props) {
+  const accessibilityProps = decorative ? { 'aria-hidden': true } : { role: 'img' as const, 'aria-label': 'llama-dash' }
+
   return (
     <span
       className={className}
-      role="img"
-      aria-label="llama-dash"
+      {...accessibilityProps}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

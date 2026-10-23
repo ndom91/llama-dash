@@ -28,6 +28,8 @@ import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/que
 import type { ApiSystemStatus } from '../lib/schemas/system'
 import { useColorTheme } from '../lib/use-color-theme'
 import { useMobileMenu } from '../lib/use-mobile-menu'
+import { CollapsedSidebarAccountMenu } from './CollapsedSidebarAccountMenu'
+import { CollapsedSidebarMetrics } from './CollapsedSidebarMetrics'
 import { Logo } from './Logo'
 import { StatusDot, stateTone } from './StatusDot'
 import { Tooltip } from './Tooltip'
@@ -174,13 +176,28 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, initialSession, 
           <Tooltip label={collapsed ? 'Expand sidebar  [' : 'Collapse sidebar  ['} side="right">
             <button
               type="button"
-              className={cn('btn btn-ghost btn-icon max-md:hidden', !collapsed && '-mr-2')}
+              className={cn(
+                'btn btn-ghost btn-icon group relative max-md:hidden',
+                !collapsed && '-mr-2',
+                collapsed && 'size-7 justify-center !p-0 hover:bg-surface-3',
+              )}
               onClick={onToggleCollapsed}
               aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!collapsed}
             >
               {collapsed ? (
-                <PanelLeftOpen className="size-4" strokeWidth={1.75} aria-hidden="true" />
+                <>
+                  <Logo
+                    size={15}
+                    decorative
+                    className="transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0"
+                  />
+                  <PanelLeftOpen
+                    className="absolute inset-0 m-auto size-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                </>
               ) : (
                 <PanelLeftClose className="size-4" strokeWidth={1.75} aria-hidden="true" />
               )}
@@ -193,6 +210,12 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, initialSession, 
       <div className={cn(collapsed && 'md:hidden')}>
         <SidebarLiveStatus initialSession={initialSession} />
       </div>
+      {collapsed ? (
+        <>
+          <CollapsedSidebarMetrics />
+          <CollapsedSidebarAccountMenu initialSession={initialSession} />
+        </>
+      ) : null}
     </aside>
   )
 }
@@ -228,7 +251,7 @@ function SidebarNav({
       {visibleSections.flatMap((section) =>
         section.items.map((item) => <LeaderNavBinding key={item.to} to={item.to} leader={item.leader} />),
       )}
-      {visibleSections.map((section) => (
+      {visibleSections.map((section, sectionIndex) => (
         <div key={section.title}>
           <div
             className={cn(
@@ -238,7 +261,9 @@ function SidebarNav({
           >
             {section.title}
           </div>
-          {collapsed ? <div className="max-md:hidden mx-2 my-2 border-t border-border" aria-hidden="true" /> : null}
+          {collapsed && sectionIndex > 0 ? (
+            <div className="max-md:hidden mx-2 my-2 border-t border-border" aria-hidden="true" />
+          ) : null}
           {section.items.map(({ to, label, leader, Icon }) => {
             const badge = to === '/models' && runningCount > 0 ? String(runningCount) : null
             const link = (
