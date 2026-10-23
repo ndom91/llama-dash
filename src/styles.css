@@ -534,6 +534,16 @@
   width: 100vw;
   background: var(--bg-0);
 }
+/* Collapsed (desktop): the sidebar is an icon rail; links center their icon. */
+@media (min-width: 769px) {
+  .app-shell-collapsed {
+    grid-template-columns: 52px 1fr;
+  }
+  .app-shell-collapsed nav[aria-label='Primary'] a {
+    justify-content: center;
+    padding-inline: 0;
+  }
+}
 
 /* Grid tracks keep disclosure content in flow while it expands and collapses. */
 .t-acc-panel {
