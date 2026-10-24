@@ -30,7 +30,6 @@ import {
   type ModelAccessMode,
   type PrivacySettings,
   type RoutingRule,
-  type ContextCompressionPolicy,
   type UpstreamCredential,
   type RequestLimits,
 } from './api'
@@ -72,7 +71,6 @@ export const qk = {
   keyDetail: (id: string) => ['keys', id] as const,
   aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
-  contextCompressionPolicies: ['context-compression-policies'] as const,
   mcpRelays: ['mcp-relays'] as const,
   upstreamCredentials: ['upstream-credentials'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
@@ -468,41 +466,6 @@ export function useRoutingRules(): UseQueryResult<Array<RoutingRule>> {
   return useQuery({
     queryKey: qk.routingRules,
     queryFn: () => api.listRoutingRules().then((r) => r.rules),
-  })
-}
-
-export function useContextCompressionPolicies(): UseQueryResult<Array<ContextCompressionPolicy>> {
-  return useQuery({
-    queryKey: qk.contextCompressionPolicies,
-    queryFn: () => api.listContextCompressionPolicies().then((r) => r.rules),
-  })
-}
-
-export function useCreateContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: api.createContextCompressionPolicy,
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to create compression policy', error),
-  })
-}
-
-export function useUpdateContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { name?: string; enabled?: boolean; match?: object } }) =>
-      api.updateContextCompressionPolicy(id, body),
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to update compression policy', error),
-  })
-}
-
-export function useDeleteContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: api.deleteContextCompressionPolicy,
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to delete compression policy', error),
   })
 }
 

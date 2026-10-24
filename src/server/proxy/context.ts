@@ -18,7 +18,6 @@ import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
 import { selectUpstream } from './upstream.ts'
 import { REDACTED_INJECTED_CREDENTIAL } from './credential-placeholders.ts'
-import { emptyCompressionOutcome, type CompressionOutcome } from './context-compression.ts'
 
 export type ProxyContext = {
   request: Request
@@ -35,7 +34,6 @@ export type ProxyContext = {
     sessionId: string | null
   }
   routingOutcome: RoutingOutcome
-  compressionOutcome: CompressionOutcome
   credentialInjectionJson: string | null
   redactedInjectedHeaderNames: Set<string>
   body: ProxyBodySnapshot | null
@@ -58,7 +56,6 @@ export function createProxyContext(request: Request): ProxyContext {
     reqHeaders: filterRequestHeaders(request.headers),
     attribution: extractAttribution(request.headers, getAttributionSettings()),
     routingOutcome: emptyRoutingOutcome(),
-    compressionOutcome: emptyCompressionOutcome(),
     credentialInjectionJson: null,
     redactedInjectedHeaderNames: new Set(),
     body: null,
