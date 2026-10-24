@@ -11,6 +11,9 @@ type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
+// Ignore quick alt-tabs; only resync after the tab was hidden long enough for
+// the browser to throttle or drop the event stream.
+const RESYNC_AFTER_HIDDEN_MS = 10_000
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 
@@ -60,7 +63,9 @@ export function useAdminEvents() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    const events = new EventSource('/api/events')
+    let events: EventSource
+    let hasOpened = false
+    let hiddenAt: number | null = null
     let requestStatsTimer: ReturnType<typeof setTimeout> | null = null
 
     const scheduleRequestStatsInvalidation = () => {
@@ -100,12 +105,43 @@ export function useAdminEvents() {
       queryClient.invalidateQueries({ queryKey: qk.health })
     }
 
-    events.addEventListener('request.completed', updateRequests)
-    events.addEventListener('model.changed', invalidateModels)
-    events.addEventListener('gpu.updated', updateGpu)
-    events.addEventListener('system.changed', invalidateSystem)
+    // Events are not replayed, so anything published while the stream was down
+    // is missing from the SSE-fed caches. Refetch whatever is currently mounted.
+    const resync = () => queryClient.invalidateQueries()
+
+    const connect = () => {
+      events = new EventSource('/api/events')
+      events.addEventListener('open', () => {
+        if (hasOpened) resync()
+        hasOpened = true
+      })
+      events.addEventListener('request.completed', updateRequests)
+      events.addEventListener('model.changed', invalidateModels)
+      events.addEventListener('gpu.updated', updateGpu)
+      events.addEventListener('system.changed', invalidateSystem)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAt = Date.now()
+        return
+      }
+      const hiddenFor = hiddenAt === null ? 0 : Date.now() - hiddenAt
+      hiddenAt = null
+      // EventSource gives up for good after a non-2xx response (e.g. a server restart).
+      if (events.readyState === EventSource.CLOSED) {
+        events.close()
+        connect()
+      } else if (hiddenFor >= RESYNC_AFTER_HIDDEN_MS) {
+        resync()
+      }
+    }
+
+    connect()
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
       events.close()
       if (requestStatsTimer) clearTimeout(requestStatsTimer)
     }
