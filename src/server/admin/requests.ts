@@ -40,18 +40,7 @@ type RequestSummarySource = Pick<
   | 'routingTargetCredentialId'
   | 'routingRoutedModel'
   | 'credentialInjectionJson'
-> &
-  Partial<
-    Pick<
-      typeof schema.requests.$inferSelect,
-      | 'compressionPolicyId'
-      | 'compressionPolicyName'
-      | 'compressionStatus'
-      | 'compressionInputTokens'
-      | 'compressionOutputTokens'
-      | 'compressionElapsedMs'
-    >
-  >
+>
 
 function inferenceRequest() {
   return eq(schema.requests.requestClass, 'inference')
@@ -89,12 +78,6 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     routingTargetCredentialId: row.routingTargetCredentialId,
     routingRoutedModel: row.routingRoutedModel,
     credentialInjectionJson: row.credentialInjectionJson,
-    compressionPolicyId: row.compressionPolicyId ?? null,
-    compressionPolicyName: row.compressionPolicyName ?? null,
-    compressionStatus: row.compressionStatus ?? null,
-    compressionInputTokens: row.compressionInputTokens ?? null,
-    compressionOutputTokens: row.compressionOutputTokens ?? null,
-    compressionElapsedMs: row.compressionElapsedMs ?? null,
   }
 }
 
@@ -135,12 +118,6 @@ export function listRecentRequests(opts: { limit: number; cursor?: string; inclu
       routingTargetCredentialId: schema.requests.routingTargetCredentialId,
       routingRoutedModel: schema.requests.routingRoutedModel,
       credentialInjectionJson: schema.requests.credentialInjectionJson,
-      compressionPolicyId: schema.requests.compressionPolicyId,
-      compressionPolicyName: schema.requests.compressionPolicyName,
-      compressionStatus: schema.requests.compressionStatus,
-      compressionInputTokens: schema.requests.compressionInputTokens,
-      compressionOutputTokens: schema.requests.compressionOutputTokens,
-      compressionElapsedMs: schema.requests.compressionElapsedMs,
     })
     .from(schema.requests)
     .where(where)
@@ -218,12 +195,6 @@ export function getRequestById(id: string): RequestDetail | null {
     routingRoutedModel: r.routingRoutedModel,
     routingRejectReason: r.routingRejectReason,
     credentialInjectionJson: r.credentialInjectionJson,
-    compressionPolicyId: r.compressionPolicyId,
-    compressionPolicyName: r.compressionPolicyName,
-    compressionStatus: r.compressionStatus,
-    compressionInputTokens: r.compressionInputTokens,
-    compressionOutputTokens: r.compressionOutputTokens,
-    compressionElapsedMs: r.compressionElapsedMs,
   }
 }
 

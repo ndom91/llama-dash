@@ -3,7 +3,6 @@ import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { ProxyForwardBody } from './body.ts'
-import type { CompressionOutcome } from './context-compression.ts'
 import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -34,7 +33,6 @@ export type ProxyLogInput = {
   reqModel: string | null
   attribution: Attribution
   routing: RoutingOutcome
-  compression?: CompressionOutcome
   credentialInjectionJson?: string | null
 }
 
@@ -131,12 +129,6 @@ export function writeProxyLog(input: ProxyLogInput) {
     routingRoutedModel: input.routing.routedModel,
     routingRejectReason: input.routing.rejectReason,
     credentialInjectionJson: input.credentialInjectionJson ?? null,
-    compressionPolicyId: input.compression?.policyId ?? null,
-    compressionPolicyName: input.compression?.policyName ?? null,
-    compressionStatus: input.compression?.status ?? null,
-    compressionInputTokens: input.compression?.inputTokens ?? null,
-    compressionOutputTokens: input.compression?.outputTokens ?? null,
-    compressionElapsedMs: input.compression?.elapsedMs ?? null,
   })
 }
 
@@ -181,7 +173,6 @@ export async function forwardUpstreamAndLog(input: {
   attribution: Attribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
-  compression?: CompressionOutcome
 }): Promise<Response | { upstreamError: string }> {
   let upstreamResponse: Awaited<ReturnType<typeof undiciFetch>>
   try {
@@ -230,7 +221,6 @@ export async function forwardUpstreamAndLog(input: {
       attribution: input.attribution,
       routing: input.routing,
       credentialInjectionJson: input.credentialInjectionJson,
-      compression: input.compression,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
@@ -295,7 +285,6 @@ export async function forwardUpstreamAndLog(input: {
             attribution: input.attribution,
             routing: input.routing,
             credentialInjectionJson: input.credentialInjectionJson,
-            compression: input.compression,
           })
 
           if (input.keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
@@ -332,7 +321,6 @@ export async function forwardUpstreamAndLog(input: {
           attribution: input.attribution,
           routing: input.routing,
           credentialInjectionJson: input.credentialInjectionJson,
-          compression: input.compression,
         })
       }
     },
@@ -360,7 +348,6 @@ export async function forwardUpstreamAndLog(input: {
         attribution: input.attribution,
         routing: input.routing,
         credentialInjectionJson: input.credentialInjectionJson,
-        compression: input.compression,
       })
     },
   })
