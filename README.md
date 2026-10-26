@@ -29,6 +29,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.
   Local llama.cpp prefill/decode timings are shown for streaming and non-streaming responses when provided; new measurements are retained independently of captured bodies. Older logs fall back to their retained response body.
   Adjacent request navigation uses a dedicated SQLite index, created automatically by the startup migration.
+  Scheduled retention cleanup logs its duration, candidate-selection time, and aggregate row counts for operational diagnosis.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, explicit allow-all or restricted model access, unavailable-model cleanup, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
 - **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.

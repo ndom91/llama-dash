@@ -25,6 +25,7 @@ const settingsMock = vi.hoisted(() => ({
 
 const dbMock = vi.hoisted(() => ({
   rows: [] as FakeRequest[],
+  error: null as Error | null,
 }))
 
 const recentBodiesMock = vi.hoisted(() => ({
@@ -43,6 +44,7 @@ vi.mock('./db/index.ts', () => ({
   sqliteDb: {
     prepare: (sql: string) => ({
       all: (inferenceCutoff: number, mcpSuccessCutoff: number, mcpErrorCutoff: number, bodyCutoff: number) => {
+        if (dbMock.error) throw dbMock.error
         if (!sql.includes('select id')) return []
         return dbMock.rows
           .filter(
@@ -100,7 +102,7 @@ vi.mock('./db/index.ts', () => ({
   },
 }))
 
-import { pruneRequestLogs } from './request-log-maintenance'
+import { pruneRequestLogs, startRequestLogMaintenance } from './request-log-maintenance'
 
 function hasBodyText(row: FakeRequest) {
   return (
@@ -138,6 +140,7 @@ describe('request log maintenance', () => {
       bodyRetentionDays: 3,
     }
     dbMock.rows = []
+    dbMock.error = null
     recentBodiesMock.deleteRecentBodies.mockClear()
   })
 
@@ -171,5 +174,39 @@ describe('request log maintenance', () => {
     expect(recentBodiesMock.deleteRecentBodies).toHaveBeenCalledWith('old-mcp-error')
     expect(recentBodiesMock.deleteRecentBodies).toHaveBeenCalledWith('old-body')
     expect(recentBodiesMock.deleteRecentBodies).toHaveBeenCalledTimes(4)
+  })
+
+  it('logs scheduled counts and timings, and still reports failures', () => {
+    vi.useFakeTimers()
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {})
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const now = 100 * DAY_MS
+      vi.setSystemTime(now)
+      dbMock.rows = [row('old-body', { started_at: now - 4 * DAY_MS, request_body: 'secret' })]
+      startRequestLogMaintenance()
+      vi.advanceTimersByTime(60_000)
+      expect(info).toHaveBeenCalledWith('[request-log-maintenance] prune complete', {
+        durationMs: expect.any(Number),
+        selectionMs: expect.any(Number),
+        candidateRows: 1,
+        inferenceDeleted: 0,
+        mcpRelaySuccessDeleted: 0,
+        mcpRelayErrorDeleted: 0,
+        bodiesCleared: 1,
+      })
+      expect(JSON.stringify(info.mock.calls)).not.toContain('secret')
+
+      const error = new Error('database failure')
+      dbMock.error = error
+      vi.advanceTimersByTime(60 * 60_000)
+      expect(warn).toHaveBeenCalledWith('Failed to prune request logs', error)
+      expect(info).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+      info.mockRestore()
+      warn.mockRestore()
+    }
   })
 })
