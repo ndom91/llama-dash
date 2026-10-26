@@ -466,7 +466,10 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             </div>
           </div>
 
-          {(req.streamed && req.completionTokens) || timing.prefillMs != null || timing.decodeMs != null ? (
+          {(req.streamed && req.completionTokens) ||
+          req.firstOutputMs != null ||
+          timing.prefillMs != null ||
+          timing.decodeMs != null ? (
             <RequestTokenTrace
               durationMs={req.durationMs}
               completionTokens={req.completionTokens}
@@ -474,6 +477,8 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
               tokPerSec={tokPerSec}
               prefillMs={timing.prefillMs}
               decodeMs={timing.decodeMs}
+              firstOutputMs={req.firstOutputMs}
+              outputSpanMs={req.outputSpanMs}
             />
           ) : null}
 
@@ -623,6 +628,8 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
     promptTokens: req.promptTokens,
     completionTokens: req.completionTokens,
     totalTokens: req.totalTokens,
+    firstOutputMs: req.firstOutputMs,
+    outputSpanMs: req.outputSpanMs,
     requestHeaders: req.requestHeaders,
     responseHeaders: req.responseHeaders,
     requestBody: req.requestBody,

@@ -114,6 +114,8 @@ export function writeProxyLog(input: ProxyLogInput) {
     streamCloseMs: input.usage.streamCloseMs,
     prefillMs: input.usage.prefillMs ?? null,
     decodeMs: input.usage.decodeMs ?? null,
+    firstOutputMs: input.usage.firstOutputMs ?? null,
+    outputSpanMs: input.usage.outputSpanMs ?? null,
     keyId: input.keyId,
     clientHost: deriveClientHost(input.reqHeaders),
     clientName: input.attribution.clientName,
@@ -229,7 +231,7 @@ export async function forwardUpstreamAndLog(input: {
 
   const reader = upstreamResponse.body.getReader()
   const decoder = isBinaryResponse ? null : new TextDecoder()
-  const sseScanner = isSse ? new SseUsageScanner() : null
+  const sseScanner = isSse ? new SseUsageScanner(input.startedAt) : null
   const responseCapture = decoder ? new BoundedTextCapture() : null
   // A client may hang up while a read is pending (SSE clients often close the
   // socket as soon as they see `data: [DONE]`). cancel() then logs the request;

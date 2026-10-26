@@ -167,6 +167,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
    and complete bounded non-streaming JSON responses and stored separately from
    captured bodies. Legacy rows fall back to parsing retained response bodies.
    Non-streaming JSON exceeding the 256 KiB scan limit cannot supply timings.
+   Streaming inference requests also store proxy-observed time to first meaningful
+   output and the span between first and last output deltas as nullable integers,
+   independent of body capture. These are not upstream prefill/decode timings.
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
    backend currently supports `llama-swap` only and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,

@@ -7,9 +7,20 @@ type Props = {
   tokPerSec: number | null
   prefillMs: number | null
   decodeMs: number | null
+  firstOutputMs: number | null
+  outputSpanMs: number | null
 }
 
-export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, prefillMs, decodeMs, streamed }: Props) {
+export function RequestTokenTrace({
+  durationMs,
+  completionTokens,
+  tokPerSec,
+  prefillMs,
+  decodeMs,
+  streamed,
+  firstOutputMs,
+  outputSpanMs,
+}: Props) {
   // The bar previously had a hard-coded `w-full` and an infinite 4.2s gradient
   // sweep, so a request that finished minutes ago animated forever as though
   // tokens were still arriving — decoration standing in for data, while the real
@@ -20,6 +31,12 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
   const prefillPct = prefillMs != null && hasPhases ? Math.max(0, Math.min(100, (prefillMs / durationMs) * 100)) : 0
   const decodePct =
     decodeMs != null && hasPhases ? Math.max(0, Math.min(100 - prefillPct, (decodeMs / durationMs) * 100)) : 0
+  const hasObserved = durationMs > 0 && firstOutputMs != null
+  const firstOutputPct = hasObserved ? Math.max(0, Math.min(100, (firstOutputMs / durationMs) * 100)) : 0
+  const outputSpanPct =
+    hasObserved && outputSpanMs != null
+      ? Math.max(0, Math.min(100 - firstOutputPct, (outputSpanMs / durationMs) * 100))
+      : 0
 
   return (
     <section className="panel !rounded-none !border-l-0 !border-r border-r-border border-b-1 !bg-surface-1">
@@ -27,7 +44,7 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
         <span className="panel-title">{streamed ? 'Stream' : 'Timing'}</span>
         <span className="panel-sub">· {streamed ? 'token trace' : 'phase breakdown'}</span>
         <span className="panel-sub ml-auto tabular-nums">
-          {completionTokens?.toLocaleString() ?? '—'} tokens · {tokPerSec ?? '—'} tok/s
+          {completionTokens?.toLocaleString() ?? '—'} tokens · {tokPerSec ?? '—'} tok/s overall
         </span>
       </div>
       <div className="px-4 py-3">
@@ -36,10 +53,15 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
             <div style={{ width: `${prefillPct}%`, background: 'var(--series-2)' }} />
             <div style={{ width: `${decodePct}%`, background: 'var(--series-4)' }} />
           </div>
+        ) : hasObserved ? (
+          <div className="flex h-2 overflow-hidden rounded bg-surface-3" aria-hidden="true">
+            <div style={{ width: `${firstOutputPct}%` }} />
+            <div style={{ width: `${outputSpanPct}%`, background: 'var(--series-4)' }} />
+          </div>
         ) : null}
         <div
           className={`flex flex-wrap justify-between gap-x-4 gap-y-1 font-mono tabular-nums text-[11px] text-fg-dim${
-            hasPhases ? ' mt-2' : ''
+            hasPhases || hasObserved ? ' mt-2' : ''
           }`}
         >
           {hasPhases ? (
@@ -61,9 +83,11 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
                 decode {decodeMs != null ? formatDuration(decodeMs) : '—'}
               </span>
             </>
-          ) : (
+          ) : firstOutputMs == null ? (
             <span>no upstream phase timings</span>
-          )}
+          ) : null}
+          {firstOutputMs != null ? <span>first output {formatDuration(firstOutputMs)} · proxy observed</span> : null}
+          {outputSpanMs != null ? <span>output span {formatDuration(outputSpanMs)} · proxy observed</span> : null}
           <span>
             {streamed ? 'eos' : 'total'} {formatDuration(durationMs)}
           </span>

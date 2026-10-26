@@ -44,6 +44,8 @@ export const ApiRequestDetailSchema = v.object({
   streamCloseMs: v.nullable(v.number()),
   prefillMs: v.nullable(v.number()),
   decodeMs: v.nullable(v.number()),
+  firstOutputMs: v.nullable(v.number()),
+  outputSpanMs: v.nullable(v.number()),
   clientName: v.nullable(v.string()),
   endUserId: v.nullable(v.string()),
   sessionId: v.nullable(v.string()),

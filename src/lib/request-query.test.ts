@@ -48,6 +48,8 @@ function detail(id: string) {
     streamCloseMs: null,
     prefillMs: null,
     decodeMs: null,
+    firstOutputMs: null,
+    outputSpanMs: null,
     routingRuleId: null,
     routingRequestedModel: null,
     routingRejectReason: null,

@@ -28,6 +28,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `POST /infill`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.
   Local llama.cpp prefill/decode timings are shown for streaming and non-streaming responses when provided; new measurements are retained independently of captured bodies. Older logs fall back to their retained response body.
+  Streamed inference requests also record proxy-observed time to first output and the span between first and last output deltas, including OpenAI Responses, chat completions, and Anthropic streams. These are not upstream prefill/decode timings and are available only for newly recorded requests.
   Adjacent request navigation uses a dedicated SQLite index, created automatically by the startup migration.
   Scheduled retention cleanup logs its duration, candidate-selection time, and aggregate row counts for operational diagnosis.
   Key-detail statistics use a key/time index, and key/model request lists avoid loading stored payloads.

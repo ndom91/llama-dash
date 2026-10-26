@@ -28,6 +28,8 @@ export const requests = sqliteTable(
     streamCloseMs: integer('stream_close_ms'),
     prefillMs: real('prefill_ms'),
     decodeMs: real('decode_ms'),
+    firstOutputMs: integer('first_output_ms'),
+    outputSpanMs: integer('output_span_ms'),
     keyId: text('key_id'),
     clientHost: text('client_host'),
     clientName: text('client_name'),

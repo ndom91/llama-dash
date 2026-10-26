@@ -114,10 +114,24 @@ describe('request log queue', () => {
 
   it('persists numeric phase timings without retaining response bodies', () => {
     settingsMock.maxBytes = 0
-    writeRequestLog(row({ prefillMs: 2307.982, decodeMs: 1847.728, responseBody: '{"private":true}' }))
+    writeRequestLog(
+      row({
+        prefillMs: 2307.982,
+        decodeMs: 1847.728,
+        firstOutputMs: 300,
+        outputSpanMs: 500,
+        responseBody: '{"private":true}',
+      }),
+    )
     flushRequestLogQueue()
     expect(inserts.values).toHaveBeenCalledWith(
-      expect.objectContaining({ prefillMs: 2307.982, decodeMs: 1847.728, responseBody: null }),
+      expect.objectContaining({
+        prefillMs: 2307.982,
+        decodeMs: 1847.728,
+        firstOutputMs: 300,
+        outputSpanMs: 500,
+        responseBody: null,
+      }),
     )
     expect(storeRecentBodies).not.toHaveBeenCalled()
   })

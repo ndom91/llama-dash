@@ -84,6 +84,32 @@ describe('usageFromJsonBody', () => {
 })
 
 describe('SseUsageScanner', () => {
+  it('measures meaningful Responses API output without counting lifecycle events', () => {
+    const scanner = new SseUsageScanner(1000)
+    scanner.feed('data: {"type":"response.created"}\n\n', 1050)
+    scanner.feed('data: {"type":"response.output_text.delta","delta":""}\n\n', 1100)
+    scanner.feed('data: {"type":"response.function_call_arguments.delta","delta":"{', 1200)
+    scanner.feed('"}\n\n', 1250)
+    scanner.feed('data: {"type":"response.reasoning_summary_text.delta","delta":"thinking"}\n\n', 1400)
+    scanner.feed('data: {"type":"response.completed"}\n\n', 1500)
+    expect(scanner.done(1550)).toMatchObject({ firstOutputMs: 250, outputSpanMs: 150, streamCloseMs: 50 })
+  })
+
+  it('measures chat and Anthropic deltas and leaves missing output unset', () => {
+    const scanner = new SseUsageScanner(100)
+    scanner.feed('data: {"choices":[{"delta":{"role":"assistant"}}]}\n\n', 120)
+    expect(scanner.done()).not.toHaveProperty('firstOutputMs')
+    scanner.feed('data: {"choices":[{"delta":{"tool_calls":[{"index":0}]}}]}\n\n', 200)
+    scanner.feed('data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"hello"}}\n\n', 230)
+    expect(scanner.done()).toMatchObject({ firstOutputMs: 100, outputSpanMs: 30 })
+  })
+
+  it('recognizes CRLF event boundaries split across chunks', () => {
+    const scanner = new SseUsageScanner(100)
+    scanner.feed('data: {"type":"response.output_text.delta","delta":"a"}\r\n\r', 150)
+    scanner.feed('\n', 175)
+    expect(scanner.done()).toMatchObject({ firstOutputMs: 75, outputSpanMs: 0 })
+  })
   it('retains the latest valid timings across the full stream', () => {
     const scanner = new SseUsageScanner()
     scanner.feed(`data: ${JSON.stringify({ timings: { prompt_ms: 10.5, predicted_ms: 20 } })}\n\n`, 1)
