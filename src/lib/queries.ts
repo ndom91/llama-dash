@@ -85,14 +85,14 @@ export const qk = {
 export function useHealth(): UseQueryResult<ApiHealth> {
   return useQuery({
     queryKey: qk.health,
-    queryFn: () => api.health(),
+    queryFn: ({ signal }) => api.health({ signal }),
   })
 }
 
 export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
   return useQuery({
     queryKey: qk.systemStatus,
-    queryFn: () => api.systemStatus(),
+    queryFn: ({ signal }) => api.systemStatus({ signal }),
   })
 }
 
@@ -129,7 +129,7 @@ export function useModelCounts() {
 export function useRequestStats(): UseQueryResult<ApiRequestStats> {
   return useQuery({
     queryKey: qk.requestStats,
-    queryFn: () => api.requestStats(),
+    queryFn: ({ signal }) => api.requestStats({ signal }),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -137,7 +137,7 @@ export function useRequestStats(): UseQueryResult<ApiRequestStats> {
 export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>> {
   return useQuery({
     queryKey: qk.requestHistogram,
-    queryFn: () => api.requestHistogram().then((r) => r.buckets),
+    queryFn: ({ signal }) => api.requestHistogram({}, { signal }).then((r) => r.buckets),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -145,14 +145,14 @@ export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>>
 export function useGpu(): UseQueryResult<ApiGpuSnapshot> {
   return useQuery({
     queryKey: qk.gpu,
-    queryFn: () => api.gpu(),
+    queryFn: ({ signal }) => api.gpu({ signal }),
   })
 }
 
 export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
   return useQuery({
     queryKey: qk.modelTimeline,
-    queryFn: () => api.modelTimeline().then((r) => r.events),
+    queryFn: ({ signal }) => api.modelTimeline(undefined, { signal }).then((r) => r.events),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -168,7 +168,8 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
 export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
     queryKey: [...qk.requestsRecent(limit), includeMcp] as const,
-    queryFn: () => api.listRequests({ limit, includeMcp }).then((r) => r.requests),
+    queryFn: ({ signal }) =>
+      api.listRequests({ limit, includeMcp }, { signal, priority: 'low' }).then((r) => r.requests),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -183,8 +184,8 @@ export function useRequestsList(): UseInfiniteQueryResult<{
 }> {
   return useInfiniteQuery({
     queryKey: qk.requestsList,
-    queryFn: ({ pageParam }) =>
-      api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }),
+    queryFn: ({ pageParam, signal }) =>
+      api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })
@@ -192,10 +193,10 @@ export function useRequestsList(): UseInfiniteQueryResult<{
 
 type RequestDetailResult = InferOutput<typeof RequestMetadataResponseSchema>
 
-export function requestQueryOptions(id: string) {
+export function requestQueryOptions(id: string, priority: 'high' | 'low' = 'high') {
   return queryOptions({
     queryKey: qk.request(id),
-    queryFn: () => api.getRequestMetadata(id),
+    queryFn: ({ signal }) => api.getRequestMetadata(id, { signal, priority }),
     staleTime: Number.POSITIVE_INFINITY,
   })
 }
@@ -203,7 +204,7 @@ export function requestQueryOptions(id: string) {
 export function requestPayloadsQueryOptions(id: string) {
   return queryOptions({
     queryKey: qk.requestPayloads(id),
-    queryFn: () => api.getRequestPayloads(id),
+    queryFn: ({ signal }) => api.getRequestPayloads(id, { signal }),
     staleTime: 30_000,
     gcTime: 60_000,
   })

@@ -166,4 +166,17 @@ describe('request detail loading', () => {
     expect(result.current.metadata.data?.request.id).toBe('req_split')
     expect(result.current.metadata.isSuccess).toBe(true)
   })
+
+  it('marks speculative metadata low priority and cancels an abandoned active payload fetch', async () => {
+    const { client, wrapper } = setup()
+    const metadata = vi.spyOn(api, 'getRequestMetadata').mockResolvedValue(detail('req_priority'))
+    await client.prefetchQuery(requestQueryOptions('req_priority', 'low'))
+    expect(metadata).toHaveBeenCalledWith('req_priority', expect.objectContaining({ priority: 'low' }))
+    const payloads = vi.spyOn(api, 'getRequestPayloads').mockReturnValue(new Promise(() => {}))
+    const { unmount } = renderHook(() => useRequestPayloads('req_priority'), { wrapper })
+    const signal = payloads.mock.calls[0][1]?.signal
+    expect(signal?.aborted).toBe(false)
+    unmount()
+    expect(signal?.aborted).toBe(true)
+  })
 })

@@ -31,7 +31,7 @@ export function RequestDetailPage({ id }: Props) {
 
     const prefetch = (requestId: string | null) => {
       if (!requestId) return
-      void qc.prefetchQuery(requestQueryOptions(requestId))
+      void qc.prefetchQuery(requestQueryOptions(requestId, 'low'))
     }
 
     prefetch(prevId)

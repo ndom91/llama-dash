@@ -300,6 +300,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     JSON serialization and native SHA-256 validators are created together;
     conditional dispatch never rereads/rebuilds the response body. Captured payloads
     and legacy full request detail use `no-store` and skip ETags.
+    Request list/detail fetches use high browser fetch priority; speculative
+    metadata and telemetry use low priority. Query abort signals reach fetch.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin

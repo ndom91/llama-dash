@@ -65,6 +65,7 @@ export type { ArticleExtractResponse } from './schemas/article'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 type CachedJson = { etag: string | null; data: unknown }
+export type ApiFetchOptions = Pick<RequestInit, 'signal' | 'priority'>
 
 const jsonCache = new Map<string, CachedJson>()
 
@@ -92,9 +93,9 @@ const validated =
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
-function getJson<T extends AnySchema>(url: string, schema: T): Promise<InferOutput<T>> {
+function getJson<T extends AnySchema>(url: string, schema: T, options: ApiFetchOptions = {}): Promise<InferOutput<T>> {
   const cached = jsonCache.get(url)
-  return fetch(url, cached?.etag ? { headers: { 'if-none-match': cached.etag } } : undefined).then(
+  return fetch(url, { ...options, headers: cached?.etag ? { 'if-none-match': cached.etag } : undefined }).then(
     validated(schema, url),
   )
 }
@@ -118,17 +119,22 @@ function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string):
 export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
-  listRequests: (params: { limit?: number; cursor?: string; includeMcp?: boolean } = {}) => {
+  listRequests: (
+    params: { limit?: number; cursor?: string; includeMcp?: boolean } = {},
+    options: ApiFetchOptions = {},
+  ) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
     if (params.includeMcp) q.set('includeMcp', 'true')
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
+    return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
   getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
-  getRequestMetadata: (id: string) => getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema),
-  getRequestPayloads: (id: string) => getJson(`/api/requests/${id}/payloads`, RequestPayloadsSchema),
+  getRequestMetadata: (id: string, options: ApiFetchOptions = {}) =>
+    getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema, { priority: 'high', ...options }),
+  getRequestPayloads: (id: string, options: ApiFetchOptions = {}) =>
+    getJson(`/api/requests/${id}/payloads`, RequestPayloadsSchema, { priority: 'high', ...options }),
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
   unloadAll: () => sendEmpty('/api/models/unload', OkSchema, 'POST'),
@@ -137,21 +143,23 @@ export const api = {
     sendJson('/api/config', ApiConfigSaveResultSchema, { method: 'PUT', body: { content, modifiedAt } }),
   validateConfig: (content: string) =>
     sendJson('/api/config/validate', ApiConfigValidationSchema, { method: 'POST', body: { content } }),
-  health: () => getJson('/api/health', ApiHealthSchema),
+  health: (options: ApiFetchOptions = {}) => getJson('/api/health', ApiHealthSchema, { priority: 'low', ...options }),
   loginMeta: () => getJson('/api/login-meta', LoginMetaSchema),
-  systemStatus: () => getJson('/api/system', ApiSystemStatusSchema),
-  requestStats: () => getJson('/api/requests/stats', ApiRequestStatsSchema),
-  modelTimeline: (windowMs?: number) => {
+  systemStatus: (options: ApiFetchOptions = {}) =>
+    getJson('/api/system', ApiSystemStatusSchema, { priority: 'low', ...options }),
+  requestStats: (options: ApiFetchOptions = {}) =>
+    getJson('/api/requests/stats', ApiRequestStatsSchema, { priority: 'low', ...options }),
+  modelTimeline: (windowMs?: number, options: ApiFetchOptions = {}) => {
     const q = windowMs != null ? `?window=${windowMs}` : ''
-    return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema)
+    return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema, { priority: 'low', ...options })
   },
-  gpu: () => getJson('/api/gpu', GpuSnapshotSchema),
-  requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
+  gpu: (options: ApiFetchOptions = {}) => getJson('/api/gpu', GpuSnapshotSchema, { priority: 'low', ...options }),
+  requestHistogram: (params: { window?: number; bucket?: number } = {}, options: ApiFetchOptions = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))
     if (params.bucket != null) q.set('bucket', String(params.bucket))
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return getJson(`/api/requests/histogram${suffix}`, HistogramResponseSchema)
+    return getJson(`/api/requests/histogram${suffix}`, HistogramResponseSchema, { priority: 'low', ...options })
   },
   getKeyDetail: (id: string) => getJson(`/api/keys/${id}`, KeyDetailResponseSchema),
   listKeys: () => getJson('/api/keys', ApiKeyListResponseSchema),

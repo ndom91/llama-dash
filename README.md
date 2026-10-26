@@ -37,6 +37,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Large SSE captures render a measured, virtualized event window while retaining full-payload copy/export.
   Session lookups are deduplicated within each server request without sharing session or query data across SSR requests.
   Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
+  Interactive request loads take priority over telemetry and speculative metadata prefetches; abandoned request fetches are cancelled.
 
 <table>
   <tr>

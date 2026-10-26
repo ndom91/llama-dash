@@ -175,7 +175,7 @@ export function RequestsPage() {
     if (!prefetchId) return
     // Ignore rows crossed while moving the pointer or quickly stepping with j/k.
     const timer = window.setTimeout(() => {
-      void qc.prefetchQuery(requestQueryOptions(prefetchId))
+      void qc.prefetchQuery(requestQueryOptions(prefetchId, 'low'))
     }, 100)
     return () => window.clearTimeout(timer)
   }, [prefetchId, qc])

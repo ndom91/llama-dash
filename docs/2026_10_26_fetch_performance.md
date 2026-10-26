@@ -57,3 +57,13 @@ response. Matching GETs return bodyless 304s. Validators still require route dat
 generation; this is not a cross-request response cache. Cache control is private.
 Sensitive captured-payload and legacy full-detail responses use `no-store` and
 skip hashing entirely. Weak/strong/list/wildcard matching is tested.
+
+## Interactive fetch priority
+
+Request list, metadata, and payload loads use high fetch priority. Intent/adjacent
+metadata prefetches and recurring telemetry use low priority. Browsers without
+Fetch Priority ignore the hint without changing behavior. Query abort signals
+reach the fetch layer for these paths, so leaving a detail page aborts its
+unobserved in-flight payload instead of competing with the next page. Existing
+query keys preserve deduplication when navigation meets a pending prefetch.
+Priority is a browser scheduling hint, not a server-side request queue.
