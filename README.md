@@ -36,6 +36,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Navigation reuses the destination's full skeleton, including the request-detail layout, instead of leaving a mostly blank "Opening page" placeholder.
   Request metadata and captured payloads load independently in parallel, so large bodies do not block the summary; payload failures have their own retry action.
   Large SSE captures render a measured, virtualized event window while retaining full-payload copy/export.
+  Individual long response values also render in bounded chunks, including raw text and assembled SSE output. Normal JSON keeps syntax highlighting; oversized lines use plain text. Copy/export retains the complete capture.
   Session lookups are deduplicated within each server request without sharing session or query data across SSR requests.
   Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
   Interactive request loads take priority over telemetry and speculative metadata prefetches; abandoned request fetches are cancelled.

@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import type { SseEvent } from './requestDetailUtils'
-import { RequestJsonHighlight } from './RequestJsonHighlight'
+import { RequestTextView } from './RequestTextView'
+import { MAX_TEXT_ROW_CHARS } from './textRows'
 
 export const RequestSseEvent = memo(function RequestSseEvent({ event }: { event: SseEvent }) {
   return (
@@ -14,9 +15,11 @@ export const RequestSseEvent = memo(function RequestSseEvent({ event }: { event:
       <div className="sse-event-data">
         <span className="sse-field">data:</span>{' '}
         {event.parsedData ? (
-          <RequestJsonHighlight json={JSON.stringify(event.parsedData, null, 2)} />
+          <RequestTextView text={JSON.stringify(event.parsedData, null, 2)} highlightJson embedded />
         ) : event.isDone ? (
           <span className="sse-done">[DONE]</span>
+        ) : event.data.length > MAX_TEXT_ROW_CHARS ? (
+          <RequestTextView text={event.data} embedded />
         ) : (
           <span>{event.data}</span>
         )}

@@ -5,6 +5,8 @@ import { CopyButton } from '../../components/CopyButton'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { assembleSseText, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
 import { RequestSseEvent } from './RequestSseEvent'
+import { RequestTextView } from './RequestTextView'
+import { MAX_TEXT_ROW_CHARS } from './textRows'
 
 type Props = {
   body: string
@@ -28,7 +30,10 @@ export function RequestSseEvents({ body, stream }: Props) {
     enabled: virtualized,
     initialRect: { width: 0, height: 600 },
   })
-  if (events.length === 0) return <>{body}</>
+  if (events.length === 0) {
+    if (body.length > MAX_TEXT_ROW_CHARS) return <RequestTextView text={body} className="min-h-[50%] flex-1" />
+    return <>{body}</>
+  }
   return (
     <div className="flex min-h-[50%] min-w-0 flex-1 flex-col">
       {assembled ? (
@@ -51,9 +56,12 @@ export function RequestSseEvents({ body, stream }: Props) {
           </div>
           <div id="request-sse-assembled" className="t-acc-panel" aria-hidden={!open}>
             <div className="t-acc-panel-inner">
-              <pre className="m-0 max-h-[300px] overflow-y-auto border-t border-border px-3 py-2.5 font-mono text-[11px] leading-[1.5] whitespace-pre-wrap break-words text-fg">
-                {assembled}
-              </pre>
+              {open ? (
+                <RequestTextView
+                  text={assembled}
+                  className="max-h-[300px] border-t border-border px-3 py-2.5 text-[11px]"
+                />
+              ) : null}
             </div>
           </div>
         </div>

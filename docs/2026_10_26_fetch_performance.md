@@ -123,7 +123,7 @@ The detail skeleton uses a neutral placeholder header rather than asserting a
 chat-completions endpoint before metadata arrives. The default pending component
 is a full-page skeleton for destinations without their own implementation.
 
-## Remaining payload work (not implemented in this change)
+## Payload follow-ups
 
 Payload fetching still begins only after the destination component mounts. The
 single payload response contains both request and response bodies, and its JSON
@@ -138,9 +138,11 @@ capture, then independently load response/request bodies or move costly parsing
 and formatting off the main thread according to that measurement. This skeleton
 change does not claim to reduce payload fetch or formatting latency.
 
-The JSON viewer's threshold is logical line count, so a large string can bypass
+At the time of the skeleton change, the JSON viewer's threshold was logical line
+count, so a large string could bypass
 virtualization even when it wraps into many visual lines. A local synthetic
-2.8-million-character response formatted to just ten logical lines. Large-string
-chunking/preview and compression of admin JSON (where not already supplied by a
-reverse proxy) should be evaluated alongside transfer timing before introducing
-a worker. These synthetic checks do not measure the deployed slow request.
+2.8-million-character response formatted to just ten logical lines. That gap is
+now addressed by [chunked payload rendering](./2026_10_26_chunked_payload_rendering.md).
+Compression of admin JSON (where not already supplied by a reverse proxy) remains
+a follow-up to evaluate alongside transfer timing before introducing a worker.
+These synthetic checks do not measure the deployed slow request.

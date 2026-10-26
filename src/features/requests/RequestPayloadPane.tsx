@@ -4,7 +4,7 @@ import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
 import type { ParsedSseStream } from './requestDetailUtils'
 import { groupHeaders, maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
-import { RequestJsonHighlight } from './RequestJsonHighlight'
+import { RequestTextView } from './RequestTextView'
 import { RequestSseEvents } from './RequestSseEvents'
 
 type Props = {
@@ -31,13 +31,12 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
   )
   const bodyContent = useMemo(() => {
     if (mode === 'sse') return <RequestSseEvents body={deferredBody} stream={sseStream} />
-    if (pretty) return <RequestJsonHighlight json={pretty} className="flex-1" />
-    return deferredBody
+    if (pretty) return <RequestTextView text={pretty} highlightJson className="flex-1" />
+    return <RequestTextView text={deferredBody} className="flex-1" />
   }, [deferredBody, mode, pretty, sseStream])
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
   const groupedHeaders = useMemo(() => groupHeaders(headerEntries), [headerEntries])
   const [showBoilerplate, setShowBoilerplate] = useState(false)
-  const usesCustomPrettyBody = pretty != null
 
   return (
     <section className="request-payload-pane flex h-full min-h-0 min-w-0 flex-col border-r border-border last:border-r-0 max-[1024px]:h-96">
@@ -52,10 +51,8 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
       {hasBody ? (
         mode === 'sse' ? (
           bodyContent
-        ) : usesCustomPrettyBody ? (
-          <div className="flex flex-1 min-h-[50%] min-w-0">{bodyContent}</div>
         ) : (
-          <pre className={cn('body-pre border-t-0', 'flex-1 min-h-[50%]')}>{bodyContent}</pre>
+          <div className="flex flex-1 min-h-[50%] min-w-0">{bodyContent}</div>
         )
       ) : (
         <pre className={cn('body-pre border-t-0', 'h-14 flex-none overflow-hidden py-4')}>

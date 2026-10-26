@@ -234,7 +234,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
     session checks run. Request detail uses the full detail skeleton during both
     navigation and initial metadata loading; the generic fallback is also a full-page skeleton.
     Request SSE viewers virtualize streams over 100 events with measured row
-    heights; small streams remain fully rendered and full-body copy/export is preserved.
+    heights; small event lists remain directly rendered and full-body copy/export is preserved.
+    `RequestTextView` also chunks individual long lines into at most 1,024 UTF-16
+    code units without splitting surrogate pairs. JSON/raw bodies, large SSE events,
+    and expanded assembled text use measured virtual rows; oversized logical lines
+    render as plain text to bound highlighting work. Full-body copy/export uses the
+    original payload, and closed assembled-text panels do not mount their body.
     Session resolution is deduplicated within each server request (never across
     callers); the React Query client is scoped to the root instance, not an SSR singleton.
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
