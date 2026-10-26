@@ -1,39 +1,22 @@
-import { PageHeader } from '../../components/PageHeader'
+import { PageHeaderSkeleton } from '../../components/skeleton/SkeletonFrame'
 import { RequestBodySkeleton } from './RequestBodySkeleton'
 
 export function RequestDetailSkeleton() {
   return (
     <>
-      <PageHeader
-        kicker="req · loading · a · split"
-        title="POST /v1/chat/completions"
-        subtitle={<span className="skel skel-text" style={{ width: 180 }} />}
-        variant="integrated"
-        action={
-          <div className="flex items-center gap-2">
-            <span className="skel skel-text" style={{ width: 68, height: 28 }} />
-            <span className="skel skel-text" style={{ width: 70, height: 28 }} />
-          </div>
-        }
-      />
+      <PageHeaderSkeleton titleWidth={220} />
 
       <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
         <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
-          <DetailRailSection title="Summary" rows={6} />
+          <DetailRailSection title="Summary" rows={7} />
           <DetailRailSection title="Model" rows={3} divider />
-          <DetailRailSection title="Timing" rows={5} divider />
+          <DetailRailSection title="Routing" rows={3} divider />
+          <DetailRailSection title="Timing" rows={4} divider />
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0">
           <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
-            <div className="grid min-h-[86px] grid-cols-[minmax(0,1fr)_90px_90px_90px_90px_90px_90px] max-[1900px]:grid-cols-[minmax(0,1fr)_100px_100px_100px_100px_100px_84px] max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
-              <div className="border-r border-border px-4 py-4 max-[1500px]:col-span-3 max-[1500px]:border-r-0 max-[1500px]:border-b max-[1024px]:col-span-2">
-                <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">endpoint</div>
-                <div className="mt-2 flex items-center gap-3">
-                  <span className="skel skel-text" style={{ width: 58, height: 28 }} />
-                  <span className="skel skel-text" style={{ width: '52%', height: 28 }} />
-                </div>
-              </div>
+            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
               {['status', 'tok-in', 'tok-out', 'total', 'duration', 'tok/s'].map((label, index) => (
                 <div
                   key={label}

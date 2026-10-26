@@ -69,7 +69,7 @@ src/
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
     usage/                 · usage page: period switch, per-day chart, generic breakdown panels
-    policies/              · routing, credentials, MCP relays, and context-compression policies
+    policies/              · routing, credentials, and MCP relays
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
     Sidebar.tsx             · nav + `g`-leader shortcuts + VRAM-resident readout in footer
@@ -82,6 +82,9 @@ src/
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
     queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
+    query-keys.ts         — dependency-light shared query keys and cache prefixes
+    query-client.ts       — per-root QueryClient factory and payload retention policy wiring
+    request-query-data.ts — schema-derived request-list pagination types and page size
     use-admin-events.ts   — EventSource bridge that invalidates query caches from /api/events
     series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
     nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
@@ -123,10 +126,14 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata and v247 inference-host hardware snapshots.
-- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Apply migrations explicitly with `pnpm db:migrate`.
+- `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Migrations run at server startup; `pnpm db:migrate` remains available for manual operation.
+  The request class/ID index supports adjacent inference-request navigation without sorting the request log.
+  The key/time index supports key-detail 30-minute statistics; key and model request lists select summary columns without payloads.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic. Each run first refreshes the daily usage rollup (`src/server/usage-rollup.ts`) so pruning never loses usage history; startup backfills every day still in the log.
+  Scheduled cleanup logs total and candidate-selection durations and aggregate row counts; manual prune responses remain unchanged.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
-- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
+- `.github/workflows/publish-docker.yml` — publishes multi-platform (`linux/amd64`, `linux/arm64`) GHCR images from `main` and version tags.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with SSE-driven cache invalidation for request, model, GPU, and system changes plus slow ETag polling fallback.
@@ -142,8 +149,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    rolled up), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
-    `routing_rules` (ordered request routing rules), `context_compression_policies`
-   (ordered Headroom compression policy matchers), `upstream_credentials`
+    `routing_rules` (ordered request routing rules), `upstream_credentials`
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
    MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
@@ -162,6 +168,13 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
+   Numeric upstream prefill/decode timings are extracted from streaming events
+   and complete bounded non-streaming JSON responses and stored separately from
+   captured bodies. Legacy rows fall back to parsing retained response bodies.
+   Non-streaming JSON exceeding the 256 KiB scan limit cannot supply timings.
+   Streaming inference requests also store proxy-observed time to first meaningful
+   output and the span between first and last output deltas as nullable integers,
+   independent of body capture. These are not upstream prefill/decode timings.
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
    backend currently supports `llama-swap` only and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,
@@ -180,6 +193,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
+   - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata and captured headers/bodies; metadata excludes payload columns at the SQL level
    - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, and the three breakdowns configured in `/api/settings/usage` (client, key, model, status class, routing action, host, end user, or session)
    - `/api/usage/summary` — generated-token totals for today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
@@ -226,6 +240,26 @@ paths (proxy will grow middleware; admin will grow CRUD).
     reject, auth passthrough, direct upstream target controls, credential vault
     with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (connection examples for curl, Python, TS,
     Home Assistant, Claude Code, opencode, Continue, Open WebUI).
+    Request details reuse list/recent summaries as observer-only placeholders
+    while payloads load. Request-list hover and keyboard selection prefetch after
+    a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.
+    Request detail metadata and payload state remain separate props; feature-local
+    `RequestPayloadsPanel` owns loading/error/ready presentation, with shared memoized
+    payload analysis for the panel, metadata rail, curl, and export actions.
+    Browser navigation reuses authenticated shell context for at most 30 seconds
+    (never beyond session expiry), with immediate pending feedback on authenticated pathname changes.
+    The mounted shell uses the destination route's pending component while root
+    session checks run. Request detail uses the full detail skeleton during both
+    navigation and initial metadata loading; the generic fallback is also a full-page skeleton.
+    Request SSE viewers virtualize streams over 100 events with measured row
+    heights; small event lists remain directly rendered and full-body copy/export is preserved.
+    `RequestTextView` also chunks individual long lines into at most 1,024 UTF-16
+    code units without splitting surrogate pairs. JSON/raw bodies, large SSE events,
+    and expanded assembled text use measured virtual rows; oversized logical lines
+    render as plain text to bound highlighting work. Full-body copy/export uses the
+    original payload, and closed assembled-text panels do not mount their body.
+    Session resolution is deduplicated within each server request (never across
+    callers); the React Query client is scoped to the root instance, not an SSR singleton.
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
@@ -295,6 +329,16 @@ paths (proxy will grow middleware; admin will grow CRUD).
     request summaries so list/recent caches update without refetching models.
     The raw llama-swap log stream is split onto `/api/log-events` and is only
     subscribed while the Logs page is mounted.
+    JSON serialization and native SHA-256 validators are created together;
+    conditional dispatch never rereads/rebuilds the response body. Captured payloads
+    and legacy full request detail use `no-store` and skip ETags.
+    Request list/detail fetches use high browser fetch priority; speculative
+    metadata and telemetry use low priority. Query abort signals reach fetch.
+    The parsed validator LRU is capped at 128 entries / 4 MiB serialized text /
+    five minutes. Inactive payload retention is capped at eight entries / 16 MiB
+    string budget and one minute (active viewers are never evicted). SSE resync
+    targets live queries, not completed request metadata/payloads; live list
+    insertion rebalances bounded pages and preserves cursors.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin
@@ -441,7 +485,6 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ApiKey      | `key`  |
 | ModelAlias  | `mal`  |
 | McpRelay    | `mrl`  |
-| ContextCompressionPolicy | `ccp` |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

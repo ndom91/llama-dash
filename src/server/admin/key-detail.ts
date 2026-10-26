@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, lt } from 'drizzle-orm'
 import type { ApiKeyModelBreakdown, ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiRequest } from '../../lib/schemas/request.ts'
 import { db, schema } from '../db/index.ts'
+import { requestSummaryColumns } from './request-summary-columns.ts'
 
 export function getKeyStats(keyId: string): ApiKeyStats {
   const now = Date.now()
@@ -70,7 +71,7 @@ export function getKeyRequests(
   if (cursor) conditions.push(lt(schema.requests.id, cursor))
 
   const rows = db
-    .select()
+    .select(requestSummaryColumns)
     .from(schema.requests)
     .where(and(...conditions))
     .orderBy(desc(schema.requests.id))

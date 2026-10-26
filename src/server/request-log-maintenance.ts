@@ -40,12 +40,17 @@ export function refreshUsageRollups(options: { now?: number; backfill?: boolean 
 }
 
 export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
+  return runRequestLogPrune(now).result
+}
+
+function runRequestLogPrune(now: number) {
   const settings = getPrivacySettings()
   const inferenceCutoff = now - settings.requestLogRetentionDays * DAY_MS
   const mcpSuccessCutoff = now - settings.mcpRelaySuccessRetentionDays * DAY_MS
   const mcpErrorCutoff = now - settings.mcpRelayErrorRetentionDays * DAY_MS
   const bodyCutoff = now - settings.bodyRetentionDays * DAY_MS
 
+  const selectionStarted = performance.now()
   const evictRows = sqliteDb
     .prepare(
       `select id
@@ -60,6 +65,7 @@ export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
               or response_body is not null))`,
     )
     .all(inferenceCutoff, mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff) as Array<{ id: string }>
+  const selectionMs = performance.now() - selectionStarted
   const inferenceDeleted = sqliteDb
     .prepare("delete from requests where request_class = 'inference' and started_at < ?")
     .run(inferenceCutoff).changes
@@ -90,7 +96,11 @@ export function pruneRequestLogs(now = Date.now()): RequestLogPruneResult {
 
   for (const row of evictRows) deleteRecentBodies(row.id)
 
-  return { inferenceDeleted, mcpRelaySuccessDeleted, mcpRelayErrorDeleted, bodiesCleared }
+  return {
+    result: { inferenceDeleted, mcpRelaySuccessDeleted, mcpRelayErrorDeleted, bodiesCleared },
+    candidateRows: evictRows.length,
+    selectionMs,
+  }
 }
 
 export function compactDatabase(): { ok: true } {
@@ -109,12 +119,23 @@ function refreshUsageRollupsSafely(options: { backfill?: boolean } = {}): boolea
   }
 }
 
-function runMaintenance() {
-  // Never prune rows whose usage has not been rolled up.
-  if (!refreshUsageRollupsSafely()) return
+function pruneRequestLogsSafely() {
+  const started = performance.now()
   try {
-    pruneRequestLogs()
+    const { result, candidateRows, selectionMs } = runRequestLogPrune(Date.now())
+    console.info('[request-log-maintenance] prune complete', {
+      durationMs: Math.round(performance.now() - started),
+      selectionMs: Math.round(selectionMs),
+      candidateRows,
+      ...result,
+    })
   } catch (err) {
     console.warn('Failed to prune request logs', err)
   }
+}
+
+function runMaintenance() {
+  // Never prune rows whose usage has not been rolled up.
+  if (!refreshUsageRollupsSafely()) return
+  pruneRequestLogsSafely()
 }

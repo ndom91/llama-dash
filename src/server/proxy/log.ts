@@ -52,6 +52,10 @@ export type RequestLogInput = {
   responseHeaders: string | null
   responseBody: string | null
   streamCloseMs: number | null
+  prefillMs?: number | null
+  decodeMs?: number | null
+  firstOutputMs?: number | null
+  outputSpanMs?: number | null
   keyId: string | null
   clientHost: string | null
   clientName: string | null
@@ -69,12 +73,6 @@ export type RequestLogInput = {
   routingRoutedModel: string | null
   routingRejectReason: string | null
   credentialInjectionJson?: string | null
-  compressionPolicyId?: string | null
-  compressionPolicyName?: string | null
-  compressionStatus?: string | null
-  compressionInputTokens?: number | null
-  compressionOutputTokens?: number | null
-  compressionElapsedMs?: number | null
 }
 
 export function writeRequestLog(row: RequestLogInput) {
@@ -153,6 +151,10 @@ export function writeRequestLogNow(row: RequestLogInput) {
       responseHeaders,
       responseBody,
       streamCloseMs: row.streamCloseMs,
+      prefillMs: row.prefillMs ?? null,
+      decodeMs: row.decodeMs ?? null,
+      firstOutputMs: row.firstOutputMs ?? null,
+      outputSpanMs: row.outputSpanMs ?? null,
       keyId: row.keyId,
       clientHost: row.clientHost,
       clientName: row.clientName,
@@ -170,12 +172,6 @@ export function writeRequestLogNow(row: RequestLogInput) {
       routingRoutedModel: row.routingRoutedModel,
       routingRejectReason: row.routingRejectReason,
       credentialInjectionJson: row.credentialInjectionJson ?? null,
-      compressionPolicyId: row.compressionPolicyId ?? null,
-      compressionPolicyName: row.compressionPolicyName ?? null,
-      compressionStatus: row.compressionStatus ?? null,
-      compressionInputTokens: row.compressionInputTokens ?? null,
-      compressionOutputTokens: row.compressionOutputTokens ?? null,
-      compressionElapsedMs: row.compressionElapsedMs ?? null,
     })
     .run()
   publishAdminEvent('request.completed', {

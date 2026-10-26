@@ -3,7 +3,6 @@ import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { ProxyForwardBody } from './body.ts'
-import type { CompressionOutcome } from './context-compression.ts'
 import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
 import { writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
@@ -34,7 +33,6 @@ export type ProxyLogInput = {
   reqModel: string | null
   attribution: Attribution
   routing: RoutingOutcome
-  compression?: CompressionOutcome
   credentialInjectionJson?: string | null
 }
 
@@ -114,6 +112,10 @@ export function writeProxyLog(input: ProxyLogInput) {
     responseHeaders: input.resHeaders,
     responseBody: input.resBody,
     streamCloseMs: input.usage.streamCloseMs,
+    prefillMs: input.usage.prefillMs ?? null,
+    decodeMs: input.usage.decodeMs ?? null,
+    firstOutputMs: input.usage.firstOutputMs ?? null,
+    outputSpanMs: input.usage.outputSpanMs ?? null,
     keyId: input.keyId,
     clientHost: deriveClientHost(input.reqHeaders),
     clientName: input.attribution.clientName,
@@ -131,12 +133,6 @@ export function writeProxyLog(input: ProxyLogInput) {
     routingRoutedModel: input.routing.routedModel,
     routingRejectReason: input.routing.rejectReason,
     credentialInjectionJson: input.credentialInjectionJson ?? null,
-    compressionPolicyId: input.compression?.policyId ?? null,
-    compressionPolicyName: input.compression?.policyName ?? null,
-    compressionStatus: input.compression?.status ?? null,
-    compressionInputTokens: input.compression?.inputTokens ?? null,
-    compressionOutputTokens: input.compression?.outputTokens ?? null,
-    compressionElapsedMs: input.compression?.elapsedMs ?? null,
   })
 }
 
@@ -181,7 +177,6 @@ export async function forwardUpstreamAndLog(input: {
   attribution: Attribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
-  compression?: CompressionOutcome
 }): Promise<Response | { upstreamError: string }> {
   let upstreamResponse: Awaited<ReturnType<typeof undiciFetch>>
   try {
@@ -230,14 +225,13 @@ export async function forwardUpstreamAndLog(input: {
       attribution: input.attribution,
       routing: input.routing,
       credentialInjectionJson: input.credentialInjectionJson,
-      compression: input.compression,
     })
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
 
   const reader = upstreamResponse.body.getReader()
   const decoder = isBinaryResponse ? null : new TextDecoder()
-  const sseScanner = isSse ? new SseUsageScanner() : null
+  const sseScanner = isSse ? new SseUsageScanner(input.startedAt) : null
   const responseCapture = decoder ? new BoundedTextCapture() : null
   // A client may hang up while a read is pending (SSE clients often close the
   // socket as soon as they see `data: [DONE]`). cancel() then logs the request;
@@ -295,7 +289,6 @@ export async function forwardUpstreamAndLog(input: {
             attribution: input.attribution,
             routing: input.routing,
             credentialInjectionJson: input.credentialInjectionJson,
-            compression: input.compression,
           })
 
           if (input.keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
@@ -332,7 +325,6 @@ export async function forwardUpstreamAndLog(input: {
           attribution: input.attribution,
           routing: input.routing,
           credentialInjectionJson: input.credentialInjectionJson,
-          compression: input.compression,
         })
       }
     },
@@ -360,7 +352,6 @@ export async function forwardUpstreamAndLog(input: {
         attribution: input.attribution,
         routing: input.routing,
         credentialInjectionJson: input.credentialInjectionJson,
-        compression: input.compression,
       })
     },
   })

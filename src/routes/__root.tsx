@@ -1,6 +1,6 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -9,7 +9,10 @@ import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
+import { NavigationOutlet } from '../components/NavigationOutlet'
+import { createQueryClient } from '../lib/query-client'
 import { getShellContext } from '../lib/auth-functions'
+import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
 import { writeClientCookie } from '../lib/cookies'
 import { isTypingTarget } from '../lib/is-typing-target'
 import { LEADER_TIMEOUT_MS, useLeaderPendingTracker } from '../lib/nav-leader'
@@ -17,17 +20,6 @@ import { SIDEBAR_COOKIE, sidebarCookieValue } from '../lib/sidebar'
 import { THEME_INIT_SCRIPT } from '../lib/theme-init-script'
 import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-    },
-  },
-})
 
 /**
  * Module-level, not inline: HotkeysProvider memoises `defaultOptions` on
@@ -41,7 +33,8 @@ import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
-    const shell = await getShellContext().catch(() => null)
+    const shell = (location.pathname !== '/login' && readShellContext()) || (await getShellContext())
+    rememberShellContext(shell)
     if (location.pathname !== '/login' && !shell?.session) {
       throw redirect({
         to: '/login',
@@ -66,9 +59,14 @@ export const Route = createRootRoute({
 })
 
 function RootDocument() {
+  const [queryClient] = useState(createQueryClient)
   const matches = useMatches()
   const rootContext = matches[0]?.context as RootShellContext | undefined
   const theme = rootContext?.theme
+
+  useEffect(() => {
+    if (rootContext) rememberShellContext(rootContext)
+  }, [rootContext])
 
   return (
     <html
@@ -178,7 +176,7 @@ function AuthenticatedShell({
         />
         <div className="main-col">
           <TopBar />
-          <Outlet />
+          <NavigationOutlet />
         </div>
       </div>
     </MobileMenuContext>

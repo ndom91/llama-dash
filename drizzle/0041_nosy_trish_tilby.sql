@@ -1,0 +1,1 @@
+CREATE INDEX `idx_requests_key_started_at` ON `requests` (`key_id`,`started_at`);

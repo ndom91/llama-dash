@@ -8,10 +8,14 @@ export type Usage = {
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
   cacheReadTokensIncludedInPrompt?: boolean
+  prefillMs?: number
+  decodeMs?: number
 }
 
 export type UsageWithClose = Usage & {
   streamCloseMs: number | null
+  firstOutputMs?: number | null
+  outputSpanMs?: number | null
 }
 
 const emptyUsage = (): Usage => ({
@@ -38,6 +42,16 @@ const pickModel = (body: RawJson): string | null => {
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+function pickTimings(body: RawJson): Pick<Usage, 'prefillMs' | 'decodeMs'> {
+  const timings = asRecord(body.timings)
+  const prompt = num(timings?.prompt_ms) ?? num(body['timings/prompt_ms'])
+  const decode = num(timings?.predicted_ms) ?? num(body['timings/predicted_ms'])
+  return {
+    ...(prompt != null && prompt >= 0 ? { prefillMs: prompt } : {}),
+    ...(decode != null && decode >= 0 ? { decodeMs: decode } : {}),
+  }
+}
 
 const readUsageRecord = (rec: RawJson): Partial<Usage> => {
   const inputTokenDetails = asRecord(rec.input_tokens_details)
@@ -90,6 +104,7 @@ export function usageFromJsonBody(text: string): Usage {
     const body = JSON.parse(text) as RawJson
     out.model = pickModel(body)
     Object.assign(out, pickUsage(body))
+    Object.assign(out, pickTimings(body))
     if (out.totalTokens == null && out.promptTokens != null && out.completionTokens != null) {
       out.totalTokens = out.promptTokens + out.completionTokens
     }
@@ -104,15 +119,19 @@ export class SseUsageScanner {
   private buf = ''
   private usage: Usage = emptyUsage()
   private doneAtMs: number | null = null
+  private firstOutputAt: number | null = null
+  private lastOutputAt: number | null = null
+
+  constructor(private readonly startedAt?: number) {}
 
   feed(chunk: string, at: number) {
     this.buf += chunk
-    // SSE events are separated by blank lines (\n\n)
+    // SSE events are separated by blank lines, including CRLF line endings.
     for (;;) {
-      const idx = this.buf.indexOf('\n\n')
-      if (idx === -1) break
-      const event = this.buf.slice(0, idx)
-      this.buf = this.buf.slice(idx + 2)
+      const separator = /\r?\n\r?\n/.exec(this.buf)
+      if (!separator) break
+      const event = this.buf.slice(0, separator.index)
+      this.buf = this.buf.slice(separator.index + separator[0].length)
       this.processEvent(event, at)
     }
   }
@@ -130,6 +149,12 @@ export class SseUsageScanner {
     return {
       ...this.usage,
       streamCloseMs: this.doneAtMs != null && closeAtMs != null ? Math.max(0, closeAtMs - this.doneAtMs) : null,
+      ...(this.firstOutputAt != null && this.startedAt != null
+        ? {
+            firstOutputMs: Math.max(0, this.firstOutputAt - this.startedAt),
+            outputSpanMs: Math.max(0, (this.lastOutputAt ?? this.firstOutputAt) - this.firstOutputAt),
+          }
+        : {}),
     }
   }
 
@@ -144,9 +169,14 @@ export class SseUsageScanner {
       }
       try {
         const body = JSON.parse(payload) as RawJson
+        if (hasOutputDelta(body)) {
+          this.firstOutputAt ??= at
+          this.lastOutputAt = at
+        }
         const model = pickModel(body)
         if (model && !this.usage.model) this.usage.model = model
         const u = pickUsage(body)
+        Object.assign(this.usage, pickTimings(body))
         if (u.promptTokens != null) this.usage.promptTokens = u.promptTokens
         if (u.completionTokens != null) this.usage.completionTokens = u.completionTokens
         if (u.totalTokens != null) this.usage.totalTokens = u.totalTokens
@@ -170,4 +200,43 @@ export class SseUsageScanner {
       this.usage.totalTokens = this.usage.promptTokens + this.usage.completionTokens
     }
   }
+}
+
+function hasOutputDelta(body: RawJson): boolean {
+  if (body.type === 'response.output_item.added') {
+    const item = asRecord(body.item)
+    return item?.type === 'function_call' && typeof item.name === 'string' && item.name.length > 0
+  }
+  if (body.type === 'content_block_start') {
+    const block = asRecord(body.content_block)
+    return block?.type === 'tool_use' && typeof block.name === 'string' && block.name.length > 0
+  }
+  if (
+    typeof body.type === 'string' &&
+    [
+      'response.output_text.delta',
+      'response.reasoning_summary_text.delta',
+      'response.reasoning_text.delta',
+      'response.function_call_arguments.delta',
+    ].includes(body.type)
+  )
+    return typeof body.delta === 'string' && body.delta.length > 0
+  if (body.type === 'content_block_delta') {
+    const delta = asRecord(body.delta)
+    return Boolean(
+      delta &&
+        [delta.text, delta.thinking, delta.partial_json].some((value) => typeof value === 'string' && value.length > 0),
+    )
+  }
+  if (!Array.isArray(body.choices)) return false
+  return body.choices.some((choice: unknown) => {
+    const delta = asRecord(asRecord(choice)?.delta)
+    return Boolean(
+      delta &&
+        ([delta.content, delta.reasoning_content, delta.reasoning].some(
+          (value) => typeof value === 'string' && value.length > 0,
+        ) ||
+          (Array.isArray(delta.tool_calls) && delta.tool_calls.length > 0)),
+    )
+  })
 }

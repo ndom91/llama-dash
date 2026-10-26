@@ -1,4 +1,6 @@
 import * as v from 'valibot'
+import { clearShellContext } from './shell-context-cache'
+import { JsonValidatorCache } from './json-validator-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
@@ -6,10 +8,6 @@ import type { ModelAccessMode } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
-import {
-  ContextCompressionPolicyListResponseSchema,
-  ContextCompressionPolicySchema,
-} from './schemas/context-compression'
 import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
 import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
 import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
@@ -21,6 +19,8 @@ import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
   RequestDetailResponseSchema,
+  RequestMetadataResponseSchema,
+  RequestPayloadsSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
 import {
@@ -65,7 +65,6 @@ export type {
 export type { ModelAliasItem } from './schemas/model-alias'
 export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
-export type { ContextCompressionPolicy, ContextCompressionMatch } from './schemas/context-compression'
 export type { UpstreamCredential } from './schemas/upstream-credential'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
@@ -87,64 +86,81 @@ export type {
 } from './schemas/usage'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
-type CachedJson = { etag: string | null; data: unknown }
+export type ApiFetchOptions = Pick<RequestInit, 'signal' | 'priority'>
 
-const jsonCache = new Map<string, CachedJson>()
+const jsonCache = new JsonValidatorCache()
 
-const validated =
-  <T extends AnySchema>(schema: T, cacheKey?: string) =>
-  async (res: Response): Promise<InferOutput<T>> => {
-    if (res.status === 304 && cacheKey) {
-      const cached = jsonCache.get(cacheKey)
-      if (cached) return v.parse(schema, cached.data)
+async function readJsonResponse<T extends AnySchema>(res: Response, schema: T) {
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearShellContext()
+      jsonCache.clear()
     }
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
-    }
-    const data = await res.json()
-    const parsed = v.parse(schema, data)
-    if (cacheKey) jsonCache.set(cacheKey, { etag: res.headers.get('etag'), data })
-    return parsed
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
   }
+  const text = await res.text()
+  return { data: v.parse(schema, JSON.parse(text)), bytes: text.length * 2 }
+}
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
-function getJson<T extends AnySchema>(url: string, schema: T): Promise<InferOutput<T>> {
-  const cached = jsonCache.get(url)
-  return fetch(url, cached?.etag ? { headers: { 'if-none-match': cached.etag } } : undefined).then(
-    validated(schema, url),
-  )
+async function getJson<T extends AnySchema>(
+  url: string,
+  schema: T,
+  options: ApiFetchOptions = {},
+): Promise<InferOutput<T>> {
+  const cached = jsonCache.get(url, schema)
+  const res = await fetch(url, { ...options, headers: cached?.etag ? { 'if-none-match': cached.etag } : undefined })
+  if (res.status === 304 && cached) return cached.data
+  if (!res.ok) jsonCache.delete(url)
+  const { data, bytes } = await readJsonResponse(res, schema)
+  const etag = res.headers.get('etag')
+  if (etag && !res.headers.get('cache-control')?.includes('no-store')) jsonCache.set(url, schema, data, etag, bytes)
+  else jsonCache.delete(url)
+  return data
 }
 
-function sendJson<T extends AnySchema>(
+async function sendJson<T extends AnySchema>(
   url: string,
   schema: T,
   options: { method: string; body?: unknown },
 ): Promise<InferOutput<T>> {
-  return fetch(url, {
+  const response = await fetch(url, {
     method: options.method,
     headers: { 'content-type': 'application/json' },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  }).then(validated(schema))
+  })
+  const { data } = await readJsonResponse(response, schema)
+  jsonCache.clear()
+  return data
 }
 
-function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string): Promise<InferOutput<T>> {
-  return fetch(url, { method }).then(validated(schema))
+async function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string): Promise<InferOutput<T>> {
+  const { data } = await readJsonResponse(await fetch(url, { method }), schema)
+  jsonCache.clear()
+  return data
 }
 
 export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
-  listRequests: (params: { limit?: number; cursor?: string; includeMcp?: boolean } = {}) => {
+  listRequests: (
+    params: { limit?: number; cursor?: string; includeMcp?: boolean } = {},
+    options: ApiFetchOptions = {},
+  ) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
     if (params.includeMcp) q.set('includeMcp', 'true')
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
+    return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
   getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
+  getRequestMetadata: (id: string, options: ApiFetchOptions = {}) =>
+    getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema, { priority: 'high', ...options }),
+  getRequestPayloads: (id: string, options: ApiFetchOptions = {}) =>
+    getJson(`/api/requests/${id}/payloads`, RequestPayloadsSchema, { priority: 'high', ...options }),
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
   unloadAll: () => sendEmpty('/api/models/unload', OkSchema, 'POST'),
@@ -153,26 +169,28 @@ export const api = {
     sendJson('/api/config', ApiConfigSaveResultSchema, { method: 'PUT', body: { content, modifiedAt } }),
   validateConfig: (content: string) =>
     sendJson('/api/config/validate', ApiConfigValidationSchema, { method: 'POST', body: { content } }),
-  health: () => getJson('/api/health', ApiHealthSchema),
+  health: (options: ApiFetchOptions = {}) => getJson('/api/health', ApiHealthSchema, { priority: 'low', ...options }),
   loginMeta: () => getJson('/api/login-meta', LoginMetaSchema),
-  systemStatus: () => getJson('/api/system', ApiSystemStatusSchema),
-  requestStats: () => getJson('/api/requests/stats', ApiRequestStatsSchema),
-  modelTimeline: (windowMs?: number) => {
+  systemStatus: (options: ApiFetchOptions = {}) =>
+    getJson('/api/system', ApiSystemStatusSchema, { priority: 'low', ...options }),
+  requestStats: (options: ApiFetchOptions = {}) =>
+    getJson('/api/requests/stats', ApiRequestStatsSchema, { priority: 'low', ...options }),
+  modelTimeline: (windowMs?: number, options: ApiFetchOptions = {}) => {
     const q = windowMs != null ? `?window=${windowMs}` : ''
-    return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema)
+    return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema, { priority: 'low', ...options })
   },
-  gpu: () => getJson('/api/gpu', GpuSnapshotSchema),
+  gpu: (options: ApiFetchOptions = {}) => getJson('/api/gpu', GpuSnapshotSchema, { priority: 'low', ...options }),
   usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
   usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),
   getUsagePanelSettings: () => getJson('/api/settings/usage', UsagePanelSettingsSchema),
   updateUsagePanelSettings: (body: UpdateUsagePanelSettingsBody) =>
     sendJson('/api/settings/usage', UsagePanelSettingsSchema, { method: 'PATCH', body }),
-  requestHistogram: (params: { window?: number; bucket?: number } = {}) => {
+  requestHistogram: (params: { window?: number; bucket?: number } = {}, options: ApiFetchOptions = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))
     if (params.bucket != null) q.set('bucket', String(params.bucket))
     const suffix = q.toString() ? `?${q.toString()}` : ''
-    return getJson(`/api/requests/histogram${suffix}`, HistogramResponseSchema)
+    return getJson(`/api/requests/histogram${suffix}`, HistogramResponseSchema, { priority: 'low', ...options })
   },
   getKeyDetail: (id: string) => getJson(`/api/keys/${id}`, KeyDetailResponseSchema),
   listKeys: () => getJson('/api/keys', ApiKeyListResponseSchema),
@@ -204,19 +222,6 @@ export const api = {
     sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
   deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
-  listContextCompressionPolicies: () =>
-    getJson('/api/context-compression/policies', ContextCompressionPolicyListResponseSchema),
-  createContextCompressionPolicy: (body: { name: string; enabled: boolean; match: object }) =>
-    sendJson('/api/context-compression/policies', ContextCompressionPolicySchema, { method: 'POST', body }),
-  updateContextCompressionPolicy: (id: string, body: { name?: string; enabled?: boolean; match?: object }) =>
-    sendJson(`/api/context-compression/policies/${id}`, ContextCompressionPolicySchema, { method: 'PATCH', body }),
-  deleteContextCompressionPolicy: (id: string) =>
-    sendEmpty(`/api/context-compression/policies/${id}`, OkSchema, 'DELETE'),
-  reorderContextCompressionPolicies: (ids: string[]) =>
-    sendJson('/api/context-compression/policies/reorder', ContextCompressionPolicyListResponseSchema, {
-      method: 'POST',
-      body: { ids },
-    }),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
   listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
   createMcpRelay: (body: {

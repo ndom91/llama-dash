@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { auth } from '../server/auth'
+import { getDashboardSessionForHeaders } from '../server/auth'
 import { inferenceBackend } from '../server/inference/backend'
 import { parseCookieHeader } from './cookies'
 import { parseSidebarCollapsed, SIDEBAR_COOKIE } from './sidebar'
@@ -8,12 +8,12 @@ import { getRequestTheme } from './theme-server'
 
 export const getSession = createServerFn({ method: 'GET' }).handler(async () => {
   const headers = getRequestHeaders()
-  return auth.api.getSession({ headers })
+  return getDashboardSessionForHeaders(headers)
 })
 
 export const getShellContext = createServerFn({ method: 'GET' }).handler(async () => {
   const headers = getRequestHeaders()
-  const session = await auth.api.getSession({ headers })
+  const session = await getDashboardSessionForHeaders(headers)
   const theme = getRequestTheme(headers)
   const sidebarCollapsed = parseSidebarCollapsed(parseCookieHeader(headers.get('cookie') ?? '')[SIDEBAR_COOKIE])
   return {

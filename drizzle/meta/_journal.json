@@ -271,15 +271,43 @@
     {
       "idx": 38,
       "version": "6",
-      "when": 1792530468230,
-      "tag": "0038_request_daily_stats",
+      "when": 1792831176158,
+      "tag": "0038_drop_context_compression",
       "breakpoints": true
     },
     {
       "idx": 39,
       "version": "6",
-      "when": 1792533220863,
-      "tag": "0039_usage_rollup_dimensions",
+      "when": 1793042401701,
+      "tag": "0039_stiff_joseph",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1793042822684,
+      "tag": "0040_violet_ego",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1793044520554,
+      "tag": "0041_nosy_trish_tilby",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1793045658173,
+      "tag": "0042_windy_liz_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1793049467951,
+      "tag": "0043_usage_daily_stats",
       "breakpoints": true
     }
   ]

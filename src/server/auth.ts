@@ -9,6 +9,7 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { authAuditLogger } from './auth-audit.ts'
 import { db, schema } from './db/index.ts'
 import { config } from './config.ts'
+import { getScopedDashboardSession } from './session-scope.ts'
 
 const passkeyOrigin = config.authUrl ? new URL(config.authUrl).origin : undefined
 const passkeyRpId = config.authUrl ? new URL(config.authUrl).hostname : undefined
@@ -45,7 +46,11 @@ export const auth = betterAuth({
 })
 
 export async function getDashboardSession(request: Request) {
-  return auth.api.getSession({ headers: request.headers })
+  return getDashboardSessionForHeaders(request.headers)
+}
+
+export function getDashboardSessionForHeaders(headers: Headers) {
+  return getScopedDashboardSession(() => auth.api.getSession({ headers }))
 }
 
 export function hasDashboardUsers() {

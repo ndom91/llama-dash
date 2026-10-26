@@ -1,12 +1,15 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Download, LoaderCircle } from 'lucide-react'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useMemo } from 'react'
 import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
+import type { ApiRequestMetadata } from '../../lib/schemas/request'
+import type { RequestPayloadState } from './requestPayloadState'
+import { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 import { cn } from '../../lib/cn'
 import { isLeaderPending } from '../../lib/nav-leader'
 import {
@@ -14,29 +17,24 @@ import {
   type StoredCredentialInjectionAudit,
 } from '../../lib/schemas/credential-injection'
 import {
-  analyzeResponse,
-  analyzeTiming,
   buildCurlCommand,
-  byteSize,
   calculateTokPerSec,
   deriveClientLabel,
   deriveRewriteLabel,
   formatCostUsd,
   formatDuration,
-  parseHeaderMap,
-  parseRequestPayload,
-  parseSseStream,
 } from './requestDetailUtils'
-import { RequestPayloadPane } from './RequestPayloadPane'
+import { RequestPayloadsPanel } from './RequestPayloadsPanel'
 import { RequestTokenTrace } from './RequestTokenTrace'
 import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
 
 type Props = {
-  req: ApiRequestDetail
+  req: ApiRequestMetadata
   prevId: string | null
   nextId: string | null
-  isPrevPending: boolean
-  isNextPending: boolean
+  payloads: RequestPayloadState
+  isMetadataLoading: boolean
+  onRetryPayloads: () => void
 }
 
 type CredentialInjectionSummary = {
@@ -46,7 +44,7 @@ type CredentialInjectionSummary = {
   modesLabel: string
 }
 
-export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
+export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadataLoading, onRetryPayloads }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
     req.statusCode >= 400
@@ -57,7 +55,11 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           ? '!text-ok'
           : '!text-fg-muted'
   const navigate = useNavigate()
+  const isNavigating = useRouterState({
+    select: (state) => state.isLoading && state.location.pathname !== state.resolvedLocation?.pathname,
+  })
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
+  const missingDetailValue = isMetadataLoading || payloads.status === 'loading' ? 'loading…' : '—'
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
@@ -66,7 +68,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     'inline-flex h-8 w-8 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
   useHotkey('H', (e) => {
-    if (!prevId) return
+    if (isNavigating || !prevId) return
     e.preventDefault()
     navigate({ to: '/requests/$id', params: { id: prevId } })
   })
@@ -76,28 +78,26 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     // on document, so without this guard pressing `g` then `l` here would fire
     // both — navigating to Logs *and* stepping to the next request.
     if (isLeaderPending()) return
-    if (!nextId) return
+    if (isNavigating || !nextId) return
     e.preventDefault()
     navigate({ to: '/requests/$id', params: { id: nextId } })
   })
 
-  const reqHeaders = useMemo(() => parseHeaderMap(req.requestHeaders), [req.requestHeaders])
-  const resHeaders = useMemo(() => parseHeaderMap(req.responseHeaders), [req.responseHeaders])
-  const requestPayload = useMemo(() => parseRequestPayload(req.requestBody), [req.requestBody])
-  const responseAnalysis = useMemo(
-    () => analyzeResponse(req.responseBody, req.streamed),
-    [req.responseBody, req.streamed],
+  const payloadData = payloads.status === 'loading' ? undefined : payloads.data
+  const hasCompleteDetail = !isMetadataLoading && payloadData !== undefined
+  const payloadAnalysis = useRequestPayloadAnalysis(
+    payloadData,
+    req.streamed,
+    req.streamCloseMs,
+    req.prefillMs,
+    req.decodeMs,
   )
-  const parsedSse = useMemo(
-    () => (req.streamed && req.responseBody ? parseSseStream(req.responseBody) : null),
-    [req.responseBody, req.streamed],
-  )
-  const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
+  const { reqHeaders, resHeaders, requestPayload, timing } = payloadAnalysis
   const credentialInjection = useMemo(
     () => parseCredentialInjectionSummary(req.credentialInjectionJson),
     [req.credentialInjectionJson],
   )
-  const clientLabel = deriveClientLabel(reqHeaders)
+  const clientLabel = deriveClientLabel(reqHeaders) ?? req.clientHost
   const kickerParts = ['req', req.id.slice(4, 30)]
   if (clientLabel) kickerParts.push(clientLabel)
   if (req.routingRuleName) kickerParts.push(req.routingRuleName)
@@ -105,8 +105,8 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     ? `${req.model ?? 'request detail'} -> ${req.routingRoutedModel}`
     : req.model
   const curlCommand = useMemo(
-    () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
-    [req.endpoint, req.requestBody, reqHeaders],
+    () => buildCurlCommand(req.endpoint, payloadData?.requestBody ?? null, reqHeaders),
+    [req.endpoint, payloadData?.requestBody, reqHeaders],
   )
   const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
   const hasAttribution = Boolean(req.clientName || req.endUserId || req.sessionId)
@@ -140,7 +140,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
-            <CopyButton text={curlCommand} label="copy curl" variant="button" />
+            {hasCompleteDetail ? <CopyButton text={curlCommand} label="copy curl" variant="button" /> : null}
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
@@ -158,20 +158,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
                     )}
-                    aria-disabled={isPrevPending}
                   >
-                    {isPrevPending ? (
-                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
-                    )}
+                    <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label="No newer request"
+                    aria-label={isMetadataLoading ? 'Loading newer request navigation' : 'No newer request'}
                   >
                     <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -193,20 +188,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
                     )}
-                    aria-disabled={isNextPending}
                   >
-                    {isNextPending ? (
-                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
-                    )}
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label="No older request"
+                    aria-label={isMetadataLoading ? 'Loading older request navigation' : 'No older request'}
                   >
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -217,7 +207,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         }
       />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
+      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-[1024px]:flex-none">
         <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
             <div className={railSectionTitle}>Summary</div>
@@ -313,7 +303,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               <dl className="detail-meta-list">
                 <div>
                   <dt>requested</dt>
-                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
+                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>served</dt>
@@ -322,51 +312,17 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <div>
                   <dt>rewrite</dt>
                   <dd>
-                    {deriveRewriteLabel(
-                      req.routingRequestedModel ?? requestPayload.model,
-                      req.routingRoutedModel ?? req.model,
-                      resHeaders,
-                    ) ?? '—'}
+                    {hasCompleteDetail
+                      ? (deriveRewriteLabel(
+                          req.routingRequestedModel ?? requestPayload.model,
+                          req.routingRoutedModel ?? req.model,
+                          resHeaders,
+                        ) ?? '—')
+                      : missingDetailValue}
                   </dd>
                 </div>
               </dl>
             </div>
-
-            {req.compressionStatus ? (
-              <div className={railSectionDivider}>
-                <div className={railSectionTitle}>Context Compression</div>
-                <dl className="detail-meta-list">
-                  <div>
-                    <dt>status</dt>
-                    <dd>{req.compressionStatus}</dd>
-                  </div>
-                  {req.compressionPolicyName ? (
-                    <div>
-                      <dt>policy</dt>
-                      <dd>{req.compressionPolicyName}</dd>
-                    </div>
-                  ) : null}
-                  {req.compressionInputTokens != null ? (
-                    <div>
-                      <dt>before</dt>
-                      <dd>{req.compressionInputTokens.toLocaleString()} tokens</dd>
-                    </div>
-                  ) : null}
-                  {req.compressionOutputTokens != null ? (
-                    <div>
-                      <dt>after</dt>
-                      <dd>{req.compressionOutputTokens.toLocaleString()} tokens</dd>
-                    </div>
-                  ) : null}
-                  {req.compressionElapsedMs != null ? (
-                    <div>
-                      <dt>sidecar</dt>
-                      <dd>{formatDuration(req.compressionElapsedMs)}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </div>
-            ) : null}
 
             <div className={railSectionDivider}>
               <div className={railSectionTitle}>Routing</div>
@@ -440,7 +396,9 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                    fabricated values: `authorization: default` (asserted even when
                    the `auth` row above showed `—`) and `target: llama_swap`
                    (asserted for requests with no target at all). */
-                <div className="mono text-[11px] text-fg-dim">no routing rule matched</div>
+                <div className="mono text-[11px] text-fg-dim">
+                  {isMetadataLoading ? 'loading routing detail…' : 'no routing rule matched'}
+                </div>
               )}
             </div>
 
@@ -456,11 +414,11 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                     don't capture for logged requests. */}
                 <div>
                   <dt>prefill</dt>
-                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
+                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>decode</dt>
-                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : '—'}</dd>
+                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>total</dt>
@@ -468,7 +426,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 </div>
                 <div>
                   <dt>close</dt>
-                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
+                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : missingDetailValue}</dd>
                 </div>
               </dl>
             </div>
@@ -508,13 +466,19 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </div>
           </div>
 
-          {req.streamed && req.completionTokens ? (
+          {(req.streamed && req.completionTokens) ||
+          req.firstOutputMs != null ||
+          timing.prefillMs != null ||
+          timing.decodeMs != null ? (
             <RequestTokenTrace
               durationMs={req.durationMs}
               completionTokens={req.completionTokens}
+              streamed={req.streamed}
               tokPerSec={tokPerSec}
               prefillMs={timing.prefillMs}
               decodeMs={timing.decodeMs}
+              firstOutputMs={req.firstOutputMs}
+              outputSpanMs={req.outputSpanMs}
             />
           ) : null}
 
@@ -531,32 +495,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             </section>
           ) : null}
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="panel-head bg-surface-1 px-4">
-              <span className="panel-title">Payloads</span>
-              <span className="panel-sub">request • response</span>
-              <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
-            </div>
-            <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
-              <RequestPayloadPane
-                key={`${req.id}-request`}
-                title="Request"
-                subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
-                body={req.requestBody ?? ''}
-                headers={reqHeaders}
-                mode="pretty"
-              />
-              <RequestPayloadPane
-                key={`${req.id}-response`}
-                title="Response"
-                subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
-                body={responseAnalysis.displayBody}
-                headers={resHeaders}
-                mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
-                sseStream={parsedSse}
-              />
-            </div>
-          </section>
+          <RequestPayloadsPanel request={req} state={payloads} analysis={payloadAnalysis} onRetry={onRetryPayloads} />
         </div>
 
         {/* The sidecar carries only what appears nowhere else. Its Tokens tiles
@@ -609,7 +548,10 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <button
               type="button"
               className="btn btn-ghost btn-sm w-full justify-start"
-              onClick={() => downloadRequestJsonl(req)}
+              disabled={!hasCompleteDetail}
+              onClick={() => {
+                if (payloadData) downloadRequestJsonl({ ...req, ...payloadData })
+              }}
             >
               <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
               Download .jsonl
@@ -686,6 +628,8 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
     promptTokens: req.promptTokens,
     completionTokens: req.completionTokens,
     totalTokens: req.totalTokens,
+    firstOutputMs: req.firstOutputMs,
+    outputSpanMs: req.outputSpanMs,
     requestHeaders: req.requestHeaders,
     responseHeaders: req.responseHeaders,
     requestBody: req.requestBody,

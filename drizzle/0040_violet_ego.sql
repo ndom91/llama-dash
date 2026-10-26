@@ -1,0 +1,1 @@
+CREATE INDEX `idx_requests_class_id` ON `requests` (`request_class`,`id`);

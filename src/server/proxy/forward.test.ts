@@ -3,13 +3,14 @@ import { forwardUpstreamAndLog, type ProxyLogInput, writeProxyLog } from './forw
 
 const writeRequestLog = vi.hoisted(() => vi.fn())
 const undiciFetch = vi.hoisted(() => vi.fn())
+const privacy = vi.hoisted(() => ({ captureResponseBodies: true }))
 
 vi.mock('./log.ts', () => ({ writeRequestLog }))
 vi.mock('undici', async (importOriginal) => {
   const actual = await importOriginal<typeof import('undici')>()
   return { ...actual, fetch: undiciFetch }
 })
-vi.mock('../admin/settings.ts', () => ({ getPrivacySettings: () => ({ captureResponseBodies: true }) }))
+vi.mock('../admin/settings.ts', () => ({ getPrivacySettings: () => privacy }))
 vi.mock('./headers.ts', () => ({
   filterResponseHeaders: (headers: Headers) => headers,
   headersToRecord: () => ({}),
@@ -63,6 +64,7 @@ describe('writeProxyLog', () => {
   beforeEach(() => {
     writeRequestLog.mockClear()
     undiciFetch.mockClear()
+    privacy.captureResponseBodies = true
   })
 
   afterEach(() => {
@@ -146,6 +148,66 @@ describe('writeProxyLog', () => {
     )
   })
 
+  it('extracts non-streaming phase timings while forwarding the response unchanged', async () => {
+    const body = JSON.stringify({
+      usage: { prompt_tokens: 10, completion_tokens: 20 },
+      timings: { prompt_ms: 2307.982, predicted_ms: 1847.728 },
+    })
+    undiciFetch.mockResolvedValue(Response.json(JSON.parse(body)))
+    const response = await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/v1/chat/completions',
+      method: 'POST',
+      headers: {},
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/chat/completions',
+      reqModel: 'local',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+    expect(await (response as Response).text()).toBe(body)
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({ streamed: false, prefillMs: 2307.982, decodeMs: 1847.728 }),
+    )
+  })
+
+  it('extracts final streaming timings beyond the bounded body capture', async () => {
+    const stream = `data: ${JSON.stringify({ choices: [{ delta: { content: 'x'.repeat(270_000) } }] })}\n\ndata: ${JSON.stringify({ timings: { prompt_ms: 101.293, predicted_ms: 4780 }, usage: { completion_tokens: 548 } })}\n\ndata: [DONE]\n\n`
+    undiciFetch.mockResolvedValue(new Response(stream, { headers: { 'content-type': 'text/event-stream' } }))
+    const response = await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/v1/chat/completions',
+      method: 'POST',
+      headers: {},
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/chat/completions',
+      reqModel: 'local',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+    expect(await (response as Response).text()).toBe(stream)
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        streamed: true,
+        prefillMs: 101.293,
+        decodeMs: 4780,
+        firstOutputMs: expect.any(Number),
+        outputSpanMs: 0,
+        responseBody: expect.stringContaining('...[truncated'),
+      }),
+    )
+  })
+
   it('scans a headerless Codex Responses API stream', async () => {
     const body = [
       'event: response.output_text.delta',
@@ -180,9 +242,41 @@ describe('writeProxyLog', () => {
       expect.objectContaining({
         responseBody: body,
         streamed: true,
+        firstOutputMs: expect.any(Number),
+        outputSpanMs: 0,
         promptTokens: 10,
         completionTokens: 20,
         totalTokens: 30,
+      }),
+    )
+  })
+
+  it('records observed output timing when response capture is disabled', async () => {
+    privacy.captureResponseBodies = false
+    const body = `data: ${JSON.stringify({ type: 'response.created', padding: 'x'.repeat(270_000) })}\n\ndata: {"type":"response.output_text.delta","delta":"hello"}\n\ndata: {"type":"response.completed"}\n\n`
+    undiciFetch.mockResolvedValue(new Response(body, { headers: { 'content-type': 'text/event-stream' } }))
+    const response = await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/v1/responses',
+      method: 'POST',
+      headers: {},
+      body: '{}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/responses',
+      reqModel: null,
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+    expect(await (response as Response).text()).toBe(body)
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseBody: null,
+        firstOutputMs: expect.any(Number),
+        outputSpanMs: 0,
       }),
     )
   })

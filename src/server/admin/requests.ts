@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt, getTableColumns } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
+import { requestSummaryColumns } from './request-summary-columns.ts'
 
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
@@ -40,18 +41,7 @@ type RequestSummarySource = Pick<
   | 'routingTargetCredentialId'
   | 'routingRoutedModel'
   | 'credentialInjectionJson'
-> &
-  Partial<
-    Pick<
-      typeof schema.requests.$inferSelect,
-      | 'compressionPolicyId'
-      | 'compressionPolicyName'
-      | 'compressionStatus'
-      | 'compressionInputTokens'
-      | 'compressionOutputTokens'
-      | 'compressionElapsedMs'
-    >
-  >
+>
 
 function inferenceRequest() {
   return eq(schema.requests.requestClass, 'inference')
@@ -89,12 +79,6 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     routingTargetCredentialId: row.routingTargetCredentialId,
     routingRoutedModel: row.routingRoutedModel,
     credentialInjectionJson: row.credentialInjectionJson,
-    compressionPolicyId: row.compressionPolicyId ?? null,
-    compressionPolicyName: row.compressionPolicyName ?? null,
-    compressionStatus: row.compressionStatus ?? null,
-    compressionInputTokens: row.compressionInputTokens ?? null,
-    compressionOutputTokens: row.compressionOutputTokens ?? null,
-    compressionElapsedMs: row.compressionElapsedMs ?? null,
   }
 }
 
@@ -105,42 +89,8 @@ export function listRecentRequests(opts: { limit: number; cursor?: string; inclu
   )
   const rows = db
     .select({
-      id: schema.requests.id,
-      startedAt: schema.requests.startedAt,
-      durationMs: schema.requests.durationMs,
-      requestClass: schema.requests.requestClass,
-      method: schema.requests.method,
-      endpoint: schema.requests.endpoint,
-      model: schema.requests.model,
-      statusCode: schema.requests.statusCode,
-      promptTokens: schema.requests.promptTokens,
-      completionTokens: schema.requests.completionTokens,
-      totalTokens: schema.requests.totalTokens,
-      cacheCreationTokens: schema.requests.cacheCreationTokens,
-      cacheReadTokens: schema.requests.cacheReadTokens,
-      costUsd: schema.requests.costUsd,
-      streamed: schema.requests.streamed,
-      error: schema.requests.error,
+      ...requestSummaryColumns,
       keyId: schema.requests.keyId,
-      clientHost: schema.requests.clientHost,
-      clientName: schema.requests.clientName,
-      endUserId: schema.requests.endUserId,
-      sessionId: schema.requests.sessionId,
-      routingRuleName: schema.requests.routingRuleName,
-      routingActionType: schema.requests.routingActionType,
-      routingAuthMode: schema.requests.routingAuthMode,
-      routingPreserveAuthorization: schema.requests.routingPreserveAuthorization,
-      routingTargetType: schema.requests.routingTargetType,
-      routingTargetBaseUrl: schema.requests.routingTargetBaseUrl,
-      routingTargetCredentialId: schema.requests.routingTargetCredentialId,
-      routingRoutedModel: schema.requests.routingRoutedModel,
-      credentialInjectionJson: schema.requests.credentialInjectionJson,
-      compressionPolicyId: schema.requests.compressionPolicyId,
-      compressionPolicyName: schema.requests.compressionPolicyName,
-      compressionStatus: schema.requests.compressionStatus,
-      compressionInputTokens: schema.requests.compressionInputTokens,
-      compressionOutputTokens: schema.requests.compressionOutputTokens,
-      compressionElapsedMs: schema.requests.compressionElapsedMs,
     })
     .from(schema.requests)
     .where(where)
@@ -170,61 +120,69 @@ export function countRecentMcpRequests(opts: { cursor?: string }): number {
 export function getRequestById(id: string): RequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
-
-  let keyName: string | null = null
-  if (r.keyId) {
-    keyName = getApiKeyName(r.keyId)
-  }
-
-  // Fall back to the in-memory ring buffer for full bodies when the request
-  // is recent enough to still be cached (DB holds a truncated copy).
-  const recent = getRecentBodies(r.id)
   return {
-    id: r.id,
-    startedAt: r.startedAt.toISOString(),
-    durationMs: r.durationMs,
-    requestClass: r.requestClass,
-    method: r.method,
-    endpoint: r.endpoint,
-    model: r.model,
-    statusCode: r.statusCode,
-    promptTokens: r.promptTokens,
-    completionTokens: r.completionTokens,
-    totalTokens: r.totalTokens,
-    cacheCreationTokens: r.cacheCreationTokens,
-    cacheReadTokens: r.cacheReadTokens,
-    costUsd: r.costUsd,
-    streamed: r.streamed,
-    error: r.error,
-    keyName,
-    requestHeaders: r.requestHeaders,
-    requestBody: recent?.requestBody ?? r.requestBody,
-    responseHeaders: r.responseHeaders,
-    responseBody: recent?.responseBody ?? r.responseBody,
-    streamCloseMs: r.streamCloseMs,
-    clientHost: r.clientHost,
-    clientName: r.clientName,
-    endUserId: r.endUserId,
-    sessionId: r.sessionId,
-    routingRuleId: r.routingRuleId,
-    routingRuleName: r.routingRuleName,
-    routingActionType: r.routingActionType,
-    routingAuthMode: r.routingAuthMode,
-    routingPreserveAuthorization: r.routingPreserveAuthorization,
-    routingTargetType: r.routingTargetType,
-    routingTargetBaseUrl: r.routingTargetBaseUrl,
-    routingTargetCredentialId: r.routingTargetCredentialId,
-    routingRequestedModel: r.routingRequestedModel,
-    routingRoutedModel: r.routingRoutedModel,
-    routingRejectReason: r.routingRejectReason,
-    credentialInjectionJson: r.credentialInjectionJson,
-    compressionPolicyId: r.compressionPolicyId,
-    compressionPolicyName: r.compressionPolicyName,
-    compressionStatus: r.compressionStatus,
-    compressionInputTokens: r.compressionInputTokens,
-    compressionOutputTokens: r.compressionOutputTokens,
-    compressionElapsedMs: r.compressionElapsedMs,
+    ...toRequestMetadata(r, r.keyId ? getApiKeyName(r.keyId) : null),
+    ...toRequestPayloads(r, getRecentBodies(id)),
   }
+}
+
+type RequestMetadataSource = Omit<
+  typeof schema.requests.$inferSelect,
+  'requestBody' | 'responseBody' | 'requestHeaders' | 'responseHeaders'
+>
+
+function toRequestMetadata(row: RequestMetadataSource, keyName: string | null) {
+  return {
+    ...toRequestRow(row, keyName),
+    streamCloseMs: row.streamCloseMs,
+    prefillMs: row.prefillMs,
+    decodeMs: row.decodeMs,
+    firstOutputMs: row.firstOutputMs,
+    outputSpanMs: row.outputSpanMs,
+    routingRuleId: row.routingRuleId,
+    routingRequestedModel: row.routingRequestedModel,
+    routingRejectReason: row.routingRejectReason,
+  }
+}
+
+function toRequestPayloads(
+  row: Pick<typeof schema.requests.$inferSelect, 'requestBody' | 'responseBody' | 'requestHeaders' | 'responseHeaders'>,
+  recent: ReturnType<typeof getRecentBodies>,
+) {
+  return {
+    requestHeaders: row.requestHeaders,
+    responseHeaders: row.responseHeaders,
+    requestBody: recent?.requestBody ?? row.requestBody,
+    responseBody: recent?.responseBody ?? row.responseBody,
+  }
+}
+
+export function getRequestMetadataById(id: string) {
+  const {
+    requestBody: _requestBody,
+    responseBody: _responseBody,
+    requestHeaders: _requestHeaders,
+    responseHeaders: _responseHeaders,
+    ...columns
+  } = getTableColumns(schema.requests)
+  const row = db.select(columns).from(schema.requests).where(eq(schema.requests.id, id)).get()
+  if (!row) return null
+  return toRequestMetadata(row, row.keyId ? getApiKeyName(row.keyId) : null)
+}
+
+export function getRequestPayloadsById(id: string) {
+  const row = db
+    .select({
+      requestHeaders: schema.requests.requestHeaders,
+      requestBody: schema.requests.requestBody,
+      responseHeaders: schema.requests.responseHeaders,
+      responseBody: schema.requests.responseBody,
+    })
+    .from(schema.requests)
+    .where(eq(schema.requests.id, id))
+    .get()
+  if (!row) return null
+  return toRequestPayloads(row, getRecentBodies(id))
 }
 
 export type RequestStats = ApiRequestStats

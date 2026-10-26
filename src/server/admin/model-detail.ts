@@ -4,6 +4,7 @@ import type { ApiRequest } from '../../lib/schemas/request'
 import { db, schema } from '../db/index.ts'
 import { inferenceBackend } from '../inference/backend.ts'
 import type { BackendModel, BackendRunningModel } from '../inference/backend.ts'
+import { requestSummaryColumns } from './request-summary-columns.ts'
 
 function modelMatch(modelId: string) {
   const names = inferenceBackend.modelLogNames?.(modelId) ?? [modelId]
@@ -93,7 +94,7 @@ export function getModelRequests(
   if (cursor) conditions.push(lt(schema.requests.id, cursor))
 
   const rows = db
-    .select()
+    .select(requestSummaryColumns)
     .from(schema.requests)
     .where(and(...conditions))
     .orderBy(desc(schema.requests.id))

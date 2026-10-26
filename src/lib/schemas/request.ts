@@ -31,12 +31,6 @@ export const ApiRequestSchema = v.object({
   routingTargetCredentialId: v.nullable(v.string()),
   routingRoutedModel: v.nullable(v.string()),
   credentialInjectionJson: v.nullable(v.string()),
-  compressionPolicyId: v.optional(v.nullable(v.string())),
-  compressionPolicyName: v.optional(v.nullable(v.string())),
-  compressionStatus: v.optional(v.nullable(v.string())),
-  compressionInputTokens: v.optional(v.nullable(v.number())),
-  compressionOutputTokens: v.optional(v.nullable(v.number())),
-  compressionElapsedMs: v.optional(v.nullable(v.number())),
 })
 
 export type ApiRequest = v.InferOutput<typeof ApiRequestSchema>
@@ -48,6 +42,10 @@ export const ApiRequestDetailSchema = v.object({
   responseHeaders: v.nullable(v.string()),
   responseBody: v.nullable(v.string()),
   streamCloseMs: v.nullable(v.number()),
+  prefillMs: v.nullable(v.number()),
+  decodeMs: v.nullable(v.number()),
+  firstOutputMs: v.nullable(v.number()),
+  outputSpanMs: v.nullable(v.number()),
   clientName: v.nullable(v.string()),
   endUserId: v.nullable(v.string()),
   sessionId: v.nullable(v.string()),
@@ -78,6 +76,22 @@ export const RequestDetailResponseSchema = v.object({
   prevId: v.nullable(v.string()),
   nextId: v.nullable(v.string()),
 })
+
+export const RequestPayloadsSchema = v.pick(ApiRequestDetailSchema, [
+  'requestHeaders',
+  'requestBody',
+  'responseHeaders',
+  'responseBody',
+])
+
+export const RequestMetadataResponseSchema = v.object({
+  request: v.omit(ApiRequestDetailSchema, ['requestHeaders', 'requestBody', 'responseHeaders', 'responseBody']),
+  prevId: v.nullable(v.string()),
+  nextId: v.nullable(v.string()),
+})
+
+export type ApiRequestMetadata = v.InferOutput<typeof RequestMetadataResponseSchema>['request']
+export type RequestPayloads = v.InferOutput<typeof RequestPayloadsSchema>
 
 export const ApiRequestStatsSchema = v.object({
   reqPerSec: v.number(),

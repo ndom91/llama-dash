@@ -1,5 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import { assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
+import { analyzeJsonTiming, assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
+
+describe('non-streaming timing fallback', () => {
+  it('reads historical JSON response timings', () => {
+    expect(analyzeJsonTiming('{"timings":{"prompt_ms":2307.982,"predicted_ms":1847.728}}', null)).toEqual({
+      prefillMs: 2307.982,
+      decodeMs: 1847.728,
+      streamCloseMs: null,
+    })
+  })
+  it('returns unknown timings for missing, malformed or truncated bodies', () => {
+    for (const body of [null, '{"timings":', 'null', '[]']) {
+      expect(analyzeJsonTiming(body, null)).toEqual({ prefillMs: null, decodeMs: null, streamCloseMs: null })
+    }
+  })
+  it('keeps zero but rejects invalid phase durations', () => {
+    expect(analyzeJsonTiming('{"timings":{"prompt_ms":0,"predicted_ms":-1}}', null)).toEqual({
+      prefillMs: 0,
+      decodeMs: null,
+      streamCloseMs: null,
+    })
+    expect(analyzeJsonTiming('{"timings":{"prompt_ms":1e999}}', null).prefillMs).toBeNull()
+  })
+})
 
 const keys = (entries: Array<[string, string]>) => entries.map(([k]) => k)
 

@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  queryOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -9,6 +10,11 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { InferOutput } from 'valibot'
+import { qk } from './query-keys'
+import { REQUESTS_PAGE_SIZE, type RequestsList, type RequestsPage } from './request-query-data'
+export { qk } from './query-keys'
+export { REQUESTS_PAGE_SIZE } from './request-query-data'
 import {
   api,
   type ApiGpuSnapshot,
@@ -21,7 +27,6 @@ import {
   type ApiModelDetail,
   type ApiModelEvent,
   type ApiRequest,
-  type ApiRequestDetail,
   type ApiRequestStats,
   type ApiSystemStatus,
   type ApiUsageReport,
@@ -32,7 +37,6 @@ import {
   type ModelAccessMode,
   type PrivacySettings,
   type RoutingRule,
-  type ContextCompressionPolicy,
   type UpstreamCredential,
   type RequestLimits,
   type UpdateUsagePanelSettingsBody,
@@ -40,6 +44,7 @@ import {
   type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
+import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
@@ -60,48 +65,19 @@ function toastMutationError(title: string, error: Error) {
   toast.error(title, { description: error.message })
 }
 
-export const qk = {
-  health: ['health'] as const,
-  systemStatus: ['system'] as const,
-  models: ['models'] as const,
-  requests: ['requests'] as const,
-  requestsList: ['requests', 'list'] as const,
-  requestsRecent: (limit: number) => ['requests', 'recent', limit] as const,
-  requestStats: ['requests', 'stats'] as const,
-  requestHistogram: ['requests', 'histogram'] as const,
-  gpu: ['gpu'] as const,
-  usage: ['usage'] as const,
-  usageReport: (days: number) => ['usage', 'report', days] as const,
-  usageSummary: ['usage', 'summary'] as const,
-  modelTimeline: ['model-timeline'] as const,
-  request: (id: string) => ['requests', id] as const,
-  modelDetail: (id: string) => ['models', id] as const,
-  keys: ['keys'] as const,
-  keyDetail: (id: string) => ['keys', id] as const,
-  aliases: ['aliases'] as const,
-  routingRules: ['routing-rules'] as const,
-  contextCompressionPolicies: ['context-compression-policies'] as const,
-  mcpRelays: ['mcp-relays'] as const,
-  upstreamCredentials: ['upstream-credentials'] as const,
-  attributionSettings: ['settings', 'attribution'] as const,
-  privacySettings: ['settings', 'privacy'] as const,
-  requestLimits: ['settings', 'request-limits'] as const,
-  usagePanelSettings: ['settings', 'usage'] as const,
-}
-
 // ---- queries ----
 
 export function useHealth(): UseQueryResult<ApiHealth> {
   return useQuery({
     queryKey: qk.health,
-    queryFn: () => api.health(),
+    queryFn: ({ signal }) => api.health({ signal }),
   })
 }
 
 export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
   return useQuery({
     queryKey: qk.systemStatus,
-    queryFn: () => api.systemStatus(),
+    queryFn: ({ signal }) => api.systemStatus({ signal }),
   })
 }
 
@@ -138,7 +114,7 @@ export function useModelCounts() {
 export function useRequestStats(): UseQueryResult<ApiRequestStats> {
   return useQuery({
     queryKey: qk.requestStats,
-    queryFn: () => api.requestStats(),
+    queryFn: ({ signal }) => api.requestStats({ signal }),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -166,7 +142,7 @@ export function useUsageSummary(): UseQueryResult<ApiUsageSummary> {
 export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>> {
   return useQuery({
     queryKey: qk.requestHistogram,
-    queryFn: () => api.requestHistogram().then((r) => r.buckets),
+    queryFn: ({ signal }) => api.requestHistogram({}, { signal }).then((r) => r.buckets),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -174,14 +150,14 @@ export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>>
 export function useGpu(): UseQueryResult<ApiGpuSnapshot> {
   return useQuery({
     queryKey: qk.gpu,
-    queryFn: () => api.gpu(),
+    queryFn: ({ signal }) => api.gpu({ signal }),
   })
 }
 
 export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
   return useQuery({
     queryKey: qk.modelTimeline,
-    queryFn: () => api.modelTimeline().then((r) => r.events),
+    queryFn: ({ signal }) => api.modelTimeline(undefined, { signal }).then((r) => r.events),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
@@ -196,41 +172,78 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
 
 export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
-    queryKey: [...qk.requestsRecent(limit), includeMcp] as const,
-    queryFn: () => api.listRequests({ limit, includeMcp }).then((r) => r.requests),
+    queryKey: qk.requestsRecent(limit, includeMcp),
+    queryFn: ({ signal }) =>
+      api.listRequests({ limit, includeMcp }, { signal, priority: 'low' }).then((r) => r.requests),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
-const PAGE_SIZE = 50
-
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
-
-export function useRequestsList(): UseInfiniteQueryResult<{
-  pages: Array<RequestsPage>
-  pageParams: Array<unknown>
-}> {
+export function useRequestsList(): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
     queryKey: qk.requestsList,
-    queryFn: ({ pageParam }) =>
-      api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }),
+    queryFn: ({ pageParam, signal }) =>
+      api.listRequests({ limit: REQUESTS_PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })
 }
 
-type RequestDetailResult = {
-  request: ApiRequestDetail
-  prevId: string | null
-  nextId: string | null
+type RequestDetailResult = InferOutput<typeof RequestMetadataResponseSchema>
+
+export function requestQueryOptions(id: string, priority: 'high' | 'low' = 'high') {
+  return queryOptions({
+    queryKey: qk.request(id),
+    queryFn: ({ signal }) => api.getRequestMetadata(id, { signal, priority }),
+    staleTime: 30_000,
+    gcTime: 60_000,
+  })
+}
+
+export function requestPayloadsQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: qk.requestPayloads(id),
+    queryFn: ({ signal }) => api.getRequestPayloads(id, { signal }),
+    staleTime: 30_000,
+    gcTime: 60_000,
+  })
+}
+
+export function useRequestPayloads(id: string) {
+  return useQuery(requestPayloadsQueryOptions(id))
 }
 
 export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
+  const qc = useQueryClient()
   return useQuery({
-    queryKey: qk.request(id),
-    queryFn: () => api.getRequest(id),
-    staleTime: Number.POSITIVE_INFINITY,
-    placeholderData: keepPreviousData,
+    ...requestQueryOptions(id),
+    // Observer-only placeholder: never mark a summary as fully fetched detail.
+    placeholderData: () => {
+      const list = qc.getQueryData<RequestsList>(qk.requestsList)
+      let summary = list?.pages.flatMap((page) => page.requests).find((request) => request.id === id)
+      if (!summary) {
+        for (const [, recent] of qc.getQueriesData<Array<ApiRequest>>({ queryKey: qk.requestsRecentRoot })) {
+          summary = recent?.find((request) => request.id === id)
+          if (summary) break
+        }
+      }
+      if (!summary) return undefined
+      return {
+        request: {
+          ...summary,
+          streamCloseMs: null,
+          prefillMs: null,
+          decodeMs: null,
+          firstOutputMs: null,
+          outputSpanMs: null,
+          routingRuleId: null,
+          routingRequestedModel: null,
+          routingRejectReason: null,
+        },
+        prevId: null,
+        nextId: null,
+      }
+    },
   })
 }
 
@@ -497,41 +510,6 @@ export function useRoutingRules(): UseQueryResult<Array<RoutingRule>> {
   return useQuery({
     queryKey: qk.routingRules,
     queryFn: () => api.listRoutingRules().then((r) => r.rules),
-  })
-}
-
-export function useContextCompressionPolicies(): UseQueryResult<Array<ContextCompressionPolicy>> {
-  return useQuery({
-    queryKey: qk.contextCompressionPolicies,
-    queryFn: () => api.listContextCompressionPolicies().then((r) => r.rules),
-  })
-}
-
-export function useCreateContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: api.createContextCompressionPolicy,
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to create compression policy', error),
-  })
-}
-
-export function useUpdateContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, body }: { id: string; body: { name?: string; enabled?: boolean; match?: object } }) =>
-      api.updateContextCompressionPolicy(id, body),
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to update compression policy', error),
-  })
-}
-
-export function useDeleteContextCompressionPolicy() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: api.deleteContextCompressionPolicy,
-    onSuccess: () => invalidateKeys(qc, [qk.contextCompressionPolicies]),
-    onError: (error: Error) => toastMutationError('Failed to delete compression policy', error),
   })
 }
 
@@ -803,7 +781,7 @@ export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
   return useMutation({
     mutationFn: () => api.pruneRequestLogs(),
     onSuccess: () => {
-      invalidateKeys(qc, [qk.requests, qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      invalidateKeys(qc, [qk.requests, qk.requestPayloadsRoot, qk.requestStats, qk.requestHistogram, qk.systemStatus])
       toast.success('Request log retention applied')
     },
     onError: (e) => {

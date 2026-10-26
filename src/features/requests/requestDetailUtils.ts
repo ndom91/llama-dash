@@ -38,12 +38,15 @@ export type SseEvent = {
 export type ParsedSseStream = {
   events: Array<SseEvent>
   latestTimingData: Record<string, unknown> | null
+  truncationNotice?: string | null
 }
 
 export function parseSseStream(body: string): ParsedSseStream {
   const events: Array<SseEvent> = []
   let latestTimingData: Record<string, unknown> | null = null
-  for (const block of body.split(/\r?\n\r?\n/)) {
+  const marker = body.match(/\r?\n(\.\.\.\[truncated \d+ bytes\])$/)
+  const captured = marker ? body.slice(0, marker.index) : body
+  for (const block of captured.split(/\r?\n\r?\n/)) {
     if (!block.trim()) continue
     let event: string | null = null
     const dataLines: Array<string> = []
@@ -69,7 +72,7 @@ export function parseSseStream(body: string): ParsedSseStream {
     }
     events.push({ event, data, parsedData, isDone })
   }
-  return { events, latestTimingData }
+  return { events, latestTimingData, truncationNotice: marker?.[1] ?? null }
 }
 
 // Concatenate the assistant's generated text across an SSE stream so the
@@ -168,9 +171,24 @@ export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number
     return result
   }
   const timings = lastChunk.timings as Record<string, unknown>
-  result.prefillMs = typeof timings.prompt_ms === 'number' ? timings.prompt_ms : null
-  result.decodeMs = typeof timings.predicted_ms === 'number' ? timings.predicted_ms : null
+  result.prefillMs = validDuration(timings.prompt_ms)
+  result.decodeMs = validDuration(timings.predicted_ms)
   return result
+}
+
+function validDuration(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+export function analyzeJsonTiming(responseBody: string | null, streamCloseMs: number | null): RequestTiming {
+  if (!responseBody) return analyzeTiming(null, streamCloseMs)
+  try {
+    const body: unknown = JSON.parse(responseBody)
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return analyzeTiming(null, streamCloseMs)
+    return analyzeTiming({ events: [], latestTimingData: body as Record<string, unknown> }, streamCloseMs)
+  } catch {
+    return analyzeTiming(null, streamCloseMs)
+  }
 }
 
 /**

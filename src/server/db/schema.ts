@@ -26,6 +26,10 @@ export const requests = sqliteTable(
     responseHeaders: text('response_headers'),
     responseBody: text('response_body'),
     streamCloseMs: integer('stream_close_ms'),
+    prefillMs: real('prefill_ms'),
+    decodeMs: real('decode_ms'),
+    firstOutputMs: integer('first_output_ms'),
+    outputSpanMs: integer('output_span_ms'),
     keyId: text('key_id'),
     clientHost: text('client_host'),
     clientName: text('client_name'),
@@ -45,17 +49,13 @@ export const requests = sqliteTable(
     routingRoutedModel: text('routing_routed_model'),
     routingRejectReason: text('routing_reject_reason'),
     credentialInjectionJson: text('credential_injection_json'),
-    compressionPolicyId: text('compression_policy_id'),
-    compressionPolicyName: text('compression_policy_name'),
-    compressionStatus: text('compression_status'),
-    compressionInputTokens: integer('compression_input_tokens'),
-    compressionOutputTokens: integer('compression_output_tokens'),
-    compressionElapsedMs: integer('compression_elapsed_ms'),
   },
   (table) => [
     index('idx_requests_started_at').on(table.startedAt),
     index('idx_requests_class_started_at').on(table.requestClass, table.startedAt),
+    index('idx_requests_class_id').on(table.requestClass, table.id),
     index('idx_requests_key_id_id').on(table.keyId, table.id),
+    index('idx_requests_key_started_at').on(table.keyId, table.startedAt),
     index('idx_requests_model_id').on(table.model, table.id),
   ],
 )
@@ -103,18 +103,6 @@ export const requestDailyStats = sqliteTable(
 )
 
 export type RequestDailyStat = typeof requestDailyStats.$inferSelect
-
-export const contextCompressionPolicies = sqliteTable('context_compression_policies', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
-  order: integer('order').notNull(),
-  matchJson: text('match_json').notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
-})
-
-export type ContextCompressionPolicy = typeof contextCompressionPolicies.$inferSelect
 
 export const modelEvents = sqliteTable(
   'model_events',
