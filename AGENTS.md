@@ -223,9 +223,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
     while payloads load. Request-list hover and keyboard selection prefetch after
     a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.
     Browser navigation reuses authenticated shell context for at most 30 seconds
-    (never beyond session expiry), with route pending feedback after 150 ms.
+    (never beyond session expiry), with immediate pending feedback on authenticated pathname changes.
     Request SSE viewers virtualize streams over 100 events with measured row
     heights; small streams remain fully rendered and full-body copy/export is preserved.
+    Session resolution is deduplicated within each server request (never across
+    callers); the React Query client is scoped to the root instance, not an SSR singleton.
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate

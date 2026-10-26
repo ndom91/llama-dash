@@ -9,6 +9,7 @@ import { Toaster } from 'sonner'
 import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
+import { NavigationOutlet } from '../components/NavigationOutlet'
 import { getShellContext } from '../lib/auth-functions'
 import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
 import { writeClientCookie } from '../lib/cookies'
@@ -19,16 +20,18 @@ import { THEME_INIT_SCRIPT } from '../lib/theme-init-script'
 import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+function createQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000,
+        retry: 1,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+      },
     },
-  },
-})
+  })
+}
 
 /**
  * Module-level, not inline: HotkeysProvider memoises `defaultOptions` on
@@ -68,6 +71,7 @@ export const Route = createRootRoute({
 })
 
 function RootDocument() {
+  const [queryClient] = useState(createQueryClient)
   const matches = useMatches()
   const rootContext = matches[0]?.context as RootShellContext | undefined
   const theme = rootContext?.theme
@@ -184,7 +188,7 @@ function AuthenticatedShell({
         />
         <div className="main-col">
           <TopBar />
-          <Outlet />
+          <NavigationOutlet />
         </div>
       </div>
     </MobileMenuContext>

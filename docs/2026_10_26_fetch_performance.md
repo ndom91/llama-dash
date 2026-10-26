@@ -32,3 +32,18 @@ scrolling separately from the assembled-text accordion so opening it does not
 invalidate event offsets. Copy and export retain the complete captured body.
 Short streams remain fully rendered; browser find only covers mounted events
 for virtualized streams (copy/export provides the complete capture).
+
+## Session waterfall review
+
+The server entry gate and the root shell server function both resolved the same
+session. An AsyncLocalStorage scope now deduplicates that promise only within a
+single inbound request; parallel callers cannot share it. Requests outside the
+scope do not cache. The root QueryClient is created per root instance rather than
+as a server module singleton. API 401s clear the browser shell hint so the next
+navigation checks the session again. No server authorization is bypassed.
+
+Browser reproduction with the shell response held showed that TanStack's default
+pending boundary does not activate while the root `beforeLoad` is awaiting its
+session. The mounted authenticated shell now observes router loading/destination
+state directly and replaces the old page immediately on pathname changes. Search
+and sort changes on the same page do not blank its contents.

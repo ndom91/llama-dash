@@ -4,6 +4,10 @@ type ShellContext = Awaited<ReturnType<typeof getShellContext>>
 const MAX_AGE_MS = 30_000
 let cached: { value: ShellContext; at: number } | undefined
 
+export function clearShellContext() {
+  cached = undefined
+}
+
 // Browser-only UX cache. Every admin request still authenticates on the server.
 export function rememberShellContext(value: ShellContext) {
   if (typeof window === 'undefined') return

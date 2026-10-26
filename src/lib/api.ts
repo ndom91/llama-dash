@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { clearShellContext } from './shell-context-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
@@ -75,6 +76,7 @@ const validated =
       if (cached) return v.parse(schema, cached.data)
     }
     if (!res.ok) {
+      if (res.status === 401) clearShellContext()
       const body = await res.text().catch(() => '')
       throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
     }

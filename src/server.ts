@@ -3,6 +3,7 @@ import { createServerEntry } from '@tanstack/react-start/server-entry'
 import { MCP_RELAY_ENDPOINT_PREFIX } from './lib/mcp-relays.ts'
 import { config } from './server/config.ts'
 import { isInferenceProxyPath } from './server/proxy-path.ts'
+import { withDashboardSessionScope } from './server/session-scope.ts'
 
 if (config.inferenceInsecure) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
@@ -31,62 +32,64 @@ startRequestLogMaintenance()
 const ssrHandler = createStartHandler(defaultStreamHandler)
 
 export default createServerEntry({
-  async fetch(request, ...args) {
-    const url = new URL(request.url)
+  fetch(request, ...args) {
+    return withDashboardSessionScope(async () => {
+      const url = new URL(request.url)
 
-    if (url.pathname.startsWith('/api/auth/')) {
-      return auth.handler(request)
-    }
+      if (url.pathname.startsWith('/api/auth/')) {
+        return auth.handler(request)
+      }
 
-    if (isInferenceProxyPath(url.pathname)) {
-      const { handleProxyRequest } = await import('./server/proxy/handler.ts')
-      return handleProxyRequest(request)
-    }
+      if (isInferenceProxyPath(url.pathname)) {
+        const { handleProxyRequest } = await import('./server/proxy/handler.ts')
+        return handleProxyRequest(request)
+      }
 
-    if (url.pathname.startsWith(MCP_RELAY_ENDPOINT_PREFIX)) {
-      const { handleMcpRelayRequest } = await import('./server/mcp-relay/handler.ts')
-      return handleMcpRelayRequest(request)
-    }
+      if (url.pathname.startsWith(MCP_RELAY_ENDPOINT_PREFIX)) {
+        const { handleMcpRelayRequest } = await import('./server/mcp-relay/handler.ts')
+        return handleMcpRelayRequest(request)
+      }
 
-    if (url.pathname === '/api/login-meta') {
-      const { handleAdminRequest } = await import('./server/admin/handler.ts')
-      return handleAdminRequest(request)
-    }
+      if (url.pathname === '/api/login-meta') {
+        const { handleAdminRequest } = await import('./server/admin/handler.ts')
+        return handleAdminRequest(request)
+      }
 
-    if (url.pathname.startsWith('/api/')) {
-      const session = await getDashboardSession(request)
-      if (!session) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { 'content-type': 'application/json' },
+      if (url.pathname.startsWith('/api/')) {
+        const session = await getDashboardSession(request)
+        if (!session) {
+          return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+            status: 401,
+            headers: { 'content-type': 'application/json' },
+          })
+        }
+        const { handleAdminRequest } = await import('./server/admin/handler.ts')
+        return handleAdminRequest(request)
+      }
+
+      if (url.pathname === '/metrics') {
+        if (config.metricsToken) {
+          const auth = request.headers.get('authorization')
+          if (auth !== `Bearer ${config.metricsToken}`) {
+            return new Response('Unauthorized', { status: 401 })
+          }
+        }
+        const { renderPrometheusMetrics } = await import('./server/metrics.ts')
+        return new Response(await renderPrometheusMetrics(), {
+          headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' },
         })
       }
-      const { handleAdminRequest } = await import('./server/admin/handler.ts')
-      return handleAdminRequest(request)
-    }
 
-    if (url.pathname === '/metrics') {
-      if (config.metricsToken) {
-        const auth = request.headers.get('authorization')
-        if (auth !== `Bearer ${config.metricsToken}`) {
-          return new Response('Unauthorized', { status: 401 })
+      if (url.pathname !== '/login') {
+        const session = await getDashboardSession(request)
+        if (!session) {
+          const redirectTo = new URL('/login', url)
+          redirectTo.searchParams.set('redirect', `${url.pathname}${url.search}`)
+          return Response.redirect(redirectTo, 302)
         }
       }
-      const { renderPrometheusMetrics } = await import('./server/metrics.ts')
-      return new Response(await renderPrometheusMetrics(), {
-        headers: { 'content-type': 'text/plain; version=0.0.4; charset=utf-8' },
-      })
-    }
 
-    if (url.pathname !== '/login') {
-      const session = await getDashboardSession(request)
-      if (!session) {
-        const redirectTo = new URL('/login', url)
-        redirectTo.searchParams.set('redirect', `${url.pathname}${url.search}`)
-        return Response.redirect(redirectTo, 302)
-      }
-    }
-
-    return ssrHandler(request, ...args)
+      return ssrHandler(request, ...args)
+    })
   },
 })
