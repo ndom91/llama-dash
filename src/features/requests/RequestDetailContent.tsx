@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Download, LoaderCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useMemo } from 'react'
 import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
@@ -28,6 +28,7 @@ import {
   parseSseStream,
 } from './requestDetailUtils'
 import { RequestPayloadPane } from './RequestPayloadPane'
+import { RequestBodySkeleton } from './RequestBodySkeleton'
 import { RequestTokenTrace } from './RequestTokenTrace'
 import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
 
@@ -35,8 +36,7 @@ type Props = {
   req: ApiRequestDetail
   prevId: string | null
   nextId: string | null
-  isPrevPending: boolean
-  isNextPending: boolean
+  isDetailLoading: boolean
 }
 
 type CredentialInjectionSummary = {
@@ -46,7 +46,7 @@ type CredentialInjectionSummary = {
   modesLabel: string
 }
 
-export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNextPending }: Props) {
+export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
     req.statusCode >= 400
@@ -58,6 +58,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
           : '!text-fg-muted'
   const navigate = useNavigate()
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
+  const missingDetailValue = isDetailLoading ? 'loading…' : '—'
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
@@ -97,7 +98,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
     () => parseCredentialInjectionSummary(req.credentialInjectionJson),
     [req.credentialInjectionJson],
   )
-  const clientLabel = deriveClientLabel(reqHeaders)
+  const clientLabel = deriveClientLabel(reqHeaders) ?? req.clientHost
   const kickerParts = ['req', req.id.slice(4, 30)]
   if (clientLabel) kickerParts.push(clientLabel)
   if (req.routingRuleName) kickerParts.push(req.routingRuleName)
@@ -140,7 +141,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
-            <CopyButton text={curlCommand} label="copy curl" variant="button" />
+            {!isDetailLoading ? <CopyButton text={curlCommand} label="copy curl" variant="button" /> : null}
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
@@ -158,20 +159,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
                     )}
-                    aria-disabled={isPrevPending}
                   >
-                    {isPrevPending ? (
-                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
-                    )}
+                    <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label="No newer request"
+                    aria-label={isDetailLoading ? 'Loading newer request navigation' : 'No newer request'}
                   >
                     <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -193,20 +189,15 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
                     )}
-                    aria-disabled={isNextPending}
                   >
-                    {isNextPending ? (
-                      <LoaderCircle size={16} strokeWidth={2} aria-hidden="true" className="animate-spin" />
-                    ) : (
-                      <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
-                    )}
+                    <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label="No older request"
+                    aria-label={isDetailLoading ? 'Loading older request navigation' : 'No older request'}
                   >
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -313,7 +304,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
               <dl className="detail-meta-list">
                 <div>
                   <dt>requested</dt>
-                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? '—'}</dd>
+                  <dd>{isDetailLoading ? 'loading…' : (req.routingRequestedModel ?? requestPayload.model ?? '—')}</dd>
                 </div>
                 <div>
                   <dt>served</dt>
@@ -322,11 +313,13 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 <div>
                   <dt>rewrite</dt>
                   <dd>
-                    {deriveRewriteLabel(
-                      req.routingRequestedModel ?? requestPayload.model,
-                      req.routingRoutedModel ?? req.model,
-                      resHeaders,
-                    ) ?? '—'}
+                    {isDetailLoading
+                      ? 'loading…'
+                      : (deriveRewriteLabel(
+                          req.routingRequestedModel ?? requestPayload.model,
+                          req.routingRoutedModel ?? req.model,
+                          resHeaders,
+                        ) ?? '—')}
                   </dd>
                 </div>
               </dl>
@@ -404,7 +397,9 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                    fabricated values: `authorization: default` (asserted even when
                    the `auth` row above showed `—`) and `target: llama_swap`
                    (asserted for requests with no target at all). */
-                <div className="mono text-[11px] text-fg-dim">no routing rule matched</div>
+                <div className="mono text-[11px] text-fg-dim">
+                  {isDetailLoading ? 'loading routing detail…' : 'no routing rule matched'}
+                </div>
               )}
             </div>
 
@@ -420,11 +415,11 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                     don't capture for logged requests. */}
                 <div>
                   <dt>prefill</dt>
-                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : '—'}</dd>
+                  <dd>{timing.prefillMs != null ? formatDuration(timing.prefillMs) : missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>decode</dt>
-                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : '—'}</dd>
+                  <dd>{timing.decodeMs != null ? formatDuration(timing.decodeMs) : missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>total</dt>
@@ -432,7 +427,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
                 </div>
                 <div>
                   <dt>close</dt>
-                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : '—'}</dd>
+                  <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : missingDetailValue}</dd>
                 </div>
               </dl>
             </div>
@@ -499,26 +494,37 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <div className="panel-head bg-surface-1 px-4">
               <span className="panel-title">Payloads</span>
               <span className="panel-sub">request • response</span>
-              <span className="panel-sub ml-auto">{byteSize(req.requestBody ?? '')} on the wire</span>
+              <span className="panel-sub ml-auto" role="status">
+                {isDetailLoading ? 'loading payloads…' : `${byteSize(req.requestBody ?? '')} on the wire`}
+              </span>
             </div>
             <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
-              <RequestPayloadPane
-                key={`${req.id}-request`}
-                title="Request"
-                subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
-                body={req.requestBody ?? ''}
-                headers={reqHeaders}
-                mode="pretty"
-              />
-              <RequestPayloadPane
-                key={`${req.id}-response`}
-                title="Response"
-                subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
-                body={responseAnalysis.displayBody}
-                headers={resHeaders}
-                mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
-                sseStream={parsedSse}
-              />
+              {isDetailLoading ? (
+                <>
+                  <RequestBodySkeleton title="Request" />
+                  <RequestBodySkeleton title="Response" />
+                </>
+              ) : (
+                <>
+                  <RequestPayloadPane
+                    key={`${req.id}-request`}
+                    title="Request"
+                    subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
+                    body={req.requestBody ?? ''}
+                    headers={reqHeaders}
+                    mode="pretty"
+                  />
+                  <RequestPayloadPane
+                    key={`${req.id}-response`}
+                    title="Response"
+                    subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
+                    body={responseAnalysis.displayBody}
+                    headers={resHeaders}
+                    mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
+                    sseStream={parsedSse}
+                  />
+                </>
+              )}
             </div>
           </section>
         </div>
@@ -573,6 +579,7 @@ export function RequestDetailContent({ req, prevId, nextId, isPrevPending, isNex
             <button
               type="button"
               className="btn btn-ghost btn-sm w-full justify-start"
+              disabled={isDetailLoading}
               onClick={() => downloadRequestJsonl(req)}
             >
               <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />

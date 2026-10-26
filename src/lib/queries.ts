@@ -1,5 +1,5 @@
 import {
-  keepPreviousData,
+  queryOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -9,6 +9,7 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import type { InferOutput } from 'valibot'
 import {
   api,
   type ApiGpuSnapshot,
@@ -21,7 +22,6 @@ import {
   type ApiModelDetail,
   type ApiModelEvent,
   type ApiRequest,
-  type ApiRequestDetail,
   type ApiRequestStats,
   type ApiSystemStatus,
   type AttributionSettings,
@@ -34,6 +34,7 @@ import {
   type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
+import type { RequestDetailResponseSchema } from './schemas/request'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
@@ -188,18 +189,47 @@ export function useRequestsList(): UseInfiniteQueryResult<{
   })
 }
 
-type RequestDetailResult = {
-  request: ApiRequestDetail
-  prevId: string | null
-  nextId: string | null
-}
+type RequestDetailResult = InferOutput<typeof RequestDetailResponseSchema>
 
-export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
-  return useQuery({
+export function requestQueryOptions(id: string) {
+  return queryOptions({
     queryKey: qk.request(id),
     queryFn: () => api.getRequest(id),
     staleTime: Number.POSITIVE_INFINITY,
-    placeholderData: keepPreviousData,
+  })
+}
+
+export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
+  const qc = useQueryClient()
+  return useQuery({
+    ...requestQueryOptions(id),
+    // Observer-only placeholder: never mark a summary as fully fetched detail.
+    placeholderData: () => {
+      const list = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
+      let summary = list?.pages.flatMap((page) => page.requests).find((request) => request.id === id)
+      if (!summary) {
+        for (const [, recent] of qc.getQueriesData<Array<ApiRequest>>({ queryKey: ['requests', 'recent'] })) {
+          summary = recent?.find((request) => request.id === id)
+          if (summary) break
+        }
+      }
+      if (!summary) return undefined
+      return {
+        request: {
+          ...summary,
+          requestHeaders: null,
+          requestBody: null,
+          responseHeaders: null,
+          responseBody: null,
+          streamCloseMs: null,
+          routingRuleId: null,
+          routingRequestedModel: null,
+          routingRejectReason: null,
+        },
+        prevId: null,
+        nextId: null,
+      }
+    },
   })
 }
 

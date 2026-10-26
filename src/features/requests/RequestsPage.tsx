@@ -1,4 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { Search, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -12,7 +13,7 @@ import { cn } from '../../lib/cn'
 import { formatCompactNumber } from '../../lib/format'
 import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
-import { useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
 import { RequestsHistogram } from './RequestsHistogram'
@@ -42,6 +43,7 @@ const requestsRouteApi = getRouteApi('/requests/')
 
 export function RequestsPage() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
@@ -80,6 +82,7 @@ export function RequestsPage() {
   )
 
   const [selectedIdx, setSelectedIdx] = useState(-1)
+  const [hoveredRequestId, setHoveredRequestId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -167,6 +170,24 @@ export function RequestsPage() {
     return sorted
   }, [displayed, sortKey, sortDir])
 
+  const prefetchId = hoveredRequestId ?? rows[selectedIdx]?.id
+  useEffect(() => {
+    if (!prefetchId) return
+    // Ignore rows crossed while moving the pointer or quickly stepping with j/k.
+    const timer = window.setTimeout(() => {
+      void qc.prefetchQuery(requestQueryOptions(prefetchId))
+    }, 100)
+    return () => window.clearTimeout(timer)
+  }, [prefetchId, qc])
+
+  const openRequest = useCallback(
+    (id: string) => {
+      void qc.prefetchQuery(requestQueryOptions(id))
+      void navigate({ to: '/requests/$id', params: { id } })
+    },
+    [navigate, qc],
+  )
+
   const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
   const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
 
@@ -247,10 +268,10 @@ export function RequestsPage() {
         setSelectedIdx((i) => Math.max(i - 1, 0))
       } else if (e.key === 'Enter' && selectedIdx >= 0 && selectedIdx < rows.length) {
         e.preventDefault()
-        navigate({ to: '/requests/$id', params: { id: rows[selectedIdx].id } })
+        openRequest(rows[selectedIdx].id)
       }
     },
-    [rows, selectedIdx, navigate],
+    [rows, selectedIdx, openRequest],
   )
 
   useEffect(() => {
@@ -631,9 +652,13 @@ export function RequestsPage() {
                                 height: REQUESTS_ROW_HEIGHT,
                                 transform: `translateY(${vRow.start}px)`,
                               }}
-                              onClick={() => navigate({ to: '/requests/$id', params: { id: r.id } })}
+                              onPointerEnter={(e) => {
+                                if (e.pointerType !== 'touch') setHoveredRequestId(r.id)
+                              }}
+                              onPointerLeave={() => setHoveredRequestId(null)}
+                              onClick={() => openRequest(r.id)}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') navigate({ to: '/requests/$id', params: { id: r.id } })
+                                if (e.key === 'Enter') openRequest(r.id)
                               }}
                             >
                               <table className="dtable dtable-virtual">

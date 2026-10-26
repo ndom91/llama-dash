@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { RouteError } from '../../components/RouteError'
-import { api } from '../../lib/api'
-import { qk, useRequest } from '../../lib/queries'
+import { requestQueryOptions, useRequest } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
 import { RequestDetailSkeleton } from './RequestDetailSkeleton'
 
@@ -18,28 +17,21 @@ export function RequestDetailPage({ id }: Props) {
   const req = data?.request
   const prevId = data?.prevId ?? null
   const nextId = data?.nextId ?? null
-  const isTransitioning = isPlaceholderData && req?.id !== id
-  const isPrevPending = isTransitioning && id === prevId
-  const isNextPending = isTransitioning && id === nextId
 
   useEffect(() => {
-    if (!req) return
+    if (!req || isPlaceholderData) return
 
     const bodySize = (req.requestBody?.length ?? 0) + (req.responseBody?.length ?? 0)
     if (bodySize > PREFETCH_BODY_THRESHOLD) return
 
     const prefetch = (requestId: string | null) => {
       if (!requestId) return
-      qc.prefetchQuery({
-        queryKey: qk.request(requestId),
-        queryFn: () => api.getRequest(requestId),
-        staleTime: Number.POSITIVE_INFINITY,
-      })
+      void qc.prefetchQuery(requestQueryOptions(requestId))
     }
 
     prefetch(prevId)
     prefetch(nextId)
-  }, [nextId, prevId, qc, req])
+  }, [isPlaceholderData, nextId, prevId, qc, req])
 
   if (error) {
     return <RouteError kicker="dsh · requests" title="Failed to load request" message={error.message} />
@@ -52,14 +44,8 @@ export function RequestDetailPage({ id }: Props) {
           <RequestDetailSkeleton />
         ) : (
           <>
-            <RequestDetailContent
-              req={req}
-              prevId={prevId}
-              nextId={nextId}
-              isPrevPending={isPrevPending}
-              isNextPending={isNextPending}
-            />
-            {isFetching && !isTransitioning ? (
+            <RequestDetailContent req={req} prevId={prevId} nextId={nextId} isDetailLoading={isPlaceholderData} />
+            {isFetching && !isPlaceholderData ? (
               <div className="mx-6 mt-3 font-mono text-[11px] text-fg-dim max-md:mx-3">refreshing request detail…</div>
             ) : null}
           </>
