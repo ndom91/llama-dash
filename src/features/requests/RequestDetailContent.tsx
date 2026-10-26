@@ -37,6 +37,9 @@ type Props = {
   prevId: string | null
   nextId: string | null
   isDetailLoading: boolean
+  isMetadataLoading: boolean
+  payloadError?: string
+  onRetryPayloads: () => void
 }
 
 type CredentialInjectionSummary = {
@@ -46,7 +49,15 @@ type CredentialInjectionSummary = {
   modesLabel: string
 }
 
-export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: Props) {
+export function RequestDetailContent({
+  req,
+  prevId,
+  nextId,
+  isDetailLoading,
+  isMetadataLoading,
+  payloadError,
+  onRetryPayloads,
+}: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
     req.statusCode >= 400
@@ -167,7 +178,7 @@ export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: P
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label={isDetailLoading ? 'Loading newer request navigation' : 'No newer request'}
+                    aria-label={isMetadataLoading ? 'Loading newer request navigation' : 'No newer request'}
                   >
                     <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -197,7 +208,7 @@ export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: P
                     type="button"
                     className={cn(navButtonClass, 'border-border text-fg-faint opacity-30 transition-none')}
                     disabled
-                    aria-label={isDetailLoading ? 'Loading older request navigation' : 'No older request'}
+                    aria-label={isMetadataLoading ? 'Loading older request navigation' : 'No older request'}
                   >
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
                   </button>
@@ -304,7 +315,7 @@ export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: P
               <dl className="detail-meta-list">
                 <div>
                   <dt>requested</dt>
-                  <dd>{isDetailLoading ? 'loading…' : (req.routingRequestedModel ?? requestPayload.model ?? '—')}</dd>
+                  <dd>{req.routingRequestedModel ?? requestPayload.model ?? missingDetailValue}</dd>
                 </div>
                 <div>
                   <dt>served</dt>
@@ -398,7 +409,7 @@ export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: P
                    the `auth` row above showed `—`) and `target: llama_swap`
                    (asserted for requests with no target at all). */
                 <div className="mono text-[11px] text-fg-dim">
-                  {isDetailLoading ? 'loading routing detail…' : 'no routing rule matched'}
+                  {isMetadataLoading ? 'loading routing detail…' : 'no routing rule matched'}
                 </div>
               )}
             </div>
@@ -495,37 +506,50 @@ export function RequestDetailContent({ req, prevId, nextId, isDetailLoading }: P
               <span className="panel-title">Payloads</span>
               <span className="panel-sub">request • response</span>
               <span className="panel-sub ml-auto" role="status">
-                {isDetailLoading ? 'loading payloads…' : `${byteSize(req.requestBody ?? '')} on the wire`}
+                {payloadError
+                  ? 'payload load failed'
+                  : isDetailLoading
+                    ? 'loading payloads…'
+                    : `${byteSize(req.requestBody ?? '')} on the wire`}
               </span>
             </div>
-            <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
-              {isDetailLoading ? (
-                <>
-                  <RequestBodySkeleton title="Request" />
-                  <RequestBodySkeleton title="Response" />
-                </>
-              ) : (
-                <>
-                  <RequestPayloadPane
-                    key={`${req.id}-request`}
-                    title="Request"
-                    subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
-                    body={req.requestBody ?? ''}
-                    headers={reqHeaders}
-                    mode="pretty"
-                  />
-                  <RequestPayloadPane
-                    key={`${req.id}-response`}
-                    title="Response"
-                    subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
-                    body={responseAnalysis.displayBody}
-                    headers={resHeaders}
-                    mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
-                    sseStream={parsedSse}
-                  />
-                </>
-              )}
-            </div>
+            {payloadError ? (
+              <div className="p-4 font-mono text-xs" role="alert">
+                <p className="text-err">Failed to load payloads: {payloadError}</p>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={onRetryPayloads}>
+                  Retry payloads
+                </button>
+              </div>
+            ) : (
+              <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
+                {isDetailLoading ? (
+                  <>
+                    <RequestBodySkeleton title="Request" />
+                    <RequestBodySkeleton title="Response" />
+                  </>
+                ) : (
+                  <>
+                    <RequestPayloadPane
+                      key={`${req.id}-request`}
+                      title="Request"
+                      subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
+                      body={req.requestBody ?? ''}
+                      headers={reqHeaders}
+                      mode="pretty"
+                    />
+                    <RequestPayloadPane
+                      key={`${req.id}-response`}
+                      title="Response"
+                      subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
+                      body={responseAnalysis.displayBody}
+                      headers={resHeaders}
+                      mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
+                      sseStream={parsedSse}
+                    />
+                  </>
+                )}
+              </div>
+            )}
           </section>
         </div>
 

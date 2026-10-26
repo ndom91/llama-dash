@@ -73,6 +73,19 @@ export const RequestDetailResponseSchema = v.object({
   nextId: v.nullable(v.string()),
 })
 
+export const RequestPayloadsSchema = v.pick(ApiRequestDetailSchema, [
+  'requestHeaders',
+  'requestBody',
+  'responseHeaders',
+  'responseBody',
+])
+
+export const RequestMetadataResponseSchema = v.object({
+  request: v.omit(ApiRequestDetailSchema, ['requestHeaders', 'requestBody', 'responseHeaders', 'responseBody']),
+  prevId: v.nullable(v.string()),
+  nextId: v.nullable(v.string()),
+})
+
 export const ApiRequestStatsSchema = v.object({
   reqPerSec: v.number(),
   tokPerSec: v.number(),

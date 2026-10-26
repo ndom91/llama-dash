@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, lt, getTableColumns } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -195,6 +195,45 @@ export function getRequestById(id: string): RequestDetail | null {
     routingRoutedModel: r.routingRoutedModel,
     routingRejectReason: r.routingRejectReason,
     credentialInjectionJson: r.credentialInjectionJson,
+  }
+}
+
+export function getRequestMetadataById(id: string) {
+  const {
+    requestBody: _requestBody,
+    responseBody: _responseBody,
+    requestHeaders: _requestHeaders,
+    responseHeaders: _responseHeaders,
+    ...columns
+  } = getTableColumns(schema.requests)
+  const row = db.select(columns).from(schema.requests).where(eq(schema.requests.id, id)).get()
+  if (!row) return null
+  return {
+    ...toRequestRow(row, row.keyId ? getApiKeyName(row.keyId) : null),
+    streamCloseMs: row.streamCloseMs,
+    routingRuleId: row.routingRuleId,
+    routingRequestedModel: row.routingRequestedModel,
+    routingRejectReason: row.routingRejectReason,
+  }
+}
+
+export function getRequestPayloadsById(id: string) {
+  const row = db
+    .select({
+      requestHeaders: schema.requests.requestHeaders,
+      requestBody: schema.requests.requestBody,
+      responseHeaders: schema.requests.responseHeaders,
+      responseBody: schema.requests.responseBody,
+    })
+    .from(schema.requests)
+    .where(eq(schema.requests.id, id))
+    .get()
+  if (!row) return null
+  const recent = getRecentBodies(id)
+  return {
+    ...row,
+    requestBody: recent?.requestBody ?? row.requestBody,
+    responseBody: recent?.responseBody ?? row.responseBody,
   }
 }
 

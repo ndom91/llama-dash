@@ -17,6 +17,8 @@ import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
   RequestDetailResponseSchema,
+  RequestMetadataResponseSchema,
+  RequestPayloadsSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
 
@@ -119,6 +121,8 @@ export const api = {
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema)
   },
   getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
+  getRequestMetadata: (id: string) => getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema),
+  getRequestPayloads: (id: string) => getJson(`/api/requests/${id}/payloads`, RequestPayloadsSchema),
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
   unloadAll: () => sendEmpty('/api/models/unload', OkSchema, 'POST'),

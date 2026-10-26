@@ -2,6 +2,8 @@ import {
   countRecentMcpRequests,
   getAdjacentIds,
   getRequestById,
+  getRequestMetadataById,
+  getRequestPayloadsById,
   getRequestHistogram,
   getRequestStats,
   listRecentRequests,
@@ -9,6 +11,24 @@ import {
 import { clamp, error, json, type Route } from './types.ts'
 
 export const requestRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/metadata$/,
+    handler: async (_request, match) => {
+      const row = getRequestMetadataById(match[1])
+      if (!row) return error(404, `Request ${match[1]} not found`)
+      return json(200, { request: row, ...getAdjacentIds(match[1]) })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/payloads$/,
+    handler: async (_request, match) => {
+      const payloads = getRequestPayloadsById(match[1])
+      if (!payloads) return error(404, `Request ${match[1]} not found`)
+      return json(200, payloads)
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/api\/requests$/,

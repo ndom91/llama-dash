@@ -34,7 +34,7 @@ import {
   type RequestLimits,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
-import type { RequestDetailResponseSchema } from './schemas/request'
+import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
@@ -67,6 +67,7 @@ export const qk = {
   gpu: ['gpu'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
+  requestPayloads: (id: string) => ['request-payloads', id] as const,
   modelDetail: (id: string) => ['models', id] as const,
   keys: ['keys'] as const,
   keyDetail: (id: string) => ['keys', id] as const,
@@ -189,14 +190,27 @@ export function useRequestsList(): UseInfiniteQueryResult<{
   })
 }
 
-type RequestDetailResult = InferOutput<typeof RequestDetailResponseSchema>
+type RequestDetailResult = InferOutput<typeof RequestMetadataResponseSchema>
 
 export function requestQueryOptions(id: string) {
   return queryOptions({
     queryKey: qk.request(id),
-    queryFn: () => api.getRequest(id),
+    queryFn: () => api.getRequestMetadata(id),
     staleTime: Number.POSITIVE_INFINITY,
   })
+}
+
+export function requestPayloadsQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: qk.requestPayloads(id),
+    queryFn: () => api.getRequestPayloads(id),
+    staleTime: 30_000,
+    gcTime: 60_000,
+  })
+}
+
+export function useRequestPayloads(id: string) {
+  return useQuery(requestPayloadsQueryOptions(id))
 }
 
 export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
@@ -217,10 +231,6 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
       return {
         request: {
           ...summary,
-          requestHeaders: null,
-          requestBody: null,
-          responseHeaders: null,
-          responseBody: null,
           streamCloseMs: null,
           routingRuleId: null,
           routingRequestedModel: null,

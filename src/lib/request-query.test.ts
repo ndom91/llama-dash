@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, type ApiRequest, type ApiRequestDetail } from './api'
-import { qk, requestQueryOptions, useRequest } from './queries'
+import { api, type ApiRequest } from './api'
+import { qk, requestQueryOptions, useRequest, useRequestPayloads } from './queries'
 
 function summary(id: string): ApiRequest {
   return {
@@ -43,12 +43,8 @@ function summary(id: string): ApiRequest {
 }
 
 function detail(id: string) {
-  const request: ApiRequestDetail = {
+  const request = {
     ...summary(id),
-    requestHeaders: null,
-    requestBody: '{"model":"test-model"}',
-    responseHeaders: null,
-    responseBody: '{"message":"complete"}',
     streamCloseMs: null,
     routingRuleId: null,
     routingRequestedModel: null,
@@ -89,7 +85,7 @@ describe('request detail loading', () => {
       pageParams: [undefined, 'cursor'],
     })
     const pending = pendingDetail()
-    vi.spyOn(api, 'getRequest').mockReturnValue(pending.promise)
+    vi.spyOn(api, 'getRequestMetadata').mockReturnValue(pending.promise)
     const { result } = renderHook(() => useRequest('req_current'), { wrapper })
 
     expect(result.current.data?.request).toMatchObject(summary('req_current'))
@@ -98,13 +94,13 @@ describe('request detail loading', () => {
 
     await act(async () => pending.resolve(detail('req_current')))
     await waitFor(() => expect(result.current.isPlaceholderData).toBe(false))
-    expect(result.current.data?.request.responseBody).toContain('complete')
+    expect(result.current.data?.request.model).toBe('test-model')
   })
 
   it('also reuses recent-request summaries', () => {
     const { client, wrapper } = setup()
     client.setQueryData([...qk.requestsRecent(10), false], [summary('req_recent')])
-    vi.spyOn(api, 'getRequest').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(api, 'getRequestMetadata').mockReturnValue(new Promise(() => {}))
     const { result } = renderHook(() => useRequest('req_recent'), { wrapper })
     expect(result.current.data?.request.id).toBe('req_recent')
     expect(result.current.isPlaceholderData).toBe(true)
@@ -114,14 +110,14 @@ describe('request detail loading', () => {
     const { client, wrapper } = setup()
     client.setQueryData(qk.request('req_old'), detail('req_old'))
     client.setQueryData(qk.requestsList, { pages: [{ requests: [summary('req_new')] }] })
-    vi.spyOn(api, 'getRequest').mockReturnValue(new Promise(() => {}))
+    vi.spyOn(api, 'getRequestMetadata').mockReturnValue(new Promise(() => {}))
     const { result, rerender } = renderHook(({ id }) => useRequest(id), {
       wrapper,
       initialProps: { id: 'req_old' },
     })
     rerender({ id: 'req_new' })
     expect(result.current.data?.request.id).toBe('req_new')
-    expect(result.current.data?.request.responseBody).toBeNull()
+    expect(result.current.data?.request).not.toHaveProperty('responseBody')
     rerender({ id: 'req_unknown' })
     expect(result.current.data).toBeUndefined()
     expect(result.current.isPending).toBe(true)
@@ -130,7 +126,7 @@ describe('request detail loading', () => {
   it('deduplicates pending prefetches and reuses completed detail', async () => {
     const { client, wrapper } = setup()
     const pending = pendingDetail()
-    const fetch = vi.spyOn(api, 'getRequest').mockReturnValue(pending.promise)
+    const fetch = vi.spyOn(api, 'getRequestMetadata').mockReturnValue(pending.promise)
     const prefetch = client.prefetchQuery(requestQueryOptions('req_prefetched'))
     const { result, unmount } = renderHook(() => useRequest('req_prefetched'), { wrapper })
     expect(fetch).toHaveBeenCalledTimes(1)
@@ -149,10 +145,25 @@ describe('request detail loading', () => {
   it('reports fetch failures instead of leaving a summary in a loading state forever', async () => {
     const { client, wrapper } = setup()
     client.setQueryData(qk.requestsList, { pages: [{ requests: [summary('req_failed')] }] })
-    vi.spyOn(api, 'getRequest').mockRejectedValue(new Error('404 Request not found'))
+    vi.spyOn(api, 'getRequestMetadata').mockRejectedValue(new Error('404 Request not found'))
     const { result } = renderHook(() => useRequest('req_failed'), { wrapper })
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error?.message).toContain('404')
     expect(result.current.isPlaceholderData).toBe(false)
+  })
+
+  it('loads metadata and payloads concurrently and preserves metadata on payload failure', async () => {
+    const { wrapper } = setup()
+    const metadata = vi.spyOn(api, 'getRequestMetadata').mockResolvedValue(detail('req_split'))
+    const payloads = vi.spyOn(api, 'getRequestPayloads').mockRejectedValue(new Error('Payload unavailable'))
+    const { result } = renderHook(
+      () => ({ metadata: useRequest('req_split'), payloads: useRequestPayloads('req_split') }),
+      { wrapper },
+    )
+    expect(metadata).toHaveBeenCalledOnce()
+    expect(payloads).toHaveBeenCalledOnce()
+    await waitFor(() => expect(result.current.payloads.isError).toBe(true))
+    expect(result.current.metadata.data?.request.id).toBe('req_split')
+    expect(result.current.metadata.isSuccess).toBe(true)
   })
 })
