@@ -302,6 +302,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
     and legacy full request detail use `no-store` and skip ETags.
     Request list/detail fetches use high browser fetch priority; speculative
     metadata and telemetry use low priority. Query abort signals reach fetch.
+    The parsed validator LRU is capped at 128 entries / 4 MiB serialized text /
+    five minutes. Inactive payload retention is capped at eight entries / 16 MiB
+    string budget and one minute (active viewers are never evicted). SSE resync
+    targets live queries, not completed request metadata/payloads; live list
+    insertion rebalances bounded pages and preserves cursors.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin

@@ -219,7 +219,7 @@ export function RequestDetailContent({
         }
       />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
+      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-[1024px]:flex-none">
         <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
             <div className={railSectionTitle}>Summary</div>

@@ -578,13 +578,25 @@ export function RequestsPage() {
                 </div>
                 {rows.length === 0 ? (
                   <div className="empty-state">
-                    {hasFilters ? (
+                    {hasFilters || allRows.length > 0 ? (
                       'no requests match filters'
                     ) : (
                       <>
                         no requests yet. call <code translate="no">/v1/*</code> to populate.
                       </>
                     )}
+                    {hasNextPage ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm mx-auto mt-3 block"
+                        disabled={isFetchingNextPage}
+                        onClick={() => {
+                          void fetchNextPage()
+                        }}
+                      >
+                        {isFetchingNextPage ? 'Loading older requests…' : 'Load older requests'}
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">

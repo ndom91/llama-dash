@@ -32,6 +32,10 @@ scrolling separately from the assembled-text accordion so opening it does not
 invalidate event offsets. Copy and export retain the complete captured body.
 Short streams remain fully rendered; browser find only covers mounted events
 for virtualized streams (copy/export provides the complete capture).
+At stacked/mobile widths, payload panes have bounded 24rem heights and the detail
+grid flows vertically instead of squeezing both panes into the remaining viewport.
+This keeps virtual-list viewports usable and bounded rather than expanding to the
+entire event spacer or collapsing underneath the summary rail.
 
 ## Session waterfall review
 
@@ -67,3 +71,44 @@ reach the fetch layer for these paths, so leaving a detail page aborts its
 unobserved in-flight payload instead of competing with the next page. Existing
 query keys preserve deduplication when navigation meets a pending prefetch.
 Priority is a browser scheduling hint, not a server-side request queue.
+
+## Cache bounds and invalidation
+
+- Parsed validator LRU: 128 entries, 4 MiB serialized UTF-16 text budget, five-minute
+  maximum age. Reads affect eviction order but never extend expiry. Schema identity
+  guards cached validated outputs; 304s reuse the parsed object. In-flight requests
+  pin the exact representation matching their sent validator even if the LRU
+  evicts it. No-store/no-validator responses are not retained. Mutations and 401s
+  clear validators; other HTTP failures evict their URL.
+- Metadata queries revalidate after 30 seconds and expire after one minute inactive.
+  Payload queries have the same timing. After payload fetches, inactive payloads
+  are trimmed to at most eight retained entries and a 16 MiB string budget; active
+  viewers are exempt. These budgets bound retained text, not total JavaScript heap.
+- Live request events keep each loaded list page at 50 rows and rebalance pages,
+  cursors, and page parameters. Automatically arriving events no longer grow the
+  first page indefinitely. Older rows remain reachable via the updated cursor.
+  User-requested history pages remain available; there is no hidden history cap.
+  An empty filtered view exposes an explicit older-history action, including when
+  the newest page consists entirely of hidden MCP relay rows.
+- SSE reconnect/visibility resync and malformed request-event fallbacks invalidate
+  named live queries instead of the whole Query cache. Completed request payloads
+  are not refetched on every reconnect. Manual retention prune invalidates metadata
+  and payloads explicitly; histogram retains its existing polling fallback.
+
+## Verification
+
+The browser was tested against an isolated temporary database. A cold direct
+detail URL displayed metadata while its payload fetch was deliberately held.
+For a 5,001-event fixture, the metadata response was 882 bytes versus 334,071
+payload bytes; metadata contained no bodies, matched validators returned 304,
+and payload responses carried `no-store` with no ETag. The SSE viewport mounted
+8–10 events and scrolling to the end reached `[DONE]` without horizontal overflow.
+A held root shell call reproduced the original stale-list symptom and verified
+the immediate pending outlet fix. These are fixture checks, not deployment-wide
+latency benchmarks. Production build and the complete test suite are checked.
+The production server also passed held-session navigation, payload failure/retry
+without losing metadata, and 401 checks for unauthenticated metadata/payload
+requests. At 800px width the SSE viewport remained scrollable at roughly 299px
+with 7–9 mounted events and reached `[DONE]`. A fixture with 60 newer hidden MCP
+rows verified that the empty-state older-history action reveals the inference
+rows on the next page.

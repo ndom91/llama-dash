@@ -26,7 +26,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Watch the box** — live request, token, model, upstream, CPU/GPU, update status, and static inference-host inventory in one dashboard.
 - **Manage models** — load/unload models, inspect per-model stats, capabilities, and llama-swap selector routing, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `POST /infill`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
-- **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its detail.
+- **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, explicit allow-all or restricted model access, unavailable-model cleanup, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
 - **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.
@@ -38,6 +38,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Session lookups are deduplicated within each server request without sharing session or query data across SSR requests.
   Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
   Interactive request loads take priority over telemetry and speculative metadata prefetches; abandoned request fetches are cancelled.
+  Validator and inactive-payload caches are bounded, and reconnects refresh live data without refetching completed payloads. Live request insertion keeps loaded pages bounded while preserving older-history pagination.
 
 <table>
   <tr>

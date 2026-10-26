@@ -174,7 +174,7 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
   })
 }
 
-const PAGE_SIZE = 50
+export const REQUESTS_PAGE_SIZE = 50
 
 type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
 
@@ -185,7 +185,7 @@ export function useRequestsList(): UseInfiniteQueryResult<{
   return useInfiniteQuery({
     queryKey: qk.requestsList,
     queryFn: ({ pageParam, signal }) =>
-      api.listRequests({ limit: PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }, { signal }),
+      api.listRequests({ limit: REQUESTS_PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true }, { signal }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })
@@ -197,7 +197,8 @@ export function requestQueryOptions(id: string, priority: 'high' | 'low' = 'high
   return queryOptions({
     queryKey: qk.request(id),
     queryFn: ({ signal }) => api.getRequestMetadata(id, { signal, priority }),
-    staleTime: Number.POSITIVE_INFINITY,
+    staleTime: 30_000,
+    gcTime: 60_000,
   })
 }
 
@@ -752,7 +753,7 @@ export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
   return useMutation({
     mutationFn: () => api.pruneRequestLogs(),
     onSuccess: () => {
-      invalidateKeys(qc, [qk.requests, qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      invalidateKeys(qc, [qk.requests, ['request-payloads'], qk.requestStats, qk.requestHistogram, qk.systemStatus])
       toast.success('Request log retention applied')
     },
     onError: (e) => {

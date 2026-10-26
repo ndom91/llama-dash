@@ -6,8 +6,7 @@ import type { BaseIssue, BaseSchema } from 'valibot'
 import { qk } from './queries'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
-
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
+import { invalidateRequestLists, resyncLiveQueries, updateRequestsListCache } from './request-cache-updates'
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
@@ -27,7 +26,7 @@ function parseEventData<T extends AnySchema>(schema: T, event: MessageEvent): v.
 }
 
 function updateRecentRequestCaches(queryClient: QueryClient, request: ApiRequest) {
-  for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requests, exact: false })) {
+  for (const query of queryClient.getQueryCache().findAll({ queryKey: ['requests', 'recent'] })) {
     const queryKey = query.queryKey
     if (queryKey[0] !== 'requests' || queryKey[1] !== 'recent' || typeof queryKey[2] !== 'number') continue
     const limit = queryKey[2]
@@ -36,21 +35,6 @@ function updateRecentRequestCaches(queryClient: QueryClient, request: ApiRequest
       if (!includeMcp && isMcpRelayRequest(request)) return old
       if (!old || old.some((row) => row.id === request.id)) return old
       return [request, ...old].slice(0, limit)
-    })
-  }
-}
-
-function updateRequestsListCache(queryClient: QueryClient, request: ApiRequest) {
-  for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requestsList, exact: false })) {
-    const queryKey = query.queryKey
-    if (queryKey[0] !== 'requests' || queryKey[1] !== 'list') continue
-    queryClient.setQueryData<{ pages: Array<RequestsPage>; pageParams: Array<unknown> }>(queryKey, (old) => {
-      if (!old?.pages[0] || old.pages[0].requests.some((row) => row.id === request.id)) return old
-      const firstPage = old.pages[0]
-      return {
-        ...old,
-        pages: [{ ...firstPage, requests: [request, ...firstPage.requests] }, ...old.pages.slice(1)],
-      }
     })
   }
 }
@@ -80,7 +64,7 @@ export function useAdminEvents() {
       const data = parseEventData(RequestCompletedEventSchema, event)
       if (!data) {
         scheduleRequestStatsInvalidation()
-        queryClient.invalidateQueries({ queryKey: qk.requests })
+        invalidateRequestLists(queryClient)
         return
       }
 
@@ -107,7 +91,7 @@ export function useAdminEvents() {
 
     // Events are not replayed, so anything published while the stream was down
     // is missing from the SSE-fed caches. Refetch whatever is currently mounted.
-    const resync = () => queryClient.invalidateQueries()
+    const resync = () => resyncLiveQueries(queryClient)
 
     const connect = () => {
       events = new EventSource('/api/events')

@@ -1,6 +1,6 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -10,6 +10,7 @@ import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { NavigationOutlet } from '../components/NavigationOutlet'
+import { trimInactiveRequestPayloads } from '../lib/request-cache-updates'
 import { getShellContext } from '../lib/auth-functions'
 import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
 import { writeClientCookie } from '../lib/cookies'
@@ -21,7 +22,12 @@ import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
 
 function createQueryClient() {
-  return new QueryClient({
+  const client = new QueryClient({
+    queryCache: new QueryCache({
+      onSuccess: (_data, query) => {
+        if (query.queryKey[0] === 'request-payloads') trimInactiveRequestPayloads(client)
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,
@@ -31,6 +37,12 @@ function createQueryClient() {
       },
     },
   })
+  client.getQueryCache().subscribe((event) => {
+    if (event.type === 'observerRemoved' && event.query.queryKey[0] === 'request-payloads') {
+      trimInactiveRequestPayloads(client)
+    }
+  })
+  return client
 }
 
 /**

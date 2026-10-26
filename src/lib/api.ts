@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { clearShellContext } from './shell-context-cache'
+import { JsonValidatorCache } from './json-validator-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
@@ -64,39 +65,42 @@ export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
-type CachedJson = { etag: string | null; data: unknown }
 export type ApiFetchOptions = Pick<RequestInit, 'signal' | 'priority'>
 
-const jsonCache = new Map<string, CachedJson>()
+const jsonCache = new JsonValidatorCache()
 
 const validated =
-  <T extends AnySchema>(schema: T, cacheKey?: string) =>
+  <T extends AnySchema>(schema: T, cacheKey?: string, cached?: { etag: string; data: InferOutput<T> }) =>
   async (res: Response): Promise<InferOutput<T>> => {
     if (res.status === 304 && cacheKey) {
-      const cached = jsonCache.get(cacheKey)
-      if (cached) return v.parse(schema, cached.data)
+      if (cached) return cached.data
     }
     if (!res.ok) {
-      if (res.status === 401) clearShellContext()
+      if (cacheKey) jsonCache.delete(cacheKey)
+      if (res.status === 401) {
+        clearShellContext()
+        jsonCache.clear()
+      }
       const body = await res.text().catch(() => '')
       throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
     }
-    const data = await res.json()
-    const parsed = v.parse(schema, data)
+    const text = await res.text()
+    const parsed = v.parse(schema, JSON.parse(text))
     if (cacheKey) {
       const etag = res.headers.get('etag')
-      if (etag && !res.headers.get('cache-control')?.includes('no-store')) jsonCache.set(cacheKey, { etag, data })
+      if (etag && !res.headers.get('cache-control')?.includes('no-store'))
+        jsonCache.set(cacheKey, schema, parsed, etag, text.length * 2)
       else jsonCache.delete(cacheKey)
-    }
+    } else jsonCache.clear()
     return parsed
   }
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
 function getJson<T extends AnySchema>(url: string, schema: T, options: ApiFetchOptions = {}): Promise<InferOutput<T>> {
-  const cached = jsonCache.get(url)
+  const cached = jsonCache.get(url, schema)
   return fetch(url, { ...options, headers: cached?.etag ? { 'if-none-match': cached.etag } : undefined }).then(
-    validated(schema, url),
+    validated(schema, url, cached),
   )
 }
 
