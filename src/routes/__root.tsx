@@ -10,6 +10,7 @@ import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { getShellContext } from '../lib/auth-functions'
+import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
 import { writeClientCookie } from '../lib/cookies'
 import { isTypingTarget } from '../lib/is-typing-target'
 import { LEADER_TIMEOUT_MS, useLeaderPendingTracker } from '../lib/nav-leader'
@@ -41,7 +42,8 @@ import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
-    const shell = await getShellContext().catch(() => null)
+    const shell = (location.pathname !== '/login' && readShellContext()) || (await getShellContext())
+    rememberShellContext(shell)
     if (location.pathname !== '/login' && !shell?.session) {
       throw redirect({
         to: '/login',
@@ -69,6 +71,10 @@ function RootDocument() {
   const matches = useMatches()
   const rootContext = matches[0]?.context as RootShellContext | undefined
   const theme = rootContext?.theme
+
+  useEffect(() => {
+    if (rootContext) rememberShellContext(rootContext)
+  }, [rootContext])
 
   return (
     <html

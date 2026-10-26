@@ -1,5 +1,6 @@
 import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
+import { NavigationPending } from './components/NavigationPending'
 
 function NotFound() {
   return (
@@ -18,6 +19,9 @@ export function getRouter() {
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
     defaultNotFoundComponent: NotFound,
+    defaultPendingComponent: NavigationPending,
+    defaultPendingMs: 150,
+    defaultPendingMinMs: 0,
   })
 
   return router
