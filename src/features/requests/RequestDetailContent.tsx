@@ -1,5 +1,5 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { useMemo } from 'react'
 import * as v from 'valibot'
@@ -55,6 +55,9 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
           ? '!text-ok'
           : '!text-fg-muted'
   const navigate = useNavigate()
+  const isNavigating = useRouterState({
+    select: (state) => state.isLoading && state.location.pathname !== state.resolvedLocation?.pathname,
+  })
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
   const missingDetailValue = isMetadataLoading || payloads.status === 'loading' ? 'loading…' : '—'
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
@@ -65,7 +68,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
     'inline-flex h-8 w-8 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
   useHotkey('H', (e) => {
-    if (!prevId) return
+    if (isNavigating || !prevId) return
     e.preventDefault()
     navigate({ to: '/requests/$id', params: { id: prevId } })
   })
@@ -75,7 +78,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
     // on document, so without this guard pressing `g` then `l` here would fire
     // both — navigating to Logs *and* stepping to the next request.
     if (isLeaderPending()) return
-    if (!nextId) return
+    if (isNavigating || !nextId) return
     e.preventDefault()
     navigate({ to: '/requests/$id', params: { id: nextId } })
   })

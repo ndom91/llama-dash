@@ -65,3 +65,45 @@ it('leaves the list while root beforeLoad is still waiting for the session', asy
   })
   await waitFor(() => expect(view.queryByText('Detail page')).not.toBeNull())
 })
+
+it('holds the previous request briefly during a slow request navigation', async () => {
+  vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+  let hold = false
+  let release!: () => void
+  const pending = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const root = createRootRoute({
+    component: NavigationOutlet,
+    beforeLoad: async () => {
+      if (hold) await pending
+    },
+  })
+  const detail = createRoute({
+    getParentRoute: () => root,
+    path: '/requests/$id',
+    component: () => createElement('div', null, 'Request detail'),
+    pendingComponent: RequestDetailPending,
+  })
+  const router = createRouter({
+    routeTree: root.addChildren([detail]),
+    history: createMemoryHistory({ initialEntries: ['/requests/req_first'] }),
+  })
+  await router.load()
+  const view = render(createElement(RouterProvider, { router }))
+  await waitFor(() => expect(view.queryByText('Request detail')).not.toBeNull())
+  hold = true
+  let navigation!: Promise<void>
+  await act(async () => {
+    navigation = router.navigate({ to: '/requests/$id', params: { id: 'req_second' } })
+  })
+  expect(view.queryByText('Request detail')).not.toBeNull()
+  expect(view.queryByText('Request detail')?.closest('[inert]')).not.toBeNull()
+  expect(view.queryByRole('status', { name: 'Loading request detail' })).toBeNull()
+  await waitFor(() => expect(view.queryByRole('status', { name: 'Loading request detail' })).not.toBeNull())
+  await act(async () => {
+    release()
+    await navigation
+  })
+  await waitFor(() => expect(view.queryByText('Request detail')).not.toBeNull())
+})
