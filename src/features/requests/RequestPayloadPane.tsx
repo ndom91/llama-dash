@@ -50,7 +50,9 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
         <CopyButton text={body} variant="button" icon="clipboard" ariaLabel={`Copy ${title} payload`} />
       </div>
       {hasBody ? (
-        usesCustomPrettyBody ? (
+        mode === 'sse' ? (
+          bodyContent
+        ) : usesCustomPrettyBody ? (
           <div className="flex flex-1 min-h-[50%] min-w-0">{bodyContent}</div>
         ) : (
           <pre className={cn('body-pre border-t-0', 'flex-1 min-h-[50%]')}>{bodyContent}</pre>

@@ -34,6 +34,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Move fast** — `g`-leader keyboard navigation (`g d` dashboard, `g r` requests, `g l` logs, …), `j`/`k`/`Enter` through the request list, and `H`/`L` between request details.
   Client navigation briefly reuses the authenticated shell and shows pending feedback during slow route checks; admin APIs always enforce sessions server-side.
   Request metadata and captured payloads load independently in parallel, so large bodies do not block the summary; payload failures have their own retry action.
+  Large SSE captures render a measured, virtualized event window while retaining full-payload copy/export.
 
 <table>
   <tr>

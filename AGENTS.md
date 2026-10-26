@@ -224,6 +224,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.
     Browser navigation reuses authenticated shell context for at most 30 seconds
     (never beyond session expiry), with route pending feedback after 150 ms.
+    Request SSE viewers virtualize streams over 100 events with measured row
+    heights; small streams remain fully rendered and full-body copy/export is preserved.
 10. API key auth + rate limiting. Keys are SHA-256 hashed at rest,
    shown once on creation. When keys exist in DB, proxy requires
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate

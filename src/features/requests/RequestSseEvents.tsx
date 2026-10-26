@@ -1,9 +1,10 @@
 import { ChevronDown } from 'lucide-react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { CopyButton } from '../../components/CopyButton'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { assembleSseText, type ParsedSseStream, parseSseStream } from './requestDetailUtils'
-import { RequestJsonHighlight } from './RequestJsonHighlight'
+import { RequestSseEvent } from './RequestSseEvent'
 
 type Props = {
   body: string
@@ -17,11 +18,21 @@ export function RequestSseEvents({ body, stream }: Props) {
     [events, stream],
   )
   const [open, toggleOpen] = useStickyToggle('requests-assembled-text-open', false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const virtualized = events.length > 100
+  const virtualizer = useVirtualizer({
+    count: events.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 160,
+    overscan: 5,
+    enabled: virtualized,
+    initialRect: { width: 0, height: 600 },
+  })
   if (events.length === 0) return <>{body}</>
   return (
-    <div className="sse-events">
+    <div className="flex min-h-[50%] min-w-0 flex-1 flex-col">
       {assembled ? (
-        <div className="t-acc mb-2 overflow-hidden rounded-sm border border-border text-xs" data-open={open}>
+        <div className="t-acc m-2 shrink-0 overflow-hidden rounded-sm border border-border text-xs" data-open={open}>
           <div className="flex w-full items-center bg-surface-0">
             <button
               type="button"
@@ -47,27 +58,34 @@ export function RequestSseEvents({ body, stream }: Props) {
           </div>
         </div>
       ) : null}
-      {events.map((e, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: stream is append-only, index is stable
-        <div className="sse-event" key={i}>
-          {e.event != null ? (
-            <div className="sse-event-head">
-              <span className="sse-field">event:</span>
-              <span className="sse-event-name">{e.event}</span>
-            </div>
-          ) : null}
-          <div className="sse-event-data">
-            <span className="sse-field">data:</span>{' '}
-            {e.parsedData ? (
-              <RequestJsonHighlight json={JSON.stringify(e.parsedData, null, 2)} />
-            ) : e.isDone ? (
-              <span className="sse-done">[DONE]</span>
-            ) : (
-              <span>{e.data}</span>
-            )}
-          </div>
-        </div>
-      ))}
+      <div ref={scrollRef} className="body-pre min-h-0 flex-1 border-t-0">
+        <ul
+          className="relative m-0 w-full list-none p-0"
+          aria-label={`${events.length} SSE events`}
+          style={virtualized ? { height: virtualizer.getTotalSize() } : undefined}
+        >
+          {virtualized
+            ? virtualizer.getVirtualItems().map((item) => (
+                <li
+                  key={item.key}
+                  data-index={item.index}
+                  ref={virtualizer.measureElement}
+                  aria-posinset={item.index + 1}
+                  aria-setsize={events.length}
+                  className="absolute top-0 left-0 w-full pb-2"
+                  style={{ transform: `translateY(${item.start}px)` }}
+                >
+                  <RequestSseEvent event={events[item.index]} />
+                </li>
+              ))
+            : events.map((event, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: captured event order is immutable
+                <li key={index}>
+                  <RequestSseEvent event={event} />
+                </li>
+              ))}
+        </ul>
+      </div>
     </div>
   )
 }

@@ -23,3 +23,12 @@ a local retry. Hover and adjacent prefetches fetch metadata only, avoiding
 speculative downloads of large prompt/response bodies. The legacy full-detail
 endpoint remains compatible. Payload Query cache entries expire after one minute
 inactive and revalidate after 30 seconds so retention cleanup can take effect.
+
+## SSE rendering
+
+Streams over 100 events use a variable-height virtual list with five overscan
+events. Only mounted events are formatted/highlighted. The event viewport owns
+scrolling separately from the assembled-text accordion so opening it does not
+invalidate event offsets. Copy and export retain the complete captured body.
+Short streams remain fully rendered; browser find only covers mounted events
+for virtualized streams (copy/export provides the complete capture).
