@@ -206,6 +206,8 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
         request: {
           ...summary,
           streamCloseMs: null,
+          prefillMs: null,
+          decodeMs: null,
           routingRuleId: null,
           routingRequestedModel: null,
           routingRejectReason: null,

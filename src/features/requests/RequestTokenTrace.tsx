@@ -2,13 +2,14 @@ import { formatDuration } from './requestDetailUtils'
 
 type Props = {
   durationMs: number
-  completionTokens: number
+  completionTokens: number | null
+  streamed: boolean
   tokPerSec: number | null
   prefillMs: number | null
   decodeMs: number | null
 }
 
-export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, prefillMs, decodeMs }: Props) {
+export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, prefillMs, decodeMs, streamed }: Props) {
   // The bar previously had a hard-coded `w-full` and an infinite 4.2s gradient
   // sweep, so a request that finished minutes ago animated forever as though
   // tokens were still arriving — decoration standing in for data, while the real
@@ -23,10 +24,10 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
   return (
     <section className="panel !rounded-none !border-l-0 !border-r border-r-border border-b-1 !bg-surface-1">
       <div className="panel-head bg-surface-1 px-4">
-        <span className="panel-title">Stream</span>
-        <span className="panel-sub">· token trace</span>
+        <span className="panel-title">{streamed ? 'Stream' : 'Timing'}</span>
+        <span className="panel-sub">· {streamed ? 'token trace' : 'phase breakdown'}</span>
         <span className="panel-sub ml-auto tabular-nums">
-          {completionTokens.toLocaleString()} tokens · {tokPerSec ?? '—'} tok/s
+          {completionTokens?.toLocaleString() ?? '—'} tokens · {tokPerSec ?? '—'} tok/s
         </span>
       </div>
       <div className="px-4 py-3">
@@ -63,7 +64,9 @@ export function RequestTokenTrace({ durationMs, completionTokens, tokPerSec, pre
           ) : (
             <span>no upstream phase timings</span>
           )}
-          <span>eos {formatDuration(durationMs)}</span>
+          <span>
+            {streamed ? 'eos' : 'total'} {formatDuration(durationMs)}
+          </span>
         </div>
       </div>
     </section>

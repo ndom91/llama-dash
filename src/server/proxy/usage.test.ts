@@ -10,6 +10,21 @@ const nativeInfillResponse = JSON.stringify({
 })
 
 describe('usageFromJsonBody', () => {
+  it('extracts phase timings even when standard usage is present', () => {
+    const result = usageFromJsonBody(
+      JSON.stringify({
+        usage: { prompt_tokens: 4, completion_tokens: 2 },
+        timings: { prompt_ms: 101.25, predicted_ms: 455.9 },
+      }),
+    )
+    expect(result).toMatchObject({ promptTokens: 4, completionTokens: 2, prefillMs: 101.25, decodeMs: 455.9 })
+  })
+
+  it('rejects invalid phase durations and preserves zero', () => {
+    expect(usageFromJsonBody('{"timings":{"prompt_ms":0,"predicted_ms":-1}}')).toMatchObject({ prefillMs: 0 })
+    expect(usageFromJsonBody('{"timings":{"prompt_ms":"bad","predicted_ms":-1}}')).not.toHaveProperty('decodeMs')
+    expect(usageFromJsonBody('not json')).not.toHaveProperty('prefillMs')
+  })
   it('reads flattened llama.cpp timing fields from native infill responses', () => {
     expect(usageFromJsonBody(nativeInfillResponse)).toEqual({
       model: null,
@@ -69,6 +84,12 @@ describe('usageFromJsonBody', () => {
 })
 
 describe('SseUsageScanner', () => {
+  it('retains the latest valid timings across the full stream', () => {
+    const scanner = new SseUsageScanner()
+    scanner.feed(`data: ${JSON.stringify({ timings: { prompt_ms: 10.5, predicted_ms: 20 } })}\n\n`, 1)
+    scanner.feed(`data: ${JSON.stringify({ timings: { predicted_ms: 90.25 } })}\n\ndata: [DONE]\n\n`, 2)
+    expect(scanner.done(3)).toMatchObject({ prefillMs: 10.5, decodeMs: 90.25, streamCloseMs: 1 })
+  })
   it('reads flattened llama.cpp timing fields from streamed native infill responses', () => {
     const scanner = new SseUsageScanner()
     scanner.feed(`data: ${nativeInfillResponse}\n\ndata: [DONE]\n\n`, 100)

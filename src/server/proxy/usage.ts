@@ -8,6 +8,8 @@ export type Usage = {
   cacheCreationTokens: number | null
   cacheReadTokens: number | null
   cacheReadTokensIncludedInPrompt?: boolean
+  prefillMs?: number
+  decodeMs?: number
 }
 
 export type UsageWithClose = Usage & {
@@ -38,6 +40,16 @@ const pickModel = (body: RawJson): string | null => {
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+function pickTimings(body: RawJson): Pick<Usage, 'prefillMs' | 'decodeMs'> {
+  const timings = asRecord(body.timings)
+  const prompt = num(timings?.prompt_ms) ?? num(body['timings/prompt_ms'])
+  const decode = num(timings?.predicted_ms) ?? num(body['timings/predicted_ms'])
+  return {
+    ...(prompt != null && prompt >= 0 ? { prefillMs: prompt } : {}),
+    ...(decode != null && decode >= 0 ? { decodeMs: decode } : {}),
+  }
+}
 
 const readUsageRecord = (rec: RawJson): Partial<Usage> => {
   const inputTokenDetails = asRecord(rec.input_tokens_details)
@@ -90,6 +102,7 @@ export function usageFromJsonBody(text: string): Usage {
     const body = JSON.parse(text) as RawJson
     out.model = pickModel(body)
     Object.assign(out, pickUsage(body))
+    Object.assign(out, pickTimings(body))
     if (out.totalTokens == null && out.promptTokens != null && out.completionTokens != null) {
       out.totalTokens = out.promptTokens + out.completionTokens
     }
@@ -147,6 +160,7 @@ export class SseUsageScanner {
         const model = pickModel(body)
         if (model && !this.usage.model) this.usage.model = model
         const u = pickUsage(body)
+        Object.assign(this.usage, pickTimings(body))
         if (u.promptTokens != null) this.usage.promptTokens = u.promptTokens
         if (u.completionTokens != null) this.usage.completionTokens = u.completionTokens
         if (u.totalTokens != null) this.usage.totalTokens = u.totalTokens

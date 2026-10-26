@@ -162,6 +162,8 @@ function toRequestMetadata(row: RequestMetadataSource, keyName: string | null) {
   return {
     ...toRequestRow(row, keyName),
     streamCloseMs: row.streamCloseMs,
+    prefillMs: row.prefillMs,
+    decodeMs: row.decodeMs,
     routingRuleId: row.routingRuleId,
     routingRequestedModel: row.routingRequestedModel,
     routingRejectReason: row.routingRejectReason,

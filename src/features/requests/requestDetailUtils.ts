@@ -168,9 +168,24 @@ export function analyzeTiming(sse: ParsedSseStream | null, streamCloseMs: number
     return result
   }
   const timings = lastChunk.timings as Record<string, unknown>
-  result.prefillMs = typeof timings.prompt_ms === 'number' ? timings.prompt_ms : null
-  result.decodeMs = typeof timings.predicted_ms === 'number' ? timings.predicted_ms : null
+  result.prefillMs = validDuration(timings.prompt_ms)
+  result.decodeMs = validDuration(timings.predicted_ms)
   return result
+}
+
+function validDuration(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+export function analyzeJsonTiming(responseBody: string | null, streamCloseMs: number | null): RequestTiming {
+  if (!responseBody) return analyzeTiming(null, streamCloseMs)
+  try {
+    const body: unknown = JSON.parse(responseBody)
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return analyzeTiming(null, streamCloseMs)
+    return analyzeTiming({ events: [], latestTimingData: body as Record<string, unknown> }, streamCloseMs)
+  } catch {
+    return analyzeTiming(null, streamCloseMs)
+  }
 }
 
 /**

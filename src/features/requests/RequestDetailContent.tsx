@@ -82,7 +82,13 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
 
   const payloadData = payloads.status === 'loading' ? undefined : payloads.data
   const hasCompleteDetail = !isMetadataLoading && payloadData !== undefined
-  const payloadAnalysis = useRequestPayloadAnalysis(payloadData, req.streamed, req.streamCloseMs)
+  const payloadAnalysis = useRequestPayloadAnalysis(
+    payloadData,
+    req.streamed,
+    req.streamCloseMs,
+    req.prefillMs,
+    req.decodeMs,
+  )
   const { reqHeaders, resHeaders, requestPayload, timing } = payloadAnalysis
   const credentialInjection = useMemo(
     () => parseCredentialInjectionSummary(req.credentialInjectionJson),
@@ -457,10 +463,11 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             </div>
           </div>
 
-          {req.streamed && req.completionTokens ? (
+          {(req.streamed && req.completionTokens) || timing.prefillMs != null || timing.decodeMs != null ? (
             <RequestTokenTrace
               durationMs={req.durationMs}
               completionTokens={req.completionTokens}
+              streamed={req.streamed}
               tokPerSec={tokPerSec}
               prefillMs={timing.prefillMs}
               decodeMs={timing.decodeMs}

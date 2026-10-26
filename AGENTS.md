@@ -160,6 +160,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `usage.prompt_tokens`/`completion_tokens`) and Anthropic (`/v1/messages`,
    `/v1/messages/count_tokens`, nested `message.usage` with
    `input_tokens`/`output_tokens`, `message_stop` stream terminator) shapes.
+   Numeric upstream prefill/decode timings are extracted from streaming events
+   and complete bounded non-streaming JSON responses and stored separately from
+   captured bodies. Legacy rows fall back to parsing retained response bodies.
+   Non-streaming JSON exceeding the 256 KiB scan limit cannot supply timings.
 4. Inference backend facade (`src/server/inference/*`). The selected singleton
    backend currently supports `llama-swap` only and normalizes model list,
    running-model state, health, proxy upstream selection, lifecycle actions,

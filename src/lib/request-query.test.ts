@@ -46,6 +46,8 @@ function detail(id: string) {
   const request = {
     ...summary(id),
     streamCloseMs: null,
+    prefillMs: null,
+    decodeMs: null,
     routingRuleId: null,
     routingRequestedModel: null,
     routingRejectReason: null,

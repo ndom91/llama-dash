@@ -112,6 +112,8 @@ export function writeProxyLog(input: ProxyLogInput) {
     responseHeaders: input.resHeaders,
     responseBody: input.resBody,
     streamCloseMs: input.usage.streamCloseMs,
+    prefillMs: input.usage.prefillMs ?? null,
+    decodeMs: input.usage.decodeMs ?? null,
     keyId: input.keyId,
     clientHost: deriveClientHost(input.reqHeaders),
     clientName: input.attribution.clientName,
