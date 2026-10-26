@@ -20,7 +20,9 @@ export function createQueryClient(): QueryClient {
   })
   client.getQueryCache().subscribe((event) => {
     if (event.type === 'observerRemoved' && event.query.queryKey[0] === qk.requestPayloadsRoot[0]) {
-      trimInactiveRequestPayloads(client)
+      // The observer may be moving to another query; wait until it has attached
+      // before deciding which payload queries are inactive.
+      queueMicrotask(() => trimInactiveRequestPayloads(client))
     }
   })
   return client
