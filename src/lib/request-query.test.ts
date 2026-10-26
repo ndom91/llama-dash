@@ -99,7 +99,7 @@ describe('request detail loading', () => {
 
   it('also reuses recent-request summaries', () => {
     const { client, wrapper } = setup()
-    client.setQueryData([...qk.requestsRecent(10), false], [summary('req_recent')])
+    client.setQueryData(qk.requestsRecent(10), [summary('req_recent')])
     vi.spyOn(api, 'getRequestMetadata').mockReturnValue(new Promise(() => {}))
     const { result } = renderHook(() => useRequest('req_recent'), { wrapper })
     expect(result.current.data?.request.id).toBe('req_recent')

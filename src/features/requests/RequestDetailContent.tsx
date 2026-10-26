@@ -7,6 +7,9 @@ import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
+import type { ApiRequestMetadata } from '../../lib/schemas/request'
+import type { RequestPayloadState } from './requestPayloadState'
+import { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 import { cn } from '../../lib/cn'
 import { isLeaderPending } from '../../lib/nav-leader'
 import {
@@ -14,31 +17,23 @@ import {
   type StoredCredentialInjectionAudit,
 } from '../../lib/schemas/credential-injection'
 import {
-  analyzeResponse,
-  analyzeTiming,
   buildCurlCommand,
-  byteSize,
   calculateTokPerSec,
   deriveClientLabel,
   deriveRewriteLabel,
   formatCostUsd,
   formatDuration,
-  parseHeaderMap,
-  parseRequestPayload,
-  parseSseStream,
 } from './requestDetailUtils'
-import { RequestPayloadPane } from './RequestPayloadPane'
-import { RequestBodySkeleton } from './RequestBodySkeleton'
+import { RequestPayloadsPanel } from './RequestPayloadsPanel'
 import { RequestTokenTrace } from './RequestTokenTrace'
 import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
 
 type Props = {
-  req: ApiRequestDetail
+  req: ApiRequestMetadata
   prevId: string | null
   nextId: string | null
-  isDetailLoading: boolean
+  payloads: RequestPayloadState
   isMetadataLoading: boolean
-  payloadError?: string
   onRetryPayloads: () => void
 }
 
@@ -49,15 +44,7 @@ type CredentialInjectionSummary = {
   modesLabel: string
 }
 
-export function RequestDetailContent({
-  req,
-  prevId,
-  nextId,
-  isDetailLoading,
-  isMetadataLoading,
-  payloadError,
-  onRetryPayloads,
-}: Props) {
+export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadataLoading, onRetryPayloads }: Props) {
   const ok = req.statusCode >= 200 && req.statusCode < 300
   const statusColor =
     req.statusCode >= 400
@@ -69,7 +56,7 @@ export function RequestDetailContent({
           : '!text-fg-muted'
   const navigate = useNavigate()
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
-  const missingDetailValue = isDetailLoading ? 'loading…' : '—'
+  const missingDetailValue = isMetadataLoading || payloads.status === 'loading' ? 'loading…' : '—'
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
@@ -93,18 +80,10 @@ export function RequestDetailContent({
     navigate({ to: '/requests/$id', params: { id: nextId } })
   })
 
-  const reqHeaders = useMemo(() => parseHeaderMap(req.requestHeaders), [req.requestHeaders])
-  const resHeaders = useMemo(() => parseHeaderMap(req.responseHeaders), [req.responseHeaders])
-  const requestPayload = useMemo(() => parseRequestPayload(req.requestBody), [req.requestBody])
-  const responseAnalysis = useMemo(
-    () => analyzeResponse(req.responseBody, req.streamed),
-    [req.responseBody, req.streamed],
-  )
-  const parsedSse = useMemo(
-    () => (req.streamed && req.responseBody ? parseSseStream(req.responseBody) : null),
-    [req.responseBody, req.streamed],
-  )
-  const timing = useMemo(() => analyzeTiming(parsedSse, req.streamCloseMs), [parsedSse, req.streamCloseMs])
+  const payloadData = payloads.status === 'loading' ? undefined : payloads.data
+  const hasCompleteDetail = !isMetadataLoading && payloadData !== undefined
+  const payloadAnalysis = useRequestPayloadAnalysis(payloadData, req.streamed, req.streamCloseMs)
+  const { reqHeaders, resHeaders, requestPayload, timing } = payloadAnalysis
   const credentialInjection = useMemo(
     () => parseCredentialInjectionSummary(req.credentialInjectionJson),
     [req.credentialInjectionJson],
@@ -117,8 +96,8 @@ export function RequestDetailContent({
     ? `${req.model ?? 'request detail'} -> ${req.routingRoutedModel}`
     : req.model
   const curlCommand = useMemo(
-    () => buildCurlCommand(req.endpoint, req.requestBody, reqHeaders),
-    [req.endpoint, req.requestBody, reqHeaders],
+    () => buildCurlCommand(req.endpoint, payloadData?.requestBody ?? null, reqHeaders),
+    [req.endpoint, payloadData?.requestBody, reqHeaders],
   )
   const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
   const hasAttribution = Boolean(req.clientName || req.endUserId || req.sessionId)
@@ -152,7 +131,7 @@ export function RequestDetailContent({
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
-            {!isDetailLoading ? <CopyButton text={curlCommand} label="copy curl" variant="button" /> : null}
+            {hasCompleteDetail ? <CopyButton text={curlCommand} label="copy curl" variant="button" /> : null}
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
@@ -324,13 +303,13 @@ export function RequestDetailContent({
                 <div>
                   <dt>rewrite</dt>
                   <dd>
-                    {isDetailLoading
-                      ? 'loading…'
-                      : (deriveRewriteLabel(
+                    {hasCompleteDetail
+                      ? (deriveRewriteLabel(
                           req.routingRequestedModel ?? requestPayload.model,
                           req.routingRoutedModel ?? req.model,
                           resHeaders,
-                        ) ?? '—')}
+                        ) ?? '—')
+                      : missingDetailValue}
                   </dd>
                 </div>
               </dl>
@@ -501,56 +480,7 @@ export function RequestDetailContent({
             </section>
           ) : null}
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-            <div className="panel-head bg-surface-1 px-4">
-              <span className="panel-title">Payloads</span>
-              <span className="panel-sub">request • response</span>
-              <span className="panel-sub ml-auto" role="status">
-                {payloadError
-                  ? 'payload load failed'
-                  : isDetailLoading
-                    ? 'loading payloads…'
-                    : `${byteSize(req.requestBody ?? '')} on the wire`}
-              </span>
-            </div>
-            {payloadError ? (
-              <div className="p-4 font-mono text-xs" role="alert">
-                <p className="text-err">Failed to load payloads: {payloadError}</p>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={onRetryPayloads}>
-                  Retry payloads
-                </button>
-              </div>
-            ) : (
-              <div className="grid min-h-0 flex-1 grid-cols-2 items-stretch max-[1024px]:grid-cols-1">
-                {isDetailLoading ? (
-                  <>
-                    <RequestBodySkeleton title="Request" />
-                    <RequestBodySkeleton title="Response" />
-                  </>
-                ) : (
-                  <>
-                    <RequestPayloadPane
-                      key={`${req.id}-request`}
-                      title="Request"
-                      subtitle={`${byteSize(req.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${req.promptTokens?.toLocaleString() ?? '—'} tok`}
-                      body={req.requestBody ?? ''}
-                      headers={reqHeaders}
-                      mode="pretty"
-                    />
-                    <RequestPayloadPane
-                      key={`${req.id}-response`}
-                      title="Response"
-                      subtitle={`${req.streamed ? 'SSE' : 'body'} • ${byteSize(req.responseBody ?? '')} • ${req.completionTokens?.toLocaleString() ?? '—'} tok`}
-                      body={responseAnalysis.displayBody}
-                      headers={resHeaders}
-                      mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}
-                      sseStream={parsedSse}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-          </section>
+          <RequestPayloadsPanel request={req} state={payloads} analysis={payloadAnalysis} onRetry={onRetryPayloads} />
         </div>
 
         {/* The sidecar carries only what appears nowhere else. Its Tokens tiles
@@ -603,8 +533,10 @@ export function RequestDetailContent({
             <button
               type="button"
               className="btn btn-ghost btn-sm w-full justify-start"
-              disabled={isDetailLoading}
-              onClick={() => downloadRequestJsonl(req)}
+              disabled={!hasCompleteDetail}
+              onClick={() => {
+                if (payloadData) downloadRequestJsonl({ ...req, ...payloadData })
+              }}
             >
               <Download className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
               Download .jsonl

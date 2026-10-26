@@ -86,6 +86,9 @@ export const RequestMetadataResponseSchema = v.object({
   nextId: v.nullable(v.string()),
 })
 
+export type ApiRequestMetadata = v.InferOutput<typeof RequestMetadataResponseSchema>['request']
+export type RequestPayloads = v.InferOutput<typeof RequestPayloadsSchema>
+
 export const ApiRequestStatsSchema = v.object({
   reqPerSec: v.number(),
   tokPerSec: v.number(),

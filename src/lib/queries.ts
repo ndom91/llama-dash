@@ -10,6 +10,10 @@ import {
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { InferOutput } from 'valibot'
+import { qk } from './query-keys'
+import { REQUESTS_PAGE_SIZE, type RequestsList, type RequestsPage } from './request-query-data'
+export { qk } from './query-keys'
+export { REQUESTS_PAGE_SIZE } from './request-query-data'
 import {
   api,
   type ApiGpuSnapshot,
@@ -53,31 +57,6 @@ function invalidateKeys(qc: ReturnType<typeof useQueryClient>, keys: ReadonlyArr
 
 function toastMutationError(title: string, error: Error) {
   toast.error(title, { description: error.message })
-}
-
-export const qk = {
-  health: ['health'] as const,
-  systemStatus: ['system'] as const,
-  models: ['models'] as const,
-  requests: ['requests'] as const,
-  requestsList: ['requests', 'list'] as const,
-  requestsRecent: (limit: number) => ['requests', 'recent', limit] as const,
-  requestStats: ['requests', 'stats'] as const,
-  requestHistogram: ['requests', 'histogram'] as const,
-  gpu: ['gpu'] as const,
-  modelTimeline: ['model-timeline'] as const,
-  request: (id: string) => ['requests', id] as const,
-  requestPayloads: (id: string) => ['request-payloads', id] as const,
-  modelDetail: (id: string) => ['models', id] as const,
-  keys: ['keys'] as const,
-  keyDetail: (id: string) => ['keys', id] as const,
-  aliases: ['aliases'] as const,
-  routingRules: ['routing-rules'] as const,
-  mcpRelays: ['mcp-relays'] as const,
-  upstreamCredentials: ['upstream-credentials'] as const,
-  attributionSettings: ['settings', 'attribution'] as const,
-  privacySettings: ['settings', 'privacy'] as const,
-  requestLimits: ['settings', 'request-limits'] as const,
 }
 
 // ---- queries ----
@@ -167,21 +146,14 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
 
 export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
-    queryKey: [...qk.requestsRecent(limit), includeMcp] as const,
+    queryKey: qk.requestsRecent(limit, includeMcp),
     queryFn: ({ signal }) =>
       api.listRequests({ limit, includeMcp }, { signal, priority: 'low' }).then((r) => r.requests),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
-export const REQUESTS_PAGE_SIZE = 50
-
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
-
-export function useRequestsList(): UseInfiniteQueryResult<{
-  pages: Array<RequestsPage>
-  pageParams: Array<unknown>
-}> {
+export function useRequestsList(): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
     queryKey: qk.requestsList,
     queryFn: ({ pageParam, signal }) =>
@@ -221,10 +193,10 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     ...requestQueryOptions(id),
     // Observer-only placeholder: never mark a summary as fully fetched detail.
     placeholderData: () => {
-      const list = qc.getQueryData<{ pages: Array<RequestsPage> }>(qk.requestsList)
+      const list = qc.getQueryData<RequestsList>(qk.requestsList)
       let summary = list?.pages.flatMap((page) => page.requests).find((request) => request.id === id)
       if (!summary) {
-        for (const [, recent] of qc.getQueriesData<Array<ApiRequest>>({ queryKey: ['requests', 'recent'] })) {
+        for (const [, recent] of qc.getQueriesData<Array<ApiRequest>>({ queryKey: qk.requestsRecentRoot })) {
           summary = recent?.find((request) => request.id === id)
           if (summary) break
         }
@@ -753,7 +725,7 @@ export function usePruneRequestLogs(): UseMutationResult<unknown, Error, void> {
   return useMutation({
     mutationFn: () => api.pruneRequestLogs(),
     onSuccess: () => {
-      invalidateKeys(qc, [qk.requests, ['request-payloads'], qk.requestStats, qk.requestHistogram, qk.systemStatus])
+      invalidateKeys(qc, [qk.requests, qk.requestPayloadsRoot, qk.requestStats, qk.requestHistogram, qk.systemStatus])
       toast.success('Request log retention applied')
     },
     onError: (e) => {

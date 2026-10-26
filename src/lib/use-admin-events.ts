@@ -3,7 +3,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
-import { qk } from './queries'
+import { qk } from './query-keys'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
 import { invalidateRequestLists, resyncLiveQueries, updateRequestsListCache } from './request-cache-updates'
@@ -26,9 +26,9 @@ function parseEventData<T extends AnySchema>(schema: T, event: MessageEvent): v.
 }
 
 function updateRecentRequestCaches(queryClient: QueryClient, request: ApiRequest) {
-  for (const query of queryClient.getQueryCache().findAll({ queryKey: ['requests', 'recent'] })) {
+  for (const query of queryClient.getQueryCache().findAll({ queryKey: qk.requestsRecentRoot })) {
     const queryKey = query.queryKey
-    if (queryKey[0] !== 'requests' || queryKey[1] !== 'recent' || typeof queryKey[2] !== 'number') continue
+    if (typeof queryKey[2] !== 'number') continue
     const limit = queryKey[2]
     const includeMcp = queryKey[3] === true
     queryClient.setQueryData<Array<ApiRequest>>(queryKey, (old) => {

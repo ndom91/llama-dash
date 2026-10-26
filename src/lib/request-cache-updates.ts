@@ -1,16 +1,14 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { qk, REQUESTS_PAGE_SIZE } from './queries'
+import { qk } from './query-keys'
+import { REQUESTS_PAGE_SIZE, type RequestsList } from './request-query-data'
 import type { ApiRequest } from './schemas/request'
 import type { RequestPayloadsSchema } from './schemas/request'
 import type { InferOutput } from 'valibot'
 
-type RequestsPage = { requests: Array<ApiRequest>; nextCursor: string | null }
-type RequestsList = { pages: Array<RequestsPage>; pageParams: Array<unknown> }
-
 export function trimInactiveRequestPayloads(client: QueryClient) {
   const queries = client
     .getQueryCache()
-    .findAll({ queryKey: ['request-payloads'] })
+    .findAll({ queryKey: qk.requestPayloadsRoot })
     .sort((a, b) => a.state.dataUpdatedAt - b.state.dataUpdatedAt)
   const size = (data: unknown) =>
     Object.values((data ?? {}) as Partial<InferOutput<typeof RequestPayloadsSchema>>).reduce(
@@ -47,7 +45,7 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
 
 export function invalidateRequestLists(client: QueryClient) {
   void client.invalidateQueries({ queryKey: qk.requestsList })
-  void client.invalidateQueries({ queryKey: ['requests', 'recent'] })
+  void client.invalidateQueries({ queryKey: qk.requestsRecentRoot })
 }
 
 export function resyncLiveQueries(client: QueryClient) {

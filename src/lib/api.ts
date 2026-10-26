@@ -69,55 +69,56 @@ export type ApiFetchOptions = Pick<RequestInit, 'signal' | 'priority'>
 
 const jsonCache = new JsonValidatorCache()
 
-const validated =
-  <T extends AnySchema>(schema: T, cacheKey?: string, cached?: { etag: string; data: InferOutput<T> }) =>
-  async (res: Response): Promise<InferOutput<T>> => {
-    if (res.status === 304 && cacheKey) {
-      if (cached) return cached.data
+async function readJsonResponse<T extends AnySchema>(res: Response, schema: T) {
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearShellContext()
+      jsonCache.clear()
     }
-    if (!res.ok) {
-      if (cacheKey) jsonCache.delete(cacheKey)
-      if (res.status === 401) {
-        clearShellContext()
-        jsonCache.clear()
-      }
-      const body = await res.text().catch(() => '')
-      throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
-    }
-    const text = await res.text()
-    const parsed = v.parse(schema, JSON.parse(text))
-    if (cacheKey) {
-      const etag = res.headers.get('etag')
-      if (etag && !res.headers.get('cache-control')?.includes('no-store'))
-        jsonCache.set(cacheKey, schema, parsed, etag, text.length * 2)
-      else jsonCache.delete(cacheKey)
-    } else jsonCache.clear()
-    return parsed
+    const body = await res.text().catch(() => '')
+    throw new Error(`${res.status} ${res.statusText}: ${body.slice(0, 200)}`)
   }
+  const text = await res.text()
+  return { data: v.parse(schema, JSON.parse(text)), bytes: text.length * 2 }
+}
 
 const OkSchema = v.object({ ok: v.literal(true) })
 
-function getJson<T extends AnySchema>(url: string, schema: T, options: ApiFetchOptions = {}): Promise<InferOutput<T>> {
+async function getJson<T extends AnySchema>(
+  url: string,
+  schema: T,
+  options: ApiFetchOptions = {},
+): Promise<InferOutput<T>> {
   const cached = jsonCache.get(url, schema)
-  return fetch(url, { ...options, headers: cached?.etag ? { 'if-none-match': cached.etag } : undefined }).then(
-    validated(schema, url, cached),
-  )
+  const res = await fetch(url, { ...options, headers: cached?.etag ? { 'if-none-match': cached.etag } : undefined })
+  if (res.status === 304 && cached) return cached.data
+  if (!res.ok) jsonCache.delete(url)
+  const { data, bytes } = await readJsonResponse(res, schema)
+  const etag = res.headers.get('etag')
+  if (etag && !res.headers.get('cache-control')?.includes('no-store')) jsonCache.set(url, schema, data, etag, bytes)
+  else jsonCache.delete(url)
+  return data
 }
 
-function sendJson<T extends AnySchema>(
+async function sendJson<T extends AnySchema>(
   url: string,
   schema: T,
   options: { method: string; body?: unknown },
 ): Promise<InferOutput<T>> {
-  return fetch(url, {
+  const response = await fetch(url, {
     method: options.method,
     headers: { 'content-type': 'application/json' },
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  }).then(validated(schema))
+  })
+  const { data } = await readJsonResponse(response, schema)
+  jsonCache.clear()
+  return data
 }
 
-function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string): Promise<InferOutput<T>> {
-  return fetch(url, { method }).then(validated(schema))
+async function sendEmpty<T extends AnySchema>(url: string, schema: T, method: string): Promise<InferOutput<T>> {
+  const { data } = await readJsonResponse(await fetch(url, { method }), schema)
+  jsonCache.clear()
+  return data
 }
 
 export const api = {

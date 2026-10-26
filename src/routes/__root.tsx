@@ -1,6 +1,6 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { HotkeysProvider } from '@tanstack/react-hotkeys'
-import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import { createRootRoute, HeadContent, Outlet, redirect, Scripts, useMatches } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
@@ -10,7 +10,7 @@ import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { NavigationOutlet } from '../components/NavigationOutlet'
-import { trimInactiveRequestPayloads } from '../lib/request-cache-updates'
+import { createQueryClient } from '../lib/query-client'
 import { getShellContext } from '../lib/auth-functions'
 import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
 import { writeClientCookie } from '../lib/cookies'
@@ -20,30 +20,6 @@ import { SIDEBAR_COOKIE, sidebarCookieValue } from '../lib/sidebar'
 import { THEME_INIT_SCRIPT } from '../lib/theme-init-script'
 import { useAdminEvents } from '../lib/use-admin-events'
 import { MobileMenuContext } from '../lib/use-mobile-menu'
-
-function createQueryClient() {
-  const client = new QueryClient({
-    queryCache: new QueryCache({
-      onSuccess: (_data, query) => {
-        if (query.queryKey[0] === 'request-payloads') trimInactiveRequestPayloads(client)
-      },
-    }),
-    defaultOptions: {
-      queries: {
-        staleTime: 30_000,
-        retry: 1,
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
-      },
-    },
-  })
-  client.getQueryCache().subscribe((event) => {
-    if (event.type === 'observerRemoved' && event.query.queryKey[0] === 'request-payloads') {
-      trimInactiveRequestPayloads(client)
-    }
-  })
-  return client
-}
 
 /**
  * Module-level, not inline: HotkeysProvider memoises `defaultOptions` on

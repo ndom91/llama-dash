@@ -10,7 +10,7 @@ vi.mock('../db/index.ts', async () => ({
 }))
 vi.mock('./api-keys.ts', () => ({ getApiKeyName: () => null, getApiKeyNameMap: () => new Map() }))
 
-import { getRequestMetadataById, getRequestPayloadsById } from './requests'
+import { getRequestById, getRequestMetadataById, getRequestPayloadsById } from './requests'
 import { clearRecentBodiesForTest, storeRecentBodies } from '../proxy/recent-bodies'
 
 afterEach(() => {
@@ -49,4 +49,26 @@ it('returns missing independently for deleted requests', () => {
   row(undefined)
   expect(getRequestMetadataById('req_deleted')).toBeNull()
   expect(getRequestPayloadsById('req_deleted')).toBeNull()
+})
+
+it('maps legacy detail with the same metadata and payload helpers without extra selects', () => {
+  row({
+    id: 'req_test',
+    startedAt: new Date(),
+    keyId: null,
+    requestBody: 'truncated',
+    responseBody: null,
+    requestHeaders: '{}',
+    responseHeaders: null,
+    routingRequestedModel: 'original',
+    routingRejectReason: null,
+    routingRuleId: null,
+    streamCloseMs: 5,
+  })
+  storeRecentBodies('req_test', { requestBody: 'full request', responseBody: 'full response' })
+  const detail = getRequestById('req_test')
+  expect(mocks.select).toHaveBeenCalledOnce()
+  expect(detail).toEqual({ ...getRequestMetadataById('req_test'), ...getRequestPayloadsById('req_test') })
+  expect(detail?.requestBody).toBe('full request')
+  expect(detail?.routingRequestedModel).toBe('original')
 })

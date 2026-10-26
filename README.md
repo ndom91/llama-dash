@@ -39,6 +39,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
   Interactive request loads take priority over telemetry and speculative metadata prefetches; abandoned request fetches are cancelled.
   Validator and inactive-payload caches are bounded, and reconnects refresh live data without refetching completed payloads. Live request insertion keeps loaded pages bounded while preserving older-history pagination.
+  Payload loading, failure/retry, and successfully loaded empty captures are distinct states. Implementation ownership is documented in [the loading maintainability notes](./docs/2026_10_26_loading_maintainability.md).
 
 <table>
   <tr>

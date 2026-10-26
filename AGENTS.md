@@ -80,6 +80,9 @@ src/
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
     queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
+    query-keys.ts         — dependency-light shared query keys and cache prefixes
+    query-client.ts       — per-root QueryClient factory and payload retention policy wiring
+    request-query-data.ts — schema-derived request-list pagination types and page size
     use-admin-events.ts   — EventSource bridge that invalidates query caches from /api/events
     series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
     nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
@@ -222,6 +225,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Request details reuse list/recent summaries as observer-only placeholders
     while payloads load. Request-list hover and keyboard selection prefetch after
     a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.
+    Request detail metadata and payload state remain separate props; feature-local
+    `RequestPayloadsPanel` owns loading/error/ready presentation, with shared memoized
+    payload analysis for the panel, metadata rail, curl, and export actions.
     Browser navigation reuses authenticated shell context for at most 30 seconds
     (never beyond session expiry), with immediate pending feedback on authenticated pathname changes.
     Request SSE viewers virtualize streams over 100 events with measured row

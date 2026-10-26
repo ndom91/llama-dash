@@ -147,54 +147,36 @@ export function countRecentMcpRequests(opts: { cursor?: string }): number {
 export function getRequestById(id: string): RequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
-
-  let keyName: string | null = null
-  if (r.keyId) {
-    keyName = getApiKeyName(r.keyId)
-  }
-
-  // Fall back to the in-memory ring buffer for full bodies when the request
-  // is recent enough to still be cached (DB holds a truncated copy).
-  const recent = getRecentBodies(r.id)
   return {
-    id: r.id,
-    startedAt: r.startedAt.toISOString(),
-    durationMs: r.durationMs,
-    requestClass: r.requestClass,
-    method: r.method,
-    endpoint: r.endpoint,
-    model: r.model,
-    statusCode: r.statusCode,
-    promptTokens: r.promptTokens,
-    completionTokens: r.completionTokens,
-    totalTokens: r.totalTokens,
-    cacheCreationTokens: r.cacheCreationTokens,
-    cacheReadTokens: r.cacheReadTokens,
-    costUsd: r.costUsd,
-    streamed: r.streamed,
-    error: r.error,
-    keyName,
-    requestHeaders: r.requestHeaders,
-    requestBody: recent?.requestBody ?? r.requestBody,
-    responseHeaders: r.responseHeaders,
-    responseBody: recent?.responseBody ?? r.responseBody,
-    streamCloseMs: r.streamCloseMs,
-    clientHost: r.clientHost,
-    clientName: r.clientName,
-    endUserId: r.endUserId,
-    sessionId: r.sessionId,
-    routingRuleId: r.routingRuleId,
-    routingRuleName: r.routingRuleName,
-    routingActionType: r.routingActionType,
-    routingAuthMode: r.routingAuthMode,
-    routingPreserveAuthorization: r.routingPreserveAuthorization,
-    routingTargetType: r.routingTargetType,
-    routingTargetBaseUrl: r.routingTargetBaseUrl,
-    routingTargetCredentialId: r.routingTargetCredentialId,
-    routingRequestedModel: r.routingRequestedModel,
-    routingRoutedModel: r.routingRoutedModel,
-    routingRejectReason: r.routingRejectReason,
-    credentialInjectionJson: r.credentialInjectionJson,
+    ...toRequestMetadata(r, r.keyId ? getApiKeyName(r.keyId) : null),
+    ...toRequestPayloads(r, getRecentBodies(id)),
+  }
+}
+
+type RequestMetadataSource = Omit<
+  typeof schema.requests.$inferSelect,
+  'requestBody' | 'responseBody' | 'requestHeaders' | 'responseHeaders'
+>
+
+function toRequestMetadata(row: RequestMetadataSource, keyName: string | null) {
+  return {
+    ...toRequestRow(row, keyName),
+    streamCloseMs: row.streamCloseMs,
+    routingRuleId: row.routingRuleId,
+    routingRequestedModel: row.routingRequestedModel,
+    routingRejectReason: row.routingRejectReason,
+  }
+}
+
+function toRequestPayloads(
+  row: Pick<typeof schema.requests.$inferSelect, 'requestBody' | 'responseBody' | 'requestHeaders' | 'responseHeaders'>,
+  recent: ReturnType<typeof getRecentBodies>,
+) {
+  return {
+    requestHeaders: row.requestHeaders,
+    responseHeaders: row.responseHeaders,
+    requestBody: recent?.requestBody ?? row.requestBody,
+    responseBody: recent?.responseBody ?? row.responseBody,
   }
 }
 
@@ -208,13 +190,7 @@ export function getRequestMetadataById(id: string) {
   } = getTableColumns(schema.requests)
   const row = db.select(columns).from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!row) return null
-  return {
-    ...toRequestRow(row, row.keyId ? getApiKeyName(row.keyId) : null),
-    streamCloseMs: row.streamCloseMs,
-    routingRuleId: row.routingRuleId,
-    routingRequestedModel: row.routingRequestedModel,
-    routingRejectReason: row.routingRejectReason,
-  }
+  return toRequestMetadata(row, row.keyId ? getApiKeyName(row.keyId) : null)
 }
 
 export function getRequestPayloadsById(id: string) {
@@ -229,12 +205,7 @@ export function getRequestPayloadsById(id: string) {
     .where(eq(schema.requests.id, id))
     .get()
   if (!row) return null
-  const recent = getRecentBodies(id)
-  return {
-    ...row,
-    requestBody: recent?.requestBody ?? row.requestBody,
-    responseBody: recent?.responseBody ?? row.responseBody,
-  }
+  return toRequestPayloads(row, getRecentBodies(id))
 }
 
 export type RequestStats = ApiRequestStats

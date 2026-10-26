@@ -4,6 +4,7 @@ import { RouteError } from '../../components/RouteError'
 import { requestQueryOptions, useRequest, useRequestPayloads } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
 import { RequestDetailSkeleton } from './RequestDetailSkeleton'
+import { requestPayloadState } from './requestPayloadState'
 
 type Props = {
   id: string
@@ -13,16 +14,7 @@ export function RequestDetailPage({ id }: Props) {
   const qc = useQueryClient()
   const { data, error, isFetching, isPlaceholderData } = useRequest(id)
   const payloads = useRequestPayloads(id)
-  const req = data
-    ? {
-        ...data.request,
-        requestHeaders: null,
-        requestBody: null,
-        responseHeaders: null,
-        responseBody: null,
-        ...payloads.data,
-      }
-    : undefined
+  const req = data?.request
   const prevId = data?.prevId ?? null
   const nextId = data?.nextId ?? null
 
@@ -53,9 +45,8 @@ export function RequestDetailPage({ id }: Props) {
               req={req}
               prevId={prevId}
               nextId={nextId}
-              isDetailLoading={isPlaceholderData || !payloads.data}
+              payloads={requestPayloadState(payloads.data, payloads.error, isPlaceholderData)}
               isMetadataLoading={isPlaceholderData}
-              payloadError={payloads.error?.message}
               onRetryPayloads={() => {
                 void payloads.refetch()
               }}
