@@ -1,3 +1,6 @@
+import { json } from '../conditional-json.ts'
+export { json } from '../conditional-json.ts'
+
 export type Handler = (request: Request, match: RegExpMatchArray) => Promise<Response>
 
 export type Route = {
@@ -5,8 +8,6 @@ export type Route = {
   pattern: RegExp
   handler: Handler
 }
-
-export const json = (status: number, body: unknown) => Response.json(body, { status })
 
 export const error = (status: number, message: string) => json(status, { error: { message } })
 

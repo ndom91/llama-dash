@@ -47,3 +47,13 @@ pending boundary does not activate while the root `beforeLoad` is awaiting its
 session. The mounted authenticated shell now observes router loading/destination
 state directly and replaces the old page immediately on pathname changes. Search
 and sort changes on the same page do not blank its contents.
+
+## Conditional JSON overhead
+
+Admin JSON responses serialize once and generate weak validators with native
+SHA-256 rather than a JavaScript character loop. The dispatcher compares the
+existing header without reading, decoding, re-encoding, or reconstructing the
+response. Matching GETs return bodyless 304s. Validators still require route data
+generation; this is not a cross-request response cache. Cache control is private.
+Sensitive captured-payload and legacy full-detail responses use `no-store` and
+skip hashing entirely. Weak/strong/list/wildcard matching is tested.

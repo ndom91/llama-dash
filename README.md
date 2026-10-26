@@ -36,6 +36,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Request metadata and captured payloads load independently in parallel, so large bodies do not block the summary; payload failures have their own retry action.
   Large SSE captures render a measured, virtualized event window while retaining full-payload copy/export.
   Session lookups are deduplicated within each server request without sharing session or query data across SSR requests.
+  Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
 
 <table>
   <tr>

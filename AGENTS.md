@@ -297,6 +297,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     request summaries so list/recent caches update without refetching models.
     The raw llama-swap log stream is split onto `/api/log-events` and is only
     subscribed while the Logs page is mounted.
+    JSON serialization and native SHA-256 validators are created together;
+    conditional dispatch never rereads/rebuilds the response body. Captured payloads
+    and legacy full request detail use `no-store` and skip ETags.
 14. System update checks use the GitHub `main` branch head commit with a short in-memory cache and
     surface current/available/error state in the System runtime panel.
 15. Feature-local UI structure under `src/features/*`. Route files are thin

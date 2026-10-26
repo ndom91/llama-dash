@@ -26,7 +26,7 @@ export const requestRoutes: Route[] = [
     handler: async (_request, match) => {
       const payloads = getRequestPayloadsById(match[1])
       if (!payloads) return error(404, `Request ${match[1]} not found`)
-      return json(200, payloads)
+      return json(200, payloads, { noStore: true })
     },
   },
   {
@@ -68,7 +68,7 @@ export const requestRoutes: Route[] = [
       const row = getRequestById(id)
       if (!row) return error(404, `Request ${id} not found`)
       const { prevId, nextId } = getAdjacentIds(id)
-      return json(200, { request: row, prevId, nextId })
+      return json(200, { request: row, prevId, nextId }, { noStore: true })
     },
   },
 ]

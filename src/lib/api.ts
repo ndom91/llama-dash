@@ -82,7 +82,11 @@ const validated =
     }
     const data = await res.json()
     const parsed = v.parse(schema, data)
-    if (cacheKey) jsonCache.set(cacheKey, { etag: res.headers.get('etag'), data })
+    if (cacheKey) {
+      const etag = res.headers.get('etag')
+      if (etag && !res.headers.get('cache-control')?.includes('no-store')) jsonCache.set(cacheKey, { etag, data })
+      else jsonCache.delete(cacheKey)
+    }
     return parsed
   }
 
