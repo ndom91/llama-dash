@@ -112,3 +112,35 @@ requests. At 800px width the SSE viewport remained scrollable at roughly 299px
 with 7–9 mounted events and reached `[DONE]`. A fixture with 60 newer hidden MCP
 rows verified that the empty-state older-history action reveals the inference
 rows on the next page.
+
+## Full navigation skeletons
+
+The mounted shell now renders the destination route's registered pending component
+while root `beforeLoad` checks are outstanding. This reuses existing requests,
+logs, playground, and config skeletons instead of bypassing them. Request detail
+registers `RequestDetailPending`, also reused while its first metadata fetch runs.
+The detail skeleton uses a neutral placeholder header rather than asserting a
+chat-completions endpoint before metadata arrives. The default pending component
+is a full-page skeleton for destinations without their own implementation.
+
+## Remaining payload work (not implemented in this change)
+
+Payload fetching still begins only after the destination component mounts. The
+single payload response contains both request and response bodies, and its JSON
+envelope must finish downloading/parsing before either pane is ready. SSE parsing
+and JSON pretty-printing also run synchronously before payload content paints;
+virtualization limits mounted rows but not these preparation steps, and
+`useDeferredValue` does not defer initial-mount work.
+
+Recommended next steps are to start payload fetching on explicit click/Enter
+(not speculative hover), measure transfer versus preparation time on a slow
+capture, then independently load response/request bodies or move costly parsing
+and formatting off the main thread according to that measurement. This skeleton
+change does not claim to reduce payload fetch or formatting latency.
+
+The JSON viewer's threshold is logical line count, so a large string can bypass
+virtualization even when it wraps into many visual lines. A local synthetic
+2.8-million-character response formatted to just ten logical lines. Large-string
+chunking/preview and compression of admin JSON (where not already supplied by a
+reverse proxy) should be evaluated alongside transfer timing before introducing
+a worker. These synthetic checks do not measure the deployed slow request.

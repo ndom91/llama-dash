@@ -230,6 +230,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     payload analysis for the panel, metadata rail, curl, and export actions.
     Browser navigation reuses authenticated shell context for at most 30 seconds
     (never beyond session expiry), with immediate pending feedback on authenticated pathname changes.
+    The mounted shell uses the destination route's pending component while root
+    session checks run. Request detail uses the full detail skeleton during both
+    navigation and initial metadata loading; the generic fallback is also a full-page skeleton.
     Request SSE viewers virtualize streams over 100 events with measured row
     heights; small streams remain fully rendered and full-body copy/export is preserved.
     Session resolution is deduplicated within each server request (never across
