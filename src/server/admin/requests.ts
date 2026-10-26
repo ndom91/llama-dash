@@ -3,6 +3,7 @@ import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats 
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
+import { requestSummaryColumns } from './request-summary-columns.ts'
 
 export type RequestRow = ApiRequest
 export type RequestDetail = ApiRequestDetail
@@ -88,36 +89,8 @@ export function listRecentRequests(opts: { limit: number; cursor?: string; inclu
   )
   const rows = db
     .select({
-      id: schema.requests.id,
-      startedAt: schema.requests.startedAt,
-      durationMs: schema.requests.durationMs,
-      requestClass: schema.requests.requestClass,
-      method: schema.requests.method,
-      endpoint: schema.requests.endpoint,
-      model: schema.requests.model,
-      statusCode: schema.requests.statusCode,
-      promptTokens: schema.requests.promptTokens,
-      completionTokens: schema.requests.completionTokens,
-      totalTokens: schema.requests.totalTokens,
-      cacheCreationTokens: schema.requests.cacheCreationTokens,
-      cacheReadTokens: schema.requests.cacheReadTokens,
-      costUsd: schema.requests.costUsd,
-      streamed: schema.requests.streamed,
-      error: schema.requests.error,
+      ...requestSummaryColumns,
       keyId: schema.requests.keyId,
-      clientHost: schema.requests.clientHost,
-      clientName: schema.requests.clientName,
-      endUserId: schema.requests.endUserId,
-      sessionId: schema.requests.sessionId,
-      routingRuleName: schema.requests.routingRuleName,
-      routingActionType: schema.requests.routingActionType,
-      routingAuthMode: schema.requests.routingAuthMode,
-      routingPreserveAuthorization: schema.requests.routingPreserveAuthorization,
-      routingTargetType: schema.requests.routingTargetType,
-      routingTargetBaseUrl: schema.requests.routingTargetBaseUrl,
-      routingTargetCredentialId: schema.requests.routingTargetCredentialId,
-      routingRoutedModel: schema.requests.routingRoutedModel,
-      credentialInjectionJson: schema.requests.credentialInjectionJson,
     })
     .from(schema.requests)
     .where(where)
