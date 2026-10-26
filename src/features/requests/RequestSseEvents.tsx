@@ -14,11 +14,9 @@ type Props = {
 }
 
 export function RequestSseEvents({ body, stream }: Props) {
-  const events = useMemo(() => stream?.events ?? parseSseStream(body).events, [body, stream])
-  const assembled = useMemo(
-    () => assembleSseText({ events, latestTimingData: stream?.latestTimingData ?? null }),
-    [events, stream],
-  )
+  const parsed = useMemo(() => stream ?? parseSseStream(body), [body, stream])
+  const events = parsed.events
+  const assembled = useMemo(() => assembleSseText(parsed), [parsed])
   const [open, toggleOpen] = useStickyToggle('requests-assembled-text-open', false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const virtualized = events.length > 100
@@ -83,16 +81,27 @@ export function RequestSseEvents({ body, stream }: Props) {
                   className="absolute top-0 left-0 w-full pb-2"
                   style={{ transform: `translateY(${item.start}px)` }}
                 >
-                  <RequestSseEvent event={events[item.index]} />
+                  <RequestSseEvent
+                    event={events[item.index]}
+                    truncated={Boolean(parsed.truncationNotice) && item.index === events.length - 1}
+                  />
                 </li>
               ))
             : events.map((event, index) => (
                 // biome-ignore lint/suspicious/noArrayIndexKey: captured event order is immutable
                 <li key={index}>
-                  <RequestSseEvent event={event} />
+                  <RequestSseEvent
+                    event={event}
+                    truncated={Boolean(parsed.truncationNotice) && index === events.length - 1}
+                  />
                 </li>
               ))}
         </ul>
+        {parsed.truncationNotice ? (
+          <div className="px-2 py-2 text-fg-dim" role="note">
+            {parsed.truncationNotice}
+          </div>
+        ) : null}
       </div>
     </div>
   )

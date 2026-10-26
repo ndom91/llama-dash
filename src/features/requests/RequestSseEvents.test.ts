@@ -31,6 +31,27 @@ it('bounds the markup of a single huge event, not just streams with many events'
   expect(html.length).toBeLessThan(64_000)
 })
 
+it('formats a truncated Responses API event and displays the capture notice', () => {
+  const body =
+    'event: response.created\ndata: {"type":"response.created","response":{"model":"gpt","instructions":"partial text\n...[truncated 123 bytes]'
+  const html = renderToStaticMarkup(createElement(RequestSseEvents, { body }))
+  expect(html).toContain('response.created')
+  expect(html).toContain('partial text')
+  expect(html).toContain('[truncated 123 bytes]')
+  expect(html).toContain('data-text-row')
+  expect(html).not.toContain('&quot;type&quot;:&quot;response.created&quot;')
+})
+
+it('keeps a truncation notice after complete SSE events', () => {
+  const html = renderToStaticMarkup(
+    createElement(RequestSseEvents, {
+      body: 'data: {"ok":true}\n\n\n...[truncated 42 bytes]',
+    }),
+  )
+  expect(html).toContain('[truncated 42 bytes]')
+  expect(html).toContain('sse-event')
+})
+
 it.each([
   { kind: 'malformed event', body: `data: not-json ${'x'.repeat(2_800_000)}\n\n` },
   { kind: 'unparsed stream', body: `unparsed capture ${'x'.repeat(2_800_000)}` },

@@ -38,12 +38,15 @@ export type SseEvent = {
 export type ParsedSseStream = {
   events: Array<SseEvent>
   latestTimingData: Record<string, unknown> | null
+  truncationNotice?: string | null
 }
 
 export function parseSseStream(body: string): ParsedSseStream {
   const events: Array<SseEvent> = []
   let latestTimingData: Record<string, unknown> | null = null
-  for (const block of body.split(/\r?\n\r?\n/)) {
+  const marker = body.match(/\r?\n(\.\.\.\[truncated \d+ bytes\])$/)
+  const captured = marker ? body.slice(0, marker.index) : body
+  for (const block of captured.split(/\r?\n\r?\n/)) {
     if (!block.trim()) continue
     let event: string | null = null
     const dataLines: Array<string> = []
@@ -69,7 +72,7 @@ export function parseSseStream(body: string): ParsedSseStream {
     }
     events.push({ event, data, parsedData, isDone })
   }
-  return { events, latestTimingData }
+  return { events, latestTimingData, truncationNotice: marker?.[1] ?? null }
 }
 
 // Concatenate the assistant's generated text across an SSE stream so the

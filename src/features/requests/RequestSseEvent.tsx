@@ -2,8 +2,15 @@ import { memo } from 'react'
 import type { SseEvent } from './requestDetailUtils'
 import { RequestTextView } from './RequestTextView'
 import { MAX_TEXT_ROW_CHARS } from './textRows'
+import { formatTruncatedJson } from './format-truncated-json'
 
-export const RequestSseEvent = memo(function RequestSseEvent({ event }: { event: SseEvent }) {
+export const RequestSseEvent = memo(function RequestSseEvent({
+  event,
+  truncated = false,
+}: {
+  event: SseEvent
+  truncated?: boolean
+}) {
   return (
     <div className="sse-event">
       {event.event != null ? (
@@ -18,6 +25,8 @@ export const RequestSseEvent = memo(function RequestSseEvent({ event }: { event:
           <RequestTextView text={JSON.stringify(event.parsedData, null, 2)} highlightJson embedded />
         ) : event.isDone ? (
           <span className="sse-done">[DONE]</span>
+        ) : truncated && /^[\s]*[[{]/.test(event.data) ? (
+          <RequestTextView text={formatTruncatedJson(event.data)} highlightJson embedded />
         ) : event.data.length > MAX_TEXT_ROW_CHARS ? (
           <RequestTextView text={event.data} embedded />
         ) : (
