@@ -34,10 +34,13 @@ const recentBodiesMock = vi.hoisted(() => ({
 
 const rollupMock = vi.hoisted(() => ({
   refreshDailyStats: vi.fn(),
+  missingRollupDays: vi.fn(() => [] as string[]),
+  rebuildDailyStats: vi.fn(),
+  markPrunedBefore: vi.fn(),
 }))
 
 vi.mock('./usage-rollup.ts', () => ({
-  refreshDailyStats: rollupMock.refreshDailyStats,
+  ...rollupMock,
 }))
 
 vi.mock('./admin/settings.ts', () => ({
@@ -110,7 +113,7 @@ vi.mock('./db/index.ts', () => ({
   },
 }))
 
-import { pruneRequestLogs, startRequestLogMaintenance } from './request-log-maintenance'
+import { prepareUsagePrune, pruneRequestLogs, startRequestLogMaintenance } from './request-log-maintenance'
 
 function hasBodyText(row: FakeRequest) {
   return (
@@ -192,8 +195,21 @@ describe('request log maintenance', () => {
       const now = 100 * DAY_MS
       vi.setSystemTime(now)
       dbMock.rows = [row('old-body', { started_at: now - 4 * DAY_MS, request_body: 'secret' })]
+      expect(() => prepareUsagePrune()).toThrow('backfill is not complete')
+      rollupMock.missingRollupDays.mockImplementationOnce(() => {
+        throw new Error('backfill failure')
+      })
+      rollupMock.missingRollupDays.mockReturnValueOnce(['2026-01-01', '2026-01-02'])
+      rollupMock.missingRollupDays.mockReturnValueOnce(['2026-01-02'])
+      rollupMock.rebuildDailyStats.mockImplementationOnce(() => {})
+      rollupMock.rebuildDailyStats.mockImplementationOnce(() => {
+        throw new Error('day failure')
+      })
       startRequestLogMaintenance()
       vi.advanceTimersByTime(60_000)
+      expect(info).not.toHaveBeenCalled()
+      expect(() => prepareUsagePrune()).toThrow('backfill is not complete')
+      vi.advanceTimersByTime(60 * 60_000)
       expect(info).toHaveBeenCalledWith('[request-log-maintenance] prune complete', {
         durationMs: expect.any(Number),
         selectionMs: expect.any(Number),
@@ -217,9 +233,14 @@ describe('request log maintenance', () => {
         throw rollupError
       })
       vi.advanceTimersByTime(60 * 60_000)
-      expect(warn).toHaveBeenCalledWith('Failed to refresh usage rollups', rollupError)
+      expect(warn).toHaveBeenCalledWith('Failed to prepare usage rollups; pruning skipped', rollupError)
       expect(warn.mock.calls.filter(([msg]) => msg === 'Failed to prune request logs')).toHaveLength(1)
-      expect(rollupMock.refreshDailyStats.mock.calls[0]?.[1]).toMatchObject({ backfill: true })
+      expect(rollupMock.missingRollupDays).toHaveBeenCalledTimes(3)
+      expect(rollupMock.rebuildDailyStats.mock.calls.map(([, days]) => days)).toEqual([
+        ['2026-01-01'],
+        ['2026-01-02'],
+        ['2026-01-02'],
+      ])
     } finally {
       vi.clearAllTimers()
       vi.useRealTimers()

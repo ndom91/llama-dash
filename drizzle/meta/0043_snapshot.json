@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "16ff033f-4fa0-41fe-86a2-4b2a6f8f3fc1",
+  "id": "e0f0cc09-86a3-4f67-883a-454892ff0cfe",
   "prevId": "f2a7740e-f8f2-4b65-b670-dece6b21d675",
   "tables": {
     "account": {
@@ -530,143 +530,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "request_daily_stats": {
-      "name": "request_daily_stats",
-      "columns": {
-        "day": {
-          "name": "day",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "client_name": {
-          "name": "client_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "key_id": {
-          "name": "key_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "status_class": {
-          "name": "status_class",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "routing_action": {
-          "name": "routing_action",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "client_host": {
-          "name": "client_host",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "end_user_id": {
-          "name": "end_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "requests": {
-          "name": "requests",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "errors": {
-          "name": "errors",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "prompt_tokens": {
-          "name": "prompt_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "completion_tokens": {
-          "name": "completion_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "total_tokens": {
-          "name": "total_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "duration_ms_sum": {
-          "name": "duration_ms_sum",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "cost_usd_sum": {
-          "name": "cost_usd_sum",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "gen_completion_tokens": {
-          "name": "gen_completion_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "gen_duration_ms": {
-          "name": "gen_duration_ms",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "idx_request_daily_stats_day": {
-          "name": "idx_request_daily_stats_day",
-          "columns": [
-            "day"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "requests": {
       "name": "requests",
       "columns": {
@@ -975,6 +838,14 @@
             "started_at"
           ],
           "isUnique": false
+        },
+        "idx_requests_payload_started_at": {
+          "name": "idx_requests_payload_started_at",
+          "columns": [
+            "started_at"
+          ],
+          "isUnique": false,
+          "where": "\"requests\".\"request_headers\" is not null or \"requests\".\"request_body\" is not null or \"requests\".\"response_headers\" is not null or \"requests\".\"response_body\" is not null"
         },
         "idx_requests_class_started_at": {
           "name": "idx_requests_class_started_at",

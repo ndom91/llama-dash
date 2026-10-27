@@ -1,0 +1,1 @@
+CREATE INDEX `idx_requests_payload_started_at` ON `requests` (`started_at`) WHERE "requests"."request_headers" is not null or "requests"."request_body" is not null or "requests"."response_headers" is not null or "requests"."response_body" is not null;

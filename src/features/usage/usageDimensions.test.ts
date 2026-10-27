@@ -43,7 +43,7 @@ describe('usage row links', () => {
     expect(usageRowRequestsSearch('client', row('relic'))).toEqual({ client: 'relic' })
     expect(usageRowRequestsSearch('session', row('s-1'))).toEqual({ session: 's-1' })
     expect(usageRowRequestsSearch('endUser', row(null))).toBeNull()
-    expect(usageRowRequestsSearch('model', row('m'))).toEqual({ model: 'm' })
+    expect(usageRowRequestsSearch('model', row('m'))).toBeNull()
   })
 })
 

@@ -1,4 +1,5 @@
 import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { sql } from 'drizzle-orm'
 
 export const requests = sqliteTable(
   'requests',
@@ -52,6 +53,11 @@ export const requests = sqliteTable(
   },
   (table) => [
     index('idx_requests_started_at').on(table.startedAt),
+    index('idx_requests_payload_started_at')
+      .on(table.startedAt)
+      .where(
+        sql`${table.requestHeaders} is not null or ${table.requestBody} is not null or ${table.responseHeaders} is not null or ${table.responseBody} is not null`,
+      ),
     index('idx_requests_class_started_at').on(table.requestClass, table.startedAt),
     index('idx_requests_class_id').on(table.requestClass, table.id),
     index('idx_requests_key_id_id').on(table.keyId, table.id),

@@ -4,7 +4,7 @@ import { databasePathInfo } from '../../db/index.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
 import { getRequestLogQueueStats } from '../../proxy/log.ts'
-import { compactDatabase, pruneRequestLogs, refreshUsageRollups } from '../../request-log-maintenance.ts'
+import { compactDatabase, prepareUsagePrune, pruneRequestLogs } from '../../request-log-maintenance.ts'
 import { getUpdateCheck } from '../../update-check.ts'
 import { error, json, type Route } from './types.ts'
 
@@ -25,8 +25,12 @@ export const systemRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/system\/request-logs\/prune$/,
     handler: async () => {
-      refreshUsageRollups()
-      return json(200, pruneRequestLogs())
+      try {
+        prepareUsagePrune()
+        return json(200, pruneRequestLogs())
+      } catch (err) {
+        return error(503, err instanceof Error ? err.message : String(err))
+      }
     },
   },
   {

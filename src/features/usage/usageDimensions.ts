@@ -48,7 +48,8 @@ export function usageRowRequestsSearch(dimension: UsageDimension, row: ApiUsageB
     case 'key':
       return value != null && row.label != null ? { key: requestKeyNameFilterValue(row.label) } : null
     case 'model':
-      return value != null ? { model: value } : null
+      // The Requests filter matches requested models, not routed rollup models.
+      return null
     case 'client':
       return value != null ? { client: value } : null
     case 'endUser':

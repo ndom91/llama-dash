@@ -6,15 +6,54 @@ import type Database from 'better-sqlite3'
  * The raw `requests` log is pruned after `requestLogRetentionDays`, so token and
  * usage history is aggregated per (UTC day, model, client, key) first. Rollups
  * are rebuilt from the raw log (delete + insert per day), which makes every
- * refresh idempotent. A day whose raw rows may already be partially pruned is
- * never rebuilt over an existing rollup, so pruning can only ever remove raw
- * detail, never usage history.
+ * refresh idempotent. A persisted pruning watermark prevents rebuilding an
+ * existing rollup from a day whose raw rows may already be partially pruned.
  *
  * Functions take the SQLite handle explicitly so they can run against a
  * throwaway database in tests.
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const PRUNED_BEFORE_KEY = 'usage_rollup_pruned_before'
+
+export function getPrunedBefore(sqlite: Database.Database, now: number, retentionDays: number): number {
+  const row = sqlite.prepare('select value from settings where key = ?').get(PRUNED_BEFORE_KEY) as
+    | { value: string }
+    | undefined
+  if (row) {
+    const value = Number(row.value)
+    if (!Number.isFinite(value)) throw new Error('Invalid usage rollup pruning watermark')
+    return value
+  }
+  const cutoff = now - retentionDays * DAY_MS
+  sqlite
+    .prepare('insert into settings (key, value, updated_at) values (?, ?, ?)')
+    .run(PRUNED_BEFORE_KEY, String(cutoff), now)
+  return cutoff
+}
+
+export function markPrunedBefore(sqlite: Database.Database, now: number, retentionDays: number): void {
+  const cutoff = Math.max(getPrunedBefore(sqlite, now, retentionDays), now - retentionDays * DAY_MS)
+  sqlite
+    .prepare('update settings set value = ?, updated_at = ? where key = ?')
+    .run(String(cutoff), now, PRUNED_BEFORE_KEY)
+}
+
+export function missingRollupDays(sqlite: Database.Database, now: number, retentionDays: number): string[] {
+  getPrunedBefore(sqlite, now, retentionDays)
+  const rawDays = sqlite
+    .prepare(`select distinct date(started_at / 1000, 'unixepoch') as day
+    from requests where request_class = 'inference'`)
+    .all() as Array<{ day: string }>
+  const rolledUp = new Set(
+    (sqlite.prepare('select distinct day from request_daily_stats').all() as Array<{ day: string }>).map((r) => r.day),
+  )
+  const today = utcDay(now)
+  return rawDays
+    .map((row) => row.day)
+    .filter((day) => day <= today && !rolledUp.has(day))
+    .sort()
+}
 
 export type DailyUsageRow = {
   day: string
@@ -121,10 +160,11 @@ type RefreshOptions = {
 /**
  * Brings the rollup up to date: today and yesterday on every call, plus every
  * day still in the raw log when `backfill` is set. A day that already has
- * rollup rows is only rebuilt while all of its raw rows are still retained.
+ * rollup rows is only rebuilt if it starts at or after the recorded pruning cutoff.
  */
 export function refreshDailyStats(sqlite: Database.Database, options: RefreshOptions): string[] {
   const now = options.now ?? Date.now()
+  const prunedBefore = getPrunedBefore(sqlite, now, options.retentionDays)
   const today = utcDay(now)
   const candidates = new Set([addDays(today, -1), today])
 
@@ -143,15 +183,10 @@ export function refreshDailyStats(sqlite: Database.Database, options: RefreshOpt
   )
   const days = [...candidates]
     .filter((day) => day <= today)
-    .filter((day) => !rolledUp.has(day) || isFullyRetained(day, now, options.retentionDays))
+    .filter((day) => !rolledUp.has(day) || dayToMs(day) >= prunedBefore)
     .sort()
   rebuildDailyStats(sqlite, days)
   return days
-}
-
-/** True while no raw request of `day` can have been pruned yet. */
-function isFullyRetained(day: string, now: number, retentionDays: number): boolean {
-  return dayToMs(day) >= now - retentionDays * DAY_MS
 }
 
 type LoadOptions = {
@@ -170,7 +205,7 @@ export function loadDailyRows(sqlite: Database.Database, options: LoadOptions): 
   const now = options.now ?? Date.now()
   const today = utcDay(now)
   const yesterday = addDays(today, -1)
-  const liveFrom = isFullyRetained(yesterday, now, options.retentionDays) ? yesterday : today
+  const liveFrom = dayToMs(yesterday) >= getPrunedBefore(sqlite, now, options.retentionDays) ? yesterday : today
   const rollupTo = options.toDay < liveFrom ? options.toDay : addDays(liveFrom, -1)
 
   const rows: DailyUsageRow[] = []
