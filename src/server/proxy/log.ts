@@ -4,8 +4,9 @@ import { publishAdminEvent } from '../admin/events.ts'
 import { getPrivacySettings } from '../admin/settings.ts'
 import { toRequestRow } from '../admin/requests.ts'
 import { getBodyLogLimits } from '../admin/settings.ts'
-import { db, schema } from '../db/index.ts'
+import { db, schema, sqliteDb } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
+import { appendLoggedRequest, getPrunedBefore } from '../usage-rollup.ts'
 import { storeRecentBodies } from './recent-bodies.ts'
 
 const MAX_LOG_QUEUE_SIZE = 1_000
@@ -128,52 +129,58 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const requestHeaders = persistBodies ? row.requestHeaders : null
   const responseHeaders = persistBodies ? row.responseHeaders : null
   const costUsd = computeCostUsd(row.model, row)
-  db.insert(schema.requests)
-    .values({
-      id,
-      startedAt: new Date(row.startedAt),
-      durationMs: row.durationMs,
-      requestClass: row.requestClass,
-      method: row.method,
-      endpoint: row.endpoint,
-      model: row.model,
-      statusCode: row.statusCode,
-      promptTokens: row.promptTokens,
-      completionTokens: row.completionTokens,
-      totalTokens: row.totalTokens,
-      cacheCreationTokens: row.cacheCreationTokens,
-      cacheReadTokens: row.cacheReadTokens,
-      costUsd,
-      streamed: row.streamed,
-      error: row.error,
-      requestHeaders,
-      requestBody,
-      responseHeaders,
-      responseBody,
-      streamCloseMs: row.streamCloseMs,
-      prefillMs: row.prefillMs ?? null,
-      decodeMs: row.decodeMs ?? null,
-      firstOutputMs: row.firstOutputMs ?? null,
-      outputSpanMs: row.outputSpanMs ?? null,
-      keyId: row.keyId,
-      clientHost: row.clientHost,
-      clientName: row.clientName,
-      endUserId: row.endUserId,
-      sessionId: row.sessionId,
-      routingRuleId: row.routingRuleId,
-      routingRuleName: row.routingRuleName,
-      routingActionType: row.routingActionType,
-      routingAuthMode: row.routingAuthMode,
-      routingPreserveAuthorization: row.routingPreserveAuthorization,
-      routingTargetType: row.routingTargetType,
-      routingTargetBaseUrl: row.routingTargetBaseUrl,
-      routingTargetCredentialId: row.routingTargetCredentialId,
-      routingRequestedModel: row.routingRequestedModel,
-      routingRoutedModel: row.routingRoutedModel,
-      routingRejectReason: row.routingRejectReason,
-      credentialInjectionJson: row.credentialInjectionJson ?? null,
-    })
-    .run()
+  sqliteDb.transaction(() => {
+    db.insert(schema.requests)
+      .values({
+        id,
+        startedAt: new Date(row.startedAt),
+        durationMs: row.durationMs,
+        requestClass: row.requestClass,
+        method: row.method,
+        endpoint: row.endpoint,
+        model: row.model,
+        statusCode: row.statusCode,
+        promptTokens: row.promptTokens,
+        completionTokens: row.completionTokens,
+        totalTokens: row.totalTokens,
+        cacheCreationTokens: row.cacheCreationTokens,
+        cacheReadTokens: row.cacheReadTokens,
+        costUsd,
+        streamed: row.streamed,
+        error: row.error,
+        requestHeaders,
+        requestBody,
+        responseHeaders,
+        responseBody,
+        streamCloseMs: row.streamCloseMs,
+        prefillMs: row.prefillMs ?? null,
+        decodeMs: row.decodeMs ?? null,
+        firstOutputMs: row.firstOutputMs ?? null,
+        outputSpanMs: row.outputSpanMs ?? null,
+        keyId: row.keyId,
+        clientHost: row.clientHost,
+        clientName: row.clientName,
+        endUserId: row.endUserId,
+        sessionId: row.sessionId,
+        routingRuleId: row.routingRuleId,
+        routingRuleName: row.routingRuleName,
+        routingActionType: row.routingActionType,
+        routingAuthMode: row.routingAuthMode,
+        routingPreserveAuthorization: row.routingPreserveAuthorization,
+        routingTargetType: row.routingTargetType,
+        routingTargetBaseUrl: row.routingTargetBaseUrl,
+        routingTargetCredentialId: row.routingTargetCredentialId,
+        routingRequestedModel: row.routingRequestedModel,
+        routingRoutedModel: row.routingRoutedModel,
+        routingRejectReason: row.routingRejectReason,
+        credentialInjectionJson: row.credentialInjectionJson ?? null,
+      })
+      .run()
+    if (row.requestClass === 'inference') {
+      const prunedBefore = getPrunedBefore(sqliteDb, Date.now(), privacy.requestLogRetentionDays)
+      appendLoggedRequest(sqliteDb, id, row.startedAt, prunedBefore)
+    }
+  })()
   publishAdminEvent('request.completed', {
     request: toRequestRow(
       {

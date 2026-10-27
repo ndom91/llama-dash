@@ -5,13 +5,16 @@ import {
   UpdatePrivacySettingsBodySchema,
   UpdateRequestLimitsBodySchema,
 } from '../../../lib/schemas/settings.ts'
+import { UpdateUsagePanelSettingsBodySchema } from '../../../lib/schemas/usage.ts'
 import {
   getAttributionSettings,
   getPrivacySettings,
   getRequestLimits,
+  getUsagePanelSettings,
   setAttributionSettings,
   setPrivacySettings,
   setRequestLimits,
+  setUsagePanelSettings,
 } from '../settings.ts'
 import { error, json, readJsonBody, type Route } from './types.ts'
 
@@ -76,6 +79,23 @@ export const settingRoutes: Route[] = [
       if (!result.success) return error(400, 'Invalid privacy settings body')
       setPrivacySettings(result.output)
       return json(200, getPrivacySettings())
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/settings\/usage$/,
+    handler: async () => json(200, getUsagePanelSettings()),
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/settings\/usage$/,
+    handler: async (request) => {
+      const parsed = await readJsonBody(request)
+      if (!parsed.ok) return error(400, 'Invalid JSON body')
+      const result = v.safeParse(UpdateUsagePanelSettingsBodySchema, parsed.value)
+      if (!result.success) return error(400, 'Invalid usage panel settings body')
+      setUsagePanelSettings(result.output)
+      return json(200, getUsagePanelSettings())
     },
   },
 ]

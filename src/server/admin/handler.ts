@@ -11,6 +11,7 @@ import { systemRoutes } from './routes/system.ts'
 import { error, type Route } from './routes/types.ts'
 import { upstreamCredentialRoutes } from './routes/upstream-credentials.ts'
 import { withConditionalGet } from './conditional-json.ts'
+import { usageRoutes } from './routes/usage.ts'
 
 const routes: Route[] = [
   ...articleRoutes,
@@ -24,6 +25,7 @@ const routes: Route[] = [
   ...mcpRelayRoutes,
   ...upstreamCredentialRoutes,
   ...systemRoutes,
+  ...usageRoutes,
 ]
 
 export async function handleAdminRequest(request: Request): Promise<Response> {

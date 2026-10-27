@@ -24,7 +24,13 @@ export const systemRoutes: Route[] = [
   {
     method: 'POST',
     pattern: /^\/api\/system\/request-logs\/prune$/,
-    handler: async () => json(200, pruneRequestLogs()),
+    handler: async () => {
+      try {
+        return json(200, pruneRequestLogs())
+      } catch (err) {
+        return error(503, err instanceof Error ? err.message : String(err))
+      }
+    },
   },
   {
     method: 'POST',

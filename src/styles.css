@@ -1536,6 +1536,7 @@
 
 @media (max-width: 900px) {
   .page-header-integrated {
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 10px;
   }

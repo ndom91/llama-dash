@@ -69,6 +69,47 @@ export const requests = sqliteTable(
 export type Request = typeof requests.$inferSelect
 export type NewRequest = typeof requests.$inferInsert
 
+/**
+ * Per-day usage rollup of inference requests, grouped by (UTC day, model, client,
+ * key, status class, routing action, client host, end user). Rebuilt from
+ * `requests` by the maintenance job before retention pruning so token/usage
+ * history outlives the raw request log. Session ids are deliberately not a
+ * dimension: they are near-unique per conversation.
+ */
+export const requestDailyStats = sqliteTable(
+  'request_daily_stats',
+  {
+    /** UTC calendar day, `YYYY-MM-DD`. */
+    day: text('day').notNull(),
+    /** Routed model when a routing rule rewrote it, otherwise the requested model. */
+    model: text('model'),
+    clientName: text('client_name'),
+    keyId: text('key_id'),
+    /**
+     * `2xx` / `3xx` / `4xx` / `5xx`, or `error` for a failure logged without an
+     * HTTP error status. Null on rows rolled up before this dimension existed.
+     */
+    statusClass: text('status_class'),
+    /** Routing rule action type; null when no rule matched. */
+    routingAction: text('routing_action'),
+    clientHost: text('client_host'),
+    endUserId: text('end_user_id'),
+    requests: integer('requests').notNull(),
+    errors: integer('errors').notNull(),
+    promptTokens: integer('prompt_tokens').notNull(),
+    completionTokens: integer('completion_tokens').notNull(),
+    totalTokens: integer('total_tokens').notNull(),
+    durationMsSum: integer('duration_ms_sum').notNull(),
+    costUsdSum: real('cost_usd_sum'),
+    /** Completion tokens and wall time of successful streamed requests, for avg generation speed. */
+    genCompletionTokens: integer('gen_completion_tokens').notNull(),
+    genDurationMs: integer('gen_duration_ms').notNull(),
+  },
+  (table) => [index('idx_request_daily_stats_day').on(table.day)],
+)
+
+export type RequestDailyStat = typeof requestDailyStats.$inferSelect
+
 export const modelEvents = sqliteTable(
   'model_events',
   {

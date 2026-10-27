@@ -9,6 +9,9 @@ export const qk = {
   requestStats: ['requests', 'stats'] as const,
   requestHistogram: ['requests', 'histogram'] as const,
   gpu: ['gpu'] as const,
+  usage: ['usage'] as const,
+  usageReport: (days: number) => ['usage', 'report', days] as const,
+  usageSummary: ['usage', 'summary'] as const,
   modelTimeline: ['model-timeline'] as const,
   request: (id: string) => ['requests', id] as const,
   requestPayloadsRoot: ['request-payloads'] as const,
@@ -23,4 +26,5 @@ export const qk = {
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
   requestLimits: ['settings', 'request-limits'] as const,
+  usagePanelSettings: ['settings', 'usage'] as const,
 }

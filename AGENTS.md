@@ -50,6 +50,7 @@ src/
     models.$id.tsx          · /models/:id detail (stats, history, config snippet, selector targets)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
+    usage.tsx               · /usage token usage by day plus three configurable breakdowns (7/30/90 days)
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     attribution.tsx         · /attribution header mapping + client setup examples
@@ -67,6 +68,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
+    usage/                 · usage page: period switch, per-day chart, generic breakdown panels
     policies/              · routing, credentials, and MCP relays
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
@@ -128,7 +130,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
   The request class/ID index supports adjacent inference-request navigation without sorting the request log.
   The key/time index supports key-detail 30-minute statistics; key and model request lists select summary columns without payloads.
   A partial request timestamp index covers rows retaining headers or bodies, supporting retention selection and clearing.
-- `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
+- `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions. Daily usage rollups preserve request history through pruning. Startup backfill runs one UTC day per event-loop turn, persists its cursor, and blocks inference deletion until complete; body and MCP cleanup continue on rollup failures. A persisted high-water cutoff protects partially pruned rollups when retention changes, and completed request logs update existing rollups in the same transaction.
   Scheduled cleanup logs total and candidate-selection durations and aggregate row counts; manual prune responses remain unchanged.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
@@ -142,7 +144,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
 1. TanStack Start app on `:5173`.
 2. SQLite (`data/dash.db`) + Drizzle. Runtime tables plus query indexes for common
    request/model-event lookups: `requests` (per-call
-   metadata + optional bodies/headers), `model_events` (load/unload
+   metadata + optional bodies/headers), `request_daily_stats` (per UTC day ×
+   model × client × key × status class × routing action × client host × end
+   user usage rollup that outlives request-log retention; sessions are not
+   rolled up), `model_events` (load/unload
    event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
     `routing_rules` (ordered request routing rules), `upstream_credentials`
@@ -190,6 +195,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
    - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata and captured headers/bodies; metadata excludes payload columns at the SQL level
+   - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, and the three breakdowns configured in `/api/settings/usage` (client, key, model, status class, routing action, host, end user, or session)
+   - `/api/usage/summary` — generated-token totals for today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
     - `/api/events` — lightweight llama-dash dashboard invalidation/data events
@@ -207,6 +214,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
     - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
     - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+    - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    credential injection success/failure, latency-window, queue, upstream,

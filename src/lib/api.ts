@@ -23,6 +23,13 @@ import {
   RequestPayloadsSchema,
   RequestsListResponseSchema,
 } from './schemas/request'
+import {
+  ApiUsageReportSchema,
+  ApiUsageSummarySchema,
+  type UpdateUsagePanelSettingsBody,
+  type UsagePeriodDays,
+  UsagePanelSettingsSchema,
+} from './schemas/usage'
 
 export type {
   ApiModel,
@@ -63,6 +70,20 @@ export type { AttributionSettings, PrivacySettings, RequestLimits } from './sche
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
+export type {
+  ApiUsageBreakdownRow,
+  ApiUsageDay,
+  ApiUsagePanel,
+  ApiUsageReport,
+  ApiUsageSummary,
+  ApiUsageTotals,
+  ApiUsageWindow,
+  UpdateUsagePanelSettingsBody,
+  UsageDimension,
+  UsagePanelSettings,
+  UsagePanels,
+  UsagePeriodDays,
+} from './schemas/usage'
 
 type AnySchema = BaseSchema<unknown, unknown, BaseIssue<unknown>>
 export type ApiFetchOptions = Pick<RequestInit, 'signal' | 'priority'>
@@ -159,6 +180,11 @@ export const api = {
     return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema, { priority: 'low', ...options })
   },
   gpu: (options: ApiFetchOptions = {}) => getJson('/api/gpu', GpuSnapshotSchema, { priority: 'low', ...options }),
+  usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
+  usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),
+  getUsagePanelSettings: () => getJson('/api/settings/usage', UsagePanelSettingsSchema),
+  updateUsagePanelSettings: (body: UpdateUsagePanelSettingsBody) =>
+    sendJson('/api/settings/usage', UsagePanelSettingsSchema, { method: 'PATCH', body }),
   requestHistogram: (params: { window?: number; bucket?: number } = {}, options: ApiFetchOptions = {}) => {
     const q = new URLSearchParams()
     if (params.window != null) q.set('window', String(params.window))

@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import Avatar from 'boring-avatars'
 import {
   Boxes,
+  ChartColumnStacked,
   Fingerprint,
   KeyRound,
   LayoutDashboard,
@@ -38,6 +39,7 @@ type NavTarget =
   | '/'
   | '/models'
   | '/requests'
+  | '/usage'
   | '/logs'
   | '/system'
   | '/playground'
@@ -72,6 +74,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
     items: [
       { to: '/', label: 'Dashboard', leader: 'd', Icon: LayoutDashboard },
       { to: '/requests', label: 'Requests', leader: 'r', Icon: ScrollText },
+      { to: '/usage', label: 'Usage', leader: 'u', Icon: ChartColumnStacked },
       { to: '/logs', label: 'Logs', leader: 'l', Icon: Terminal },
       { to: '/system', label: 'System', leader: 's', Icon: ServerCog },
     ],

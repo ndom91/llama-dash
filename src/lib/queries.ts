@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   queryOptions,
   useInfiniteQuery,
   useMutation,
@@ -28,6 +29,8 @@ import {
   type ApiRequest,
   type ApiRequestStats,
   type ApiSystemStatus,
+  type ApiUsageReport,
+  type ApiUsageSummary,
   type AttributionSettings,
   type ModelAliasItem,
   type McpRelay,
@@ -36,6 +39,9 @@ import {
   type RoutingRule,
   type UpstreamCredential,
   type RequestLimits,
+  type UpdateUsagePanelSettingsBody,
+  type UsagePanelSettings,
+  type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { RequestMetadataResponseSchema } from './schemas/request'
@@ -110,6 +116,26 @@ export function useRequestStats(): UseQueryResult<ApiRequestStats> {
     queryKey: qk.requestStats,
     queryFn: ({ signal }) => api.requestStats({ signal }),
     refetchInterval: FALLBACK_POLL_MS,
+  })
+}
+
+/** Usage aggregates move slowly; poll rather than refetch on every request event. */
+const USAGE_POLL_MS = 30_000
+
+export function useUsageReport(days: UsagePeriodDays): UseQueryResult<ApiUsageReport> {
+  return useQuery({
+    queryKey: qk.usageReport(days),
+    queryFn: () => api.usage(days),
+    refetchInterval: USAGE_POLL_MS,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useUsageSummary(): UseQueryResult<ApiUsageSummary> {
+  return useQuery({
+    queryKey: qk.usageSummary,
+    queryFn: () => api.usageSummary(),
+    refetchInterval: USAGE_POLL_MS,
   })
 }
 
@@ -720,6 +746,32 @@ export function useUpdatePrivacySettings(): UseMutationResult<PrivacySettings, E
     },
     onError: (e) => {
       toastMutationError('Failed to update privacy settings', e)
+    },
+  })
+}
+
+export function useUsagePanelSettings(): UseQueryResult<UsagePanelSettings> {
+  return useQuery({
+    queryKey: qk.usagePanelSettings,
+    queryFn: () => api.getUsagePanelSettings(),
+  })
+}
+
+export function useUpdateUsagePanelSettings(): UseMutationResult<
+  UsagePanelSettings,
+  Error,
+  UpdateUsagePanelSettingsBody
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.updateUsagePanelSettings(body),
+    onSuccess: (settings) => {
+      qc.setQueryData(qk.usagePanelSettings, settings)
+      invalidateKeys(qc, [qk.usage])
+      toast.success('Usage panels updated')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update usage panels', e)
     },
   })
 }

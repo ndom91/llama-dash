@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { parseUsagePanelsSetting, type UsagePanelSettings } from '../../lib/schemas/usage.ts'
 import { db, schema } from '../db/index.ts'
 
 type RequestLimits = {
@@ -40,12 +41,14 @@ let _limitsCache: RequestLimits | null = null
 let _bodyLimitsCache: BodyLogLimits | null = null
 let _privacyCache: PrivacySettings | null = null
 let _attributionCache: AttributionSettings | null = null
+let _usagePanelsCache: UsagePanelSettings | null = null
 
 function invalidateCache() {
   _limitsCache = null
   _bodyLimitsCache = null
   _privacyCache = null
   _attributionCache = null
+  _usagePanelsCache = null
 }
 
 function parseBooleanSetting(value: string | null, fallback: boolean): boolean {
@@ -195,4 +198,15 @@ export function setPrivacySettings(settings: {
   if (settings.bodyRetentionDays !== undefined) {
     setSetting('body_retention_days', String(settings.bodyRetentionDays))
   }
+}
+
+/** Which breakdown each Usage page panel shows; missing or invalid → defaults. */
+export function getUsagePanelSettings(): UsagePanelSettings {
+  if (_usagePanelsCache) return _usagePanelsCache
+  _usagePanelsCache = { panels: parseUsagePanelsSetting(getSetting('usage_panels')) }
+  return _usagePanelsCache
+}
+
+export function setUsagePanelSettings(settings: UsagePanelSettings) {
+  setSetting('usage_panels', JSON.stringify(settings.panels))
 }

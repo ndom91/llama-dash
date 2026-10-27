@@ -24,6 +24,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 ## ✨ What it does
 
 - **Watch the box** — live request, token, model, upstream, CPU/GPU, update status, and static inference-host inventory in one dashboard.
+- **Review usage** — daily token usage and configurable breakdowns for 7, 30, or 90 UTC days, retained beyond raw request logs. Startup backfill runs one day at a time; historical totals may be incomplete until it finishes. Inference deletion waits for backfill, while payload and MCP relay cleanup can continue.
 - **Manage models** — load/unload models, inspect per-model stats, capabilities, and llama-swap selector routing, view residency history, and edit llama-swap config with validation.
 - **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `POST /infill`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.

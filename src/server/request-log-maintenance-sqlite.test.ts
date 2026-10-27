@@ -5,7 +5,7 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
 
 const sqlite = new Database(':memory:')
-const queries: { sql: string; params: number[] }[] = []
+const queries: { sql: string; params: (string | number)[] }[] = []
 const evict = vi.fn()
 const day = 86_400_000
 
@@ -13,14 +13,19 @@ beforeAll(async () => {
   migrate(drizzle(sqlite), { migrationsFolder: 'drizzle' })
   vi.doMock('./db/index.ts', () => ({
     sqliteDb: {
+      transaction: (fn: () => unknown) => sqlite.transaction(fn),
       prepare: (sql: string) => ({
-        all: (...params: number[]) => {
+        all: (...params: (string | number)[]) => {
           queries.push({ sql, params })
           return sqlite.prepare(sql).all(...params)
         },
-        run: (...params: number[]) => {
+        run: (...params: (string | number)[]) => {
           queries.push({ sql, params })
           return sqlite.prepare(sql).run(...params)
+        },
+        get: (...params: (string | number)[]) => {
+          queries.push({ sql, params })
+          return sqlite.prepare(sql).get(...params)
         },
       }),
     },
@@ -59,7 +64,12 @@ it('uses the migrated partial index and preserves retention and cache eviction',
   insert.run('recent-kept', now - day, 'inference', 200, null, null, 'x', null, null)
   sqlite.exec(readFileSync('drizzle/0043_common_victor_mancha.sql', 'utf8'))
 
-  const { pruneRequestLogs } = await import('./request-log-maintenance')
+  vi.useFakeTimers()
+  vi.setSystemTime(now)
+  const { pruneRequestLogs, startRequestLogMaintenance } = await import('./request-log-maintenance')
+  startRequestLogMaintenance()
+  vi.advanceTimersByTime(100)
+  queries.length = 0
   expect(pruneRequestLogs(now)).toEqual({
     inferenceDeleted: 1,
     mcpRelaySuccessDeleted: 1,
@@ -81,7 +91,11 @@ it('uses the migrated partial index and preserves retention and cache eviction',
   expect(sqlite.prepare('select request_headers from requests where id = ?').get('cutoff-kept')).toEqual({
     request_headers: 'x',
   })
-  for (const query of [queries[0], queries[4]]) {
+  const selection = queries.find((query) => query.sql.includes('select id\n'))
+  const clearing = queries.find((query) => query.sql.includes('set request_headers = null'))
+  expect(selection).toBeDefined()
+  expect(clearing).toBeDefined()
+  for (const query of [selection!, clearing!]) {
     const plan = sqlite.prepare(`explain query plan ${query.sql}`).all(...query.params) as { detail: string }[]
     expect(plan.map((row) => row.detail).join(' ')).toContain('idx_requests_payload_started_at')
   }
@@ -93,4 +107,15 @@ it('uses the migrated partial index and preserves retention and cache eviction',
     bodiesCleared: 0,
   })
   expect(evict).not.toHaveBeenCalled()
+  const watermark = sqlite.prepare('select value from settings where key = ?').get('usage_rollup_pruned_before')
+  sqlite.exec(
+    "create trigger reject_inference_delete before delete on requests when old.request_class = 'inference' begin select raise(abort, 'delete failure'); end",
+  )
+  expect(() => pruneRequestLogs(now + 40 * day)).toThrow('delete failure')
+  expect(sqlite.prepare('select value from settings where key = ?').get('usage_rollup_pruned_before')).toEqual(
+    watermark,
+  )
+  expect(sqlite.prepare('select count(*) as n from requests').get()).toEqual({ n: 4 })
+  vi.clearAllTimers()
+  vi.useRealTimers()
 })
