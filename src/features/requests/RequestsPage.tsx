@@ -564,11 +564,11 @@ export function RequestsPage() {
                     {selectedMinutes.length > 0 ? (
                       <button
                         type="button"
-                        className="btn btn-ghost btn-xs ml-auto"
+                        className="btn btn-ghost btn-xs ml-auto !inline-flex items-center"
                         aria-label="Clear time filter"
                         onClick={() => setSelectedMinutes([])}
                       >
-                        <X className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" /> clear
+                        <X className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" /> <span>clear</span>
                       </button>
                     ) : null}
                   </div>

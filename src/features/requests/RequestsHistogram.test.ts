@@ -36,7 +36,7 @@ it('clears the selected minutes on Escape, without consuming Escape in a text fi
   const bars = view.getAllByRole('button')
   fireEvent.click(bars[0], { detail: 0 })
   expect(bars[0].querySelector('.histogram-bar-inner')?.className).toContain('outline-1')
-  expect(bars[1].querySelector('.histogram-bar-inner')?.className).toContain('opacity-40')
+  expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
   const input = document.createElement('input')
   document.body.appendChild(input)
   fireEvent.keyDown(input, { key: 'Escape' })

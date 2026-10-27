@@ -133,11 +133,7 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
               }}
             >
               <div
-                className={cn(
-                  'histogram-bar-inner',
-                  active.includes(b.timestamp) && 'outline-1 outline-fg/70',
-                  active.length > 0 && !active.includes(b.timestamp) && 'opacity-40',
-                )}
+                className={cn('histogram-bar-inner', active.includes(b.timestamp) && 'outline-1 outline-fg')}
                 aria-hidden="true"
               >
                 {errH > 0 ? <div className="histogram-bar-err" style={{ height: errH }} /> : null}
