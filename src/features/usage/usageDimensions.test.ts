@@ -29,12 +29,12 @@ describe('usage row links', () => {
   })
 
   it('links hosts including the no-host filter', () => {
-    expect(usageRowRequestsSearch('host', row('10.0.0.2'))).toEqual({ host: '10.0.0.2' })
-    expect(usageRowRequestsSearch('host', row(null))).toEqual({ host: '__none__' })
+    expect(usageRowRequestsSearch('host', row('10.0.0.2'))).toEqual({ host: ['10.0.0.2'] })
+    expect(usageRowRequestsSearch('host', row(null))).toEqual({ host: ['__none__'] })
   })
 
   it('links keys by name and skips deleted or keyless rows', () => {
-    expect(usageRowRequestsSearch('key', row('k1', 'laptop'))).toEqual({ key: 'key:laptop' })
+    expect(usageRowRequestsSearch('key', row('k1', 'laptop'))).toEqual({ key: ['key:laptop'] })
     expect(usageRowRequestsSearch('key', row('k1'))).toBeNull()
     expect(usageRowRequestsSearch('key', row(null))).toBeNull()
   })

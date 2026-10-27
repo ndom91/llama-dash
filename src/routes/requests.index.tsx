@@ -6,10 +6,10 @@ import type { RoutingFilter, SortDir, SortKey, StatusFilter } from '../features/
 export type RequestsSearch = {
   q?: string
   status?: StatusFilter
-  model?: string
-  key?: string
+  model?: string[]
+  key?: string[]
   routing?: RoutingFilter
-  host?: string
+  host?: string[]
   client?: string
   endUser?: string
   session?: string
@@ -27,6 +27,12 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' && v.length > 0 ? v : undefined
 }
 
+/** Accepts arrays plus legacy single-value links like `?model=foo`. */
+function asStringList(v: unknown): string[] | undefined {
+  const list = (Array.isArray(v) ? v : [v]).filter((x): x is string => typeof x === 'string' && x.length > 0)
+  return list.length > 0 ? list : undefined
+}
+
 function asEnum<T extends string>(v: unknown, allowed: ReadonlyArray<T>): T | undefined {
   return typeof v === 'string' && (allowed as ReadonlyArray<string>).includes(v) ? (v as T) : undefined
 }
@@ -42,10 +48,10 @@ export const Route = createFileRoute('/requests/')({
   validateSearch: (search: Record<string, unknown>): RequestsSearch => ({
     q: asString(search.q),
     status: asEnum(search.status, STATUS_VALUES),
-    model: asString(search.model),
-    key: asString(search.key),
+    model: asStringList(search.model),
+    key: asStringList(search.key),
     routing: asEnum(search.routing, ROUTING_VALUES),
-    host: asString(search.host),
+    host: asStringList(search.host),
     client: asString(search.client),
     endUser: asString(search.endUser),
     session: asString(search.session),

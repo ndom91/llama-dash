@@ -7,6 +7,7 @@ import type { RequestsSearch } from '../../routes/requests.index'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
+import { Select, type SelectOption } from '../../components/Select'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
@@ -53,13 +54,13 @@ export function RequestsPage() {
 
   const search = routeSearch.q ?? ''
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
-  const modelFilter: string = routeSearch.model ?? 'all'
+  const modelFilter = routeSearch.model ?? NO_VALUES
   const sortKey: SortKey = routeSearch.sortKey ?? 'startedAt'
   const sortDir: SortDir = routeSearch.sortDir ?? 'desc'
-  const keyFilter: string = routeSearch.key ?? 'all'
+  const keyFilter = routeSearch.key ?? NO_VALUES
   const routingFilter: RoutingFilter = routeSearch.routing ?? 'all'
   const clientFilter = routeSearch.client ?? ''
-  const hostFilter: string = routeSearch.host ?? 'all'
+  const hostFilter = routeSearch.host ?? NO_VALUES
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
   const [searchDraft, setSearchDraft] = useState(search)
@@ -72,7 +73,7 @@ export function RequestsPage() {
           const next: Record<string, unknown> = { ...prev, ...patch }
           for (const k of Object.keys(patch)) {
             const v = next[k]
-            if (v === undefined || v === '' || v === 'all') delete next[k]
+            if (v === undefined || v === '' || v === 'all' || (Array.isArray(v) && v.length === 0)) delete next[k]
           }
           return next as RequestsSearch
         },
@@ -118,6 +119,25 @@ export function RequestsPage() {
     return Array.from(set).sort()
   }, [allRows])
 
+  // Selected values stay listed even when the loaded page no longer contains them.
+  const modelOptions = useMemo(() => withSelected(models.map(toOption), modelFilter), [models, modelFilter])
+  const keyOptions = useMemo(
+    () =>
+      withSelected(
+        [
+          ...(hasProxyRequests ? [{ value: REQUEST_KEY_FILTER_PROXY, label: 'proxy' }] : []),
+          { value: REQUEST_KEY_FILTER_NONE, label: 'No key' },
+          ...keyNames.map((k) => ({ value: requestKeyNameFilterValue(k), label: k })),
+        ],
+        keyFilter,
+      ),
+    [hasProxyRequests, keyNames, keyFilter],
+  )
+  const hostOptions = useMemo(
+    () => withSelected([{ value: REQUEST_HOST_FILTER_NONE, label: 'No host' }, ...hosts.map(toOption)], hostFilter),
+    [hosts, hostFilter],
+  )
+
   const filtered = useMemo(
     () =>
       applyRequestFilters(allRows, {
@@ -152,10 +172,10 @@ export function RequestsPage() {
   )
 
   useEffect(() => {
-    if (modelFilter === 'all' || models.length === 0) return
-    if (models.includes(modelFilter)) return
-    const match = models.find((m) => m === modelFilter || m.endsWith(`/${modelFilter}`))
-    if (match) updateSearch({ model: match })
+    if (modelFilter.length === 0 || models.length === 0) return
+    if (modelFilter.every((f) => models.includes(f))) return
+    const resolved = modelFilter.map((f) => models.find((m) => m === f || m.endsWith(`/${f}`)) ?? f)
+    if (resolved.some((m, i) => m !== modelFilter[i])) updateSearch({ model: resolved })
   }, [models, modelFilter, updateSearch])
 
   const rows = useMemo(() => {
@@ -300,12 +320,12 @@ export function RequestsPage() {
   const hasFilters =
     searchDraft !== '' ||
     statusFilter !== 'all' ||
-    modelFilter !== 'all' ||
-    keyFilter !== 'all' ||
+    modelFilter.length > 0 ||
+    keyFilter.length > 0 ||
     routingFilter !== 'all' ||
     showMcpRelays ||
     clientFilter !== '' ||
-    hostFilter !== 'all' ||
+    hostFilter.length > 0 ||
     endUserFilter !== '' ||
     sessionFilter !== '' ||
     selectedMinutes.length > 0
@@ -375,62 +395,46 @@ export function RequestsPage() {
 
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                <Select
+                  aria-label="Status"
                   value={statusFilter}
-                  onChange={(e) => updateSearch({ status: e.target.value as StatusFilter })}
-                >
-                  <option value="all">All status</option>
-                  <option value="ok">Success</option>
-                  <option value="err">Errors</option>
-                </select>
+                  onValueChange={(v) => updateSearch({ status: v as StatusFilter })}
+                  options={STATUS_OPTIONS}
+                />
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                <Select
+                  multiple
+                  aria-label="Model"
+                  placeholder="All models"
                   value={modelFilter}
-                  onChange={(e) => updateSearch({ model: e.target.value })}
-                >
-                  <option value="all">All models</option>
-                  {models.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(v) => updateSearch({ model: v })}
+                  options={modelOptions}
+                />
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                <Select
+                  multiple
+                  aria-label="Key"
+                  placeholder="All keys"
                   value={keyFilter}
-                  onChange={(e) => updateSearch({ key: e.target.value })}
-                >
-                  <option value="all">All keys</option>
-                  {hasProxyRequests ? <option value={REQUEST_KEY_FILTER_PROXY}>proxy</option> : null}
-                  <option value={REQUEST_KEY_FILTER_NONE}>No key</option>
-                  {keyNames.map((k) => (
-                    <option key={k} value={requestKeyNameFilterValue(k)}>
-                      {k}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(v) => updateSearch({ key: v })}
+                  options={keyOptions}
+                />
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Routing</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                <Select
+                  aria-label="Routing"
                   value={routingFilter}
-                  onChange={(e) => updateSearch({ routing: e.target.value as RoutingFilter })}
-                >
-                  <option value="all">All requests</option>
-                  <option value="routed">Routed only</option>
-                  <option value="unrouted">Unrouted only</option>
-                </select>
+                  onValueChange={(v) => updateSearch({ routing: v as RoutingFilter })}
+                  options={ROUTING_OPTIONS}
+                />
               </div>
 
               <label className="mb-4 flex cursor-pointer items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-fg-dim transition-colors hover:border-border-strong hover:text-fg">
@@ -450,19 +454,14 @@ export function RequestsPage() {
 
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Host</div>
-                <select
-                  className="select-native h-8 w-full cursor-pointer rounded border border-border-strong bg-surface-2 px-2.5 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
+                <Select
+                  multiple
+                  aria-label="Host"
+                  placeholder="All hosts"
                   value={hostFilter}
-                  onChange={(e) => updateSearch({ host: e.target.value })}
-                >
-                  <option value="all">All hosts</option>
-                  <option value="__none__">No host</option>
-                  {hosts.map((h) => (
-                    <option key={h} value={h}>
-                      {h}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(v) => updateSearch({ host: v })}
+                  options={hostOptions}
+                />
               </div>
 
               <div className="mb-4 flex flex-col gap-1.5">
@@ -780,6 +779,31 @@ export function RequestsPage() {
   )
 }
 
+const NO_VALUES: readonly string[] = []
+const REQUEST_HOST_FILTER_NONE = '__none__'
+
+const STATUS_OPTIONS: readonly SelectOption[] = [
+  { value: 'all', label: 'All status' },
+  { value: 'ok', label: 'Success' },
+  { value: 'err', label: 'Errors' },
+]
+
+const ROUTING_OPTIONS: readonly SelectOption[] = [
+  { value: 'all', label: 'All requests' },
+  { value: 'routed', label: 'Routed only' },
+  { value: 'unrouted', label: 'Unrouted only' },
+]
+
+function toOption(value: string): SelectOption {
+  return { value, label: value }
+}
+
+function withSelected(options: SelectOption[], selected: readonly string[]): SelectOption[] {
+  const known = new Set(options.map((o) => o.value))
+  const missing = selected.filter((v) => !known.has(v)).map(toOption)
+  return missing.length > 0 ? [...options, ...missing] : options
+}
+
 function isMcpRelayRequest(row: { requestClass: string }): boolean {
   return row.requestClass === 'mcp_relay'
 }
@@ -802,11 +826,11 @@ function applyRequestFilters<T extends RequestFilterRow>(
   rows: T[],
   filters: {
     statusFilter: StatusFilter
-    modelFilter: string
-    keyFilter: string
+    modelFilter: readonly string[]
+    keyFilter: readonly string[]
     routingFilter: RoutingFilter
     clientFilter: string
-    hostFilter: string
+    hostFilter: readonly string[]
     endUserFilter: string
     sessionFilter: string
     search: string
@@ -821,10 +845,10 @@ function applyRequestFilters<T extends RequestFilterRow>(
   if (filters.statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
   else if (filters.statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
 
-  if (filters.modelFilter !== 'all') out = out.filter((r) => r.model === filters.modelFilter)
+  if (filters.modelFilter.length > 0) out = out.filter((r) => r.model != null && filters.modelFilter.includes(r.model))
 
-  if (filters.keyFilter !== 'all') {
-    out = out.filter((r) => requestMatchesKeyFilter(r, filters.keyFilter))
+  if (filters.keyFilter.length > 0) {
+    out = out.filter((r) => filters.keyFilter.some((f) => requestMatchesKeyFilter(r, f)))
   }
 
   if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
@@ -833,9 +857,8 @@ function applyRequestFilters<T extends RequestFilterRow>(
   if (client) {
     out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(client))
   }
-  if (filters.hostFilter !== 'all') {
-    if (filters.hostFilter === '__none__') out = out.filter((r) => r.clientHost == null)
-    else out = out.filter((r) => r.clientHost === filters.hostFilter)
+  if (filters.hostFilter.length > 0) {
+    out = out.filter((r) => filters.hostFilter.includes(r.clientHost ?? REQUEST_HOST_FILTER_NONE))
   }
   if (endUser) {
     out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUser))

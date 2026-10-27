@@ -78,6 +78,7 @@ src/
     StatusDot.tsx           · animated status indicator (ok/warn/err/idle)
     StatusCell.tsx          · status code + stream badge
     PageHeader.tsx          · reusable kicker + title + subtitle + actions
+    Select.tsx              · base-ui select; single by default, `multiple` for multi-value filters
     TopBar.tsx, Tooltip.tsx, ThemeToggle.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
@@ -317,7 +318,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     existing unattributed request rows and rollups are not retroactively reclassified.
     The request histogram selects absolute one-minute intervals, including disjoint selections;
     `/api/requests` applies these before cursor pagination and live cache updates honor the filter.
-    Request list supports routing, attribution, and client-host filters, and session IDs
+    Request list supports routing, attribution, and client-host filters (model, key, and host
+    are multi-select; legacy single-value URLs still parse), and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.
     Request rows are classified as `inference` or `mcp_relay`; successful MCP relay

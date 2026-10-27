@@ -27,6 +27,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@base-ui/react": "^1.9.0",
     "@better-auth/infra": "0.3.2",
     "@better-auth/passkey": "1.6.20",
     "@fontsource/geist-sans": "5.2.5",

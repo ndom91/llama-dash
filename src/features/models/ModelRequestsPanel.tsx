@@ -24,7 +24,7 @@ export function ModelRequestsPanel({ rows, modelId }: Props) {
         <span className="panel-sub">· last 20</span>
         <Link
           to="/requests"
-          search={{ model: modelId }}
+          search={{ model: [modelId] }}
           className="btn btn-ghost btn-xs"
           style={{ marginLeft: 'auto' }}
         >

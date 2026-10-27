@@ -44,9 +44,9 @@ export function usageRowRequestsSearch(dimension: UsageDimension, row: ApiUsageB
     case 'routing':
       return { routing: value == null ? 'unrouted' : 'routed' }
     case 'host':
-      return { host: value ?? '__none__' }
+      return { host: [value ?? '__none__'] }
     case 'key':
-      return value != null && row.label != null ? { key: requestKeyNameFilterValue(row.label) } : null
+      return value != null && row.label != null ? { key: [requestKeyNameFilterValue(row.label)] } : null
     case 'model':
       // The Requests filter matches requested models, not routed rollup models.
       return null
