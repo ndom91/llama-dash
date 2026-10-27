@@ -29,7 +29,8 @@ const CHART_MODES: ReadonlyArray<{ value: UsageChartMode; label: string }> = [
 export function UsagePage() {
   const navigate = useNavigate()
   const days: UsagePeriodDays = usageRouteApi.useSearch().days ?? 7
-  const { data: report, error } = useUsageReport(days)
+  const { data, error, isPlaceholderData } = useUsageReport(days)
+  const report = isPlaceholderData ? undefined : data
   const setDays = (next: UsagePeriodDays) => navigate({ to: '/usage', search: { days: next }, replace: true })
   const isEmpty = report != null && report.oldestDay == null
   // localStorage-backed like other UI toggles. Hydration-safe here because the

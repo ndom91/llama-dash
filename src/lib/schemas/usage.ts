@@ -107,7 +107,7 @@ export const ApiUsageReportSchema = v.object({
   /** Earliest UTC day with any recorded usage, or null when there is none. */
   oldestDay: v.nullable(v.string()),
   totals: ApiUsageTotalsSchema,
-  /** The same number of days immediately before `from`. */
+  /** The preceding 24 hours for days=1, or the preceding UTC calendar-day window. */
   previous: ApiUsageTotalsSchema,
   /** Previously pruned raw requests may make the rolling comparison incomplete. */
   comparisonIncomplete: v.optional(v.boolean()),

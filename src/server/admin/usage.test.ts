@@ -331,6 +331,27 @@ describe('usage summary', () => {
     expect(s.days7.series.at(-2)).toBe(103)
   })
 
+  it('preserves rolling and legacy today boundaries at a fractional hour', () => {
+    const now = TODAY + 15 * HOUR_MS + 30 * 60_000
+    insertTestRequests(sqlite, [
+      { id: 'old', startedAt: now - 2 * DAY_MS - 1, completionTokens: 1000 },
+      { id: 'previous-start', startedAt: now - 2 * DAY_MS, completionTokens: 1 },
+      { id: 'yesterday-start', startedAt: TODAY - DAY_MS, completionTokens: 2 },
+      { id: 'rolling-start', startedAt: now - DAY_MS, completionTokens: 4 },
+      { id: 'today-start', startedAt: TODAY, completionTokens: 8 },
+      { id: 'now', startedAt: now, completionTokens: 16 },
+      { id: 'future', startedAt: now + 1, completionTokens: 1000 },
+    ])
+    const s = getUsageSummary(sqlite, { now, retentionDays: 30 })
+    expect(s.hours24.completionTokens).toBe(12)
+    expect(s.hours24.previous).toBe(3)
+    expect(s.hours24.series[0]).toBe(4)
+    expect(s.today.completionTokens).toBe(24)
+    expect(s.today.previous).toBe(6)
+    expect(s.today.series[0]).toBe(8)
+    expect(s.today.series[15]).toBe(16)
+  })
+
   it('compares 7 and 30 day windows with the windows before them', () => {
     insertTestRequests(sqlite, [
       { id: 'a', startedAt: TODAY - 8 * DAY_MS, completionTokens: 11 },

@@ -150,38 +150,36 @@ export function getUsageSummary(sqlite: Database.Database, options: SummaryOptio
 
   const start = now - DAY_MS
   const hourly = new Array<number>(24).fill(0)
-  const hourRows = sqlite
-    .prepare(
-      `select cast((started_at - ?) / ${HOUR_MS} as integer) as hour, coalesce(sum(completion_tokens), 0) as tokens
-       from requests
-       where request_class = 'inference' and started_at >= ? and started_at < ?
-       group by hour`,
-    )
-    .all(start, start, now) as Array<{ hour: number; tokens: number }>
-  for (const row of hourRows) if (row.hour >= 0 && row.hour < 24) hourly[row.hour] = row.tokens
-
-  const previous24 = sqlite
-    .prepare(
-      `select coalesce(sum(completion_tokens), 0) as tokens
-       from requests
-       where request_class = 'inference' and started_at >= ? and started_at < ?`,
-    )
-    .get(now - 2 * DAY_MS, start) as { tokens: number }
-
   const todayHourly = new Array<number>(Math.floor((now - todayStart) / HOUR_MS) + 1).fill(0)
-  const todayRows = sqlite
+  const rawRows = sqlite
     .prepare(
-      `select cast((started_at - ?) / ${HOUR_MS} as integer) as hour, coalesce(sum(completion_tokens), 0) as tokens
-     from requests where request_class = 'inference' and started_at >= ? and started_at <= ? group by hour`,
+      `select
+         cast((started_at - @start) / ${HOUR_MS} as integer) as rollingHour,
+         cast((started_at - @todayStart) / ${HOUR_MS} as integer) as todayHour,
+         coalesce(sum(case when started_at >= @start and started_at < @now then completion_tokens end), 0) as rolling,
+         coalesce(sum(case when started_at < @start then completion_tokens end), 0) as previous24,
+         coalesce(sum(case when started_at >= @todayStart then completion_tokens end), 0) as today,
+         coalesce(sum(case when started_at >= @yesterdayStart and started_at <= @start then completion_tokens end), 0) as previousToday
+       from requests
+       where request_class = 'inference' and started_at >= @previousStart and started_at <= @now
+       group by rollingHour, todayHour`,
     )
-    .all(todayStart, todayStart, now) as Array<{ hour: number; tokens: number }>
-  for (const row of todayRows) if (row.hour >= 0 && row.hour < todayHourly.length) todayHourly[row.hour] = row.tokens
-  const previousToday = sqlite
-    .prepare(
-      `select coalesce(sum(completion_tokens), 0) as tokens from requests
-     where request_class = 'inference' and started_at >= ? and started_at <= ?`,
-    )
-    .get(todayStart - DAY_MS, now - DAY_MS) as { tokens: number }
+    .all({ start, todayStart, now, yesterdayStart: todayStart - DAY_MS, previousStart: now - 2 * DAY_MS }) as Array<{
+    rollingHour: number
+    todayHour: number
+    rolling: number
+    previous24: number
+    today: number
+    previousToday: number
+  }>
+  let previous24 = 0
+  let previousToday = 0
+  for (const row of rawRows) {
+    if (row.rollingHour >= 0 && row.rollingHour < 24) hourly[row.rollingHour] += row.rolling
+    if (row.todayHour >= 0 && row.todayHour < todayHourly.length) todayHourly[row.todayHour] += row.today
+    previous24 += row.previous24
+    previousToday += row.previousToday
+  }
 
   const rows = loadDailyRows(sqlite, {
     fromDay: addDays(today, -59),
@@ -204,12 +202,12 @@ export function getUsageSummary(sqlite: Database.Database, options: SummaryOptio
   return {
     today: {
       completionTokens: todayHourly.reduce((acc, n) => acc + n, 0),
-      previous: previousToday.tokens,
+      previous: previousToday,
       series: todayHourly,
     },
     hours24: {
       completionTokens: hourly.reduce((acc, n) => acc + n, 0),
-      previous: previous24.tokens,
+      previous: previous24,
       series: hourly,
       comparisonIncomplete: getPrunedBefore(sqlite, now, options.retentionDays) > now - 2 * DAY_MS,
     },

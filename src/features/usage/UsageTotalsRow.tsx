@@ -58,7 +58,11 @@ export function UsageTotalsRow({ report }: Props) {
             <span className="stat-card-value">{card.value}</span>
             <span className="stat-card-unit">{card.unit}</span>
           </div>
-          <UsageDelta current={card.current} previous={card.prev} against={against} />
+          {report.comparisonIncomplete ? (
+            <span className="font-mono text-[11px] text-fg-dim">history incomplete</span>
+          ) : (
+            <UsageDelta current={card.current} previous={card.prev} against={against} />
+          )}
         </div>
       ))}
     </div>

@@ -6,7 +6,12 @@ import { TooltipProvider } from '../../components/Tooltip'
 import { UsagePage } from './UsagePage'
 import { UsagePagePending } from './UsagePagePending'
 
-const reportState = vi.hoisted(() => ({ data: undefined as unknown, error: null as Error | null, days: 7 }))
+const reportState = vi.hoisted(() => ({
+  data: undefined as unknown,
+  error: null as Error | null,
+  days: 7,
+  isPlaceholderData: false,
+}))
 
 vi.mock('@tanstack/react-router', () => ({
   getRouteApi: () => ({ useSearch: () => ({ days: reportState.days }) }),
@@ -21,6 +26,7 @@ afterEach(() => {
   reportState.data = undefined
   reportState.error = null
   reportState.days = 7
+  reportState.isPlaceholderData = false
 })
 
 it('shows the rolling 24-hour period', () => {
@@ -44,8 +50,19 @@ it('shows the rolling 24-hour period', () => {
   expect(view.getByRole('button', { name: '1d' }).getAttribute('aria-pressed')).toBe('true')
   expect(view.getByText(/2026-10-26 13:00 – 2026-10-27 13:00 · UTC/)).toBeDefined()
   expect(view.getByText(/Previous 24-hour comparison may be incomplete/)).toBeDefined()
+  expect(view.getAllByText('history incomplete')).toHaveLength(4)
+  expect(view.queryByText(/vs prev/)).toBeNull()
   expect(view.getByText('last 24 hours · UTC days')).toBeDefined()
   expect(view.getByRole('img', { name: '2026-10-27: 30 tokens' }).parentElement?.className).toContain('max-w-24')
+  reportState.data = { ...(reportState.data as object), comparisonIncomplete: false }
+  view.rerender(createElement(TooltipProvider, null, createElement(UsagePage)))
+  expect(view.getAllByText(/vs prev/)).toHaveLength(4)
+  reportState.days = 7
+  reportState.isPlaceholderData = true
+  view.rerender(createElement(TooltipProvider, null, createElement(UsagePage)))
+  expect(view.getByRole('status', { name: 'Loading usage' })).toBeDefined()
+  expect(view.queryByText('last 24 hours · UTC days')).toBeNull()
+  expect(view.queryByText(/vs prev/)).toBeNull()
 })
 
 it('keeps the header outside the scroll region with one divider for loaded and empty states', () => {
