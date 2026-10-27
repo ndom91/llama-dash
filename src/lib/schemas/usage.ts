@@ -101,11 +101,16 @@ export const ApiUsageReportSchema = v.object({
   /** First and last UTC day of the period (inclusive). */
   from: v.string(),
   to: v.string(),
+  /** Exact rolling window bounds, when the period is 24 hours. */
+  fromTimestamp: v.optional(v.string()),
+  toTimestamp: v.optional(v.string()),
   /** Earliest UTC day with any recorded usage, or null when there is none. */
   oldestDay: v.nullable(v.string()),
   totals: ApiUsageTotalsSchema,
   /** The same number of days immediately before `from`. */
   previous: ApiUsageTotalsSchema,
+  /** Previously pruned raw requests may make the rolling comparison incomplete. */
+  comparisonIncomplete: v.optional(v.boolean()),
   daily: v.array(ApiUsageDaySchema),
   /** Request-log retention in days, for the session panel's note. */
   retentionDays: v.number(),
@@ -120,13 +125,16 @@ export const ApiUsageWindowSchema = v.object({
   /** Generated tokens in the comparison window. */
   previous: v.number(),
   series: v.array(v.number()),
+  comparisonIncomplete: v.optional(v.boolean()),
 })
 
 export type ApiUsageWindow = v.InferOutput<typeof ApiUsageWindowSchema>
 
 export const ApiUsageSummarySchema = v.object({
-  /** Today (UTC) so far vs yesterday up to the same time; hourly series. */
+  /** UTC today so far vs yesterday at the same time. */
   today: ApiUsageWindowSchema,
+  /** Last 24 hours vs the preceding 24 hours; hourly series. */
+  hours24: ApiUsageWindowSchema,
   /** Last 7 / 30 UTC days vs the window before; daily series. */
   days7: ApiUsageWindowSchema,
   days30: ApiUsageWindowSchema,

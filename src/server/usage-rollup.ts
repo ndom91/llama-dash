@@ -144,6 +144,10 @@ const aggregateSql = (where: string) => `
   group by 1, 2, 3, 4, 5, 6, 7, 8`
 const AGGREGATE_SQL = aggregateSql('started_at >= ? and started_at < ?')
 
+export function loadRawUsageRows(sqlite: Database.Database, fromMs: number, toMs: number): DailyUsageRow[] {
+  return sqlite.prepare(AGGREGATE_SQL).all(fromMs, toMs) as DailyUsageRow[]
+}
+
 const ROLLUP_COLUMNS = `day, model, clientName, keyId, statusClass, routingAction, clientHost, endUserId, requests, errors, promptTokens, completionTokens,
   totalTokens, durationMsSum, costUsdSum, genCompletionTokens, genDurationMs`
 const INSERT_COLUMNS = `day, model, client_name, key_id, status_class, routing_action, client_host, end_user_id, requests, errors, prompt_tokens, completion_tokens,
@@ -277,6 +281,10 @@ export function loadSessionRows(
   sqlite: Database.Database,
   options: { fromDay: string; toDay: string },
 ): SessionUsageRow[] {
+  return loadSessionRowsBetween(sqlite, dayToMs(options.fromDay), dayToMs(options.toDay) + DAY_MS)
+}
+
+export function loadSessionRowsBetween(sqlite: Database.Database, fromMs: number, toMs: number): SessionUsageRow[] {
   return sqlite
     .prepare(
       `select
@@ -286,5 +294,5 @@ export function loadSessionRows(
       where request_class = 'inference' and started_at >= ? and started_at < ?
       group by session_id`,
     )
-    .all(dayToMs(options.fromDay), dayToMs(options.toDay) + DAY_MS) as SessionUsageRow[]
+    .all(fromMs, toMs) as SessionUsageRow[]
 }

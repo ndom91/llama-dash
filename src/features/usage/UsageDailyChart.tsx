@@ -8,6 +8,7 @@ import { formatAxisTokens, formatUsageDay, type UsageChartMode, usageChartBars }
 type Props = {
   daily: Array<ApiUsageDay>
   mode: UsageChartMode
+  showTodayLabel?: boolean
 }
 
 const CHART_PX = 168
@@ -23,7 +24,7 @@ export const PROMPT_SERIES = 'color-mix(in srgb, var(--fg-dim) 45%, transparent)
  * counts stay readable when prompt tokens dwarf them. Linear scale against a
  * "nice numbers" axis, so bar tops line up with the gridline labels.
  */
-export function UsageDailyChart({ daily, mode }: Props) {
+export function UsageDailyChart({ daily, mode, showTodayLabel = true }: Props) {
   const { scale, bars } = usageChartBars(daily, mode)
   const labelEvery = daily.length <= 7 ? 1 : daily.length <= 30 ? 7 : 15
 
@@ -112,7 +113,7 @@ export function UsageDailyChart({ daily, mode }: Props) {
             <span key={d.day} className="relative min-w-0 flex-1">
               {show ? (
                 <span className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap">
-                  {fromEnd === 0 ? 'today' : formatUsageDay(d.day)}
+                  {fromEnd === 0 && showTodayLabel ? 'today' : formatUsageDay(d.day)}
                 </span>
               ) : null}
             </span>

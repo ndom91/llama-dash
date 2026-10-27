@@ -325,7 +325,8 @@ export function SettingsPage() {
                   <RetentionInput
                     id="request-log-retention-days"
                     label="Inference rows"
-                    description="Delete normal /v1 request rows after this many days."
+                    description="Delete inference rows after this many days (minimum 2 for 24-hour usage comparisons)."
+                    min={2}
                     value={privacy?.requestLogRetentionDays ?? ''}
                     disabled={!privacy || isPrivacyMutating}
                     onChange={(value) => updatePrivacySettings.mutate({ requestLogRetentionDays: value })}
@@ -404,6 +405,7 @@ function RetentionInput({
   description,
   value,
   disabled,
+  min = 1,
   onChange,
 }: {
   id: string
@@ -411,6 +413,7 @@ function RetentionInput({
   description: string
   value: number | ''
   disabled?: boolean
+  min?: number
   onChange: (value: number) => void
 }) {
   return (
@@ -419,7 +422,7 @@ function RetentionInput({
       <span className="min-h-8 leading-relaxed text-fg-faint">{description}</span>
       <NumberInput
         id={id}
-        min={1}
+        min={min}
         max={3650}
         step={1}
         suffix="days"
@@ -427,7 +430,7 @@ function RetentionInput({
         value={value}
         onChange={(event) => {
           const next = Number(event.target.value)
-          if (!Number.isInteger(next) || next < 1) return
+          if (!Number.isInteger(next) || next < min) return
           onChange(next)
         }}
       />

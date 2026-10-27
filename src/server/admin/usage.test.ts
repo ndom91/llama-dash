@@ -42,22 +42,46 @@ describe('usage report', () => {
     sqlite = createMigratedTestDb()
   })
 
-  it('reports today and compares it to the previous UTC day', () => {
+  it('reports exact rolling 24-hour windows and excludes the end boundary', () => {
     insertTestRequests(sqlite, [
-      { id: 'today', startedAt: TODAY + HOUR_MS, promptTokens: 100, completionTokens: 50 },
-      { id: 'yesterday', startedAt: TODAY - 1, promptTokens: 20, completionTokens: 10 },
-      { id: 'older', startedAt: TODAY - DAY_MS - 1, promptTokens: 999, completionTokens: 999 },
+      { id: 'current-start', startedAt: NOW - DAY_MS, promptTokens: 100, completionTokens: 50, sessionId: 'current' },
+      {
+        id: 'previous-end',
+        startedAt: NOW - DAY_MS - 1,
+        promptTokens: 20,
+        completionTokens: 10,
+        sessionId: 'previous',
+      },
+      { id: 'previous-start', startedAt: NOW - 2 * DAY_MS, promptTokens: 1, completionTokens: 2 },
+      { id: 'older', startedAt: NOW - 2 * DAY_MS - 1, promptTokens: 999, completionTokens: 999 },
+      { id: 'future', startedAt: NOW, promptTokens: 999, completionTokens: 999 },
     ])
     backfillTestUsage(sqlite, NOW, 30)
-    const result = report(sqlite, 1)
+    const result = report(sqlite, 1, ['session', 'client', 'model'])
     expect(result).toMatchObject({
       days: 1,
-      from: '2026-03-10',
+      from: '2026-03-09',
       to: '2026-03-10',
       totals: { requests: 1, promptTokens: 100, completionTokens: 50 },
-      previous: { requests: 1, promptTokens: 20, completionTokens: 10 },
-      daily: [{ day: '2026-03-10', requests: 1, promptTokens: 100, completionTokens: 50 }],
+      previous: { requests: 2, promptTokens: 21, completionTokens: 12 },
+      daily: [
+        { day: '2026-03-09', requests: 1, promptTokens: 100, completionTokens: 50 },
+        { day: '2026-03-10', requests: 0, promptTokens: 0, completionTokens: 0 },
+      ],
+      comparisonIncomplete: false,
     })
+    expect(result.panels[0].rows.map((row) => row.value)).toEqual(['current'])
+    const summary = getUsageSummary(sqlite, { now: NOW, retentionDays: 30 })
+    expect(summary.hours24.completionTokens).toBe(result.totals.completionTokens)
+    expect(summary.hours24.previous).toBe(result.previous.completionTokens)
+  })
+
+  it('marks the rolling comparison incomplete while the pruning watermark overlaps it', () => {
+    backfillTestUsage(sqlite, NOW, 30)
+    sqlite.prepare("update settings set value = ? where key = 'usage_rollup_pruned_before'").run(String(NOW - DAY_MS))
+    expect(report(sqlite, 1).comparisonIncomplete).toBe(true)
+    expect(getUsageSummary(sqlite, { now: NOW, retentionDays: 30 }).hours24.comparisonIncomplete).toBe(true)
+    expect(report(sqlite, 7).comparisonIncomplete).toBe(false)
   })
 
   it('groups Claude CLI attribution in live and rolled-up usage', () => {
@@ -276,12 +300,17 @@ describe('usage summary', () => {
 
   it('returns zeros for an empty database', () => {
     const s = getUsageSummary(sqlite, { now: NOW, retentionDays: 30 })
-    expect(s.today).toEqual({ completionTokens: 0, previous: 0, series: new Array(16).fill(0) })
+    expect(s.hours24).toEqual({
+      completionTokens: 0,
+      previous: 0,
+      series: new Array(24).fill(0),
+      comparisonIncomplete: false,
+    })
     expect(s.days7).toEqual({ completionTokens: 0, previous: 0, series: new Array(7).fill(0) })
     expect(s.days30.series).toHaveLength(30)
   })
 
-  it('compares today with yesterday up to the same time of day', () => {
+  it('compares the last 24 hours with the preceding 24 hours', () => {
     insertTestRequests(sqlite, [
       { id: 't1', startedAt: TODAY + 30 * 60 * 1000, completionTokens: 5 },
       { id: 't2', startedAt: TODAY + 15 * HOUR_MS, completionTokens: 7 },
@@ -291,10 +320,12 @@ describe('usage summary', () => {
     backfillTestUsage(sqlite, NOW, 30)
 
     const s = getUsageSummary(sqlite, { now: NOW, retentionDays: 30 })
+    expect(s.hours24.completionTokens).toBe(112)
+    expect(s.hours24.previous).toBe(3)
+    expect(s.hours24.series[9]).toBe(5)
+    expect(s.hours24.series[23]).toBe(7)
     expect(s.today.completionTokens).toBe(12)
     expect(s.today.previous).toBe(3)
-    expect(s.today.series[0]).toBe(5)
-    expect(s.today.series[15]).toBe(7)
     expect(s.days7.completionTokens).toBe(115)
     expect(s.days7.series.at(-1)).toBe(12)
     expect(s.days7.series.at(-2)).toBe(103)

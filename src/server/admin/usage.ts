@@ -12,9 +12,13 @@ import {
 } from '../../lib/schemas/usage'
 import {
   addDays,
+  dayToMs,
   type DailyUsageRow,
+  getPrunedBefore,
   loadDailyRows,
+  loadRawUsageRows,
   loadSessionRows,
+  loadSessionRowsBetween,
   type SessionUsageRow,
   utcDay,
   utcDayStartMs,
@@ -55,20 +59,29 @@ const ROLLUP_DIMENSION: Record<Exclude<UsageDimension, 'session'>, (row: DailyUs
 }
 
 /**
- * Usage for the last `days` UTC calendar days (today included) and the same
- * number of days before that, for the period-over-period delta.
+ * One day is a rolling 24-hour window. Longer periods use UTC calendar days.
  */
 export function getUsageReport(sqlite: Database.Database, options: ReportOptions): ApiUsageReport {
   const now = options.now ?? Date.now()
-  const to = utcDay(now)
-  const from = addDays(to, -(options.days - 1))
+  const rolling = options.days === 1
+  const to = utcDay(rolling ? now - 1 : now)
+  const from = rolling ? utcDay(now - DAY_MS) : addDays(to, -(options.days - 1))
   const previousFrom = addDays(from, -options.days)
 
-  const rows = loadDailyRows(sqlite, { fromDay: previousFrom, toDay: to, now, retentionDays: options.retentionDays })
-  const current = rows.filter((row) => row.day >= from)
-  const previous = rows.filter((row) => row.day < from)
+  const rows = rolling
+    ? []
+    : loadDailyRows(sqlite, { fromDay: previousFrom, toDay: to, now, retentionDays: options.retentionDays })
+  const current = rolling ? loadRawUsageRows(sqlite, now - DAY_MS, now) : rows.filter((row) => row.day >= from)
+  const previous = rolling
+    ? loadRawUsageRows(sqlite, now - 2 * DAY_MS, now - DAY_MS)
+    : rows.filter((row) => row.day < from)
 
-  const daily = dayRange(from, options.days).map((day) => ({ day, requests: 0, promptTokens: 0, completionTokens: 0 }))
+  const daily = dayRange(from, rolling ? (dayToMs(to) - dayToMs(from)) / DAY_MS + 1 : options.days).map((day) => ({
+    day,
+    requests: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+  }))
   const dayIndex = new Map(daily.map((entry, i) => [entry.day, i]))
   for (const row of current) {
     const entry = daily[dayIndex.get(row.day) ?? -1]
@@ -88,18 +101,27 @@ export function getUsageReport(sqlite: Database.Database, options: ReportOptions
     days: options.days,
     from,
     to,
+    ...(rolling
+      ? { fromTimestamp: new Date(now - DAY_MS).toISOString(), toTimestamp: new Date(now).toISOString() }
+      : {}),
     oldestDay,
     totals: sumTotals(current),
     previous: sumTotals(previous),
+    comparisonIncomplete: rolling && getPrunedBefore(sqlite, now, options.retentionDays) > now - 2 * DAY_MS,
     daily,
     retentionDays: options.retentionDays,
     panels: options.panels.map((dimension) => {
       if (dimension === 'session') {
         return buildPanel(
           dimension,
-          groupBy(loadSessionRows(sqlite, { fromDay: from, toDay: to }), (row: SessionUsageRow) => row.sessionId),
+          groupBy(
+            rolling
+              ? loadSessionRowsBetween(sqlite, now - DAY_MS, now)
+              : loadSessionRows(sqlite, { fromDay: from, toDay: to }),
+            (row: SessionUsageRow) => row.sessionId,
+          ),
           () => null,
-          options.days > options.retentionDays,
+          !rolling && options.days > options.retentionDays,
         )
       }
       const labelFor =
@@ -117,32 +139,47 @@ type SummaryOptions = {
 }
 
 /**
- * Generated (completion) tokens for the dashboard cards: today so far against
- * yesterday up to the same time of day, and the last 7 / 30 UTC days against
+ * Generated (completion) tokens for the dashboard cards: rolling 24 hours against
+ * the previous 24 hours, and the last 7 / 30 UTC days against
  * the windows before them.
  */
 export function getUsageSummary(sqlite: Database.Database, options: SummaryOptions): ApiUsageSummary {
   const now = options.now ?? Date.now()
-  const todayStart = utcDayStartMs(now)
   const today = utcDay(now)
+  const todayStart = utcDayStartMs(now)
 
-  const hours = Math.floor((now - todayStart) / HOUR_MS) + 1
-  const hourly = new Array<number>(hours).fill(0)
+  const start = now - DAY_MS
+  const hourly = new Array<number>(24).fill(0)
   const hourRows = sqlite
     .prepare(
       `select cast((started_at - ?) / ${HOUR_MS} as integer) as hour, coalesce(sum(completion_tokens), 0) as tokens
        from requests
-       where request_class = 'inference' and started_at >= ? and started_at <= ?
+       where request_class = 'inference' and started_at >= ? and started_at < ?
        group by hour`,
     )
-    .all(todayStart, todayStart, now) as Array<{ hour: number; tokens: number }>
-  for (const row of hourRows) if (row.hour >= 0 && row.hour < hours) hourly[row.hour] = row.tokens
+    .all(start, start, now) as Array<{ hour: number; tokens: number }>
+  for (const row of hourRows) if (row.hour >= 0 && row.hour < 24) hourly[row.hour] = row.tokens
 
-  const yesterdaySoFar = sqlite
+  const previous24 = sqlite
     .prepare(
       `select coalesce(sum(completion_tokens), 0) as tokens
        from requests
-       where request_class = 'inference' and started_at >= ? and started_at <= ?`,
+       where request_class = 'inference' and started_at >= ? and started_at < ?`,
+    )
+    .get(now - 2 * DAY_MS, start) as { tokens: number }
+
+  const todayHourly = new Array<number>(Math.floor((now - todayStart) / HOUR_MS) + 1).fill(0)
+  const todayRows = sqlite
+    .prepare(
+      `select cast((started_at - ?) / ${HOUR_MS} as integer) as hour, coalesce(sum(completion_tokens), 0) as tokens
+     from requests where request_class = 'inference' and started_at >= ? and started_at <= ? group by hour`,
+    )
+    .all(todayStart, todayStart, now) as Array<{ hour: number; tokens: number }>
+  for (const row of todayRows) if (row.hour >= 0 && row.hour < todayHourly.length) todayHourly[row.hour] = row.tokens
+  const previousToday = sqlite
+    .prepare(
+      `select coalesce(sum(completion_tokens), 0) as tokens from requests
+     where request_class = 'inference' and started_at >= ? and started_at <= ?`,
     )
     .get(todayStart - DAY_MS, now - DAY_MS) as { tokens: number }
 
@@ -166,9 +203,15 @@ export function getUsageSummary(sqlite: Database.Database, options: SummaryOptio
 
   return {
     today: {
+      completionTokens: todayHourly.reduce((acc, n) => acc + n, 0),
+      previous: previousToday.tokens,
+      series: todayHourly,
+    },
+    hours24: {
       completionTokens: hourly.reduce((acc, n) => acc + n, 0),
-      previous: yesterdaySoFar.tokens,
+      previous: previous24.tokens,
       series: hourly,
+      comparisonIncomplete: getPrunedBefore(sqlite, now, options.retentionDays) > now - 2 * DAY_MS,
     },
     days7: window(7),
     days30: window(30),

@@ -18,13 +18,15 @@ export function DashboardUsageCard({ label, window, against, days }: Props) {
       to="/usage"
       search={{ days }}
       className="stat-card min-h-[68px] no-underline transition-[background-color] duration-120 hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-      aria-label={`${label}: open usage for ${days === 1 ? 'today' : `the last ${days} days`}`}
+      aria-label={`${label}: open usage for ${days === 1 ? 'the last 24 hours' : `the last ${days} days`}`}
     >
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-row flex-wrap">
         <span className="stat-card-value">{window ? formatTokens(window.completionTokens) : '—'}</span>
         <span className="stat-card-unit">tokens</span>
-        {window ? (
+        {window?.comparisonIncomplete ? (
+          <span className="ml-auto font-mono text-[11px] text-fg-dim">history incomplete</span>
+        ) : window ? (
           <UsageDelta
             className="ml-auto"
             current={window.completionTokens}

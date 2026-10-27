@@ -36,6 +36,13 @@ export function UsagePage() {
   // chart only renders once the client-side usage query has data.
   const [generatedOnly, toggleGeneratedOnly] = useStickyToggle('usage-chart-generated-only', false)
   const chartMode: UsageChartMode = generatedOnly ? 'generated' : 'all'
+  const rangeLabel = report
+    ? days === 1
+      ? report.fromTimestamp && report.toTimestamp
+        ? `${report.fromTimestamp.slice(0, 16).replace('T', ' ')} – ${report.toTimestamp.slice(0, 16).replace('T', ' ')} · UTC`
+        : 'last 24 hours'
+      : `${formatUsageDay(report.from)} – ${formatUsageDay(report.to)} · UTC days`
+    : null
 
   return (
     <div className="content overflow-hidden">
@@ -45,7 +52,7 @@ export function UsagePage() {
           title="Usage"
           subtitle={
             report
-              ? `${report.from === report.to ? formatUsageDay(report.from) : `${formatUsageDay(report.from)} – ${formatUsageDay(report.to)}`} · UTC ${days === 1 ? 'day' : 'days'}${
+              ? `${rangeLabel}${
                   report.oldestDay ? ` · history since ${formatUsageDay(report.oldestDay, { year: 'numeric' })}` : ''
                 }`
               : 'tokens by day, app, model and key'
@@ -57,6 +64,11 @@ export function UsagePage() {
         {report && !isEmpty ? <UsageTotalsRow report={report} /> : !report && !error ? <UsageTotalsSkeleton /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto">
           {error ? <div className="err-banner m-4">{error.message}</div> : null}
+          {report?.comparisonIncomplete ? (
+            <div className="m-4 font-mono text-xs text-fg-dim">
+              Previous 24-hour comparison may be incomplete because older request rows were pruned.
+            </div>
+          ) : null}
 
           {report == null ? (
             error ? null : (
@@ -71,7 +83,11 @@ export function UsagePage() {
             <div className="flex min-w-0 flex-col">
               <UsagePanel
                 title="Tokens per day"
-                sub={<span className="max-[520px]:hidden">{days === 1 ? 'today · UTC' : `last ${days} days`}</span>}
+                sub={
+                  <span className="max-[520px]:hidden">
+                    {days === 1 ? 'last 24 hours · UTC days' : `last ${days} days`}
+                  </span>
+                }
                 aside={
                   <>
                     <span className="flex items-center gap-3 max-[520px]:hidden">
@@ -89,7 +105,7 @@ export function UsagePage() {
                   </>
                 }
               >
-                <UsageDailyChart daily={report.daily} mode={chartMode} />
+                <UsageDailyChart daily={report.daily} mode={chartMode} showTodayLabel={days !== 1} />
               </UsagePanel>
               <div className="flex h-9 items-center gap-2.5 border-b border-border bg-surface-1 px-4">
                 <span className="panel-title">Breakdowns</span>

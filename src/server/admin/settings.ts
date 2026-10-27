@@ -109,9 +109,9 @@ export function getPrivacySettings(): PrivacySettings {
     maxStoredBodyBytes:
       Number.isFinite(parsedMaxBytes) && parsedMaxBytes >= 0 ? parsedMaxBytes : DEFAULT_MAX_LOGGED_BODY_BYTES,
     mcpRelayPersistSuccessBodies: parseBooleanSetting(getSetting('mcp_relay_persist_success_bodies'), false),
-    requestLogRetentionDays: parsePositiveIntegerSetting(
-      getSetting('request_log_retention_days'),
-      DEFAULT_REQUEST_LOG_RETENTION_DAYS,
+    requestLogRetentionDays: Math.max(
+      2,
+      parsePositiveIntegerSetting(getSetting('request_log_retention_days'), DEFAULT_REQUEST_LOG_RETENTION_DAYS),
     ),
     mcpRelaySuccessRetentionDays: parsePositiveIntegerSetting(
       getSetting('mcp_relay_success_retention_days'),

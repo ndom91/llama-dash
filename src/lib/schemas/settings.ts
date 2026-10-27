@@ -34,7 +34,7 @@ export const UpdatePrivacySettingsBodySchema = v.object({
   captureResponseBodies: v.optional(v.boolean()),
   maxStoredBodyBytes: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(1024 * 1024))),
   mcpRelayPersistSuccessBodies: v.optional(v.boolean()),
-  requestLogRetentionDays: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(3650))),
+  requestLogRetentionDays: v.optional(v.pipe(v.number(), v.integer(), v.minValue(2), v.maxValue(3650))),
   mcpRelaySuccessRetentionDays: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(3650))),
   mcpRelayErrorRetentionDays: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(3650))),
   bodyRetentionDays: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(3650))),

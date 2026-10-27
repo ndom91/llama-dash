@@ -23,13 +23,16 @@ afterEach(() => {
   reportState.days = 7
 })
 
-it('shows the one-day period and a single UTC date', () => {
+it('shows the rolling 24-hour period', () => {
   const totals = { requests: 1, errors: 0, promptTokens: 20, completionTokens: 10, totalTokens: 30, costUsd: null }
   reportState.days = 1
   reportState.data = {
     days: 1,
     from: '2026-10-27',
     to: '2026-10-27',
+    fromTimestamp: '2026-10-26T13:00:00.000Z',
+    toTimestamp: '2026-10-27T13:00:00.000Z',
+    comparisonIncomplete: true,
     oldestDay: '2026-10-27',
     totals,
     previous: totals,
@@ -39,8 +42,9 @@ it('shows the one-day period and a single UTC date', () => {
   }
   const view = render(createElement(TooltipProvider, null, createElement(UsagePage)))
   expect(view.getByRole('button', { name: '1d' }).getAttribute('aria-pressed')).toBe('true')
-  expect(view.getByText(/Oct 27 · UTC day/)).toBeDefined()
-  expect(view.getByText('today · UTC')).toBeDefined()
+  expect(view.getByText(/2026-10-26 13:00 – 2026-10-27 13:00 · UTC/)).toBeDefined()
+  expect(view.getByText(/Previous 24-hour comparison may be incomplete/)).toBeDefined()
+  expect(view.getByText('last 24 hours · UTC days')).toBeDefined()
   expect(view.getByRole('img', { name: '2026-10-27: 30 tokens' }).parentElement?.className).toContain('max-w-24')
 })
 
