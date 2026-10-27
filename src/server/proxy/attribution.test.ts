@@ -108,4 +108,24 @@ describe('extractAttribution', () => {
       sessionId: null,
     })
   })
+
+  it('recognizes Claude CLI without attributing generic Anthropic clients to Claude Code', () => {
+    const settings = { clientNameHeader: null, endUserIdHeader: null, sessionIdHeader: null }
+    expect(
+      extractAttribution(new Headers({ 'user-agent': 'claude-cli/2.1.311 (external, cli)' }), settings).clientName,
+    ).toBe('claude-code')
+    expect(extractAttribution(new Headers({ 'user-agent': 'CLAUDE-CLI/2.1.311' }), settings).clientName).toBe(
+      'claude-code',
+    )
+    expect(
+      extractAttribution(new Headers({ 'user-agent': 'anthropic-typescript/0.128.0' }), settings).clientName,
+    ).toBeNull()
+    expect(extractAttribution(new Headers({ 'user-agent': 'not-claude-cli/1.0' }), settings).clientName).toBeNull()
+    expect(
+      extractAttribution(new Headers({ 'user-agent': 'claude-cli/2.1.311', 'x-client-name': 'wrapper' }), {
+        ...settings,
+        clientNameHeader: 'x-client-name',
+      }).clientName,
+    ).toBe('wrapper')
+  })
 })

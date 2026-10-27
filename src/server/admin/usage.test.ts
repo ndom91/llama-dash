@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { UsageDimension } from '../../lib/schemas/usage'
 import { backfillTestUsage, createMigratedTestDb, insertTestRequests } from '../db/test-db'
+import { extractAttribution } from '../proxy/attribution'
 import { utcDayStartMs } from '../usage-rollup'
 import { getUsageReport, getUsageSummary, parseUsageDays } from './usage'
 
@@ -38,6 +39,24 @@ describe('usage report', () => {
 
   beforeEach(() => {
     sqlite = createMigratedTestDb()
+  })
+
+  it('groups Claude CLI attribution in live and rolled-up usage', () => {
+    const { clientName } = extractAttribution(new Headers({ 'user-agent': 'claude-cli/2.1.311 (external, cli)' }), {
+      clientNameHeader: null,
+      endUserIdHeader: null,
+      sessionIdHeader: null,
+    })
+    insertTestRequests(sqlite, [
+      { id: 'live', startedAt: TODAY + HOUR_MS, clientName, completionTokens: 10 },
+      { id: 'rolled', startedAt: TODAY - 2 * DAY_MS, clientName, completionTokens: 20 },
+      { id: 'other', startedAt: TODAY + HOUR_MS, clientName: null, completionTokens: 5 },
+    ])
+    backfillTestUsage(sqlite, NOW, 30)
+    expect(report(sqlite, 7).panels[0].rows.map((row) => [row.value, row.requests, row.completionTokens])).toEqual([
+      ['claude-code', 2, 30],
+      [null, 1, 5],
+    ])
   })
 
   it('returns zeroed totals and a zero-filled series for an empty database', () => {

@@ -313,6 +313,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (string or content-block array, preserved shape).
 12. Request logs persist routing and attribution context. Request detail shows
       matched routing rule/action/auth mode plus client, end-user, and session metadata.
+    Client attribution recognizes Claude Code's `claude-cli/` user agent for new requests;
+    existing unattributed request rows and rollups are not retroactively reclassified.
     Request list supports routing, attribution, and client-host filters, and session IDs
     deep-link back into the filtered request log. Request/response body capture is
     bounded, with full recent bodies kept only in a byte-budget in-memory LRU.

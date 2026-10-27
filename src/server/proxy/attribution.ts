@@ -14,7 +14,7 @@ function normalizeHeaderValue(value: string | null): string | null {
 function inferClientNameFromUserAgent(headers: Headers): string | null {
   const userAgent = headers.get('user-agent')?.toLowerCase() ?? ''
   if (!userAgent) return null
-  if (userAgent.includes('claude-code')) return 'claude-code'
+  if (userAgent.includes('claude-code') || userAgent.startsWith('claude-cli/')) return 'claude-code'
   if (userAgent.includes('opencode')) return 'opencode'
   if (userAgent.includes('open-webui') || userAgent.includes('openwebui')) return 'open-webui'
   if (
