@@ -87,10 +87,16 @@ export function listRecentRequests(opts: {
   cursor?: string
   includeMcp?: boolean
   minutes?: number[]
+  status?: 'ok' | 'err'
 }): Array<RequestRow> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
     opts.includeMcp ? undefined : inferenceRequest(),
+    opts.status === 'err'
+      ? gte(schema.requests.statusCode, 400)
+      : opts.status === 'ok'
+        ? and(gte(schema.requests.statusCode, 200), lt(schema.requests.statusCode, 400))
+        : undefined,
     opts.minutes?.length
       ? or(
           ...opts.minutes.map((minute) =>
@@ -118,12 +124,13 @@ export function listRecentRequests(opts: {
   return rows.map((r) => toRequestRow(r, r.keyId ? (keyMap.get(r.keyId) ?? null) : null))
 }
 
-export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number[] }): number {
+export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number[]; status?: 'ok' | 'err' }): number {
   const row = sqliteDb
     .prepare(
       `select count(*) as count
        from requests
-        where request_class = 'mcp_relay'
+         where request_class = 'mcp_relay'
+        ${opts.status === 'err' ? 'and status_code >= 400' : opts.status === 'ok' ? 'and status_code >= 200 and status_code < 400' : ''}
         ${opts.cursor ? 'and id < ?' : ''}
         ${opts.minutes?.length ? `and (${opts.minutes.map(() => '(started_at >= ? and started_at < ?)').join(' or ')})` : ''}`,
     )

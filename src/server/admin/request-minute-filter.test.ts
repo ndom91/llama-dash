@@ -23,6 +23,19 @@ it('paginates disjoint selected minutes with exclusive end boundaries', async ()
   expect([...first, ...second].map((row) => row.id)).toEqual(['req_5', 'req_4', 'req_2', 'req_1'])
   expect(countRecentMcpRequests({ minutes })).toBe(1)
   expect(countRecentMcpRequests({ minutes: [base] })).toBe(0)
+  insertTestRequests(sqlite, [
+    ...Array.from({ length: 60 }, (_, i) => ({
+      id: `req_success_${String(i).padStart(3, '0')}`,
+      startedAt: base + 1_000,
+      statusCode: 200,
+    })),
+    { id: 'req_error_a', startedAt: base + 2_000, statusCode: 500 },
+    { id: 'req_error_b', startedAt: base + 3_000, statusCode: 404 },
+    { id: 'req_error_outside', startedAt: base + 60_000, statusCode: 500 },
+  ])
+  const errors = listRecentRequests({ limit: 50, minutes: [base], status: 'err' })
+  expect(errors.map((row) => row.id)).toEqual(['req_error_b', 'req_error_a'])
+  expect(listRecentRequests({ limit: 50, minutes: [base], status: 'ok' })).toHaveLength(50)
   sqlite.close()
   vi.doUnmock('../db/index.ts')
   vi.doUnmock('./api-keys.ts')

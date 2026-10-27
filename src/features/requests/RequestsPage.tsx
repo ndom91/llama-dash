@@ -47,13 +47,16 @@ export function RequestsPage() {
   const qc = useQueryClient()
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
+  const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(selectedMinutes)
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(
+    selectedMinutes,
+    statusFilter,
+  )
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
   const search = routeSearch.q ?? ''
-  const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const modelFilter = routeSearch.model ?? NO_VALUES
   const sortKey: SortKey = routeSearch.sortKey ?? 'startedAt'
   const sortDir: SortDir = routeSearch.sortDir ?? 'desc'

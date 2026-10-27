@@ -54,6 +54,24 @@ it('updates only filtered lists matching the completed request minute', () => {
   client.clear()
 })
 
+it('inserts live requests only into matching status and minute lists', () => {
+  const client = new QueryClient()
+  const errors = ['requests', 'filtered-list', '1800000', 'err']
+  const successes = ['requests', 'filtered-list', '1800000', 'ok']
+  const allErrors = ['requests', 'filtered-list', '', 'err']
+  for (const key of [errors, successes, allErrors])
+    client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [undefined] })
+  updateRequestsListCache(client, { ...row(1), startedAt: new Date(1_800_001).toISOString(), statusCode: 500 })
+  updateRequestsListCache(client, { ...row(2), startedAt: new Date(1_800_002).toISOString(), statusCode: 200 })
+  updateRequestsListCache(client, { ...row(3), startedAt: new Date(1_860_000).toISOString(), statusCode: 404 })
+  const ids = (key: string[]) =>
+    client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(key)!.pages[0].requests.map((r) => r.id)
+  expect(ids(errors)).toEqual([row(1).id])
+  expect(ids(successes)).toEqual([row(2).id])
+  expect(ids(allErrors)).toEqual([row(3).id, row(1).id])
+  client.clear()
+})
+
 it('resyncs live data without invalidating completed metadata or captured payloads', () => {
   const client = new QueryClient()
   for (const key of [

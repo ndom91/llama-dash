@@ -319,7 +319,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Inference rows have a two-day minimum retention for exact rolling 24-hour usage and
     its preceding comparison; separately configured payload retention is unchanged.
     The request histogram selects absolute one-minute intervals, including disjoint selections;
-    `/api/requests` applies these before cursor pagination and live cache updates honor the filter.
+    `/api/requests` applies these and status filters before cursor pagination and live cache updates honor both filters.
     Request list supports routing, attribution, and client-host filters (model, key, and host
     are multi-select; legacy single-value URLs still parse), and session IDs
     deep-link back into the filtered request log. Request/response body capture is

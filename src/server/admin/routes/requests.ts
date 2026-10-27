@@ -37,6 +37,8 @@ export const requestRoutes: Route[] = [
       const limit = clamp(parseInt(url.searchParams.get('limit') ?? '50', 10), 1, 500)
       const cursor = url.searchParams.get('cursor')
       const includeMcp = url.searchParams.get('includeMcp') === 'true'
+      const status = url.searchParams.get('status')
+      if (status !== null && status !== 'ok' && status !== 'err') return error(400, 'Invalid status filter')
       const rawMinutes = url.searchParams.get('minutes')
       const minutes = rawMinutes?.split(',').map(Number)
       if (
@@ -48,11 +50,19 @@ export const requestRoutes: Route[] = [
       ) {
         return error(400, 'Invalid minute filter')
       }
-      const rows = listRecentRequests({ limit, cursor: cursor ?? undefined, includeMcp, minutes })
+      const rows = listRecentRequests({
+        limit,
+        cursor: cursor ?? undefined,
+        includeMcp,
+        minutes,
+        status: status ?? undefined,
+      })
       return json(200, {
         requests: rows,
         nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
-        mcpHiddenCount: includeMcp ? 0 : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes }),
+        mcpHiddenCount: includeMcp
+          ? 0
+          : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes, status: status ?? undefined }),
       })
     },
   },

@@ -179,12 +179,22 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
   })
 }
 
-export function useRequestsList(minutes: number[] = []): UseInfiniteQueryResult<RequestsList> {
+export function useRequestsList(
+  minutes: number[] = [],
+  status: 'all' | 'ok' | 'err' = 'all',
+): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
-    queryKey: minutes.length ? ['requests', 'filtered-list', minutes.join(',')] : qk.requestsList,
+    queryKey:
+      minutes.length || status !== 'all' ? ['requests', 'filtered-list', minutes.join(','), status] : qk.requestsList,
     queryFn: ({ pageParam, signal }) =>
       api.listRequests(
-        { limit: REQUESTS_PAGE_SIZE, cursor: pageParam ?? undefined, includeMcp: true, minutes },
+        {
+          limit: REQUESTS_PAGE_SIZE,
+          cursor: pageParam ?? undefined,
+          includeMcp: true,
+          minutes,
+          status: status === 'all' ? undefined : status,
+        },
         { signal },
       ),
     initialPageParam: undefined as string | undefined,

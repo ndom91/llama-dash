@@ -33,7 +33,14 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
     ...client
       .getQueryCache()
       .findAll({ queryKey: ['requests', 'filtered-list'] })
-      .filter((query) => typeof query.queryKey[2] === 'string' && query.queryKey[2].split(',').includes(String(minute)))
+      .filter((query) => {
+        const minutes = query.queryKey[2]
+        const status = query.queryKey[3]
+        if (typeof minutes !== 'string' || (minutes && !minutes.split(',').includes(String(minute)))) return false
+        if (status === 'err') return request.statusCode >= 400
+        if (status === 'ok') return request.statusCode >= 200 && request.statusCode < 400
+        return true
+      })
       .map((query) => query.queryKey),
   ]
   for (const key of keys)

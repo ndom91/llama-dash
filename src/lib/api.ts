@@ -146,7 +146,7 @@ export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
   listRequests: (
-    params: { limit?: number; cursor?: string; includeMcp?: boolean; minutes?: number[] } = {},
+    params: { limit?: number; cursor?: string; includeMcp?: boolean; minutes?: number[]; status?: 'ok' | 'err' } = {},
     options: ApiFetchOptions = {},
   ) => {
     const q = new URLSearchParams()
@@ -154,6 +154,7 @@ export const api = {
     if (params.cursor != null) q.set('cursor', params.cursor)
     if (params.includeMcp) q.set('includeMcp', 'true')
     if (params.minutes?.length) q.set('minutes', params.minutes.join(','))
+    if (params.status) q.set('status', params.status)
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
