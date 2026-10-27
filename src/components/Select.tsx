@@ -30,6 +30,25 @@ type MultipleProps = CommonProps & {
 
 type SelectProps = SingleProps | MultipleProps
 
+// Sentinel for the multi-select "All" row; it is never stored in the value.
+const ALL_VALUE = '__select_all__'
+
+const itemClass =
+  'group flex cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pr-2.5 pl-2 font-mono text-xs text-fg-muted outline-none data-[highlighted]:bg-surface-3 data-[highlighted]:text-fg data-[selected]:text-fg'
+
+function Checkbox({ checked }: { checked?: boolean }) {
+  return (
+    <span
+      className={cn(
+        'flex size-3.5 shrink-0 items-center justify-center rounded-sm border border-border-strong text-transparent transition-colors duration-100 group-data-[selected]:border-accent group-data-[selected]:bg-accent group-data-[selected]:text-accent-on',
+        checked && 'border-accent bg-accent text-accent-on',
+      )}
+    >
+      <Check size={10} strokeWidth={3} />
+    </span>
+  )
+}
+
 export function Select(props: SelectProps) {
   const { options, placeholder, className } = props
   const labelFor = (value: string) => options.find((o) => o.value === value)?.label ?? value
@@ -60,20 +79,35 @@ export function Select(props: SelectProps) {
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner className="z-50 outline-none" sideOffset={4} alignItemWithTrigger={false}>
-          <BaseSelect.Popup className="max-h-[min(320px,var(--available-height))] min-w-[var(--anchor-width)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-1 shadow-lg outline-none transition-[opacity,transform] duration-100 ease-out data-[ending-style]:opacity-0 data-[starting-style]:-translate-y-1 data-[starting-style]:opacity-0">
+        <BaseSelect.Positioner
+          className="z-50 outline-none"
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          alignItemWithTrigger={false}
+        >
+          <BaseSelect.Popup className="max-h-[min(320px,var(--available-height))] min-w-[var(--anchor-width)] max-w-[var(--available-width)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-1 shadow-lg outline-none transition-[opacity,transform] duration-100 ease-out data-[ending-style]:opacity-0 data-[starting-style]:-translate-y-1 data-[starting-style]:opacity-0">
             <BaseSelect.List>
+              {props.multiple ? (
+                <>
+                  <BaseSelect.Item value={ALL_VALUE} className={itemClass}>
+                    <Checkbox checked={props.value.length === 0} />
+                    <BaseSelect.ItemText className="min-w-0 truncate">{placeholder ?? 'All'}</BaseSelect.ItemText>
+                  </BaseSelect.Item>
+                  <BaseSelect.Separator className="my-1 h-px bg-border" />
+                </>
+              ) : null}
               {options.map((o) => (
-                <BaseSelect.Item
-                  key={o.value}
-                  value={o.value}
-                  className="flex cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pr-2.5 pl-2 font-mono text-xs text-fg-muted outline-none data-[highlighted]:bg-surface-3 data-[highlighted]:text-fg data-[selected]:text-fg"
-                >
-                  <span className="flex size-3 shrink-0 items-center justify-center">
-                    <BaseSelect.ItemIndicator className="flex text-accent">
-                      <Check size={12} strokeWidth={2.5} />
-                    </BaseSelect.ItemIndicator>
-                  </span>
+                <BaseSelect.Item key={o.value} value={o.value} className={itemClass}>
+                  {props.multiple ? (
+                    <Checkbox />
+                  ) : (
+                    <span className="flex size-3 shrink-0 items-center justify-center">
+                      <BaseSelect.ItemIndicator className="flex text-accent">
+                        <Check size={12} strokeWidth={2.5} />
+                      </BaseSelect.ItemIndicator>
+                    </span>
+                  )}
                   <BaseSelect.ItemText className="min-w-0 truncate">{o.label}</BaseSelect.ItemText>
                 </BaseSelect.Item>
               ))}
@@ -86,7 +120,12 @@ export function Select(props: SelectProps) {
 
   if (props.multiple) {
     return (
-      <BaseSelect.Root multiple value={props.value} onValueChange={(v) => props.onValueChange(v)}>
+      <BaseSelect.Root
+        multiple
+        value={props.value}
+        // Picking "All" clears the selection; the sentinel never reaches callers.
+        onValueChange={(v) => props.onValueChange(v.includes(ALL_VALUE) ? [] : v)}
+      >
         {content}
       </BaseSelect.Root>
     )
