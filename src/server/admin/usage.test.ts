@@ -1,8 +1,8 @@
 import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { UsageDimension } from '../../lib/schemas/usage'
-import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
-import { refreshDailyStats, utcDayStartMs } from '../usage-rollup'
+import { backfillTestUsage, createMigratedTestDb, insertTestRequests } from '../db/test-db'
+import { utcDayStartMs } from '../usage-rollup'
 import { getUsageReport, getUsageSummary, parseUsageDays } from './usage'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -71,7 +71,7 @@ describe('usage report', () => {
       // outside both
       { id: 'older', startedAt: TODAY - 14 * DAY_MS, promptTokens: 1000, completionTokens: 1000 },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     const r = report(sqlite, 7)
     expect(r.totals).toMatchObject({ requests: 2, promptTokens: 101, completionTokens: 52, totalTokens: 153 })
@@ -83,7 +83,7 @@ describe('usage report', () => {
 
   it('keeps history that only survives in the rollup', () => {
     insertTestRequests(sqlite, [{ id: 'old', startedAt: TODAY - 50 * DAY_MS, completionTokens: 40 }])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 60, backfill: true })
+    backfillTestUsage(sqlite, NOW, 60)
     sqlite.prepare('delete from requests').run()
 
     expect(report(sqlite, 90).totals.completionTokens).toBe(40)
@@ -106,7 +106,7 @@ describe('usage report', () => {
         statusCode: 500,
       },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     const r = report(sqlite, 7)
     const [byClient, byModel, byKey] = r.panels
@@ -155,7 +155,7 @@ describe('usage report', () => {
       { id: 'b', startedAt: TODAY + HOUR_MS, statusCode: 502, clientHost: 'laptop' },
       { id: 'c', startedAt: TODAY - 3 * DAY_MS, statusCode: 200, error: 'stream aborted', endUserId: 'bob' },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     const [status, routing, host] = report(sqlite, 7, ['status', 'routing', 'host']).panels
     expect(status.rows.map((row) => [row.value, row.requests, row.errors])).toEqual([
@@ -206,7 +206,7 @@ describe('usage report', () => {
       { id: 'e', startedAt: TODAY - 9 * DAY_MS, sessionId: 's-1' },
       { id: 'mcp', startedAt: TODAY, requestClass: 'mcp_relay', sessionId: 's-1' },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     const sessions = report(sqlite, 7, ['session', 'model', 'key']).panels[0]
     expect(sessions.rows.map((row) => [row.value, row.requests, row.completionTokens])).toEqual([
@@ -250,7 +250,7 @@ describe('usage summary', () => {
       { id: 'y-before', startedAt: TODAY - DAY_MS + 10 * HOUR_MS, completionTokens: 3 },
       { id: 'y-after', startedAt: TODAY - DAY_MS + 20 * HOUR_MS, completionTokens: 100 },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     const s = getUsageSummary(sqlite, { now: NOW, retentionDays: 30 })
     expect(s.today.completionTokens).toBe(12)
@@ -267,7 +267,7 @@ describe('usage summary', () => {
       { id: 'a', startedAt: TODAY - 8 * DAY_MS, completionTokens: 11 },
       { id: 'b', startedAt: TODAY - 40 * DAY_MS, completionTokens: 13 },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 60, backfill: true })
+    backfillTestUsage(sqlite, NOW, 60)
 
     const s = getUsageSummary(sqlite, { now: NOW, retentionDays: 30 })
     expect(s.days7).toMatchObject({ completionTokens: 0, previous: 11 })

@@ -2,12 +2,18 @@ import { resolve } from 'node:path'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import { backfillDay, backfillDays, finishBackfill } from '../usage-rollup'
 
 /** Test-only: a fresh in-memory SQLite database with every checked-in migration applied. */
 export function createMigratedTestDb(): Database.Database {
   const sqlite = new Database(':memory:')
   migrate(drizzle(sqlite), { migrationsFolder: resolve(process.cwd(), 'drizzle') })
   return sqlite
+}
+
+export function backfillTestUsage(sqlite: Database.Database, now: number, retentionDays: number) {
+  for (const day of backfillDays(sqlite, now, retentionDays)) backfillDay(sqlite, day, now)
+  finishBackfill(sqlite, now)
 }
 
 export type TestRequestRow = {

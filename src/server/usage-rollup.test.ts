@@ -1,10 +1,12 @@
 import type Database from 'better-sqlite3'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createMigratedTestDb, insertTestRequests } from './db/test-db'
+import { backfillTestUsage, createMigratedTestDb, insertTestRequests } from './db/test-db'
 import {
+  appendLoggedRequest,
+  backfillDay,
+  backfillDays,
   loadDailyRows,
   markPrunedBefore,
-  missingRollupDays,
   rebuildDailyStats,
   refreshDailyStats,
   utcDay,
@@ -197,7 +199,7 @@ describe('request daily stats rollup', () => {
     legacy.run(utcDay(TODAY - 2 * DAY_MS)) // raw rows still retained
     insertTestRequests(sqlite, [{ id: 'a', startedAt: TODAY - 2 * DAY_MS + HOUR_MS, clientHost: 'box' }])
 
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     expect(rollupRows(sqlite).map((r) => [r.day, r.statusClass, r.clientHost])).toEqual([
       [utcDay(TODAY - 40 * DAY_MS), null, null],
@@ -219,7 +221,7 @@ describe('request daily stats rollup', () => {
     refreshDailyStats(sqlite, { now: NOW, retentionDays: 30 })
     const first = rollupRows(sqlite)
     refreshDailyStats(sqlite, { now: NOW, retentionDays: 30 })
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
     expect(rollupRows(sqlite)).toEqual(first)
     expect(first).toHaveLength(2)
   })
@@ -242,7 +244,7 @@ describe('request daily stats rollup', () => {
     refreshDailyStats(sqlite, { now: NOW, retentionDays: 30 })
     expect(rollupRows(sqlite).map((r) => r.day)).toEqual(['2026-03-10'])
 
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
     expect(rollupRows(sqlite).map((r) => r.day)).toEqual(['2026-02-18', '2026-03-05', '2026-03-10'])
   })
 
@@ -251,10 +253,23 @@ describe('request daily stats rollup', () => {
       { id: 'a', startedAt: TODAY - 20 * DAY_MS },
       { id: 'b', startedAt: TODAY - 5 * DAY_MS },
     ])
-    const pending = missingRollupDays(sqlite, NOW, 30)
+    const pending = backfillDays(sqlite, NOW, 30)
     expect(pending).toEqual([utcDay(TODAY - 20 * DAY_MS), utcDay(TODAY - 5 * DAY_MS)])
-    rebuildDailyStats(sqlite, [pending[0]])
-    expect(missingRollupDays(sqlite, NOW, 30)).toEqual([pending[1]])
+    backfillDay(sqlite, pending[0], NOW)
+    expect(backfillDays(sqlite, NOW, 30)).toEqual([pending[1]])
+  })
+
+  it('keeps a processed day current when a request completes before backfill resumes', () => {
+    const day = TODAY - 3 * DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: day + HOUR_MS, completionTokens: 100 }])
+    const pending = backfillDays(sqlite, NOW - 2 * DAY_MS, 30)
+    backfillDay(sqlite, pending[0], NOW - 2 * DAY_MS)
+    sqlite.transaction(() => {
+      insertTestRequests(sqlite, [{ id: 'late', startedAt: day + 23 * HOUR_MS, completionTokens: 200 }])
+      appendLoggedRequest(sqlite, 'late', day + 23 * HOUR_MS, NOW - 32 * DAY_MS)
+    })()
+    expect(backfillDays(sqlite, NOW, 30)).toEqual([])
+    expect(rollupRows(sqlite).reduce((sum, row) => sum + Number(row.completionTokens), 0)).toBe(300)
   })
 
   it('keeps rollups for requests removed by retention pruning', () => {
@@ -262,11 +277,11 @@ describe('request daily stats rollup', () => {
       { id: 'old', startedAt: TODAY - 40 * DAY_MS + HOUR_MS },
       { id: 'new', startedAt: TODAY + HOUR_MS },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 60, backfill: true })
+    backfillTestUsage(sqlite, NOW, 60)
     sqlite.prepare('delete from requests where id = ?').run('old')
 
     refreshDailyStats(sqlite, { now: NOW, retentionDays: 30 })
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     expect(rollupRows(sqlite).map((r) => [r.day, r.requests])).toEqual([
       ['2026-01-29', 1],
@@ -284,7 +299,7 @@ describe('request daily stats rollup', () => {
     rebuildDailyStats(sqlite, [utcDay(edgeDay)])
     sqlite.prepare('delete from requests where id = ?').run('early')
 
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
 
     expect(rollupRows(sqlite)).toEqual([expect.objectContaining({ day: utcDay(edgeDay), requests: 2 })])
   })
@@ -295,11 +310,53 @@ describe('request daily stats rollup', () => {
       { id: 'early', startedAt: edgeDay + HOUR_MS, completionTokens: 100 },
       { id: 'late', startedAt: edgeDay + 20 * HOUR_MS, completionTokens: 200 },
     ])
-    refreshDailyStats(sqlite, { now: NOW - DAY_MS, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW - DAY_MS, 30)
     markPrunedBefore(sqlite, NOW, 30)
     sqlite.prepare('delete from requests where id = ?').run('early')
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 90, backfill: true })
+    backfillTestUsage(sqlite, NOW, 90)
     expect(rollupRows(sqlite)).toEqual([expect.objectContaining({ day: utcDay(edgeDay), completionTokens: 300 })])
+  })
+
+  it('adds sub-24-hour late completions to a frozen day without rebuilding pruned rows', () => {
+    const yesterday = TODAY - DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: yesterday + 22 * HOUR_MS, completionTokens: 100 }])
+    backfillTestUsage(sqlite, NOW, 1)
+    markPrunedBefore(sqlite, NOW, 1)
+    sqlite.transaction(() => {
+      insertTestRequests(sqlite, [{ id: 'late', startedAt: yesterday + 23 * HOUR_MS, completionTokens: 200 }])
+      appendLoggedRequest(sqlite, 'late', yesterday + 23 * HOUR_MS, NOW - DAY_MS)
+    })()
+    const rows = loadDailyRows(sqlite, {
+      fromDay: utcDay(yesterday),
+      toDay: utcDay(yesterday),
+      now: NOW,
+      retentionDays: 1,
+    })
+    expect(rows.reduce((sum, row) => sum + row.completionTokens, 0)).toBe(300)
+  })
+
+  it('rebuilds stale fully retained historical days on a fresh backfill', () => {
+    const day = TODAY - 3 * DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: day + HOUR_MS, completionTokens: 100 }])
+    backfillTestUsage(sqlite, NOW - DAY_MS, 30)
+    insertTestRequests(sqlite, [{ id: 'late', startedAt: day + 23 * HOUR_MS, completionTokens: 200 }])
+    backfillTestUsage(sqlite, NOW, 30)
+    expect(rollupRows(sqlite)).toEqual([expect.objectContaining({ day: utcDay(day), completionTokens: 300 })])
+  })
+
+  it('rolls back both a late request and its rollup contribution on failure', () => {
+    const yesterday = TODAY - DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: yesterday + HOUR_MS }])
+    backfillTestUsage(sqlite, NOW, 1)
+    expect(() =>
+      sqlite.transaction(() => {
+        insertTestRequests(sqlite, [{ id: 'late', startedAt: yesterday + 2 * HOUR_MS }])
+        appendLoggedRequest(sqlite, 'late', yesterday + 2 * HOUR_MS, NOW - DAY_MS)
+        throw new Error('failure')
+      })(),
+    ).toThrow('failure')
+    expect(sqlite.prepare('select count(*) as n from requests').get()).toEqual({ n: 1 })
+    expect(rollupRows(sqlite)).toEqual([expect.objectContaining({ requests: 1 })])
   })
 
   it('loads recent days live from requests and older days from the rollup', () => {
@@ -307,7 +364,7 @@ describe('request daily stats rollup', () => {
       { id: 'a', startedAt: TODAY - 3 * DAY_MS },
       { id: 'b', startedAt: TODAY - DAY_MS },
     ])
-    refreshDailyStats(sqlite, { now: NOW, retentionDays: 30, backfill: true })
+    backfillTestUsage(sqlite, NOW, 30)
     // arrives after the last refresh: only visible through the live path
     insertTestRequests(sqlite, [{ id: 'c', startedAt: TODAY + 2 * HOUR_MS }])
     // pruned from the raw log: only visible through the rollup

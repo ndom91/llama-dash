@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -34,8 +34,9 @@ const recentBodiesMock = vi.hoisted(() => ({
 
 const rollupMock = vi.hoisted(() => ({
   refreshDailyStats: vi.fn(),
-  missingRollupDays: vi.fn(() => [] as string[]),
-  rebuildDailyStats: vi.fn(),
+  backfillDays: vi.fn(() => [] as string[]),
+  backfillDay: vi.fn(),
+  finishBackfill: vi.fn(),
   markPrunedBefore: vi.fn(),
 }))
 
@@ -53,8 +54,13 @@ vi.mock('./proxy/recent-bodies.ts', () => ({
 
 vi.mock('./db/index.ts', () => ({
   sqliteDb: {
+    transaction: (fn: () => unknown) => fn,
     prepare: (sql: string) => ({
-      all: (inferenceCutoff: number, mcpSuccessCutoff: number, mcpErrorCutoff: number, bodyCutoff: number) => {
+      all: (...params: number[]) => {
+        const inferenceAllowed = params.length === 4
+        const [inferenceCutoff, mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff] = inferenceAllowed
+          ? params
+          : [Number.NEGATIVE_INFINITY, ...params]
         if (dbMock.error) throw dbMock.error
         if (!sql.includes('select id')) return []
         return dbMock.rows
@@ -113,7 +119,7 @@ vi.mock('./db/index.ts', () => ({
   },
 }))
 
-import { prepareUsagePrune, pruneRequestLogs, startRequestLogMaintenance } from './request-log-maintenance'
+let maintenance: typeof import('./request-log-maintenance')
 
 function hasBodyText(row: FakeRequest) {
   return (
@@ -143,7 +149,12 @@ function row(id: string, overrides: Partial<FakeRequest>): FakeRequest {
 }
 
 describe('request log maintenance', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules()
+    vi.useFakeTimers()
+    vi.setSystemTime(100 * DAY_MS)
+    vi.clearAllMocks()
+    maintenance = await import('./request-log-maintenance')
     settingsMock.privacy = {
       requestLogRetentionDays: 30,
       mcpRelaySuccessRetentionDays: 7,
@@ -155,8 +166,15 @@ describe('request log maintenance', () => {
     recentBodiesMock.deleteRecentBodies.mockClear()
   })
 
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
+  })
+
   it('prunes rows by class and clears old body text from storage and recent cache', () => {
     const now = 100 * DAY_MS
+    maintenance.startRequestLogMaintenance()
+    vi.advanceTimersByTime(1)
     dbMock.rows = [
       row('old-inference', { started_at: now - 31 * DAY_MS, request_body: 'deleted-secret' }),
       row('new-inference', { started_at: now - 29 * DAY_MS }),
@@ -167,7 +185,7 @@ describe('request log maintenance', () => {
       row('new-body', { started_at: now - 2 * DAY_MS, request_body: 'keep' }),
     ]
 
-    expect(pruneRequestLogs(now)).toEqual({
+    expect(maintenance.pruneRequestLogs(now)).toEqual({
       inferenceDeleted: 1,
       mcpRelaySuccessDeleted: 1,
       mcpRelayErrorDeleted: 1,
@@ -187,37 +205,57 @@ describe('request log maintenance', () => {
     expect(recentBodiesMock.deleteRecentBodies).toHaveBeenCalledTimes(4)
   })
 
+  it('uses one cutoff even if the clock crosses a day boundary during rollup', () => {
+    maintenance.startRequestLogMaintenance()
+    vi.advanceTimersByTime(1)
+    const boundary = 70 * DAY_MS
+    const now = boundary + 30 * DAY_MS - 1
+    vi.setSystemTime(now)
+    dbMock.rows = [row('boundary', { started_at: boundary })]
+    rollupMock.refreshDailyStats.mockImplementationOnce(() => {
+      vi.setSystemTime(now + 2)
+    })
+    expect(maintenance.pruneRequestLogs().inferenceDeleted).toBe(0)
+    expect(rollupMock.markPrunedBefore).toHaveBeenCalledWith(expect.anything(), now, 30)
+    expect(dbMock.rows.map((r) => r.id)).toEqual(['boundary'])
+  })
+
   it('logs scheduled counts and timings, and still reports failures', () => {
-    vi.useFakeTimers()
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     try {
       const now = 100 * DAY_MS
       vi.setSystemTime(now)
-      dbMock.rows = [row('old-body', { started_at: now - 4 * DAY_MS, request_body: 'secret' })]
-      expect(() => prepareUsagePrune()).toThrow('backfill is not complete')
-      rollupMock.missingRollupDays.mockImplementationOnce(() => {
+      dbMock.rows = [
+        row('old-body', { started_at: now - 4 * DAY_MS, request_body: 'secret' }),
+        row('old-inference', { started_at: now - 31 * DAY_MS, request_body: 'secret' }),
+        row('old-relay', { request_class: 'mcp_relay', started_at: now - 8 * DAY_MS }),
+      ]
+      expect(() => maintenance.pruneRequestLogs(now)).toThrow('backfill is not complete')
+      expect(dbMock.rows.map((r) => r.id)).toEqual(['old-body', 'old-inference'])
+      expect(dbMock.rows.every((r) => r.request_body === null)).toBe(true)
+      rollupMock.backfillDays.mockImplementationOnce(() => {
         throw new Error('backfill failure')
       })
-      rollupMock.missingRollupDays.mockReturnValueOnce(['2026-01-01', '2026-01-02'])
-      rollupMock.missingRollupDays.mockReturnValueOnce(['2026-01-02'])
-      rollupMock.rebuildDailyStats.mockImplementationOnce(() => {})
-      rollupMock.rebuildDailyStats.mockImplementationOnce(() => {
+      rollupMock.backfillDays.mockReturnValueOnce(['2026-01-01', '2026-01-02'])
+      rollupMock.backfillDays.mockReturnValueOnce(['2026-01-02'])
+      rollupMock.backfillDay.mockImplementationOnce(() => {})
+      rollupMock.backfillDay.mockImplementationOnce(() => {
         throw new Error('day failure')
       })
-      startRequestLogMaintenance()
+      maintenance.startRequestLogMaintenance()
       vi.advanceTimersByTime(60_000)
       expect(info).not.toHaveBeenCalled()
-      expect(() => prepareUsagePrune()).toThrow('backfill is not complete')
+      expect(() => maintenance.pruneRequestLogs(now)).toThrow('backfill is not complete')
       vi.advanceTimersByTime(60 * 60_000)
       expect(info).toHaveBeenCalledWith('[request-log-maintenance] prune complete', {
         durationMs: expect.any(Number),
         selectionMs: expect.any(Number),
         candidateRows: 1,
-        inferenceDeleted: 0,
+        inferenceDeleted: 1,
         mcpRelaySuccessDeleted: 0,
         mcpRelayErrorDeleted: 0,
-        bodiesCleared: 1,
+        bodiesCleared: 0,
       })
       expect(JSON.stringify(info.mock.calls)).not.toContain('secret')
 
@@ -232,14 +270,14 @@ describe('request log maintenance', () => {
       rollupMock.refreshDailyStats.mockImplementationOnce(() => {
         throw rollupError
       })
+      dbMock.error = null
       vi.advanceTimersByTime(60 * 60_000)
-      expect(warn).toHaveBeenCalledWith('Failed to prepare usage rollups; pruning skipped', rollupError)
-      expect(warn.mock.calls.filter(([msg]) => msg === 'Failed to prune request logs')).toHaveLength(1)
-      expect(rollupMock.missingRollupDays).toHaveBeenCalledTimes(3)
-      expect(rollupMock.rebuildDailyStats.mock.calls.map(([, days]) => days)).toEqual([
-        ['2026-01-01'],
-        ['2026-01-02'],
-        ['2026-01-02'],
+      expect(warn).toHaveBeenCalledWith('Failed to prune request logs', rollupError)
+      expect(rollupMock.backfillDays).toHaveBeenCalledTimes(3)
+      expect(rollupMock.backfillDay.mock.calls.map(([, day]) => day)).toEqual([
+        '2026-01-01',
+        '2026-01-02',
+        '2026-01-02',
       ])
     } finally {
       vi.clearAllTimers()

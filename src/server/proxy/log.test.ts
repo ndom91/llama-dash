@@ -14,8 +14,11 @@ const inserts = vi.hoisted(() => ({ values: vi.fn(() => ({ run: vi.fn() })) }))
 
 vi.mock('../db/index.ts', () => ({
   db: { insert: vi.fn(() => inserts) },
+  sqliteDb: { transaction: (fn: () => void) => fn },
   schema: { requests: 'requests' },
 }))
+
+vi.mock('../usage-rollup.ts', () => ({ getPrunedBefore: () => 0, appendLoggedRequest: vi.fn() }))
 
 vi.mock('../pricing.ts', () => ({
   computeCostUsd: () => null,

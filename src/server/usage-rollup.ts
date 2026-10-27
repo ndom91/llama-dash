@@ -8,6 +8,7 @@ import type Database from 'better-sqlite3'
  * are rebuilt from the raw log (delete + insert per day), which makes every
  * refresh idempotent. A persisted pruning watermark prevents rebuilding an
  * existing rollup from a day whose raw rows may already be partially pruned.
+ * Completions update existing snapshots in the same transaction as the log.
  *
  * Functions take the SQLite handle explicitly so they can run against a
  * throwaway database in tests.
@@ -15,6 +16,7 @@ import type Database from 'better-sqlite3'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const PRUNED_BEFORE_KEY = 'usage_rollup_pruned_before'
+const BACKFILL_CURSOR_KEY = 'usage_rollup_backfill_cursor'
 
 export function getPrunedBefore(sqlite: Database.Database, now: number, retentionDays: number): number {
   const row = sqlite.prepare('select value from settings where key = ?').get(PRUNED_BEFORE_KEY) as
@@ -39,8 +41,18 @@ export function markPrunedBefore(sqlite: Database.Database, now: number, retenti
     .run(String(cutoff), now, PRUNED_BEFORE_KEY)
 }
 
-export function missingRollupDays(sqlite: Database.Database, now: number, retentionDays: number): string[] {
-  getPrunedBefore(sqlite, now, retentionDays)
+export function backfillDays(sqlite: Database.Database, now: number, retentionDays: number): string[] {
+  const prunedBefore = getPrunedBefore(sqlite, now, retentionDays)
+  const cursorRow = sqlite.prepare('select value from settings where key = ?').get(BACKFILL_CURSOR_KEY) as
+    | { value: string }
+    | undefined
+  const cursor = cursorRow?.value === 'complete' ? '' : (cursorRow?.value ?? '')
+  if (!cursorRow || cursorRow.value === 'complete') {
+    sqlite
+      .prepare(`insert into settings (key, value, updated_at) values (?, ?, ?)
+      on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at`)
+      .run(BACKFILL_CURSOR_KEY, '', now)
+  }
   const rawDays = sqlite
     .prepare(`select distinct date(started_at / 1000, 'unixepoch') as day
     from requests where request_class = 'inference'`)
@@ -51,7 +63,7 @@ export function missingRollupDays(sqlite: Database.Database, now: number, retent
   const today = utcDay(now)
   return rawDays
     .map((row) => row.day)
-    .filter((day) => day <= today && !rolledUp.has(day))
+    .filter((day) => day > cursor && day <= today && (!rolledUp.has(day) || dayToMs(day) >= prunedBefore))
     .sort()
 }
 
@@ -105,7 +117,18 @@ const GEN_SQL = `${OK_SQL} and streamed = 1 and completion_tokens > 0 and durati
  * Aggregates raw inference requests in `[fromMs, toMs)` into day rows. Shared by
  * the rollup writer and the live read path so both produce identical numbers.
  */
-const AGGREGATE_SQL = `
+const MEASURES_SQL = `
+    count(*) as requests,
+    sum(case when ${OK_SQL} then 0 else 1 end) as errors,
+    coalesce(sum(prompt_tokens), 0) as promptTokens,
+    coalesce(sum(completion_tokens), 0) as completionTokens,
+    coalesce(sum(coalesce(total_tokens, coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0))), 0) as totalTokens,
+    coalesce(sum(duration_ms), 0) as durationMsSum,
+    sum(cost_usd) as costUsdSum,
+    coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
+    coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs`
+
+const aggregateSql = (where: string) => `
   select
     date(started_at / 1000, 'unixepoch') as day,
     coalesce(routing_routed_model, model) as model,
@@ -115,31 +138,36 @@ const AGGREGATE_SQL = `
     routing_action_type as routingAction,
     client_host as clientHost,
     end_user_id as endUserId,
-    count(*) as requests,
-    sum(case when ${OK_SQL} then 0 else 1 end) as errors,
-    coalesce(sum(prompt_tokens), 0) as promptTokens,
-    coalesce(sum(completion_tokens), 0) as completionTokens,
-    coalesce(sum(coalesce(total_tokens, coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0))), 0) as totalTokens,
-    coalesce(sum(duration_ms), 0) as durationMsSum,
-    sum(cost_usd) as costUsdSum,
-    coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
-    coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs
+    ${MEASURES_SQL}
   from requests
-  where request_class = 'inference' and started_at >= ? and started_at < ?
+  where request_class = 'inference' and ${where}
   group by 1, 2, 3, 4, 5, 6, 7, 8`
+const AGGREGATE_SQL = aggregateSql('started_at >= ? and started_at < ?')
 
 const ROLLUP_COLUMNS = `day, model, clientName, keyId, statusClass, routingAction, clientHost, endUserId, requests, errors, promptTokens, completionTokens,
   totalTokens, durationMsSum, costUsdSum, genCompletionTokens, genDurationMs`
+const INSERT_COLUMNS = `day, model, client_name, key_id, status_class, routing_action, client_host, end_user_id, requests, errors, prompt_tokens, completion_tokens,
+  total_tokens, duration_ms_sum, cost_usd_sum, gen_completion_tokens, gen_duration_ms`
+
+export function appendLoggedRequest(sqlite: Database.Database, id: string, startedAt: number, prunedBefore: number) {
+  const day = utcDay(startedAt)
+  if (!sqlite.prepare('select 1 from request_daily_stats where day = ? limit 1').get(day)) {
+    if (utcDayStartMs(startedAt) < prunedBefore) rebuildDailyStats(sqlite, [day])
+    return
+  }
+  sqlite
+    .prepare(
+      `insert into request_daily_stats (${INSERT_COLUMNS}) select ${ROLLUP_COLUMNS} from (${aggregateSql('id = ?')})`,
+    )
+    .run(id)
+}
 
 /** Rebuilds the rollup rows of the given UTC days from the raw request log. */
 export function rebuildDailyStats(sqlite: Database.Database, days: ReadonlyArray<string>): void {
   if (days.length === 0) return
   const remove = sqlite.prepare('delete from request_daily_stats where day = ?')
   const insert = sqlite.prepare(
-    `insert into request_daily_stats (
-      day, model, client_name, key_id, status_class, routing_action, client_host, end_user_id, requests, errors, prompt_tokens, completion_tokens,
-      total_tokens, duration_ms_sum, cost_usd_sum, gen_completion_tokens, gen_duration_ms
-    ) select ${ROLLUP_COLUMNS} from (${AGGREGATE_SQL})`,
+    `insert into request_daily_stats (${INSERT_COLUMNS}) select ${ROLLUP_COLUMNS} from (${AGGREGATE_SQL})`,
   )
   sqlite.transaction(() => {
     for (const day of days) {
@@ -150,16 +178,26 @@ export function rebuildDailyStats(sqlite: Database.Database, days: ReadonlyArray
   })()
 }
 
+export function backfillDay(sqlite: Database.Database, day: string, now: number): void {
+  sqlite.transaction(() => {
+    rebuildDailyStats(sqlite, [day])
+    sqlite.prepare('update settings set value = ?, updated_at = ? where key = ?').run(day, now, BACKFILL_CURSOR_KEY)
+  })()
+}
+
+export function finishBackfill(sqlite: Database.Database, now: number): void {
+  sqlite
+    .prepare('update settings set value = ?, updated_at = ? where key = ?')
+    .run('complete', now, BACKFILL_CURSOR_KEY)
+}
+
 type RefreshOptions = {
   now?: number
   retentionDays: number
-  /** Also roll up every older day still present in the raw log (startup). */
-  backfill?: boolean
 }
 
 /**
- * Brings the rollup up to date: today and yesterday on every call, plus every
- * day still in the raw log when `backfill` is set. A day that already has
+ * Brings the rollup up to date for today and yesterday. A day that already has
  * rollup rows is only rebuilt if it starts at or after the recorded pruning cutoff.
  */
 export function refreshDailyStats(sqlite: Database.Database, options: RefreshOptions): string[] {
@@ -167,16 +205,6 @@ export function refreshDailyStats(sqlite: Database.Database, options: RefreshOpt
   const prunedBefore = getPrunedBefore(sqlite, now, options.retentionDays)
   const today = utcDay(now)
   const candidates = new Set([addDays(today, -1), today])
-
-  if (options.backfill) {
-    const rawDays = sqlite
-      .prepare(
-        `select distinct date(started_at / 1000, 'unixepoch') as day
-         from requests where request_class = 'inference'`,
-      )
-      .all() as Array<{ day: string }>
-    for (const row of rawDays) candidates.add(row.day)
-  }
 
   const rolledUp = new Set(
     (sqlite.prepare('select distinct day from request_daily_stats').all() as Array<{ day: string }>).map((r) => r.day),
@@ -253,15 +281,7 @@ export function loadSessionRows(
     .prepare(
       `select
         session_id as sessionId,
-        count(*) as requests,
-        sum(case when ${OK_SQL} then 0 else 1 end) as errors,
-        coalesce(sum(prompt_tokens), 0) as promptTokens,
-        coalesce(sum(completion_tokens), 0) as completionTokens,
-        coalesce(sum(coalesce(total_tokens, coalesce(prompt_tokens, 0) + coalesce(completion_tokens, 0))), 0) as totalTokens,
-        coalesce(sum(duration_ms), 0) as durationMsSum,
-        sum(cost_usd) as costUsdSum,
-        coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
-        coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs
+        ${MEASURES_SQL}
       from requests
       where request_class = 'inference' and started_at >= ? and started_at < ?
       group by session_id`,

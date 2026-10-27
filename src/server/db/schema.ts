@@ -70,7 +70,7 @@ export type Request = typeof requests.$inferSelect
 export type NewRequest = typeof requests.$inferInsert
 
 /**
- * Per-day usage rollup of inference requests, keyed by (UTC day, model, client,
+ * Per-day usage rollup of inference requests, grouped by (UTC day, model, client,
  * key, status class, routing action, client host, end user). Rebuilt from
  * `requests` by the maintenance job before retention pruning so token/usage
  * history outlives the raw request log. Session ids are deliberately not a
