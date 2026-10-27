@@ -22,6 +22,8 @@ describe('assignSeriesSteps', () => {
     const forward = assignSeriesSteps(ids)
     const reversed = assignSeriesSteps([...ids].reverse())
     for (const id of ids) {
+      expect(forward.has(id)).toBe(true)
+      expect(reversed.has(id)).toBe(true)
       expect(reversed.get(id)).toBe(forward.get(id))
     }
   })

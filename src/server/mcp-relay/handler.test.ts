@@ -148,17 +148,51 @@ describe('handleMcpRelayRequest', () => {
       credentialBindings: [],
     })
 
-    await handleMcpRelayRequest(
-      new Request('http://dash.test/mcp-relays/example', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-llama-dash-api-key': 'sk-test' },
-        body: '{"jsonrpc":"2.0"}',
-      }),
-    )
-
-    const input = forwardMock.forwardUpstreamAndLog.mock.calls[0][0]
-    expect(input.reqBody).toBeNull()
-    await expect(new Response(input.body).text()).resolves.toBe('{"jsonrpc":"2.0"}')
+    let controller!: ReadableStreamDefaultController<Uint8Array>
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        controller = c
+      },
+    })
+    const encoder = new TextEncoder()
+    let reader!: ReadableStreamDefaultReader<Uint8Array>
+    forwardMock.forwardUpstreamAndLog.mockImplementation(async (input) => {
+      expect(input.reqBody).toBeNull()
+      reader = input.body.getReader()
+      const first = await reader.read()
+      expect(new TextDecoder().decode(first.value)).toBe('first')
+      return new Response('{}')
+    })
+    const request = new Request('http://dash.test/mcp-relays/example', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-llama-dash-api-key': 'sk-test' },
+      body: stream,
+      duplex: 'half',
+    } as RequestInit)
+    controller.enqueue(encoder.encode('first'))
+    const pending = handleMcpRelayRequest(request)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+      const response = await Promise.race([
+        pending,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('forwarding waited for the full body')), 1000)
+        }),
+      ])
+      expect(response.status).toBe(200)
+      controller.enqueue(encoder.encode('second'))
+      controller.close()
+      expect(new TextDecoder().decode((await reader.read()).value)).toBe('second')
+      expect((await reader.read()).done).toBe(true)
+    } finally {
+      clearTimeout(timer)
+      try {
+        controller.close()
+      } catch {
+        /* already closed */
+      }
+      await pending.catch(() => {})
+    }
   })
 
   it('rejects oversized relay bodies before forwarding', async () => {

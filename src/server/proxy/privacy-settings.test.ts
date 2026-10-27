@@ -30,20 +30,23 @@ vi.mock('./rate-limiter.ts', () => ({
   recordTokenUsage: vi.fn(),
 }))
 
-import { createProxyContext, loggedRequestBody } from './context'
+import { createProxyContext, ensureProxyBody, loggedRequestBody } from './context'
 import { forwardUpstreamAndLog } from './forward'
 import { emptyRoutingOutcome } from './transforms'
 
 describe('proxy privacy settings', () => {
   it('omits logged request bodies when request body capture is disabled', async () => {
-    settingsMock.privacy = { ...settingsMock.privacy, captureRequestBodies: false }
+    settingsMock.privacy = { ...settingsMock.privacy, captureRequestBodies: true }
     const request = new Request('http://localhost/v1/messages', {
       method: 'POST',
       body: '{"prompt":"secret"}',
       headers: { 'content-type': 'application/json' },
     })
     const ctx = createProxyContext(request)
+    await ensureProxyBody(ctx)
 
+    expect(loggedRequestBody(ctx)).toBe('{"prompt":"secret"}')
+    settingsMock.privacy = { ...settingsMock.privacy, captureRequestBodies: false }
     expect(loggedRequestBody(ctx)).toBeNull()
   })
 
