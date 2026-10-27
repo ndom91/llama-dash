@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '../../components/Tooltip'
 import { RequestsHistogram } from './RequestsHistogram'
 
-const buckets = [0, 1, 2, 3].map((n) => ({ timestamp: 1_800_000 + n * 60_000, total: n, errors: 0 }))
+const buckets = [0, 1, 2, 3].map((n) => ({ timestamp: 1_800_000 + n * 60_000, total: n, errors: n === 3 ? 1 : 0 }))
 
 function TestHistogram() {
   const [selected, setSelected] = useState<number[]>([])
@@ -35,8 +35,8 @@ it('clears the selected minutes on Escape, without consuming Escape in a text fi
   const view = render(createElement(TestHistogram))
   const bars = view.getAllByRole('button')
   fireEvent.click(bars[0], { detail: 0 })
-  expect(bars[0].querySelector('.histogram-bar-inner')?.className).toContain('after:border-t')
-  expect(bars[0].querySelector('.histogram-bar-inner')?.className).not.toContain('outline-1')
+  expect((bars[0].querySelector('.histogram-bar-ok') as HTMLElement).style.background).toBe('var(--accent)')
+  expect((bars[0].querySelector('.histogram-bar-ok') as HTMLElement).style.opacity).toBe('1')
   expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
   const input = document.createElement('input')
   document.body.appendChild(input)
@@ -48,6 +48,14 @@ it('clears the selected minutes on Escape, without consuming Escape in a text fi
   expect(bars[0].getAttribute('aria-pressed')).toBe('false')
   expect(document.activeElement).not.toBe(bars[0])
   expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
+})
+
+it('retains the error segment when a mixed bar is selected', () => {
+  const view = render(createElement(TestHistogram))
+  const bar = view.getAllByRole('button')[3]
+  fireEvent.click(bar, { detail: 0 })
+  expect((bar.querySelector('.histogram-bar-ok') as HTMLElement).style.background).toBe('var(--accent)')
+  expect((bar.querySelector('.histogram-bar-err') as HTMLElement).style.background).toBe('')
 })
 
 it('anchors each tooltip to the bar while keeping a full-height pointer target', () => {

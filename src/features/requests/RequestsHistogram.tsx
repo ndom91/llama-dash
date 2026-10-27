@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiHistogramBucket } from '../../lib/api'
-import { cn } from '../../lib/cn'
 import { isTypingTarget } from '../../lib/is-typing-target'
 
 type Props = {
@@ -122,6 +121,7 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
         const okH = ok > 0 ? Math.max(Math.sqrt(ok / maxTotal) * 72, 3) : 2
         const errH = b.errors > 0 ? Math.max(Math.sqrt(b.errors / maxTotal) * 72, 3) : 0
         const empty = b.total === 0
+        const isSelected = active.includes(b.timestamp)
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         const label = `${time} · ${b.total} requests${b.errors ? ` (${b.errors} err)` : ''}`
         return (
@@ -132,24 +132,21 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
                 data-minute={b.timestamp}
                 aria-label={label}
                 aria-describedby={instructionsId}
-                aria-pressed={active.includes(b.timestamp)}
+                aria-pressed={isSelected}
                 className="relative w-full shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-accent before:absolute before:bottom-0 before:left-0 before:h-[90px] before:w-full before:content-['']"
                 onClick={(e) => {
                   if (e.detail === 0) select(b.timestamp, e.shiftKey, e.ctrlKey || e.metaKey)
                 }}
               >
-                <div
-                  className={cn(
-                    'histogram-bar-inner',
-                    active.includes(b.timestamp) &&
-                      'relative after:pointer-events-none after:absolute after:inset-0 after:border-x after:border-t after:border-fg-dim after:content-[""]',
-                  )}
-                  aria-hidden="true"
-                >
+                <div className="histogram-bar-inner" aria-hidden="true">
                   {errH > 0 ? <div className="histogram-bar-err" style={{ height: errH }} /> : null}
                   <div
                     className="histogram-bar-ok"
-                    style={{ height: okH, opacity: empty ? (active.includes(b.timestamp) ? 0.65 : 0.15) : undefined }}
+                    style={{
+                      height: okH,
+                      background: isSelected ? 'var(--accent)' : undefined,
+                      opacity: empty ? (isSelected ? 1 : 0.15) : undefined,
+                    }}
                   />
                 </div>
               </button>
