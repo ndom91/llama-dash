@@ -264,6 +264,32 @@ describe('handleProxyRequest auth/body ordering', () => {
     expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 
+  it('proxies authenticated native TTS requests unchanged', async () => {
+    const rawKey = 'sk-tts'
+    const body = JSON.stringify({ model: 'tts-model', text: 'Hello world' })
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    const response = await handleProxyRequest(
+      new Request('http://dash.test/tts?format=wav', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
+        body,
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(lastForward().upstream).toBe('http://llama-swap.test/tts?format=wav')
+    expect(lastForward().body).toBe(body)
+  })
+
+  it('rejects unauthenticated native TTS requests', async () => {
+    const response = await handleProxyRequest(
+      new Request('http://dash.test/tts', { method: 'POST', body: JSON.stringify({ text: 'Hello' }) }),
+    )
+
+    expect(response.status).toBe(401)
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
+  })
+
   it('returns native infill upstream errors without OpenAI response wrapping', async () => {
     const rawKey = 'sk-infill-error'
     apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))

@@ -27,7 +27,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - **Review usage** — input/output token usage and configurable breakdowns for the last 24 hours or 7, 30, or 90 UTC days. Daily rollups outlive raw request logs; inference rows are retained for at least two days for rolling comparisons. Startup backfill runs one day at a time; historical totals may be incomplete until it finishes. Inference deletion waits for backfill, while payload and MCP relay cleanup can continue.
   Client attribution recognizes Claude Code's `claude-cli/` user agent for new requests; previously unattributed history is not reclassified.
 - **Manage models** — load/unload models, inspect per-model stats, capabilities, and llama-swap selector routing, view residency history, and edit llama-swap config with validation.
-- **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `POST /infill`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
+- **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `/infill` and `/tts`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more.
 - **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.
   Model, key, and host filters accept multiple values.
   Select histogram minutes by click, drag, Shift-click, or Ctrl/Command-click to filter the paginated request list; clear the time filter from the chart header.
