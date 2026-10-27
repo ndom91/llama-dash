@@ -45,7 +45,7 @@ export function UsagePage() {
           title="Usage"
           subtitle={
             report
-              ? `${formatUsageDay(report.from)} – ${formatUsageDay(report.to)} · UTC days${
+              ? `${report.from === report.to ? formatUsageDay(report.from) : `${formatUsageDay(report.from)} – ${formatUsageDay(report.to)}`} · UTC ${days === 1 ? 'day' : 'days'}${
                   report.oldestDay ? ` · history since ${formatUsageDay(report.oldestDay, { year: 'numeric' })}` : ''
                 }`
               : 'tokens by day, app, model and key'
@@ -71,7 +71,7 @@ export function UsagePage() {
             <div className="flex min-w-0 flex-col">
               <UsagePanel
                 title="Tokens per day"
-                sub={<span className="max-[520px]:hidden">{`last ${days} days`}</span>}
+                sub={<span className="max-[520px]:hidden">{days === 1 ? 'today · UTC' : `last ${days} days`}</span>}
                 aside={
                   <>
                     <span className="flex items-center gap-3 max-[520px]:hidden">

@@ -18,7 +18,7 @@ export function DashboardUsageCard({ label, window, against, days }: Props) {
       to="/usage"
       search={{ days }}
       className="stat-card min-h-[68px] no-underline transition-[background-color] duration-120 hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
-      aria-label={`${label}: open usage for the last ${days} days`}
+      aria-label={`${label}: open usage for ${days === 1 ? 'today' : `the last ${days} days`}`}
     >
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-row flex-wrap">

@@ -71,7 +71,7 @@ export function DashboardPage() {
               />
             </div>
             <div className="grid grid-cols-3 gap-0 border-b border-border max-[700px]:grid-cols-1">
-              <DashboardUsageCard label="output · today" window={usage?.today} against="vs yday" days={7} />
+              <DashboardUsageCard label="output · today" window={usage?.today} against="vs yday" days={1} />
               <DashboardUsageCard label="output · 7 days" window={usage?.days7} against="vs prev 7d" days={7} />
               <DashboardUsageCard label="output · 30 days" window={usage?.days30} against="vs prev 30d" days={30} />
             </div>

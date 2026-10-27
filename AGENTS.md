@@ -50,7 +50,7 @@ src/
     models.$id.tsx          · /models/:id detail (stats, history, config snippet, selector targets)
     requests.index.tsx      · /requests log with filtering, sorting, histogram
     requests.$id.tsx        · /requests/:id detail view
-    usage.tsx               · /usage token usage by day plus three configurable breakdowns (7/30/90 days)
+    usage.tsx               · /usage token usage by day plus three configurable breakdowns (1/7/30/90 days)
     keys.index.tsx          · /keys list + create/revoke/delete
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     attribution.tsx         · /attribution header mapping + client setup examples
@@ -196,7 +196,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id` — detail with adjacent navigation
    - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata and captured headers/bodies; metadata excludes payload columns at the SQL level
-   - `/api/usage?days=7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, and the three breakdowns configured in `/api/settings/usage` (client, key, model, status class, routing action, host, end user, or session)
+   - `/api/usage?days=1|7|30|90` — token usage for the last N UTC days vs the previous N: totals, per-day series, and the three breakdowns configured in `/api/settings/usage` (client, key, model, status class, routing action, host, end user, or session)
    - `/api/usage/summary` — generated-token totals for today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz

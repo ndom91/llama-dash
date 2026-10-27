@@ -6,10 +6,10 @@ import { TooltipProvider } from '../../components/Tooltip'
 import { UsagePage } from './UsagePage'
 import { UsagePagePending } from './UsagePagePending'
 
-const reportState = vi.hoisted(() => ({ data: undefined as unknown, error: null as Error | null }))
+const reportState = vi.hoisted(() => ({ data: undefined as unknown, error: null as Error | null, days: 7 }))
 
 vi.mock('@tanstack/react-router', () => ({
-  getRouteApi: () => ({ useSearch: () => ({ days: 7 }) }),
+  getRouteApi: () => ({ useSearch: () => ({ days: reportState.days }) }),
   useNavigate: () => vi.fn(),
   Link: ({ children }: { children: unknown }) => children,
 }))
@@ -20,6 +20,28 @@ afterEach(() => {
   cleanup()
   reportState.data = undefined
   reportState.error = null
+  reportState.days = 7
+})
+
+it('shows the one-day period and a single UTC date', () => {
+  const totals = { requests: 1, errors: 0, promptTokens: 20, completionTokens: 10, totalTokens: 30, costUsd: null }
+  reportState.days = 1
+  reportState.data = {
+    days: 1,
+    from: '2026-10-27',
+    to: '2026-10-27',
+    oldestDay: '2026-10-27',
+    totals,
+    previous: totals,
+    daily: [{ day: '2026-10-27', requests: 1, promptTokens: 20, completionTokens: 10 }],
+    retentionDays: 30,
+    panels: [],
+  }
+  const view = render(createElement(TooltipProvider, null, createElement(UsagePage)))
+  expect(view.getByRole('button', { name: '1d' }).getAttribute('aria-pressed')).toBe('true')
+  expect(view.getByText(/Oct 27 · UTC day/)).toBeDefined()
+  expect(view.getByText('today · UTC')).toBeDefined()
+  expect(view.getByRole('img', { name: '2026-10-27: 30 tokens' }).parentElement?.className).toContain('max-w-24')
 })
 
 it('keeps the header outside the scroll region with one divider for loaded and empty states', () => {

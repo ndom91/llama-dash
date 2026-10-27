@@ -52,6 +52,7 @@ export function UsageDailyChart({ daily, mode }: Props) {
         <div
           className={cn(
             'absolute inset-y-0 right-0 left-11 flex items-end',
+            daily.length === 1 && 'justify-center',
             daily.length > 45 ? 'gap-px' : 'gap-[2px]',
           )}
         >
@@ -68,7 +69,7 @@ export function UsageDailyChart({ daily, mode }: Props) {
               </div>
             )
             return (
-              <div key={d.day} className="flex h-full min-w-0 flex-1 items-end">
+              <div key={d.day} className={cn('flex h-full min-w-0 flex-1 items-end', daily.length === 1 && 'max-w-24')}>
                 <Tooltip label={label} side="top">
                   <div
                     className="group relative flex w-full shrink-0 cursor-default flex-col justify-end before:absolute before:bottom-0 before:left-0 before:h-(--usage-chart-height) before:w-full before:content-['']"

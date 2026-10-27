@@ -15,7 +15,7 @@ const KEY_NAMES = new Map([['k1', 'laptop']])
 
 function report(
   sqlite: Database.Database,
-  days: 7 | 30 | 90,
+  days: 1 | 7 | 30 | 90,
   panels: [UsageDimension, UsageDimension, UsageDimension] = ['client', 'model', 'key'],
 ) {
   return getUsageReport(sqlite, { days, now: NOW, retentionDays: 30, keyNames: KEY_NAMES, panels })
@@ -27,6 +27,7 @@ function counts(row: { requests: number; promptTokens: number; completionTokens:
 
 describe('parseUsageDays', () => {
   it('accepts the supported periods and defaults to 7', () => {
+    expect(parseUsageDays('1')).toBe(1)
     expect(parseUsageDays('30')).toBe(30)
     expect(parseUsageDays('90')).toBe(90)
     expect(parseUsageDays(null)).toBe(7)
@@ -39,6 +40,24 @@ describe('usage report', () => {
 
   beforeEach(() => {
     sqlite = createMigratedTestDb()
+  })
+
+  it('reports today and compares it to the previous UTC day', () => {
+    insertTestRequests(sqlite, [
+      { id: 'today', startedAt: TODAY + HOUR_MS, promptTokens: 100, completionTokens: 50 },
+      { id: 'yesterday', startedAt: TODAY - 1, promptTokens: 20, completionTokens: 10 },
+      { id: 'older', startedAt: TODAY - DAY_MS - 1, promptTokens: 999, completionTokens: 999 },
+    ])
+    backfillTestUsage(sqlite, NOW, 30)
+    const result = report(sqlite, 1)
+    expect(result).toMatchObject({
+      days: 1,
+      from: '2026-03-10',
+      to: '2026-03-10',
+      totals: { requests: 1, promptTokens: 100, completionTokens: 50 },
+      previous: { requests: 1, promptTokens: 20, completionTokens: 10 },
+      daily: [{ day: '2026-03-10', requests: 1, promptTokens: 100, completionTokens: 50 }],
+    })
   })
 
   it('groups Claude CLI attribution in live and rolled-up usage', () => {

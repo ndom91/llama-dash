@@ -41,6 +41,7 @@ describe('usage formatting', () => {
   })
 
   it('parses supported periods only', () => {
+    expect(parseUsagePeriod('1')).toBe(1)
     expect(parseUsagePeriod('30')).toBe(30)
     expect(parseUsagePeriod(90)).toBe(90)
     expect(parseUsagePeriod('14')).toBeUndefined()
