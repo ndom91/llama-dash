@@ -42,4 +42,6 @@ it('labels proxy-observed output separately from upstream timings', () => {
   expect(html).toContain('proxy observed')
   expect(html).toContain('tok/s overall')
   expect(html).not.toContain('no upstream phase timings')
+  expect(html).toContain('width:25%;background:var(--series-2)')
+  expect(html).toContain('width:50%;background:var(--series-4)')
 })

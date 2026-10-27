@@ -55,7 +55,7 @@ export function RequestTokenTrace({
           </div>
         ) : hasObserved ? (
           <div className="flex h-2 overflow-hidden rounded bg-surface-3" aria-hidden="true">
-            <div style={{ width: `${firstOutputPct}%` }} />
+            <div style={{ width: `${firstOutputPct}%`, background: 'var(--series-2)' }} />
             <div style={{ width: `${outputSpanPct}%`, background: 'var(--series-4)' }} />
           </div>
         ) : null}
