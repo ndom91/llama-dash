@@ -1,3 +1,4 @@
+import { Tooltip } from '../../components/Tooltip'
 import { formatDuration } from './requestDetailUtils'
 
 type Props = {
@@ -50,13 +51,29 @@ export function RequestTokenTrace({
       <div className="px-4 py-3">
         {hasPhases ? (
           <div className="flex h-2 overflow-hidden rounded bg-surface-3" aria-hidden="true">
-            <div style={{ width: `${prefillPct}%`, background: 'var(--series-2)' }} />
-            <div style={{ width: `${decodePct}%`, background: 'var(--series-4)' }} />
+            {prefillPct > 0 && prefillMs != null ? (
+              <Tooltip label={`prefill ${formatDuration(prefillMs)}`} side="top">
+                <div style={{ width: `${prefillPct}%`, background: 'var(--series-2)' }} />
+              </Tooltip>
+            ) : null}
+            {decodePct > 0 && decodeMs != null ? (
+              <Tooltip label={`decode ${formatDuration(decodeMs)}`} side="top">
+                <div style={{ width: `${decodePct}%`, background: 'var(--series-4)' }} />
+              </Tooltip>
+            ) : null}
           </div>
         ) : hasObserved ? (
           <div className="flex h-2 overflow-hidden rounded bg-surface-3" aria-hidden="true">
-            <div style={{ width: `${firstOutputPct}%`, background: 'var(--series-2)' }} />
-            <div style={{ width: `${outputSpanPct}%`, background: 'var(--series-4)' }} />
+            {firstOutputPct > 0 && firstOutputMs != null ? (
+              <Tooltip label={`first output ${formatDuration(firstOutputMs)} · proxy observed`} side="top">
+                <div style={{ width: `${firstOutputPct}%`, background: 'var(--series-2)' }} />
+              </Tooltip>
+            ) : null}
+            {outputSpanPct > 0 && outputSpanMs != null ? (
+              <Tooltip label={`output span ${formatDuration(outputSpanMs)} · proxy observed`} side="top">
+                <div style={{ width: `${outputSpanPct}%`, background: 'var(--series-4)' }} />
+              </Tooltip>
+            ) : null}
           </div>
         ) : null}
         <div
