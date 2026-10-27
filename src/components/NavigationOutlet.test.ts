@@ -9,6 +9,7 @@ import { NavigationPending } from './NavigationPending'
 
 afterEach(() => {
   cleanup()
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
@@ -92,6 +93,8 @@ it('holds the previous request briefly during a slow request navigation', async 
   await router.load()
   const view = render(createElement(RouterProvider, { router }))
   await waitFor(() => expect(view.queryByText('Request detail')).not.toBeNull())
+  await waitFor(() => expect(router.state.resolvedLocation?.pathname).toBe('/requests/req_first'))
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
   hold = true
   let navigation!: Promise<void>
   await act(async () => {
@@ -100,10 +103,14 @@ it('holds the previous request briefly during a slow request navigation', async 
   expect(view.queryByText('Request detail')).not.toBeNull()
   expect(view.queryByText('Request detail')?.closest('[inert]')).not.toBeNull()
   expect(view.queryByRole('status', { name: 'Loading request detail' })).toBeNull()
-  await waitFor(() => expect(view.queryByRole('status', { name: 'Loading request detail' })).not.toBeNull())
+  act(() => vi.advanceTimersByTime(179))
+  expect(view.queryByText('Request detail')?.closest('[inert]')).not.toBeNull()
+  act(() => vi.advanceTimersByTime(1))
+  expect(view.queryByRole('status', { name: 'Loading request detail' })).not.toBeNull()
   await act(async () => {
     release()
     await navigation
   })
+  vi.useRealTimers()
   await waitFor(() => expect(view.queryByText('Request detail')).not.toBeNull())
 })
