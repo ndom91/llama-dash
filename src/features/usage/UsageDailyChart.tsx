@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiUsageDay } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -28,7 +29,10 @@ export function UsageDailyChart({ daily, mode }: Props) {
 
   return (
     <div className="px-4 pt-4 pb-3">
-      <div className={cn('relative', GUTTER)} style={{ height: CHART_PX }}>
+      <div
+        className={cn('relative', GUTTER)}
+        style={{ height: CHART_PX, '--usage-chart-height': `${CHART_PX}px` } as CSSProperties}
+      >
         {scale.ticks.map((tick) => {
           const bottom = (tick / scale.max) * CHART_PX
           return (
@@ -64,35 +68,37 @@ export function UsageDailyChart({ daily, mode }: Props) {
               </div>
             )
             return (
-              <Tooltip key={d.day} label={label} side="top">
-                <div
-                  className="group flex h-full min-w-0 flex-1 cursor-default flex-col justify-end"
-                  role="img"
-                  aria-label={`${d.day}: ${total} ${mode === 'generated' ? 'generated ' : ''}tokens`}
-                >
-                  {total === 0 ? (
-                    <div className="h-px w-full bg-fg-faint opacity-40" />
-                  ) : (
-                    <>
-                      {promptPx > 0 ? (
-                        <div
-                          className="w-full rounded-t-[2px] transition-opacity group-hover:opacity-80"
-                          style={{ height: Math.max(promptPx, 2), background: PROMPT_SERIES }}
-                        />
-                      ) : null}
-                      {generatedPx > 0 ? (
-                        <div
-                          className={cn(
-                            'w-full transition-opacity group-hover:opacity-80',
-                            promptPx > 0 ? 'mt-px' : 'rounded-t-[2px]',
-                          )}
-                          style={{ height: Math.max(generatedPx, 2), background: GENERATED_SERIES }}
-                        />
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              </Tooltip>
+              <div key={d.day} className="flex h-full min-w-0 flex-1 items-end">
+                <Tooltip label={label} side="top">
+                  <div
+                    className="group relative flex w-full shrink-0 cursor-default flex-col justify-end before:absolute before:bottom-0 before:left-0 before:h-(--usage-chart-height) before:w-full before:content-['']"
+                    role="img"
+                    aria-label={`${d.day}: ${total} ${mode === 'generated' ? 'generated ' : ''}tokens`}
+                  >
+                    {total === 0 ? (
+                      <div className="h-px w-full bg-fg-faint opacity-40" />
+                    ) : (
+                      <>
+                        {promptPx > 0 ? (
+                          <div
+                            className="w-full rounded-t-[2px] transition-opacity group-hover:opacity-80"
+                            style={{ height: Math.max(promptPx, 2), background: PROMPT_SERIES }}
+                          />
+                        ) : null}
+                        {generatedPx > 0 ? (
+                          <div
+                            className={cn(
+                              'w-full transition-opacity group-hover:opacity-80',
+                              promptPx > 0 ? 'mt-px' : 'rounded-t-[2px]',
+                            )}
+                            style={{ height: Math.max(generatedPx, 2), background: GENERATED_SERIES }}
+                          />
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </Tooltip>
+              </div>
             )
           })}
         </div>
