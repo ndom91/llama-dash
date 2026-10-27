@@ -15,6 +15,15 @@ function range(buckets: ApiHistogramBucket[], start: number, end: number): numbe
   return buckets.filter((b) => b.timestamp >= low && b.timestamp <= high).map((b) => b.timestamp)
 }
 
+function barAtPosition(chart: HTMLElement, x: number, clamp = true): HTMLElement | undefined {
+  const bars = Array.from(chart.querySelectorAll<HTMLElement>('[data-minute]'))
+  if (!bars.length) return undefined
+  if (!clamp && (x < bars[0].getBoundingClientRect().left || x > bars[bars.length - 1].getBoundingClientRect().right)) {
+    return undefined
+  }
+  return bars.find((bar) => x <= bar.getBoundingClientRect().right) ?? bars.at(-1)
+}
+
 export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
   const instructionsId = useId()
   const chartRef = useRef<HTMLDivElement>(null)
@@ -63,7 +72,9 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
       data-request-histogram
       onPointerDown={(e) => {
         if (e.button !== 0) return
-        const target = (e.target as HTMLElement).closest<HTMLElement>('[data-minute]')
+        const target =
+          (e.target as HTMLElement).closest<HTMLElement>('[data-minute]') ??
+          barAtPosition(e.currentTarget, e.clientX, false)
         if (!target) return
         const timestamp = Number(target.dataset.minute)
         if (e.shiftKey) {
@@ -85,8 +96,7 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
         if (!state) return
         if (Math.abs(e.clientX - state.x) >= 4) state.moved = true
         if (!state.moved) return
-        const bars = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-minute]'))
-        const target = bars.find((bar) => e.clientX <= bar.getBoundingClientRect().right) ?? bars.at(-1)
+        const target = barAtPosition(e.currentTarget, e.clientX)
         if (!target) return
         state.end = Number(target.dataset.minute)
         const span = range(buckets, state.start, state.end)
@@ -95,7 +105,10 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
       onPointerUp={(e) => {
         const state = drag.current
         if (!state) return
+        if (Math.abs(e.clientX - state.x) >= 4) state.moved = true
         if (state.moved) {
+          const target = barAtPosition(e.currentTarget, e.clientX)
+          if (target) state.end = Number(target.dataset.minute)
           const span = range(buckets, state.start, state.end)
           onSelect((state.additive ? [...new Set([...state.original, ...span])] : span).sort((a, b) => a - b))
           anchor.current = state.start

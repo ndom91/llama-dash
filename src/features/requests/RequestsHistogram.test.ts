@@ -87,3 +87,35 @@ it('selects a contiguous range by dragging across bars', () => {
   expect(bars.map((bar) => bar.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'true', 'true'])
   vi.unstubAllGlobals()
 })
+
+it('commits the release position even when a fast drag has no final move event', () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const view = render(createElement(TestHistogram))
+  const bars = view.getAllByRole('button')
+  const group = view.container.querySelector<HTMLElement>('[data-request-histogram]')!
+  group.setPointerCapture = vi.fn()
+  group.hasPointerCapture = () => false
+  bars.forEach((bar, i) => {
+    bar.getBoundingClientRect = () => ({ left: i * 20, right: (i + 1) * 20 - 2 }) as DOMRect
+  })
+  fireEvent.pointerDown(bars[0], { button: 0, clientX: 10 })
+  fireEvent.pointerUp(group, { clientX: 65 })
+  expect(bars.map((bar) => bar.getAttribute('aria-pressed'))).toEqual(['true', 'true', 'true', 'true'])
+  vi.unstubAllGlobals()
+})
+
+it('starts a drag from the gap between bars', () => {
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const view = render(createElement(TestHistogram))
+  const bars = view.getAllByRole('button')
+  const group = view.container.querySelector<HTMLElement>('[data-request-histogram]')!
+  group.setPointerCapture = vi.fn()
+  group.hasPointerCapture = () => false
+  bars.forEach((bar, i) => {
+    bar.getBoundingClientRect = () => ({ left: i * 20, right: (i + 1) * 20 - 2 }) as DOMRect
+  })
+  fireEvent.pointerDown(group, { button: 0, clientX: 19 })
+  fireEvent.pointerUp(group, { clientX: 65 })
+  expect(bars.map((bar) => bar.getAttribute('aria-pressed'))).toEqual(['false', 'true', 'true', 'true'])
+  vi.unstubAllGlobals()
+})
