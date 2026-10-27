@@ -4,7 +4,7 @@ import { isInferenceProxyPath } from './proxy-path'
 describe('isInferenceProxyPath', () => {
   it('routes native inference endpoints to the proxy instead of the dashboard', () => {
     expect(isInferenceProxyPath('/infill')).toBe(true)
-    expect(isInferenceProxyPath('/tts')).toBe(true)
+    expect(isInferenceProxyPath('/tts')).toBe(false)
     expect(isInferenceProxyPath('/tts/other')).toBe(false)
     expect(isInferenceProxyPath('/tts-extra')).toBe(false)
     expect(isInferenceProxyPath('/v1/systemone')).toBe(true)

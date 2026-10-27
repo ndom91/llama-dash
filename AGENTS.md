@@ -117,12 +117,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
 
 ## How it's wired
 
-- `src/server/proxy/*` — the `/v1/*`, native llama.cpp `/infill` and `/tts`, and llama-swap `/audiocpp/*` pass-through: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
+- `src/server/proxy/*` — the `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through; `/v1/audio/llama-tts` routes native speech to the selected model's llama-swap upstream: streaming SSE preserved, proxy context/body snapshots kept isolated, bounded request/response capture for logs, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/pricing.ts` — startup-cached `models.dev` model pricing used to estimate logged request cost from upstream usage counters.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
 - `src/server/article-extract.ts` — server-side article URL fetcher for the Speech playground. It validates public HTTP(S) URLs, caps HTML fetch size/time, parses readable article text with Readability, and returns editable text for TTS.
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
-- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*`, `/infill`, and `/tts`). Signup is only allowed while no dashboard user exists.
+- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls inference-host CPU counters plus `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes hardware-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
@@ -156,7 +156,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
    `user`, `session`, `account`, and `verification` tables for dashboard sessions.
-3. `/v1/*`, native llama.cpp `/infill` and `/tts`, and llama-swap `/audiocpp/*` pass-through proxy that streams SSE unchanged and queues one log row
+3. `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through proxy that streams SSE unchanged and queues one log row
    per completed request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). `handler.ts` owns the
    high-level flow, `context.ts` owns request-scoped proxy state transitions,
@@ -583,7 +583,7 @@ sort lexicographically by creation time).
 
 - `POST /v1/*` — forward OpenAI / Anthropic calls unchanged (after our middleware)
 - `POST /infill` — forward native llama.cpp FIM requests unchanged (after the same auth and routing middleware)
-- `/tts` — forward native TTS requests through the same auth and routing middleware
+- `/v1/audio/llama-tts` — llama-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
 - `/audiocpp/*` — forward llama-swap's audio.cpp UI and API passthrough unchanged (after the same auth and routing middleware)
 - `GET /running` — which models are currently loaded
 - `POST /models/unload` — unload a model

@@ -17,6 +17,7 @@ import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
 import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
 import { config } from '../config.ts'
+import { inferenceBackend } from '../inference/backend.ts'
 
 const HARD_BODY_CAP = 20 * 1024 * 1024
 
@@ -86,6 +87,23 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     return rejectBodyTooLarge(ctx, err)
   }
 
+  if (ctx.endpoint === '/v1/audio/llama-tts') {
+    const model = ctx.body?.parsedBody?.model
+    if (
+      ctx.method !== 'POST' ||
+      typeof model !== 'string' ||
+      !model ||
+      model === '.' ||
+      model === '..' ||
+      model.includes('/')
+    ) {
+      return rejectNativeTts(ctx, 'Native TTS requires a JSON body with a model ID without slashes')
+    }
+    if (ctx.routingOutcome.targetType === 'direct') {
+      return rejectNativeTts(ctx, 'Native TTS requires a llama-swap target')
+    }
+  }
+
   if (ctx.body?.hasBody) {
     if (ctx.body.parsedBody && !ctx.body.isMultipart) {
       const transformResult = applyTransforms(ctx.body.parsedBody, {
@@ -121,6 +139,14 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   finalizeRoutingAndBody(ctx)
+
+  if (ctx.endpoint === '/v1/audio/llama-tts') {
+    const model = ctx.body?.parsedBody?.model
+    if (typeof model !== 'string' || !model || model === '.' || model === '..' || model.includes('/')) {
+      return rejectNativeTts(ctx, 'Native TTS requires a model ID without slashes')
+    }
+    ctx.upstream = inferenceBackend.defaultProxyUpstream(`/upstream/${encodeURIComponent(model)}/tts`, ctx.url.search)
+  }
 
   if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
     delete ctx.reqHeaders.authorization
@@ -239,6 +265,28 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
 function usesStoredCredentials(ctx: ProxyContext): boolean {
   return Boolean(ctx.routingOutcome.targetCredentialId) || ctx.routingOutcome.credentialBindings.length > 0
+}
+
+function rejectNativeTts(ctx: ProxyContext, message: string): Response {
+  const body = { error: { message, type: 'invalid_request' } }
+  writeProxyLog({
+    startedAt: ctx.startedAt,
+    status: 400,
+    method: ctx.method,
+    endpoint: ctx.endpoint,
+    usage: nullUsage(ctx.body?.reqModel),
+    streamed: false,
+    error: message,
+    reqHeaders: loggedRequestHeaders(ctx),
+    reqBody: loggedRequestBody(ctx),
+    resHeaders: null,
+    resBody: JSON.stringify(body),
+    keyId: ctx.keyId,
+    reqModel: ctx.body?.reqModel ?? null,
+    attribution: ctx.attribution,
+    routing: ctx.routingOutcome,
+  })
+  return Response.json(body, { status: 400 })
 }
 
 function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {

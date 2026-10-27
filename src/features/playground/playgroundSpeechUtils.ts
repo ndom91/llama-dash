@@ -6,7 +6,7 @@ export function formatSpeechClock(seconds: number) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`
 }
 
-export function buildSpeechFilename(input: string, createdAt: number) {
+export function buildSpeechFilename(input: string, createdAt: number, audioUrl = '') {
   const base =
     input
       .trim()
@@ -22,7 +22,7 @@ export function buildSpeechFilename(input: string, createdAt: number) {
     ? date.toISOString().replace(/[-:]/g, '').slice(0, 15)
     : new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)
 
-  return `${base}_${stamp}.mp3`
+  return `${base}_${stamp}.${audioUrl.startsWith('data:audio/wav') || audioUrl.startsWith('data:audio/x-wav') ? 'wav' : 'mp3'}`
 }
 
 export function buildWaveformPeaks(buffer: AudioBuffer, bars: number) {

@@ -97,14 +97,14 @@ export function PlaygroundSpeech() {
   const downloadAudio = useCallback((audioUrl: string, input: string, createdAt: number) => {
     const link = document.createElement('a')
     link.href = audioUrl
-    link.download = buildSpeechFilename(input, createdAt)
+    link.download = buildSpeechFilename(input, createdAt, audioUrl)
     link.click()
   }, [])
 
   const downloadSegment = useCallback((segment: SpeechSegment, createdAt: number) => {
     const link = document.createElement('a')
     link.href = segment.audioUrl
-    link.download = buildSpeechFilename(`segment ${segment.index + 1} ${segment.input}`, createdAt)
+    link.download = buildSpeechFilename(`segment ${segment.index + 1} ${segment.input}`, createdAt, segment.audioUrl)
     link.click()
   }, [])
 
@@ -153,7 +153,15 @@ export function PlaygroundSpeech() {
             </select>
           </div>
 
-          <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
+          <div className="flex items-center gap-3 border-r border-border pr-4">
+            <label htmlFor="pg-speech-api" className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">API</label>
+            <select id="pg-speech-api" className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg" value={speech.speechApi} onChange={(e) => speech.setSpeechApi(e.target.value === 'llama' ? 'llama' : 'openai')}>
+              <option value="openai">OpenAI compatible</option>
+              <option value="llama">llama.cpp native /tts</option>
+            </select>
+          </div>
+
+          {speech.speechApi === 'openai' ? <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">voice</div>
             {speech.voices ? (
               <select
@@ -179,7 +187,7 @@ export function PlaygroundSpeech() {
                 onChange={(e) => speech.setVoice(e.target.value)}
               />
             )}
-          </div>
+          </div> : null}
 
           <div className="ml-auto flex items-center gap-3 text-[10px] font-mono uppercase tracking-[0.08em] text-fg-dim">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">
@@ -206,7 +214,7 @@ export function PlaygroundSpeech() {
               ))}
             </div>
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">format</div>
-            <div className="text-xs normal-case tracking-normal text-fg">mp3 • 24 kHz</div>
+            <div className="text-xs normal-case tracking-normal text-fg">{speech.speechApi === 'llama' ? 'wav' : 'server default'}</div>
           </div>
         </div>
       </div>

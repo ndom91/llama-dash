@@ -264,12 +264,12 @@ describe('handleProxyRequest auth/body ordering', () => {
     expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 
-  it('proxies authenticated native TTS requests unchanged', async () => {
+  it('routes authenticated native TTS requests to the model-specific upstream', async () => {
     const rawKey = 'sk-tts'
     const body = JSON.stringify({ model: 'tts-model', text: 'Hello world' })
     apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
     const response = await handleProxyRequest(
-      new Request('http://dash.test/tts?format=wav', {
+      new Request('http://dash.test/v1/audio/llama-tts?format=wav', {
         method: 'POST',
         headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
         body,
@@ -277,16 +277,68 @@ describe('handleProxyRequest auth/body ordering', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(lastForward().upstream).toBe('http://llama-swap.test/tts?format=wav')
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/tts-model/tts?format=wav')
     expect(lastForward().body).toBe(body)
   })
 
   it('rejects unauthenticated native TTS requests', async () => {
     const response = await handleProxyRequest(
-      new Request('http://dash.test/tts', { method: 'POST', body: JSON.stringify({ text: 'Hello' }) }),
+      new Request('http://dash.test/v1/audio/llama-tts', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'tts-model', input: 'Hello' }),
+      }),
     )
 
     expect(response.status).toBe(401)
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed or path-like native TTS model IDs and restricted keys', async () => {
+    const rawKey = 'sk-tts'
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    for (const model of ['', '..', '../admin']) {
+      const res = await handleProxyRequest(
+        new Request('http://dash.test/v1/audio/llama-tts', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${rawKey}` },
+          body: JSON.stringify({ model, input: 'Hello' }),
+        }),
+      )
+      expect(res.status).toBe(400)
+    }
+    apiKeysMock.findKeyByHash.mockReturnValue({
+      ...makeKey(rawKey),
+      modelAccessMode: 'restricted',
+      allowedModels: '[]',
+    })
+    const res = await handleProxyRequest(
+      new Request('http://dash.test/v1/audio/llama-tts', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${rawKey}` },
+        body: JSON.stringify({ model: 'tts-model', input: 'Hello' }),
+      }),
+    )
+    expect(res.status).toBe(403)
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
+  })
+
+  it('uses the rewritten native TTS model and rejects direct targets', async () => {
+    const rawKey = 'sk-tts'
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({ action: { type: 'rewrite_model', model: 'target-model' }, target: { type: 'llama_swap' } }),
+    ])
+    const request = () =>
+      new Request('http://dash.test/v1/audio/llama-tts', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${rawKey}` },
+        body: JSON.stringify({ model: 'source-model', input: 'Hello' }),
+      })
+    expect((await handleProxyRequest(request())).status).toBe(200)
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/target-model/tts')
+    forwardMock.forwardUpstreamAndLog.mockClear()
+    routingRulesMock.listRoutingRules.mockReturnValue([makeRule()])
+    expect((await handleProxyRequest(request())).status).toBe(400)
     expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 
