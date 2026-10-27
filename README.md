@@ -31,6 +31,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   Streamed inference requests also record proxy-observed time to first output and the span between first and last output deltas, including OpenAI Responses, chat completions, and Anthropic streams. These are not upstream prefill/decode timings and are available only for newly recorded requests.
   Adjacent request navigation uses a dedicated SQLite index, created automatically by the startup migration.
   Scheduled retention cleanup logs its duration, candidate-selection time, and aggregate row counts for operational diagnosis.
+  A partial SQLite index helps retention locate expired captured payloads without scanning already-cleared rows.
   Key-detail statistics use a key/time index, and key/model request lists avoid loading stored payloads.
 - **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, explicit allow-all or restricted model access, unavailable-model cleanup, MCP relay allow-lists, and per-key usage breakdowns.
 - **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.

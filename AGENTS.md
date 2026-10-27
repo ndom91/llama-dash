@@ -127,6 +127,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Migrations run at server startup; `pnpm db:migrate` remains available for manual operation.
   The request class/ID index supports adjacent inference-request navigation without sorting the request log.
   The key/time index supports key-detail 30-minute statistics; key and model request lists select summary columns without payloads.
+  A partial request timestamp index covers rows retaining headers or bodies, supporting retention selection and clearing.
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions to keep the SQLite file bounded on high-frequency relay traffic.
   Scheduled cleanup logs total and candidate-selection durations and aggregate row counts; manual prune responses remain unchanged.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
