@@ -23,4 +23,7 @@ it('anchors tooltips to the visible bar while retaining full-height hover target
   }
   expect(bars[0].children).toHaveLength(2)
   expect(bars[2].firstElementChild?.className).toContain('h-px')
+
+  view.rerender(createElement(TooltipProvider, null, createElement(UsageDailyChart, { daily, mode: 'generated' })))
+  expect(view.getByRole('img', { name: '2026-10-25: 10 output tokens' })).toBeDefined()
 })

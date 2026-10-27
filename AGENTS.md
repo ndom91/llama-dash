@@ -68,7 +68,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages and payload helpers
-    usage/                 · usage page: period switch, per-day chart, generic breakdown panels
+    usage/                 · usage page: period switch, input/output chart, breakdown panels, and route/data loading skeletons
     policies/              · routing, credentials, and MCP relays
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features

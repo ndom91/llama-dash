@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn'
 import { useUsageReport } from '../../lib/queries'
 import { useStickyToggle } from '../../lib/use-sticky-toggle'
 import { UsageBreakdownPanel } from './UsageBreakdownPanel'
+import { UsageContentSkeleton, UsageTotalsSkeleton } from './UsageContentSkeleton'
 import { GENERATED_SERIES, PROMPT_SERIES, UsageDailyChart } from './UsageDailyChart'
 import { UsageLegendSwatch } from './UsageLegendSwatch'
 import { UsagePanel } from './UsagePanel'
@@ -22,7 +23,7 @@ const PANEL_SLOTS = ['chart-1', 'chart-2', 'chart-3']
 
 const CHART_MODES: ReadonlyArray<{ value: UsageChartMode; label: string }> = [
   { value: 'all', label: 'all' },
-  { value: 'generated', label: 'generated' },
+  { value: 'generated', label: 'output' },
 ]
 
 export function UsagePage() {
@@ -53,11 +54,14 @@ export function UsagePage() {
           action={<UsagePeriodSwitch value={days} onChange={setDays} />}
         />
 
+        {report && !isEmpty ? <UsageTotalsRow report={report} /> : !report && !error ? <UsageTotalsSkeleton /> : null}
         <div className="min-h-0 flex-1 overflow-y-auto">
           {error ? <div className="err-banner m-4">{error.message}</div> : null}
 
           {report == null ? (
-            <div className="empty-state">loading…</div>
+            error ? null : (
+              <UsageContentSkeleton />
+            )
           ) : isEmpty ? (
             <div className="empty-state">
               No usage recorded yet. Token counts appear here once requests go through <code translate="no">/v1/*</code>
@@ -65,15 +69,14 @@ export function UsagePage() {
             </div>
           ) : (
             <div className="flex min-w-0 flex-col">
-              <UsageTotalsRow report={report} />
               <UsagePanel
                 title="Tokens per day"
                 sub={<span className="max-[520px]:hidden">{`last ${days} days`}</span>}
                 aside={
                   <>
                     <span className="flex items-center gap-3 max-[520px]:hidden">
-                      <UsageLegendSwatch color={GENERATED_SERIES} label="generated" />
-                      {chartMode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="prompt" /> : null}
+                      <UsageLegendSwatch color={GENERATED_SERIES} label="output" />
+                      {chartMode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="input" /> : null}
                     </span>
                     <UsageSegmentedControl
                       legend="Chart series"
@@ -109,7 +112,9 @@ export function UsagePage() {
                     className={cn(
                       'min-w-0',
                       i === 0 && 'border-r border-border max-[1100px]:border-r-0',
-                      i >= 2 && 'col-span-2 max-[1100px]:col-span-1',
+                      i < 2 && '[&>section]:!border-b-0',
+                      i === 0 && 'max-[1100px]:[&>section]:!border-b',
+                      i >= 2 && 'col-span-2 border-t border-border max-[1100px]:col-span-1',
                     )}
                   >
                     <UsageBreakdownPanel panel={panel} retentionDays={report.retentionDays} />

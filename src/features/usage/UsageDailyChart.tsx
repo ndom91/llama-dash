@@ -62,8 +62,8 @@ export function UsageDailyChart({ daily, mode }: Props) {
             const label = (
               <div className="flex flex-col gap-0.5 font-mono text-[11px] tabular-nums">
                 <span className="text-fg">{formatUsageDay(d.day, { weekday: 'short' })} · UTC</span>
-                <span>{d.completionTokens.toLocaleString('en')} generated</span>
-                <span>{d.promptTokens.toLocaleString('en')} prompt</span>
+                <span>{d.completionTokens.toLocaleString('en')} output</span>
+                <span>{d.promptTokens.toLocaleString('en')} input</span>
                 <span className="text-fg-dim">{d.requests.toLocaleString('en')} requests</span>
               </div>
             )
@@ -73,7 +73,7 @@ export function UsageDailyChart({ daily, mode }: Props) {
                   <div
                     className="group relative flex w-full shrink-0 cursor-default flex-col justify-end before:absolute before:bottom-0 before:left-0 before:h-(--usage-chart-height) before:w-full before:content-['']"
                     role="img"
-                    aria-label={`${d.day}: ${total} ${mode === 'generated' ? 'generated ' : ''}tokens`}
+                    aria-label={`${d.day}: ${total} ${mode === 'generated' ? 'output ' : ''}tokens`}
                   >
                     {total === 0 ? (
                       <div className="h-px w-full bg-fg-faint opacity-40" />
@@ -121,8 +121,8 @@ export function UsageDailyChart({ daily, mode }: Props) {
       <div className="h-3" />
       {/* On phones the panel head only has room for the mode switch; the legend moves here. */}
       <div className="mt-1 hidden items-center gap-3 max-[520px]:flex">
-        <UsageLegendSwatch color={GENERATED_SERIES} label="generated" />
-        {mode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="prompt" /> : null}
+        <UsageLegendSwatch color={GENERATED_SERIES} label="output" />
+        {mode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="input" /> : null}
       </div>
     </div>
   )

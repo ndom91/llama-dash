@@ -69,7 +69,7 @@ export function UsageBreakdownPanel({ panel, retentionDays }: Props) {
               <th className="num max-[700px]:hidden">requests</th>
               {showSpeed ? (
                 <th className="num">
-                  <Tooltip label="Generated tokens per second of wall time, successful streamed requests only (includes prefill)">
+                  <Tooltip label="Output tokens per second of wall time, successful streamed requests only (includes prefill)">
                     <span className="cursor-help underline decoration-dotted underline-offset-2">tok/s</span>
                   </Tooltip>
                 </th>

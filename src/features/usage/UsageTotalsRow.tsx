@@ -11,14 +11,14 @@ export function UsageTotalsRow({ report }: Props) {
   const against = `vs prev ${days}d`
   const cards = [
     {
-      label: 'generated',
+      label: 'output',
       value: formatTokens(totals.completionTokens),
       unit: 'tokens',
       current: totals.completionTokens,
       prev: previous.completionTokens,
     },
     {
-      label: 'prompt',
+      label: 'input',
       value: formatTokens(totals.promptTokens),
       unit: 'tokens',
       current: totals.promptTokens,
