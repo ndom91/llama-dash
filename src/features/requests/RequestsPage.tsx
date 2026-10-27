@@ -562,8 +562,13 @@ export function RequestsPage() {
                       </span>
                     </div>
                     {selectedMinutes.length > 0 ? (
-                      <button type="button" className="btn btn-sm ml-auto" onClick={() => setSelectedMinutes([])}>
-                        <X size={14} aria-hidden="true" /> Clear filter
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs ml-auto"
+                        aria-label="Clear time filter"
+                        onClick={() => setSelectedMinutes([])}
+                      >
+                        <X className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" /> clear
                       </button>
                     ) : null}
                   </div>

@@ -31,6 +31,22 @@ it('supports individual and shift range selection with keyboard activation', () 
   expect(bars.map((bar) => bar.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'true', 'true'])
 })
 
+it('clears the selected minutes on Escape, without consuming Escape in a text field', () => {
+  const view = render(createElement(TestHistogram))
+  const bars = view.getAllByRole('button')
+  fireEvent.click(bars[0], { detail: 0 })
+  expect(bars[0].querySelector('.histogram-bar-inner')?.className).toContain('outline-1')
+  expect(bars[1].querySelector('.histogram-bar-inner')?.className).toContain('opacity-40')
+  const input = document.createElement('input')
+  document.body.appendChild(input)
+  fireEvent.keyDown(input, { key: 'Escape' })
+  expect(bars[0].getAttribute('aria-pressed')).toBe('true')
+  input.remove()
+  fireEvent.keyDown(bars[0], { key: 'Escape' })
+  expect(bars[0].getAttribute('aria-pressed')).toBe('false')
+  expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
+})
+
 it('selects a contiguous range by dragging across bars', () => {
   vi.stubGlobal('PointerEvent', MouseEvent)
   const view = render(createElement(TestHistogram))

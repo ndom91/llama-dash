@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiHistogramBucket } from '../../lib/api'
 import { cn } from '../../lib/cn'
+import { isTypingTarget } from '../../lib/is-typing-target'
 
 type Props = {
   buckets: Array<ApiHistogramBucket>
@@ -30,6 +31,15 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
   useEffect(() => {
     if (selected.length === 0) anchor.current = null
   }, [selected])
+  useEffect(() => {
+    if (selected.length === 0) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || isTypingTarget(event)) return
+      onSelect([])
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selected.length, onSelect])
   const active = preview ?? selected
   const maxTotal = useMemo(() => Math.max(Math.ceil(Math.max(...buckets.map((b) => b.total)) * 1.1), 5), [buckets])
 
@@ -117,17 +127,24 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
               aria-label={label}
               aria-describedby={instructionsId}
               aria-pressed={active.includes(b.timestamp)}
-              className={cn(
-                'histogram-bar cursor-pointer rounded-sm border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-accent',
-                active.includes(b.timestamp) && 'bg-accent/20 ring-1 ring-inset ring-accent',
-              )}
+              className="histogram-bar cursor-pointer rounded-sm border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-accent"
               onClick={(e) => {
                 if (e.detail === 0) select(b.timestamp, e.shiftKey, e.ctrlKey || e.metaKey)
               }}
             >
-              <div className="histogram-bar-inner" aria-hidden="true">
+              <div
+                className={cn(
+                  'histogram-bar-inner',
+                  active.includes(b.timestamp) && 'outline-1 outline-fg/70',
+                  active.length > 0 && !active.includes(b.timestamp) && 'opacity-40',
+                )}
+                aria-hidden="true"
+              >
                 {errH > 0 ? <div className="histogram-bar-err" style={{ height: errH }} /> : null}
-                <div className="histogram-bar-ok" style={{ height: okH, opacity: empty ? 0.15 : undefined }} />
+                <div
+                  className="histogram-bar-ok"
+                  style={{ height: okH, opacity: empty ? (active.includes(b.timestamp) ? 0.65 : 0.15) : undefined }}
+                />
               </div>
             </button>
           </Tooltip>
