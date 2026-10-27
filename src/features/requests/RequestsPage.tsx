@@ -46,7 +46,8 @@ export function RequestsPage() {
   const qc = useQueryClient()
   const routeSearch = requestsRouteApi.useSearch()
   const showMcpRelays = routeSearch.mcp === true
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList()
+  const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(selectedMinutes)
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -239,6 +240,7 @@ export function RequestsPage() {
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest?.('[data-request-histogram]')) return
       // isTypingTarget walks the composed path, so it also catches
       // contenteditable and nested wrappers that a bare tagName check missed —
       // and it doesn't treat <input type="button"> as typing.
@@ -305,7 +307,8 @@ export function RequestsPage() {
     clientFilter !== '' ||
     hostFilter !== 'all' ||
     endUserFilter !== '' ||
-    sessionFilter !== ''
+    sessionFilter !== '' ||
+    selectedMinutes.length > 0
 
   if (error) {
     return <RouteError kicker="dsh · requests" title="Failed to load requests" message={error.message} />
@@ -327,7 +330,7 @@ export function RequestsPage() {
           }
         />
 
-        {isLoading ? (
+        {isLoading && selectedMinutes.length === 0 ? (
           <RequestsPageSkeleton />
         ) : (
           <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
@@ -528,6 +531,7 @@ export function RequestsPage() {
                   className="btn btn-ghost btn-xs self-start"
                   onClick={() => {
                     setSearchDraft('')
+                    setSelectedMinutes([])
                     updateSearch({
                       q: undefined,
                       status: undefined,
@@ -557,8 +561,13 @@ export function RequestsPage() {
                         last 60m · bucket 1m
                       </span>
                     </div>
+                    {selectedMinutes.length > 0 ? (
+                      <button type="button" className="btn btn-sm ml-auto" onClick={() => setSelectedMinutes([])}>
+                        <X size={14} aria-hidden="true" /> Clear filter
+                      </button>
+                    ) : null}
                   </div>
-                  <RequestsHistogram buckets={histogram} />
+                  <RequestsHistogram buckets={histogram} selected={selectedMinutes} onSelect={setSelectedMinutes} />
                   <div className="histogram-labels px-4 pb-3">
                     <span>-60m</span>
                     <span>-40m</span>
@@ -576,7 +585,9 @@ export function RequestsPage() {
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
                 </div>
-                {rows.length === 0 ? (
+                {isLoading ? (
+                  <div className="empty-state">Loading requests…</div>
+                ) : rows.length === 0 ? (
                   <div className="empty-state">
                     {hasFilters || allRows.length > 0 ? (
                       'no requests match filters'

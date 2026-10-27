@@ -27,24 +27,35 @@ export function trimInactiveRequestPayloads(client: QueryClient) {
 }
 
 export function updateRequestsListCache(client: QueryClient, request: ApiRequest) {
-  client.setQueryData<RequestsList>(qk.requestsList, (old) => {
-    if (!old?.pages.length || old.pages.some((page) => page.requests.some((row) => row.id === request.id))) return old
-    const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => b.id.localeCompare(a.id))
-    const capacity = old.pages.length * REQUESTS_PAGE_SIZE
-    const pages = old.pages.map((page, index) => {
-      const requests = rows.slice(index * REQUESTS_PAGE_SIZE, (index + 1) * REQUESTS_PAGE_SIZE)
-      const hasMore = index < old.pages.length - 1 || rows.length > capacity || page.nextCursor !== null
-      return { ...page, requests, nextCursor: hasMore ? (requests.at(-1)?.id ?? null) : null }
+  const minute = Math.floor(Date.parse(request.startedAt) / 60_000) * 60_000
+  const keys = [
+    qk.requestsList,
+    ...client
+      .getQueryCache()
+      .findAll({ queryKey: ['requests', 'filtered-list'] })
+      .filter((query) => typeof query.queryKey[2] === 'string' && query.queryKey[2].split(',').includes(String(minute)))
+      .map((query) => query.queryKey),
+  ]
+  for (const key of keys)
+    client.setQueryData<RequestsList>(key, (old) => {
+      if (!old?.pages.length || old.pages.some((page) => page.requests.some((row) => row.id === request.id))) return old
+      const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => b.id.localeCompare(a.id))
+      const capacity = old.pages.length * REQUESTS_PAGE_SIZE
+      const pages = old.pages.map((page, index) => {
+        const requests = rows.slice(index * REQUESTS_PAGE_SIZE, (index + 1) * REQUESTS_PAGE_SIZE)
+        const hasMore = index < old.pages.length - 1 || rows.length > capacity || page.nextCursor !== null
+        return { ...page, requests, nextCursor: hasMore ? (requests.at(-1)?.id ?? null) : null }
+      })
+      return {
+        pages,
+        pageParams: pages.map((_, index) => (index === 0 ? undefined : (pages[index - 1].nextCursor ?? undefined))),
+      }
     })
-    return {
-      pages,
-      pageParams: pages.map((_, index) => (index === 0 ? undefined : (pages[index - 1].nextCursor ?? undefined))),
-    }
-  })
 }
 
 export function invalidateRequestLists(client: QueryClient) {
   void client.invalidateQueries({ queryKey: qk.requestsList })
+  void client.invalidateQueries({ queryKey: ['requests', 'filtered-list'] })
   void client.invalidateQueries({ queryKey: qk.requestsRecentRoot })
 }
 

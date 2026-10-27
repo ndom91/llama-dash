@@ -37,11 +37,22 @@ export const requestRoutes: Route[] = [
       const limit = clamp(parseInt(url.searchParams.get('limit') ?? '50', 10), 1, 500)
       const cursor = url.searchParams.get('cursor')
       const includeMcp = url.searchParams.get('includeMcp') === 'true'
-      const rows = listRecentRequests({ limit, cursor: cursor ?? undefined, includeMcp })
+      const rawMinutes = url.searchParams.get('minutes')
+      const minutes = rawMinutes?.split(',').map(Number)
+      if (
+        rawMinutes != null &&
+        (!/^\d+(,\d+)*$/.test(rawMinutes) ||
+          !minutes ||
+          minutes.length > 500 ||
+          minutes.some((n) => !Number.isSafeInteger(n) || n < 0 || n % 60_000 !== 0 || n > 8_639_999_999_940_000))
+      ) {
+        return error(400, 'Invalid minute filter')
+      }
+      const rows = listRecentRequests({ limit, cursor: cursor ?? undefined, includeMcp, minutes })
       return json(200, {
         requests: rows,
         nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
-        mcpHiddenCount: includeMcp ? 0 : countRecentMcpRequests({ cursor: cursor ?? undefined }),
+        mcpHiddenCount: includeMcp ? 0 : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes }),
       })
     },
   },

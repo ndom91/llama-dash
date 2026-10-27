@@ -42,6 +42,18 @@ it('retains an exhausted cursor until an insertion actually drops a row', () => 
   client.clear()
 })
 
+it('updates only filtered lists matching the completed request minute', () => {
+  const client = new QueryClient()
+  const matching = ['requests', 'filtered-list', '1800000']
+  const other = ['requests', 'filtered-list', '1860000']
+  for (const key of [matching, other])
+    client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [undefined] })
+  updateRequestsListCache(client, { ...row(1), startedAt: new Date(1_859_999).toISOString() })
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(matching)?.pages[0].requests).toHaveLength(1)
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(other)?.pages[0].requests).toHaveLength(0)
+  client.clear()
+})
+
 it('resyncs live data without invalidating completed metadata or captured payloads', () => {
   const client = new QueryClient()
   for (const key of [

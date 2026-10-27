@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt, getTableColumns } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, lt, or, getTableColumns } from 'drizzle-orm'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -82,10 +82,25 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
   }
 }
 
-export function listRecentRequests(opts: { limit: number; cursor?: string; includeMcp?: boolean }): Array<RequestRow> {
+export function listRecentRequests(opts: {
+  limit: number
+  cursor?: string
+  includeMcp?: boolean
+  minutes?: number[]
+}): Array<RequestRow> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
     opts.includeMcp ? undefined : inferenceRequest(),
+    opts.minutes?.length
+      ? or(
+          ...opts.minutes.map((minute) =>
+            and(
+              gte(schema.requests.startedAt, new Date(minute)),
+              lt(schema.requests.startedAt, new Date(minute + 60_000)),
+            ),
+          ),
+        )
+      : undefined,
   )
   const rows = db
     .select({
@@ -103,15 +118,19 @@ export function listRecentRequests(opts: { limit: number; cursor?: string; inclu
   return rows.map((r) => toRequestRow(r, r.keyId ? (keyMap.get(r.keyId) ?? null) : null))
 }
 
-export function countRecentMcpRequests(opts: { cursor?: string }): number {
+export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number[] }): number {
   const row = sqliteDb
     .prepare(
       `select count(*) as count
        from requests
-       where request_class = 'mcp_relay'
-       ${opts.cursor ? 'and id < ?' : ''}`,
+        where request_class = 'mcp_relay'
+        ${opts.cursor ? 'and id < ?' : ''}
+        ${opts.minutes?.length ? `and (${opts.minutes.map(() => '(started_at >= ? and started_at < ?)').join(' or ')})` : ''}`,
     )
-    .get(...(opts.cursor ? [opts.cursor] : [])) as {
+    .get(
+      ...(opts.cursor ? [opts.cursor] : []),
+      ...(opts.minutes?.flatMap((minute) => [minute, minute + 60_000]) ?? []),
+    ) as {
     count: number
   }
   return row.count

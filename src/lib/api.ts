@@ -146,13 +146,14 @@ export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
   listRequests: (
-    params: { limit?: number; cursor?: string; includeMcp?: boolean } = {},
+    params: { limit?: number; cursor?: string; includeMcp?: boolean; minutes?: number[] } = {},
     options: ApiFetchOptions = {},
   ) => {
     const q = new URLSearchParams()
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
     if (params.includeMcp) q.set('includeMcp', 'true')
+    if (params.minutes?.length) q.set('minutes', params.minutes.join(','))
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
