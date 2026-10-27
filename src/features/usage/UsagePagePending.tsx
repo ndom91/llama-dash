@@ -8,9 +8,7 @@ export function UsagePagePending() {
         <div className="shrink-0" aria-hidden="true">
           <PageHeaderSkeleton kickerWidth={80} titleWidth={100} />
         </div>
-        <div aria-hidden="true">
-          <UsageTotalsSkeleton />
-        </div>
+        <UsageTotalsSkeleton />
         <div className="min-h-0 flex-1 overflow-y-auto">
           <UsageContentSkeleton />
         </div>

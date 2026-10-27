@@ -56,18 +56,50 @@ it('shows a usage-shaped skeleton during navigation and initial data loading', (
   expect(pending.container.querySelectorAll('.stat-card')).toHaveLength(4)
   expect(pending.container.querySelectorAll('.skel-block')).toHaveLength(7)
   expect(pending.container.querySelector('.dashboard-stats-row')?.closest('.overflow-y-auto')).toBeNull()
+  expect(pending.container.querySelector('.dashboard-stats-row')?.getAttribute('aria-hidden')).toBe('true')
+  const skeletonPanels = pending.getByRole('status', { name: 'Loading usage' }).querySelector('.grid')?.children
+  expect(skeletonPanels?.[0].className).toContain('max-[1100px]:border-b')
+  expect(skeletonPanels?.[2].className).toContain('border-t')
   pending.unmount()
 
   const loading = render(createElement(TooltipProvider, null, createElement(UsagePage)))
   expect(loading.getByRole('heading', { name: 'Usage' })).toBeDefined()
   expect(loading.getByRole('status', { name: 'Loading usage' })).toBeDefined()
   expect(loading.container.querySelector('.dashboard-stats-row')?.closest('.overflow-y-auto')).toBeNull()
+  expect(loading.container.querySelector('.dashboard-stats-row')?.getAttribute('aria-hidden')).toBe('true')
   expect(loading.queryByText('loading…')).toBeNull()
 
   reportState.error = new Error('Usage unavailable')
   loading.rerender(createElement(TooltipProvider, null, createElement(UsagePage)))
   expect(loading.getByText('Usage unavailable')).toBeDefined()
   expect(loading.queryByRole('status', { name: 'Loading usage' })).toBeNull()
+})
+
+it('puts the full-width divider above the third configured breakdown', () => {
+  const totals = { requests: 1, errors: 0, promptTokens: 20, completionTokens: 10, totalTokens: 30, costUsd: null }
+  reportState.data = {
+    days: 7,
+    from: '2026-10-21',
+    to: '2026-10-27',
+    oldestDay: '2026-10-21',
+    totals,
+    previous: totals,
+    daily: [],
+    retentionDays: 30,
+    panels: [
+      { dimension: 'model', values: 0, rows: [], others: null, partial: true },
+      { dimension: 'key', values: 0, rows: [], others: null, partial: false },
+      { dimension: 'client', values: 0, rows: [], others: null, partial: false },
+    ],
+  }
+  const view = render(createElement(TooltipProvider, null, createElement(UsagePage)))
+  const first = view.getByText('By model').closest('section')?.parentElement
+  const second = view.getByText('By key').closest('section')?.parentElement
+  const third = view.getByText('By app').closest('section')?.parentElement
+  expect(first?.className).toContain('max-[1100px]:[&>section]:!border-b')
+  expect(second?.className).toContain('[&>section]:!border-b-0')
+  expect(third?.className).toContain('col-span-2 border-t border-border')
+  expect(third?.parentElement).toBe(first?.parentElement)
 })
 
 it('uses input and output labels without changing token values', () => {

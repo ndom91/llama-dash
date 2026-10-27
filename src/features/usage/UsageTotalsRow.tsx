@@ -1,5 +1,6 @@
 import type { ApiUsageReport } from '../../lib/api'
 import { UsageDelta } from './UsageDelta'
+import { usageTotalsCardClass, usageTotalsRowClass } from './usageTotalsStyles'
 import { formatTokens } from './usageUtils'
 
 type Props = {
@@ -49,12 +50,9 @@ export function UsageTotalsRow({ report }: Props) {
   ]
 
   return (
-    <div className="dashboard-stats-row grid grid-cols-4 gap-0 border-b border-border max-[1100px]:grid-cols-2">
+    <div className={usageTotalsRowClass}>
       {cards.map((card) => (
-        <div
-          key={card.label}
-          className="stat-card min-h-[68px] max-[1100px]:[&:nth-child(2)]:border-r-0 max-[1100px]:[&:nth-child(-n+2)]:border-b max-[1100px]:[&:nth-child(-n+2)]:border-border"
-        >
+        <div key={card.label} className={usageTotalsCardClass}>
           <div className="stat-card-label">{card.label}</div>
           <div className="stat-card-row flex-wrap">
             <span className="stat-card-value">{card.value}</span>

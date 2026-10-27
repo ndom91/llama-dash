@@ -1,16 +1,14 @@
 import { SkeletonBlock, SkeletonLine } from '../../components/skeleton/SkeletonFrame'
+import { usageTotalsCardClass, usageTotalsRowClass } from './usageTotalsStyles'
 
 const BARS = [30, 54, 40, 66, 43, 78, 52]
 const ROWS = ['first', 'second', 'third']
 
 export function UsageTotalsSkeleton() {
   return (
-    <div className="dashboard-stats-row grid grid-cols-4 gap-0 border-b border-border max-[1100px]:grid-cols-2">
+    <div className={usageTotalsRowClass} aria-hidden="true">
       {['output', 'input', 'requests', 'amount'].map((label) => (
-        <div
-          key={label}
-          className="stat-card min-h-[68px] max-[1100px]:[&:nth-child(2)]:border-r-0 max-[1100px]:[&:nth-child(-n+2)]:border-b max-[1100px]:[&:nth-child(-n+2)]:border-border"
-        >
+        <div key={label} className={usageTotalsCardClass}>
           <div className="stat-card-label">{label === 'amount' ? <SkeletonLine width={50} height={10} /> : label}</div>
           <div className="stat-card-row">
             <SkeletonLine width={76} height={25} />
@@ -50,7 +48,7 @@ export function UsageContentSkeleton() {
                 index === 2
                   ? 'col-span-2 border-t border-border max-[1100px]:col-span-1'
                   : index === 0
-                    ? 'border-r border-border max-[1100px]:border-r-0'
+                    ? 'border-r border-border max-[1100px]:border-r-0 max-[1100px]:border-b'
                     : undefined
               }
             >
