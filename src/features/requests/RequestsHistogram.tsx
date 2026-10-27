@@ -18,6 +18,7 @@ function range(buckets: ApiHistogramBucket[], start: number, end: number): numbe
 
 export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
   const instructionsId = useId()
+  const chartRef = useRef<HTMLDivElement>(null)
   const anchor = useRef<number | null>(null)
   const drag = useRef<{
     start: number
@@ -35,6 +36,9 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
     if (selected.length === 0) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented || isTypingTarget(event)) return
+      if (document.activeElement instanceof HTMLElement && chartRef.current?.contains(document.activeElement)) {
+        document.activeElement.blur()
+      }
       onSelect([])
     }
     window.addEventListener('keydown', onKeyDown)
@@ -55,6 +59,7 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
 
   return (
     <div
+      ref={chartRef}
       className="histogram select-none touch-none"
       data-request-histogram
       onPointerDown={(e) => {
@@ -120,30 +125,36 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
         const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         const label = `${time} · ${b.total} requests${b.errors ? ` (${b.errors} err)` : ''}`
         return (
-          <Tooltip key={b.timestamp} label={label} side="top">
-            <button
-              type="button"
-              data-minute={b.timestamp}
-              aria-label={label}
-              aria-describedby={instructionsId}
-              aria-pressed={active.includes(b.timestamp)}
-              className="histogram-bar cursor-pointer rounded-sm border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-accent"
-              onClick={(e) => {
-                if (e.detail === 0) select(b.timestamp, e.shiftKey, e.ctrlKey || e.metaKey)
-              }}
-            >
-              <div
-                className={cn('histogram-bar-inner', active.includes(b.timestamp) && 'outline-1 outline-fg')}
-                aria-hidden="true"
+          <div key={b.timestamp} className="histogram-bar">
+            <Tooltip label={label} side="top">
+              <button
+                type="button"
+                data-minute={b.timestamp}
+                aria-label={label}
+                aria-describedby={instructionsId}
+                aria-pressed={active.includes(b.timestamp)}
+                className="relative w-full shrink-0 cursor-pointer border-0 bg-transparent p-0 focus-visible:outline-2 focus-visible:outline-accent before:absolute before:bottom-0 before:left-0 before:h-[90px] before:w-full before:content-['']"
+                onClick={(e) => {
+                  if (e.detail === 0) select(b.timestamp, e.shiftKey, e.ctrlKey || e.metaKey)
+                }}
               >
-                {errH > 0 ? <div className="histogram-bar-err" style={{ height: errH }} /> : null}
                 <div
-                  className="histogram-bar-ok"
-                  style={{ height: okH, opacity: empty ? (active.includes(b.timestamp) ? 0.65 : 0.15) : undefined }}
-                />
-              </div>
-            </button>
-          </Tooltip>
+                  className={cn(
+                    'histogram-bar-inner',
+                    active.includes(b.timestamp) &&
+                      'relative after:pointer-events-none after:absolute after:inset-0 after:border-x after:border-t after:border-fg-dim after:content-[""]',
+                  )}
+                  aria-hidden="true"
+                >
+                  {errH > 0 ? <div className="histogram-bar-err" style={{ height: errH }} /> : null}
+                  <div
+                    className="histogram-bar-ok"
+                    style={{ height: okH, opacity: empty ? (active.includes(b.timestamp) ? 0.65 : 0.15) : undefined }}
+                  />
+                </div>
+              </button>
+            </Tooltip>
+          </div>
         )
       })}
     </div>

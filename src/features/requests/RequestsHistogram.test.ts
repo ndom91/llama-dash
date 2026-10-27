@@ -35,16 +35,27 @@ it('clears the selected minutes on Escape, without consuming Escape in a text fi
   const view = render(createElement(TestHistogram))
   const bars = view.getAllByRole('button')
   fireEvent.click(bars[0], { detail: 0 })
-  expect(bars[0].querySelector('.histogram-bar-inner')?.className).toContain('outline-1')
+  expect(bars[0].querySelector('.histogram-bar-inner')?.className).toContain('after:border-t')
+  expect(bars[0].querySelector('.histogram-bar-inner')?.className).not.toContain('outline-1')
   expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
   const input = document.createElement('input')
   document.body.appendChild(input)
   fireEvent.keyDown(input, { key: 'Escape' })
   expect(bars[0].getAttribute('aria-pressed')).toBe('true')
   input.remove()
+  bars[0].focus()
   fireEvent.keyDown(bars[0], { key: 'Escape' })
   expect(bars[0].getAttribute('aria-pressed')).toBe('false')
+  expect(document.activeElement).not.toBe(bars[0])
   expect(bars[1].querySelector('.histogram-bar-inner')?.className).not.toContain('opacity-40')
+})
+
+it('anchors each tooltip to the bar while keeping a full-height pointer target', () => {
+  const view = render(createElement(TestHistogram))
+  const bar = view.getAllByRole('button')[1]
+  expect(bar.parentElement?.className).toContain('histogram-bar')
+  expect(bar.className).toContain('before:h-[90px]')
+  expect(bar.className).not.toContain('histogram-bar ')
 })
 
 it('selects a contiguous range by dragging across bars', () => {
