@@ -52,14 +52,20 @@ export function usePlaygroundSpeech() {
     void refreshApiKey()
   }, [refreshApiKey])
 
+  // Proxies such as llama-swap route /v1/audio/voices by model, so ask for the
+  // selected model's voices and reload them when the model changes.
   useEffect(() => {
+    let cancelled = false
     const timer = setTimeout(() => {
-      void loadVoices(apiKeyRef.current, refreshApiKey).then((names) => {
-        if (names) setVoices(names)
+      void loadVoices(model, apiKeyRef.current, refreshApiKey).then((names) => {
+        if (!cancelled) setVoices(names)
       })
     }, 500)
-    return () => clearTimeout(timer)
-  }, [refreshApiKey])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [model, refreshApiKey])
 
   useEffect(() => {
     try {
@@ -320,14 +326,16 @@ function bearerHeaders(apiKey: string | null, base: Record<string, string> = {})
 }
 
 async function loadVoices(
+  model: string,
   apiKey: string | null,
   refreshKey: () => Promise<string | null>,
 ): Promise<Array<string> | null> {
+  const url = model ? `/v1/audio/voices?model=${encodeURIComponent(model)}` : '/v1/audio/voices'
   try {
-    let res = await fetch('/v1/audio/voices', { headers: bearerHeaders(apiKey) })
+    let res = await fetch(url, { headers: bearerHeaders(apiKey) })
     if (res.status === 401) {
       const fresh = await refreshKey()
-      if (fresh) res = await fetch('/v1/audio/voices', { headers: bearerHeaders(fresh) })
+      if (fresh) res = await fetch(url, { headers: bearerHeaders(fresh) })
     }
     if (!res.ok) return null
     const data = await res.json()
