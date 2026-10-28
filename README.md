@@ -128,7 +128,7 @@ docker compose -f docker-compose.nvidia.yaml up -d
 
 `docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
-Set `LLAMA_DASH_IMAGE_TAG` to a release tag to pin llama-dash to a specific version. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
+Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llama-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
 
 ```bash
 docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
