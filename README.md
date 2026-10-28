@@ -23,35 +23,15 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 ## ✨ What it does
 
-- **Watch the box** — live request, token, model, upstream, CPU/GPU, update status, and static inference-host inventory in one dashboard.
-- **Review usage** — input/output token usage and configurable breakdowns for the last 24 hours or 7, 30, or 90 UTC days. Daily rollups outlive raw request logs; inference rows are retained for at least two days for rolling comparisons. Startup backfill runs one day at a time; historical totals may be incomplete until it finishes. Inference deletion waits for backfill, while payload and MCP relay cleanup can continue.
-  Client attribution recognizes Claude Code's `claude-cli/` user agent for new requests; previously unattributed history is not reclassified.
-- **Manage models** — load/unload models, inspect per-model stats, capabilities, and llama-swap selector routing, view residency history, and edit llama-swap config with validation.
-- **Proxy clients** — expose OpenAI/Anthropic-compatible `/v1/*` endpoints, native llama.cpp `/infill`, and llama-swap's `/audiocpp/*` passthrough for local models, peers, direct upstreams, Claude Code, Continue, Open WebUI, and more. The Speech playground also offers native llama.cpp TTS via a model-specific llama-swap passthrough.
-- **Track requests** — searchable request history with filters, histograms, detail views, attribution metadata, token counts, and cost estimates. Details reuse cached summaries immediately while payloads load; hovering or keyboard-selecting a list row prefetches its metadata.
-  Model, key, and host filters accept multiple values.
-  Select histogram minutes by click, drag, Shift-click, or Ctrl/Command-click to filter the paginated request list; clear the time filter from the chart header.
-  Local llama.cpp prefill/decode timings are shown for streaming and non-streaming responses when provided; new measurements are retained independently of captured bodies. Older logs fall back to their retained response body.
-  Streamed inference requests also record proxy-observed time to first output and the span between first and last output deltas, including OpenAI Responses, chat completions, and Anthropic streams. These are not upstream prefill/decode timings and are available only for newly recorded requests.
-  Adjacent request navigation uses a dedicated SQLite index, created automatically by the startup migration.
-  Scheduled retention cleanup logs its duration, candidate-selection time, and aggregate row counts for operational diagnosis.
-  A partial SQLite index helps retention locate expired captured payloads without scanning already-cleared rows.
-  Key-detail statistics use a key/time index, and key/model request lists avoid loading stored payloads.
-- **Control access** — dashboard login, hashed API keys, per-key RPM/TPM limits, explicit allow-all or restricted model access, unavailable-model cleanup, MCP relay allow-lists, and per-key usage breakdowns.
-- **Enforce policy** — routing rules for model rewrites, rejects, passthrough auth, direct HTTPS upstreams, encrypted credentials, system prompts, and global request size limits.
-- **Test models** — playgrounds for chat, image, speech, and transcription, including article-to-speech extraction.
-- **Export ops data** — raw log streams, retention controls, request auditing, and low-cardinality Prometheus metrics at `/metrics`.
-- **Move fast** — `g`-leader keyboard navigation (`g d` dashboard, `g r` requests, `g l` logs, …), `j`/`k`/`Enter` through the request list, and `H`/`L` between request details.
-  Client navigation briefly reuses the authenticated shell and shows pending feedback during slow route checks; admin APIs always enforce sessions server-side.
-  Navigation reuses the destination's full skeleton, including the request-detail layout, instead of leaving a mostly blank "Opening page" placeholder.
-  Request metadata and captured payloads load independently in parallel, so large bodies do not block the summary; payload failures have their own retry action.
-  Large SSE captures render a measured, virtualized event window while retaining full-payload copy/export.
-  Individual long response values also render in bounded chunks, including raw text and assembled SSE output. Normal JSON keeps syntax highlighting; oversized lines use plain text. Copy/export retains the complete capture.
-  Session lookups are deduplicated within each server request without sharing session or query data across SSR requests.
-  Conditional JSON polling serializes once and uses native hashing; captured-payload responses use `no-store` rather than validators.
-  Interactive request loads take priority over telemetry and speculative metadata prefetches; abandoned request fetches are cancelled.
-  Validator and inactive-payload caches are bounded, and reconnects refresh live data without refetching completed payloads. Live request insertion keeps loaded pages bounded while preserving older-history pagination.
-  Payload loading, failure/retry, and successfully loaded empty captures are distinct states. Implementation ownership is documented in [the loading maintainability notes](./docs/2026_10_26_loading_maintainability.md).
+- Monitor traffic, token usage, models, and CPU/GPU health in one dashboard.
+- Browse request history with filters, timing, attribution, token counts, and cost estimates. Usage rollups persist beyond raw request retention.
+- Load and unload models, inspect their capabilities and history, and edit validated llama-swap configuration.
+- Proxy OpenAI and Anthropic clients to local models, peers, or direct upstreams; native llama.cpp and llama-swap audio endpoints are supported too.
+- Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
+- Route or reject requests, rewrite models, inject credentials and system prompts, and set request size limits.
+- Test chat, image, speech, and transcription models in the playground.
+- View logs, manage retention, and export Prometheus metrics at `/metrics`.
+- Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
 
 <table>
   <tr>
@@ -148,7 +128,7 @@ docker compose -f docker-compose.nvidia.yaml up -d
 
 `docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
-Set `LLAMA_DASH_IMAGE_TAG` to a release tag to pin llama-dash to a specific version. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
+Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llama-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
 
 ```bash
 docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
