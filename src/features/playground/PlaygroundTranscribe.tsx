@@ -45,6 +45,18 @@ export function PlaygroundTranscribe() {
       />
       <div className="border-b border-border bg-surface-1/70 px-6 py-3">
         <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-3 border-r border-border pr-4">
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">api</div>
+            <select
+              id="pg-tx-api"
+              className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg outline-none"
+              value={tx.api}
+              onChange={(e) => tx.setApi(e.target.value === 'chat' ? 'chat' : 'openai')}
+            >
+              <option value="openai">OpenAI transcriptions</option>
+              <option value="chat">provider chat ASR</option>
+            </select>
+          </div>
           <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select

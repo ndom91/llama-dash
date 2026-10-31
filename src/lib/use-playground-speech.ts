@@ -33,9 +33,10 @@ function loadJson<T>(key: string, fallback: T): T {
 export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [voice, setVoiceState] = useState(() => loadString(voiceStorageKey(loadString(LS_MODEL, '')), ''))
-  const [speechApi, setSpeechApiState] = useState<'openai' | 'llama'>(() =>
-    loadString(LS_API, 'openai') === 'llama' ? 'llama' : 'openai',
-  )
+  const [speechApi, setSpeechApiState] = useState<'openai' | 'llama' | 'chat'>(() => {
+    const saved = loadString(LS_API, 'openai')
+    return saved === 'llama' || saved === 'chat' ? saved : 'openai'
+  })
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [entries, setEntries] = useState<Array<SpeechEntry>>(() => normalizeSpeechEntries(loadJson(LS_ENTRIES, [])))
@@ -94,7 +95,7 @@ export function usePlaygroundSpeech() {
     [model],
   )
 
-  const setSpeechApi = useCallback((value: 'openai' | 'llama') => {
+  const setSpeechApi = useCallback((value: 'openai' | 'llama' | 'chat') => {
     setSpeechApiState(value)
     localStorage.setItem(LS_API, value)
   }, [])
@@ -359,7 +360,7 @@ async function loadVoices(
 
 async function requestSpeech(input: {
   model: string
-  speechApi: 'openai' | 'llama'
+  speechApi: 'openai' | 'llama' | 'chat'
   voice: string
   input: string
   apiKey: string | null
@@ -367,17 +368,38 @@ async function requestSpeech(input: {
   signal: AbortSignal
 }) {
   const startedAt = performance.now()
-  const body: Record<string, unknown> = { model: input.model, input: input.input }
+  // Provider chat TTS (e.g. MiMo mimo-v2.5-tts) is a chat-completions call:
+  // the text rides as the assistant message, the voice on `audio`, and the
+  // audio comes back base64 in message.audio.data.
+  const body: Record<string, unknown> =
+    input.speechApi === 'chat'
+      ? {
+          model: input.model,
+          messages: [
+            { role: 'user', content: 'Speak in a natural, neutral tone.' },
+            { role: 'assistant', content: input.input },
+          ],
+          audio: { format: 'wav', voice: input.voice.trim() || 'Chloe' },
+          stream: false,
+        }
+      : { model: input.model, input: input.input }
   if (input.speechApi === 'openai' && input.voice.trim()) body.voice = input.voice.trim()
   const signal = withTimeout(input.signal, SPEECH_REQUEST_TIMEOUT_MS, 'Speech request timed out')
 
   const send = (apiKey: string | null) =>
-    fetch(input.speechApi === 'llama' ? '/v1/audio/llama-tts' : '/v1/audio/speech', {
-      method: 'POST',
-      headers: bearerHeaders(apiKey, { 'content-type': 'application/json' }),
-      body: JSON.stringify(body),
-      signal: signal.signal,
-    })
+    fetch(
+      input.speechApi === 'llama'
+        ? '/v1/audio/llama-tts'
+        : input.speechApi === 'chat'
+          ? '/v1/chat/completions'
+          : '/v1/audio/speech',
+      {
+        method: 'POST',
+        headers: bearerHeaders(apiKey, { 'content-type': 'application/json' }),
+        body: JSON.stringify(body),
+        signal: signal.signal,
+      },
+    )
 
   let res: Response
   let blob: Blob
@@ -395,7 +417,16 @@ async function requestSpeech(input: {
       throw new Error(`${res.status}: ${errBody.slice(0, 300)}`)
     }
 
-    blob = await res.blob()
+    if (input.speechApi === 'chat') {
+      const data = await res.json().catch(() => null)
+      const b64 = data?.choices?.[0]?.message?.audio?.data
+      if (typeof b64 !== 'string' || !b64) {
+        throw new Error(`Provider returned no audio: ${JSON.stringify(data ?? {}).slice(0, 300)}`)
+      }
+      blob = base64ToWavBlob(b64)
+    } else {
+      blob = await res.blob()
+    }
   } finally {
     signal.cleanup()
   }
@@ -406,6 +437,13 @@ async function requestSpeech(input: {
     renderMs: performance.now() - startedAt,
     audioDurationSec: null,
   }
+}
+
+function base64ToWavBlob(b64: string): Blob {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+  return new Blob([bytes], { type: 'audio/wav' })
 }
 
 function withTimeout(signal: AbortSignal, timeoutMs: number, timeoutMessage: string) {

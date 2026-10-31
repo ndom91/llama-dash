@@ -180,13 +180,14 @@ export function PlaygroundSpeech() {
 
           <div className="flex items-center gap-3 border-r border-border pr-4">
             <label htmlFor="pg-speech-api" className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">API</label>
-            <select id="pg-speech-api" className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg" value={speech.speechApi} onChange={(e) => speech.setSpeechApi(e.target.value === 'llama' ? 'llama' : 'openai')}>
+            <select id="pg-speech-api" className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg" value={speech.speechApi} onChange={(e) => speech.setSpeechApi(e.target.value === 'llama' || e.target.value === 'chat' ? e.target.value : 'openai')}>
               <option value="openai">OpenAI compatible</option>
               <option value="llama">llama.cpp native /tts</option>
+              <option value="chat">provider chat TTS</option>
             </select>
           </div>
 
-          {speech.speechApi === 'openai' ? <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
+          {speech.speechApi !== 'llama' ? <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">voice</div>
             {speech.voices ? (
               <select
