@@ -76,18 +76,18 @@ function SystemPanel({
 }) {
   return (
     <section className={cn('panel border-t border-border !rounded-none border-x-0 !bg-surface-1', className)}>
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
+      <div className="panel-head bg-transparent px-4 max-md:px-3">
         <h2 className="panel-title">{title}</h2>
         {aside ? <span className="panel-sub ml-auto">· {aside}</span> : null}
       </div>
-      <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
+      <dl className="m-0 px-4 py-4 max-md:px-3">{children}</dl>
     </section>
   )
 }
 
 function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
   return (
-    <section className="min-w-0 rounded border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <section className="min-w-0 rounded bg-surface-2 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
       <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <StatusDot tone={tone} /> {label}
       </div>
@@ -146,10 +146,12 @@ export function SystemPage() {
   if (isLoading) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
-        <main className="flex-1 p-4">
-          <div className="panel h-64 animate-pulse bg-surface-2" />
-        </main>
+        <div className="page min-h-full">
+          <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+          <main className="flex-1 pt-3">
+            <div className="panel h-64 animate-pulse bg-surface-2" />
+          </main>
+        </div>
       </div>
     )
   }
@@ -157,10 +159,12 @@ export function SystemPage() {
   if (error || !data) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
-        <main className="flex-1 p-4">
-          <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
-        </main>
+        <div className="page min-h-full">
+          <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+          <main className="flex-1 pt-3">
+            <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
+          </main>
+        </div>
       </div>
     )
   }
@@ -181,18 +185,18 @@ export function SystemPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full px-0">
+      <div className="page min-h-full">
         <PageHeader
           kicker="sys · system"
           title="System"
           subtitle="Process health, control-bus state, GPU telemetry, and database posture."
           variant="integrated"
         />
-        <div className="flex min-h-0 flex-1">
+        <div className="workspace flex min-h-0">
           <ComponentRail components={components} />
           <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">
             <div className="flex flex-col flex-1">
-              <div className="grid gap-3 border-b border-border bg-surface-1 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
+              <div className="grid gap-3 border-b border-border bg-surface-1 px-4 py-4 md:grid-cols-2 xl:grid-cols-4 max-md:px-3">
                 <StatTile
                   label="runtime"
                   value={formatUptime(data.runtime.uptimeSec)}

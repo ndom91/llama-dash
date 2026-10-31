@@ -359,6 +359,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     there is no flash. The default palette is `sapphire`. Surfaces follow a
     five-step ramp (`surface-0` stage → `surface-4` popovers) with the canvas
     and the cards on different steps; see the surface & elevation model above.
+17. Layout contract: one shared gutter, a 4px spacing scale, full-bleed data
+    pages vs. width-capped reading pages, and `.workspace` cards that contain
+    the flush panel mosaics; see the layout contract above.
 
 ## Tooling
 
@@ -417,6 +420,38 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
+
+### Layout contract
+
+Every page follows the same measure. See
+[`docs/2026_10_31_layout_contract.md`](./docs/2026_10_31_layout_contract.md)
+for the full rationale.
+
+- **One gutter.** `--gutter` (24px desktop / 16px ≤900px / 12px ≤600px) is the
+  only horizontal inset. `.page` applies it as `padding-inline` +
+  `padding-bottom`. Do not add per-page side padding.
+- **4px scale.** Use Tailwind spacing utilities on a 4px scale
+  (`p-2`/`p-3`/`p-4`, `gap-2`/`gap-3`/`gap-4`). A `10px`, `14px`, `18px`,
+  `22px`, or `26px` value is off-contract — round it to the scale.
+- **Two page shapes.** Data pages (dashboard, requests, usage, logs, models,
+  system, config, playground, keys, detail pages) are full-bleed and use the
+  gutter only. Reading pages (settings, attribution, endpoints, policies) add
+  `.page-reading`, which caps the column at `--content-max` (1180px) and
+  centres it.
+- **Page header band is full-bleed** so it aligns with the TopBar chrome above
+  it. Only content below the header respects the gutter.
+- **Workspace cards.** A mosaic of flush panels (dashboard grid, requests
+  split, models table, logs stream, config editor, usage breakdowns,
+  playground workspace, system panels, detail sidecar shells) is wrapped in a
+  single `.workspace` element — that wrapper owns the radius, border,
+  clipping, and shadow, and the inner panels stay flush and drop their own
+  shadow (`.workspace .panel { box-shadow: none }`). Do not reintroduce
+  `panel !rounded-none !border-x-0` mosaics that run to the window edge.
+- **Reading pages use separate cards.** Their sections are individual
+  `.panel` cards separated by `gap-3`, not one flush stack.
+- **Nested surfaces step down.** Canvas `bg-surface-0` → card `bg-surface-1`
+  → nested surface `bg-surface-2` → well `bg-surface-0`. Never put
+  `bg-surface-1` on top of `bg-surface-1`.
 
 ### Surface & elevation model
 

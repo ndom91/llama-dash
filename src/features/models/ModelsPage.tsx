@@ -63,7 +63,7 @@ export function ModelsPage() {
           }
         />
 
-        <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+        <section className="workspace flex flex-col">
           {models == null ? (
             <ModelsPageSkeleton />
           ) : models.length === 0 ? (

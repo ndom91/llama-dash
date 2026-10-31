@@ -6,7 +6,7 @@ export function RouteConfigSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={112} titleWidth={190} action="none" />
-      <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
+      <div className="workspace flex flex-col overflow-hidden border-border-strong">
         <div className="grid min-h-0 flex-1 grid-cols-[44px_minmax(0,1fr)] overflow-hidden bg-surface-0 font-mono text-xs">
           <div className="border-r border-border bg-surface-3 px-2.5 pt-3">
             {EDITOR_ROWS.map((row) => (

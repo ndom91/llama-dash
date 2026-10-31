@@ -33,6 +33,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - View logs, manage retention, and export Prometheus metrics at `/metrics`.
 - Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
 - Theme the dashboard to taste: 14 accent palettes, light and dark modes, and a picker that applies before first paint.
+- Read the same layout everywhere: a shared gutter, one spacing scale, dense data pages that use the full width, and reading pages that stay at a comfortable line length.
 
 <table>
   <tr>

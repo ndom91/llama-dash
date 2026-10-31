@@ -233,7 +233,7 @@ export function ConfigPage() {
               </div>
             ) : null}
 
-            <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
+            <div className="workspace flex flex-col overflow-hidden border-border-strong">
               <YamlEditor value={content} onChange={handleContentChange} />
               <div className="border-t border-border bg-surface-3 px-3.5 py-2 text-xs text-fg-dim">
                 <kbd>Cmd+S</kbd> to save · Tab inserts 2 spaces · llama-swap auto-reloads on file change

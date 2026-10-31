@@ -28,12 +28,12 @@ function SettingsPanel({
   bodyClassName?: string
 }) {
   return (
-    <section id={id} className="panel shrink-0 !rounded-none !border-x-0 border-t-1 first:border-t-0 !bg-surface-1">
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
+    <section id={id} className="panel shrink-0">
+      <div className="panel-head bg-transparent px-4 max-md:px-3">
         <span className="panel-title">{title}</span>
         <span className="panel-sub">· {subtitle}</span>
       </div>
-      <div className={cn('px-6 py-5 max-md:px-4', bodyClassName)}>{children}</div>
+      <div className={cn('px-4 py-4 max-md:px-3', bodyClassName)}>{children}</div>
     </section>
   )
 }
@@ -114,7 +114,7 @@ export function SettingsPage() {
 
   return (
     <div className="content overflow-hidden">
-      <div className="page h-full min-h-0 px-0">
+      <div className="page page-reading h-full min-h-0">
         <PageHeader
           kicker="cfg · settings"
           title="Settings"
@@ -122,7 +122,7 @@ export function SettingsPage() {
           variant="integrated"
         />
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3 pb-2">
           <SettingsPanel title="Appearance" subtitle="theme and display mode">
             <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
               <div className="flex flex-col flex-1 items-stretch">

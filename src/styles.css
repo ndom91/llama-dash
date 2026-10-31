@@ -64,9 +64,32 @@
   }
   .page {
     @apply flex flex-col gap-0 bg-surface-0;
+    min-width: 0;
+    padding-inline: var(--gutter);
+    padding-bottom: var(--gutter);
+  }
+  /* Reading/forms pages stop stretching on wide monitors. Data pages stay
+     full-bleed and only get the shared gutter. */
+  .page-reading {
+    width: 100%;
+    max-width: calc(var(--content-max) + var(--gutter) * 2);
+    margin-inline: auto;
+  }
+  /* A console workspace is the joined mosaic of flush panels below a page
+     header. The mosaic used to run edge to edge, which read as one borderless
+     slab. Now the page gutter insets it and this wrapper supplies the radius,
+     border and clipping so the mosaic reads as a single card. Inner panels
+     stay flush against each other and drop their own shadow. */
+  .workspace {
+    @apply relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-surface-1;
+    margin-top: 12px;
+    box-shadow: var(--shadow-2), var(--hi-line);
+  }
+  .workspace .panel {
+    box-shadow: none;
   }
   .btn {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
+    @apply inline-flex h-8 items-center gap-1.5 px-3 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
     box-shadow: var(--hi-line-soft);
     transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease,
       color var(--duration-normal) ease, box-shadow var(--duration-normal) ease,
@@ -113,16 +136,16 @@
     @apply bg-err-bg text-err border-transparent;
   }
   .btn-xs {
-    @apply h-7 py-1 px-2 text-[11px];
+    @apply h-7 px-2 text-[11px];
   }
   .btn-sm {
-    @apply py-1 px-2 text-[12px];
+    @apply h-8 px-3 text-[12px];
   }
   .btn-md {
-    @apply py-3 px-3 text-[12px];
+    @apply h-9 px-3 text-[12px];
   }
   .btn-lg {
-    @apply py-3 px-4 text-[15px];
+    @apply h-10 px-4 text-[14px];
   }
   .btn-icon {
     @apply p-1.5;
@@ -133,7 +156,7 @@
     box-shadow: var(--shadow-2), var(--hi-line);
   }
   .panel-head {
-    @apply h-10 flex items-center gap-2.5 border-b border-border bg-surface-2 px-3.5 py-2.5;
+    @apply h-10 flex items-center gap-2 border-b border-border bg-surface-2 px-4;
     box-shadow: var(--hi-line);
   }
   .panel-title {
@@ -163,7 +186,7 @@
     @apply w-full border-collapse text-xs;
   }
   .dtable thead th {
-    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-3.5 py-2.5 border-b border-border sticky top-0 z-[1];
+    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-4 py-2 border-b border-border sticky top-0 z-[1];
     background: var(--bg-2);
     box-shadow: var(--hi-line);
   }
@@ -171,7 +194,7 @@
     @apply text-right;
   }
   .dtable tbody td {
-    @apply px-3.5 py-2.5 border-b border-border align-middle text-fg;
+    @apply px-4 py-3 border-b border-border align-middle text-fg;
   }
   .dtable tbody tr:last-child td {
     @apply border-b-0;
@@ -199,19 +222,19 @@
   @media (max-width: 1100px) {
     .dtable thead th,
     .dtable tbody td {
-      @apply px-2.5 py-1.5;
+      @apply px-3 py-2;
     }
   }
 
   .empty-state {
-    @apply p-7 text-center text-[13px] text-fg-dim;
+    @apply p-6 text-center text-[13px] text-fg-dim;
   }
   .empty-state code:not(.copyable-code code) {
     @apply rounded-sm border border-border bg-surface-2 px-1.5 py-px;
   }
 
   .err-banner {
-    @apply rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err;
+    @apply rounded border border-err bg-err-bg px-4 py-2 font-mono text-xs text-err;
     animation: badge-in var(--duration-slow) var(--ease-out);
   }
 }
@@ -318,6 +341,13 @@
   --radius-lg: 14px;
   --radius-pill: 9999px;
 
+  /* Layout scale. The page gutter is the single source of horizontal
+     breathing room; card padding is the inner rhythm. Tailwind handles the
+     values in between, but these three are the contract every page shares. */
+  --gutter: 24px;
+  --content-max: 1180px;
+  --card-pad: 16px;
+
   /* Spacing is handled by Tailwind utilities; only --space-lg has a consumer
      (.dash-grid). The unused xs/sm/md/xl steps were removed rather than left as
      a second, competing spacing scale. */
@@ -379,6 +409,18 @@
   --check-ease-rotate: var(--motion-ease-smooth-out);
   --check-ease-bob: var(--motion-ease-bounce);
   --check-ease-path: var(--motion-ease-smooth-out);
+}
+
+/* One gutter, three sizes. Every page and page header uses this value. */
+@media (max-width: 900px) {
+  :root {
+    --gutter: 16px;
+  }
+}
+@media (max-width: 600px) {
+  :root {
+    --gutter: 12px;
+  }
 }
 
 /*
@@ -898,7 +940,7 @@
   gap: 0;
   flex: 1;
   min-height: 0;
-  background: var(--bg-1);
+  background: var(--bg-0);
 }
 
 .detail-header-actions {
@@ -919,12 +961,12 @@
 }
 
 .detail-meta-rail {
-  @apply bg-surface-1 px-3.5 py-4;
+  @apply bg-surface-1 px-4 py-4;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
 }
 
 .detail-meta-section + .detail-meta-section {
-  @apply mt-3.5 border-t pt-3.5;
+  @apply mt-3 border-t pt-3;
   border-color: color-mix(in srgb, var(--border) 72%, transparent);
 }
 
@@ -967,7 +1009,7 @@
 }
 
 .detail-sidecar {
-  @apply min-h-full bg-surface-0 px-3.5 py-3;
+  @apply min-h-full bg-surface-0 px-4 py-3;
 }
 
 .detail-page-sidecar .detail-main-stack > .detail-hero,
@@ -992,11 +1034,11 @@
 }
 
 .detail-sidecar-metrics {
-  @apply m-0 grid gap-2.5;
+  @apply m-0 grid gap-2;
 }
 
 .detail-sidecar-metrics > div {
-  @apply flex justify-between gap-2.5 font-mono text-xs tabular-nums;
+  @apply flex justify-between gap-2 font-mono text-xs tabular-nums;
 }
 
 .detail-sidecar-metrics dt {
@@ -1055,7 +1097,7 @@
 }
 
 .detail-header-right {
-  @apply flex shrink-0 items-center gap-2.5;
+  @apply flex shrink-0 items-center gap-2;
 }
 
 .detail-nav-arrows {
@@ -1194,7 +1236,7 @@
 }
 
 .detail-error {
-  @apply m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err;
+  @apply m-0 whitespace-pre-wrap break-all px-4 py-3 font-mono text-xs leading-[1.5] text-err;
 }
 
 .panel-toggle {
@@ -1212,13 +1254,13 @@
 }
 
 .body-toolbar {
-  @apply flex items-center justify-between border-b px-3.5 py-1.5;
+  @apply flex items-center justify-between border-b px-4 py-1.5;
 }
 .body-tabs {
   @apply flex gap-0.5;
 }
 .body-tab {
-  @apply rounded-sm bg-transparent px-2.5 py-[3px] font-mono text-[11px] text-fg-dim transition-colors;
+  @apply rounded-sm bg-transparent px-2 py-1 font-mono text-[11px] text-fg-dim transition-colors;
 }
 .body-tab:hover {
   @apply bg-surface-3 text-fg-muted;
@@ -1227,7 +1269,7 @@
   @apply bg-surface-3 text-accent;
 }
 .body-pre {
-  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-3.5 py-3.5 pr-1 font-mono text-xs leading-[1.5] text-fg;
+  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-4 py-3 pr-1 font-mono text-xs leading-[1.5] text-fg;
 }
 .body-pre::-webkit-scrollbar {
   width: 10px;
@@ -1456,7 +1498,7 @@
   border: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .page.detail-page {
     gap: 12px;
   }
@@ -1506,17 +1548,13 @@
   .pg-input-bar {
     padding: 8px 10px;
   }
-  .page-header {
-    margin-inline: -12px;
-    padding-inline: 12px;
-  }
   .pg-tab-bar {
-    margin-inline: -12px;
-    padding-inline: 12px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
   }
   .pg-grid {
-    margin-inline: -12px;
-    padding-inline: 12px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
   }
 }
 
@@ -1527,8 +1565,11 @@
   margin-top: 0;
 }
 
+/* The page owns the gutter; the header cancels it so its fill spans the full
+   page while its copy lines up with the content below. */
 .page-header {
-  padding: 10px 24px 12px;
+  margin-inline: calc(var(--gutter) * -1);
+  padding: 20px var(--gutter) 12px;
   background: color-mix(in srgb, var(--bg-0) 55%, var(--bg-1));
   border-bottom: 1px solid var(--border);
   box-shadow: var(--hi-line-soft);
@@ -1551,7 +1592,7 @@
 .page-header-integrated {
   position: relative;
   align-items: flex-end;
-  padding: 16px 24px 12px;
+  padding: 20px var(--gutter) 12px;
   background: var(--bg-1);
   border-bottom-color: color-mix(in srgb, var(--border) 86%, transparent);
 }
@@ -1820,10 +1861,10 @@ a,
   .stat-card {
     background: var(--bg-2);
     border-right: 1px solid var(--border);
-    padding: 14px 16px;
+    padding: var(--card-pad);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 }
 .stat-card:last-child {
@@ -1966,7 +2007,7 @@ a,
   align-items: flex-end;
   gap: 2px;
   height: 112px;
-  padding: 10px 14px 12px;
+  padding: 12px 16px;
 }
 .histogram-bar {
   flex: 1;
@@ -2134,7 +2175,7 @@ a,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
 }
 .histogram-labels {
