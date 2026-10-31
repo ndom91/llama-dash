@@ -18,7 +18,7 @@ export function KeyRow({ apiKey, modelIds }: Props) {
   const revokeKey = useRevokeApiKey()
   const deleteKey = useDeleteApiKey()
   const isRevoked = apiKey.disabledAt != null
-  const isExpired = apiKey.expiresAt != null && new Date(apiKey.expiresAt) < new Date()
+  const isExpired = apiKey.expiresAt != null && new Date(apiKey.expiresAt).getTime() <= Date.now()
   const expiresSoon =
     !isExpired && apiKey.expiresAt != null && new Date(apiKey.expiresAt).getTime() - Date.now() < 7 * 86400_000
   const knownModelIds = modelIds ? new Set(modelIds) : null
@@ -33,7 +33,7 @@ export function KeyRow({ apiKey, modelIds }: Props) {
       {...clickableRowProps(() => navigate({ to: '/keys/$id', params: { id: apiKey.id } }))}
     >
       <td>
-        <StatusDot tone={isRevoked ? 'idle' : 'ok'} live={!isRevoked} />
+        <StatusDot tone={isRevoked || isExpired ? 'idle' : 'ok'} live={!isRevoked && !isExpired} />
       </td>
       <td>
         <div className="max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap" title={apiKey.name}>

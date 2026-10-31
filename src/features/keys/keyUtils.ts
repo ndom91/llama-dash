@@ -1,3 +1,9 @@
+import type { ApiKeyItem } from '../../lib/api'
+
+export function isInactiveKey(key: Pick<ApiKeyItem, 'disabledAt' | 'expiresAt'>) {
+  return key.disabledAt != null || (key.expiresAt != null && new Date(key.expiresAt).getTime() <= Date.now())
+}
+
 export function formatDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   const s = ms / 1000

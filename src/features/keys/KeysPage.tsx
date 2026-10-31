@@ -7,9 +7,10 @@ import { cn } from '../../lib/cn'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CreateKeyForm } from './CreateKeyForm'
 import { KeyCreatedBanner } from './KeyCreatedBanner'
-import { KeyRow } from './KeyRow'
 import { KeysEmptyState } from './KeysEmptyState'
 import { KeysPageSkeleton } from './KeysPageSkeleton'
+import { KeysTable } from './KeysTable'
+import { isInactiveKey } from './keyUtils'
 
 const CREATE_FORM_EXIT_TIMEOUT_MS = 400
 
@@ -36,6 +37,10 @@ export function KeysPage() {
   if (error) {
     return <RouteError kicker="dsh · keys" title="Failed to load API keys" message={error.message} />
   }
+
+  const activeKeys = keys?.filter((key) => !isInactiveKey(key)) ?? []
+  const inactiveKeys = keys?.filter(isInactiveKey) ?? []
+  const modelIds = models?.map((model) => model.id)
 
   return (
     <div className="content">
@@ -78,28 +83,21 @@ export function KeysPage() {
           ) : !keys || keys.length === 0 ? (
             <KeysEmptyState />
           ) : (
-            <table className="dtable">
-              <thead>
-                <tr>
-                  <th style={{ width: 18 }} aria-label="status" />
-                  <th>name</th>
-                  <th className="mono">prefix</th>
-                  <th className="hide-mobile">models</th>
-                  <th className="num hide-mobile">rpm</th>
-                  <th className="num hide-mobile">tpm</th>
-                  <th className="hide-mobile">expires</th>
-                  <th className="hide-mobile">created</th>
-                  <th style={{ width: 90 }} className="num">
-                    actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {keys.map((k) => (
-                  <KeyRow key={k.id} apiKey={k} modelIds={models?.map((model) => model.id)} />
-                ))}
-              </tbody>
-            </table>
+            <>
+              {activeKeys.length > 0 ? (
+                <KeysTable keys={activeKeys} modelIds={modelIds} />
+              ) : (
+                <div className="px-6 py-8 text-sm text-fg-dim">No active API keys.</div>
+              )}
+              {inactiveKeys.length > 0 ? (
+                <details className="border-t border-border">
+                  <summary className="cursor-pointer px-6 py-4 text-sm text-fg-dim hover:text-fg">
+                    Revoked / expired keys ({inactiveKeys.length})
+                  </summary>
+                  <KeysTable keys={inactiveKeys} modelIds={modelIds} />
+                </details>
+              ) : null}
+            </>
           )}
         </section>
       </div>
