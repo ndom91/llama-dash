@@ -62,7 +62,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
       </td>
       <td>{model.name}</td>
       <td className="hide-mobile">
-        <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
+        <span className="mono text-[11px] text-fg-dim" translate="no">
           {model.kind}
         </span>
       </td>
@@ -117,9 +117,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
             </Tooltip>
           )
         ) : (
-          <span className="mono dim" style={{ fontSize: 11 }}>
-            —
-          </span>
+          <span className="mono dim text-[11px]">—</span>
         )}
       </td>
     </tr>

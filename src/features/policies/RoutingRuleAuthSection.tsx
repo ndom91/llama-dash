@@ -20,7 +20,7 @@ export function RoutingRuleAuthSection({
       </div>
       <SegmentedControl
         options={[
-          { value: 'require_key', label: 'require llama-dash key' },
+          { value: 'require_key', label: 'require llswap-dash key' },
           { value: 'passthrough', label: 'passthrough auth' },
         ]}
         value={draft.authMode}

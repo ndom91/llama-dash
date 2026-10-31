@@ -70,7 +70,7 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
 
   return (
     <form
-      className="motion-panel panel !rounded-none !border-x-0 !bg-surface-1 px-6 py-4 max-md:px-3"
+      className="motion-panel panel mt-3 px-4 py-4"
       onSubmit={submit}
       onTransitionEnd={(event) => {
         if (event.target === event.currentTarget && event.propertyName === 'opacity' && !open) onExited()
@@ -82,11 +82,11 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
         <strong>New API key</strong>
       </div>
 
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-3">
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-fg-dim">Name</span>
           <input
-            className="rounded border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
+            className="rounded border border-border bg-surface-0 px-3 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -129,7 +129,7 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
                   key={m.id}
                   type="button"
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
                     selected &&
                       'border-accent bg-accent text-accent-on hover:border-accent hover:bg-accent-strong hover:text-accent-on',
                   )}
@@ -159,7 +159,7 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
                   key={relay.id}
                   type="button"
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-1 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+                    'inline-flex items-center gap-1 rounded-full border border-border bg-surface-2 px-2.5 py-0.75 font-mono text-[11px] text-fg-dim transition-colors hover:border-border-strong hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
                     selected &&
                       'border-accent bg-accent text-accent-on hover:border-accent hover:bg-accent-strong hover:text-accent-on',
                   )}
@@ -206,7 +206,7 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
         <label className="flex flex-1 flex-col gap-1">
           <span className="text-xs font-medium text-fg-dim">Expiry</span>
           <select
-            className="h-9 rounded border border-border bg-surface-0 px-2.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
+            className="h-9 rounded border border-border bg-surface-0 px-3 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
             value={expiryOption}
             onChange={(e) => setExpiryOption(e.target.value)}
           >
@@ -222,7 +222,7 @@ export function CreateKeyForm({ open, onCreated, onCancel, onExited }: Props) {
           <span className="text-xs font-medium text-fg-dim">Prepend system prompt</span>
           <span className="text-[11px] text-fg-faint">prepended to all chat completion requests</span>
           <textarea
-            className="min-h-[60px] resize-y rounded border border-border bg-surface-0 px-2.5 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
+            className="min-h-[60px] resize-y rounded border border-border bg-surface-0 px-3 py-1.5 font-mono text-[13px] text-fg transition-[border-color,box-shadow] duration-100 focus:border-accent focus:outline-none focus:shadow-focus"
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             placeholder="Enter a system prompt..."

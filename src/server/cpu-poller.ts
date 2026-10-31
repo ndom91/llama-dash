@@ -7,7 +7,7 @@ type CpuSample = {
 let previousSample: CpuSample | null = null
 
 // LXC exposes its aggregate counters through procfs, unlike this service's cgroup, which would
-// only measure llama-dash and miss the sibling llama-swap container.
+// only measure llswap-dash and miss the sibling llama-swap container.
 export async function pollCpuUtilizationPercent(): Promise<number | null> {
   const current = await readCpuSample()
   if (current === null) return null

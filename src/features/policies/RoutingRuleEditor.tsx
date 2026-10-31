@@ -31,7 +31,7 @@ export function RoutingRuleEditor({
   onSave: () => void
 }) {
   return (
-    <section className="rounded-lg border border-accent/60 bg-surface-0/80 px-5 py-5">
+    <section className="rounded-lg border border-accent/60 bg-surface-1 px-5 py-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent">
           <Circle className="mr-2 inline-block size-3 shrink-0 fill-current" strokeWidth={0} aria-hidden="true" />

@@ -277,7 +277,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/tts-model/tts?format=wav')
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/tts-model/v1/audio/speech?format=wav')
     expect(lastForward().body).toBe(body)
   })
 
@@ -335,7 +335,7 @@ describe('handleProxyRequest auth/body ordering', () => {
         body: JSON.stringify({ model: 'source-model', input: 'Hello' }),
       })
     expect((await handleProxyRequest(request())).status).toBe(200)
-    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/target-model/tts')
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/target-model/v1/audio/speech')
     forwardMock.forwardUpstreamAndLog.mockClear()
     routingRulesMock.listRoutingRules.mockReturnValue([makeRule()])
     expect((await handleProxyRequest(request())).status).toBe(400)
@@ -406,8 +406,8 @@ describe('handleProxyRequest auth/body ordering', () => {
     expect(forwarded.headers.authorization).toBeUndefined()
   })
 
-  it('routes an OAuth passthrough request to Anthropic when no llama-dash key matches the earlier rule', async () => {
-    // Same rule set as above, but the caller presents a non-llama-dash bearer
+  it('routes an OAuth passthrough request to Anthropic when no llswap-dash key matches the earlier rule', async () => {
+    // Same rule set as above, but the caller presents a non-llswap-dash bearer
     // (Claude Code OAuth). The key-scoped rewrite rule cannot match, so the
     // request passes through to Anthropic with the client token preserved.
     apiKeysMock.findKeyByHash.mockReturnValue(undefined)
@@ -496,7 +496,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     await expect(response.json()).resolves.toEqual({
       type: 'error',
       error: {
-        message: 'Stored credential routing requires a llama-dash API key',
+        message: 'Stored credential routing requires a llswap-dash API key',
         type: 'credential_key_required',
       },
     })

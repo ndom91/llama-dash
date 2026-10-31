@@ -48,16 +48,18 @@ export function PlaygroundPage({ searchTab }: Props) {
           value={tab}
           onChange={setTab}
           variant="accent"
-          className="bg-surface-0 px-6"
+          className="bg-surface-0"
           ariaLabel="Playground modes"
         />
 
-        <Suspense fallback={<PlaygroundTabPending label={tab} />}>
-          {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
-          {tab === 'image' ? <PlaygroundImage /> : null}
-          {tab === 'speech' ? <PlaygroundSpeech /> : null}
-          {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
-        </Suspense>
+        <div className="card flex min-h-0 flex-1 flex-col">
+          <Suspense fallback={<PlaygroundTabPending label={tab} />}>
+            {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
+            {tab === 'image' ? <PlaygroundImage /> : null}
+            {tab === 'speech' ? <PlaygroundSpeech /> : null}
+            {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
+          </Suspense>
+        </div>
       </div>
     </div>
   )

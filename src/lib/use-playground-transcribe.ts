@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 const LS_MODEL = 'playground-transcribe-model'
+const LS_API = 'playground-transcribe-api'
 const DEFAULT_LANGUAGE = 'auto-detect'
 const DEFAULT_RESPONSE_FORMAT = 'json'
 const MAX_FILE_SIZE = 20 * 1024 * 1024
@@ -25,6 +26,9 @@ function loadString(key: string, fallback: string): string {
 
 export function usePlaygroundTranscribe() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
+  const [api, setApiState] = useState<'openai' | 'chat'>(() =>
+    loadString(LS_API, 'openai') === 'chat' ? 'chat' : 'openai',
+  )
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE)
   const [responseFormat, setResponseFormat] = useState(DEFAULT_RESPONSE_FORMAT)
   const [file, setFileState] = useState<File | null>(null)
@@ -50,6 +54,11 @@ export function usePlaygroundTranscribe() {
   const setModel = useCallback((v: string) => {
     setModelState(v)
     localStorage.setItem(LS_MODEL, v)
+  }, [])
+
+  const setApi = useCallback((v: 'openai' | 'chat') => {
+    setApiState(v)
+    localStorage.setItem(LS_API, v)
   }, [])
 
   const setFile = useCallback((f: File | null) => {
@@ -82,17 +91,60 @@ export function usePlaygroundTranscribe() {
     const requestedLanguage = language.trim()
     const requestedResponseFormat = responseFormat.trim() || DEFAULT_RESPONSE_FORMAT
 
-    formData.append('file', uploadFile, uploadFile.name)
-    formData.append('model', model)
-    formData.append('response_format', requestedResponseFormat)
-    if (requestedLanguage && requestedLanguage.toLowerCase() !== DEFAULT_LANGUAGE) {
-      formData.append('language', requestedLanguage)
-    }
-
     const headers: Record<string, string> = {}
     if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
 
     try {
+      if (api === 'chat') {
+        // Provider chat ASR (e.g. MiMo mimo-v2.5-asr) is a chat-completions
+        // call: the audio rides as the only content part (the gateway injects
+        // its own prompt — text parts are rejected), language goes through
+        // asr_options, and the transcript comes back as the message text.
+        const dataUrl = await readFileAsDataUrl(uploadFile)
+        const body: Record<string, unknown> = {
+          model,
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'input_audio', input_audio: { data: dataUrl } }],
+            },
+          ],
+          stream: false,
+        }
+        if (requestedLanguage && requestedLanguage.toLowerCase() !== DEFAULT_LANGUAGE) {
+          body.asr_options = { language: requestedLanguage }
+        }
+        const res = await fetch('/v1/chat/completions', {
+          method: 'POST',
+          headers: { ...headers, 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: abort.signal,
+        })
+        if (!res.ok) {
+          const body = await res.text().catch(() => '')
+          throw new Error(`${res.status}: ${body.slice(0, 300)}`)
+        }
+        const data = await res.json()
+        const content = data?.choices?.[0]?.message?.content
+        const text =
+          typeof content === 'string'
+            ? content
+            : Array.isArray(content)
+              ? content.map((block: { text?: string }) => (typeof block?.text === 'string' ? block.text : '')).join('')
+              : ''
+        if (!text.trim()) throw new Error(`Provider returned no transcript: ${JSON.stringify(data).slice(0, 300)}`)
+        setTranscript(text.trim())
+        setTranscriptData(null)
+        return
+      }
+
+      formData.append('file', uploadFile, uploadFile.name)
+      formData.append('model', model)
+      formData.append('response_format', requestedResponseFormat)
+      if (requestedLanguage && requestedLanguage.toLowerCase() !== DEFAULT_LANGUAGE) {
+        formData.append('language', requestedLanguage)
+      }
+
       const res = await fetch('/v1/audio/transcriptions', {
         method: 'POST',
         headers,
@@ -122,7 +174,7 @@ export function usePlaygroundTranscribe() {
       setLoading(false)
       abortRef.current = null
     }
-  }, [model, file, language, responseFormat])
+  }, [api, model, file, language, responseFormat])
 
   const startRecording = useCallback(async () => {
     setError(null)
@@ -177,6 +229,8 @@ export function usePlaygroundTranscribe() {
   return {
     model,
     setModel,
+    api,
+    setApi,
     language,
     setLanguage,
     responseFormat,
@@ -212,6 +266,15 @@ export type TranscriptionVerbose = {
       end?: number
     }>
   }>
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(reader.error ?? new Error('Could not read file'))
+    reader.readAsDataURL(file)
+  })
 }
 
 async function prepareTranscriptionFile(file: File): Promise<File> {

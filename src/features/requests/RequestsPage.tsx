@@ -356,8 +356,8 @@ export function RequestsPage() {
         {isLoading && selectedMinutes.length === 0 ? (
           <RequestsPageSkeleton />
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-            <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
+          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-3 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+            <aside className="card h-full px-4 py-4 font-mono text-[11px] text-fg">
               <div className="mb-4 flex flex-col gap-1.5">
                 <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
                 <div className="relative min-w-0">
@@ -553,10 +553,10 @@ export function RequestsPage() {
               ) : null}
             </aside>
 
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
               {histogram && histogram.length > 0 ? (
-                <section className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!">
-                  <div className="histogram-header panel-head bg-transparent px-4">
+                <section className="card">
+                  <div className="histogram-header panel-head">
                     <div>
                       <span className="panel-title">req/s</span>
                       <span className="panel-sub" style={{ marginLeft: 8 }}>
@@ -584,8 +584,8 @@ export function RequestsPage() {
                 </section>
               ) : null}
 
-              <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-                <div className="panel-head bg-transparent px-4">
+              <section className="card flex min-h-0 flex-1 flex-col">
+                <div className="panel-head">
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
                     {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}

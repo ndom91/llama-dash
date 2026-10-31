@@ -7,7 +7,7 @@ export const COLOR_THEME_STORAGE_KEY = 'color-theme'
 export const THEME_MODE_STORAGE_KEY = 'theme'
 export const COLOR_THEME_COOKIE = 'llama-color-theme'
 export const THEME_MODE_COOKIE = 'llama-theme-mode'
-export const DEFAULT_THEME_ID = 'ultraviolet'
+export const DEFAULT_THEME_ID = 'sapphire'
 export const DEFAULT_THEME_MODE: ThemeMode = 'auto'
 
 export const themes: ReadonlyArray<ThemeDef> = themesData.themes

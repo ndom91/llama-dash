@@ -79,7 +79,13 @@ export function IconButton({
   )
 }
 
-export function Chip({ children, tone = 'default' }: { children: string; tone?: 'default' | 'ok' | 'info' | 'err' }) {
+export function Chip({
+  children,
+  tone = 'default',
+}: {
+  children: React.ReactNode
+  tone?: 'default' | 'ok' | 'info' | 'err'
+}) {
   return (
     <span
       className={cn(

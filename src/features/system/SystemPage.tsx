@@ -75,19 +75,19 @@ function SystemPanel({
   className?: string
 }) {
   return (
-    <section className={cn('panel border-t border-border !rounded-none border-x-0 !bg-surface-1', className)}>
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
+    <section className={cn('card', className)}>
+      <div className="panel-head">
         <h2 className="panel-title">{title}</h2>
         {aside ? <span className="panel-sub ml-auto">· {aside}</span> : null}
       </div>
-      <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
+      <dl className="m-0 px-4 py-4 max-md:px-3">{children}</dl>
     </section>
   )
 }
 
 function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
   return (
-    <section className="min-w-0 rounded border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <section className="card min-w-0 px-4 py-3">
       <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <StatusDot tone={tone} /> {label}
       </div>
@@ -99,7 +99,7 @@ function StatTile({ label, value, meta, tone }: { label: string; value: React.Re
 
 function ComponentRail({ components }: { components: Array<{ label: string; age: string; tone: Tone }> }) {
   return (
-    <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface-0/70 xl:block">
+    <aside className="card hidden shrink-0 xl:block">
       <div className="flex h-12 items-center border-b border-border px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <span>components</span>
         <span className="ml-auto">all</span>
@@ -146,10 +146,12 @@ export function SystemPage() {
   if (isLoading) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
-        <main className="flex-1 p-4">
-          <div className="panel h-64 animate-pulse bg-surface-2" />
-        </main>
+        <div className="page min-h-full">
+          <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+          <main className="flex-1 pt-3">
+            <div className="panel h-64 animate-pulse bg-surface-2" />
+          </main>
+        </div>
       </div>
     )
   }
@@ -157,10 +159,12 @@ export function SystemPage() {
   if (error || !data) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
-        <main className="flex-1 p-4">
-          <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
-        </main>
+        <div className="page min-h-full">
+          <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+          <main className="flex-1 pt-3">
+            <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
+          </main>
+        </div>
       </div>
     )
   }
@@ -181,18 +185,18 @@ export function SystemPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full px-0">
+      <div className="page min-h-full">
         <PageHeader
           kicker="sys · system"
           title="System"
           subtitle="Process health, control-bus state, GPU telemetry, and database posture."
           variant="integrated"
         />
-        <div className="flex min-h-0 flex-1">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-[232px_minmax(0,1fr)]">
           <ComponentRail components={components} />
-          <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">
-            <div className="flex flex-col flex-1">
-              <div className="grid gap-3 border-b border-border bg-surface-0 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
+          <main className="min-h-0 overflow-y-auto">
+            <div className="flex flex-col gap-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <StatTile
                   label="runtime"
                   value={formatUptime(data.runtime.uptimeSec)}
@@ -219,7 +223,7 @@ export function SystemPage() {
                 />
               </div>
 
-              <SystemPanel title="Control Bus" className="!border-t-0">
+              <SystemPanel title="Control Bus">
                 <MetaRow label="backend" value={data.inference.label} />
                 <MetaRow label="upstream" value={<span className="break-all">{data.proxy.upstreamBaseUrl}</span>} />
                 <MetaRow label="host" value={data.proxy.upstreamHost} />
@@ -244,7 +248,7 @@ export function SystemPage() {
                 <MetaRow label="config" value={data.inference.capabilities.config ? 'supported' : 'unsupported'} />
               </SystemPanel>
 
-              <div className="grid xl:grid-cols-2">
+              <div className="grid gap-3 xl:grid-cols-2">
                 <SystemPanel title="Loading Queue" aside={data.logging.dropped > 0 ? 'dropping' : 'ready'}>
                   <MetaRow
                     label="state"
@@ -258,7 +262,7 @@ export function SystemPage() {
                   <MetaRow label="dropped" value={data.logging.dropped} />
                 </SystemPanel>
 
-                <SystemPanel title="GPU Telemetry" aside={`${data.gpu.gpuCount} device`} className="xl:border-l">
+                <SystemPanel title="GPU Telemetry" aside={`${data.gpu.gpuCount} device`}>
                   <MetaRow
                     label="state"
                     value={
@@ -292,7 +296,7 @@ export function SystemPage() {
 
               {data.inferenceHardware ? <InferenceHostPanel hardware={data.inferenceHardware} /> : null}
 
-              <div className="grid xl:grid-cols-2 flex-1">
+              <div className="grid gap-3 xl:grid-cols-2 flex-1">
                 <SystemPanel title="Runtime">
                   <MetaRow label="uptime" value={formatUptime(data.runtime.uptimeSec)} />
                   <MetaRow label="node" value={data.runtime.nodeVersion} />
@@ -300,7 +304,7 @@ export function SystemPage() {
                   <MetaRow label="updates" value={formatUpdateStatus(data.runtime.update)} />
                 </SystemPanel>
 
-                <SystemPanel title="Database" className="xl:border-l">
+                <SystemPanel title="Database">
                   <MetaRow label="path" value={<span className="break-all">{data.database.path}</span>} />
                   <MetaRow label="special" value={data.database.specialPath ? 'yes' : 'no'} />
                 </SystemPanel>

@@ -14,8 +14,9 @@ import {
 import { toErrorBody } from './errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from './forward.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
-import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
+import { applyTransforms, routingOutcomeFromDecision, type RoutingOutcome } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
+import { providerEndpointForBaseUrl } from '../../lib/providers.ts'
 import { config } from '../config.ts'
 import { inferenceBackend } from '../inference/backend.ts'
 
@@ -145,17 +146,32 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (typeof model !== 'string' || !model || model === '.' || model === '..' || model.includes('/')) {
       return rejectNativeTts(ctx, 'Native TTS requires a model ID without slashes')
     }
-    ctx.upstream = inferenceBackend.defaultProxyUpstream(`/upstream/${encodeURIComponent(model)}/tts`, ctx.url.search)
+    // Pin the model by routing through its llama-swap upstream. The TTS
+    // upstreams are OpenAI-style speech servers (POST /v1/audio/speech), so
+    // forward there — there is no bare /tts route on them.
+    ctx.upstream = inferenceBackend.defaultProxyUpstream(
+      `/upstream/${encodeURIComponent(model)}/v1/audio/speech`,
+      ctx.url.search,
+    )
   }
 
   if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
     delete ctx.reqHeaders.authorization
   }
 
+  // A stored provider credential replaces whatever the client sent for the
+  // same header. Drop the client's copy first so a stale `x-api-key` never
+  // reaches the upstream alongside the injected one.
+  if (usesStoredCredentialsFor(ctx.routingOutcome)) {
+    for (const header of injectedHeaderNames(ctx.routingOutcome)) {
+      deleteHeader(ctx.reqHeaders, header)
+    }
+  }
+
   if (usesStoredCredentials(ctx) && !ctx.keyId) {
     const body = {
       error: {
-        message: 'Stored credential routing requires a llama-dash API key',
+        message: 'Stored credential routing requires a llswap-dash API key',
         type: 'credential_key_required',
       },
     }
@@ -264,7 +280,34 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 }
 
 function usesStoredCredentials(ctx: ProxyContext): boolean {
-  return Boolean(ctx.routingOutcome.targetCredentialId) || ctx.routingOutcome.credentialBindings.length > 0
+  return usesStoredCredentialsFor(ctx.routingOutcome)
+}
+
+function usesStoredCredentialsFor(routing: RoutingOutcome): boolean {
+  return Boolean(routing.targetCredentialId) || routing.credentialBindings.length > 0
+}
+
+/**
+ * The header names the injected credentials occupy. A provider target declares
+ * them in the catalog (e.g. `x-api-key` + `authorization`); explicit
+ * credential bindings name their own header.
+ */
+function injectedHeaderNames(routing: RoutingOutcome): string[] {
+  const names = routing.credentialBindings
+    .filter((binding) => binding.mode === 'set_header')
+    .map((binding) => binding.headerName.toLowerCase())
+  if (routing.targetCredentialId) {
+    const provider = routing.targetBaseUrl ? providerEndpointForBaseUrl(routing.targetBaseUrl) : undefined
+    const headers = provider?.authHeaders ?? [{ name: 'authorization' }]
+    for (const header of headers) names.push(header.name.toLowerCase())
+  }
+  return [...new Set(names)]
+}
+
+function deleteHeader(headers: Record<string, string>, name: string): void {
+  for (const key of Object.keys(headers)) {
+    if (key.toLowerCase() === name) delete headers[key]
+  }
 }
 
 function rejectNativeTts(ctx: ProxyContext, message: string): Response {

@@ -1,6 +1,6 @@
 # Product Landscape Notes
 
-This note captures a lightweight product-manager-style review of adjacent LLM proxy / gateway / observability products and how their public feature demand maps onto `llama-dash`.
+This note captures a lightweight product-manager-style review of adjacent LLM proxy / gateway / observability products and how their public feature demand maps onto `llswap-dash`.
 
 ## Research Base
 
@@ -89,7 +89,7 @@ Common asks:
 
 This is more "platform" than "proxy", but it is where adjacent products often expand.
 
-## What llama-dash Already Covers Well
+## What llswap-dash Already Covers Well
 
 Current strengths:
 
@@ -103,9 +103,9 @@ Current strengths:
 - request-detail inspection
 - good playground / operator UX
 
-That means `llama-dash` is already beyond the basic gateway feature set. The main gaps are around operator control, routing intelligence, and higher-level observability.
+That means `llswap-dash` is already beyond the basic gateway feature set. The main gaps are around operator control, routing intelligence, and higher-level observability.
 
-## Best Missing Features For llama-dash
+## Best Missing Features For llswap-dash
 
 ### High Fit
 
@@ -135,7 +135,7 @@ Examples:
 
 Why it fits:
 
-`llama-dash` already has quotas and keys; users tend to want these to behave like real operational controls rather than static limits.
+`llswap-dash` already has quotas and keys; users tend to want these to behave like real operational controls rather than static limits.
 
 #### 3. Better attribution
 
@@ -175,7 +175,7 @@ Examples:
 
 Why it fits:
 
-This would make `llama-dash` feel more like a serious operator console.
+This would make `llswap-dash` feel more like a serious operator console.
 
 ### Medium Fit
 
@@ -207,7 +207,7 @@ Examples:
 
 ### Lower Fit / Risky Expansion
 
-These are common asks in adjacent products, but they start to pull `llama-dash` into a different category.
+These are common asks in adjacent products, but they start to pull `llswap-dash` into a different category.
 
 #### 9. Full evals / QA platform
 
@@ -228,7 +228,7 @@ These are common asks in adjacent products, but they start to pull `llama-dash` 
 - org / team RBAC
 - multi-workspace administration
 
-These are real market asks, but they risk turning `llama-dash` into a much larger product than the current goals suggest.
+These are real market asks, but they risk turning `llswap-dash` into a much larger product than the current goals suggest.
 
 ## Suggested Prioritization
 
@@ -240,7 +240,7 @@ These are real market asks, but they risk turning `llama-dash` into a much large
 
 Why:
 
-This trio most directly improves `llama-dash` as an operator-facing gateway.
+This trio most directly improves `llswap-dash` as an operator-facing gateway.
 
 ### Tier 2
 
@@ -338,7 +338,7 @@ That suggests:
 
 ## Summary
 
-The next best-fit roadmap themes for `llama-dash` are:
+The next best-fit roadmap themes for `llswap-dash` are:
 
 1. routing policies
 2. budget windows and alerts

@@ -302,7 +302,7 @@ export function buildCurlCommand(
   requestBody: string | null,
   requestHeaders: Record<string, string> | null,
 ) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llama-dash.example'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llswap-dash.example'
   const auth = requestHeaders?.authorization
     ? maskSensitive('authorization', requestHeaders.authorization)
     : 'Bearer sk-…'

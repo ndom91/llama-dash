@@ -2,9 +2,9 @@
 
 ## Goal
 
-Add a first routing-policy system to `llama-dash` that lets operators control how requests are handled before they reach llama-swap / peer backends.
+Add a first routing-policy system to `llswap-dash` that lets operators control how requests are handled before they reach llama-swap / peer backends.
 
-This feature should make `llama-dash` feel more like an operator-facing gateway, not just a passive proxy.
+This feature should make `llswap-dash` feel more like an operator-facing gateway, not just a passive proxy.
 
 ## Product Placement
 
@@ -26,7 +26,7 @@ Operators want to express simple, explicit rules such as:
 - for a requested model, rewrite or redirect to a compatible one
 - if a request targets a model class, prefer local or peer backends
 
-Today, `llama-dash` supports aliases and request limits, but not operator-defined routing behavior.
+Today, `llswap-dash` supports aliases and request limits, but not operator-defined routing behavior.
 
 ## Non-Goals
 
@@ -384,4 +384,4 @@ For implementation discipline, start with:
 
 and explicitly phase fallback chains next.
 
-That gives `llama-dash` real routing power without overcomplicating failure semantics in v1.
+That gives `llswap-dash` real routing power without overcomplicating failure semantics in v1.

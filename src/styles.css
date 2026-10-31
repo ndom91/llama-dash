@@ -36,12 +36,12 @@
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
 
-  --radius-sm: 3px;
-  --radius-DEFAULT: 6px;
-  --radius-lg: 9px;
+  --radius-sm: 4px;
+  --radius-DEFAULT: 10px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
 
-  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 42%, transparent);
 
   --animate-pulse-ok: pulse-ok 1.6s ease-in-out infinite;
   --animate-pulse-warn: pulse-warn 1.2s ease-in-out infinite;
@@ -57,16 +57,37 @@
     @apply grid min-w-0 min-h-0;
     grid-template-rows: auto 1fr;
   }
+  /* The canvas is the stage (bg-0); cards float above it at bg-1. Sharing one
+     step between the two is what made every panel look like a wireframe. */
   .content {
-    @apply flex flex-1 min-h-0 flex-col overflow-auto bg-surface-1;
+    @apply flex flex-1 min-h-0 flex-col overflow-auto bg-surface-0;
   }
   .page {
-    @apply flex flex-col gap-0 bg-surface-1;
+    @apply flex flex-col gap-4 bg-surface-0;
+    min-width: 0;
+    padding-inline: var(--gutter);
+    padding-bottom: var(--gutter);
+  }
+  /* Reading/forms pages no longer cap the column — every page is full-bleed
+     so the title band and cards share one measure on wide monitors. */
+  /* A console workspace is the joined mosaic of flush panels below a page
+     header. The mosaic used to run edge to edge, which read as one borderless
+     slab. Now the page gutter insets it and this wrapper supplies the radius,
+     border and clipping so the mosaic reads as a single card. Inner panels
+     stay flush against each other and drop their own shadow. */
+  .workspace {
+    @apply relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-surface-1;
+    margin-top: 12px;
+    box-shadow: var(--shadow-2), var(--hi-line);
+  }
+  .workspace .panel {
+    box-shadow: none;
   }
   .btn {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
+    @apply inline-flex h-8 items-center gap-1.5 px-3 rounded border border-border-strong bg-surface-2 text-fg text-xs font-medium;
+    box-shadow: var(--hi-line-soft);
     transition: background-color var(--duration-normal) ease, border-color var(--duration-normal) ease,
-      color var(--duration-normal) ease,
+      color var(--duration-normal) ease, box-shadow var(--duration-normal) ease,
       transform var(--duration-normal) var(--ease-out-micro);
   }
   .btn:hover:not(:disabled) {
@@ -83,6 +104,7 @@
   }
   .btn-primary {
     @apply bg-accent border-accent text-accent-on;
+    box-shadow: var(--hi-line);
   }
   .btn-primary:hover:not(:disabled) {
     @apply bg-accent-strong border-accent-strong;
@@ -109,32 +131,42 @@
     @apply bg-err-bg text-err border-transparent;
   }
   .btn-xs {
-    @apply h-7 py-1 px-2 text-[11px];
+    @apply h-7 px-2 text-[11px];
   }
   .btn-sm {
-    @apply py-1 px-2 text-[12px];
+    @apply h-8 px-3 text-[12px];
   }
   .btn-md {
-    @apply py-3 px-3 text-[12px];
+    @apply h-9 px-3 text-[12px];
   }
   .btn-lg {
-    @apply py-3 px-4 text-[15px];
+    @apply h-10 px-4 text-[14px];
   }
   .btn-icon {
     @apply p-1.5;
   }
 
   .panel {
-    @apply overflow-hidden rounded border-border bg-surface-1;
+    @apply overflow-hidden rounded-lg border-border bg-surface-1;
+    box-shadow: var(--shadow-2), var(--hi-line);
+  }
+  /* The standalone card is the one surface every page region sits in: hairline
+     border plus the standard elevation, so a card reads identically on every
+     page. `.panel` stays for in-card panels (detail sidecars) that carry their
+     own border overrides. */
+  .card {
+    @apply overflow-hidden rounded-lg border border-border bg-surface-1;
+    box-shadow: var(--shadow-2), var(--hi-line);
   }
   .panel-head {
-    @apply h-10 flex items-center gap-2.5 border-b border-border bg-surface-1 px-3.5 py-2.5;
+    @apply h-10 flex items-center gap-2 border-b border-border bg-surface-2 px-4;
+    box-shadow: var(--hi-line);
   }
   .panel-title {
-    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-fg-muted;
+    @apply font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-fg-muted;
   }
   .panel-sub {
-    @apply font-mono text-[11px] text-fg-dim;
+    @apply font-mono text-xs text-fg-dim;
   }
   .panel-link {
     @apply text-accent;
@@ -157,14 +189,15 @@
     @apply w-full border-collapse text-xs;
   }
   .dtable thead th {
-    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-3.5 py-2 border-b border-border sticky top-0 z-[1];
-    background: color-mix(in srgb, var(--bg-0) 72%, var(--bg-1));
+    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-4 py-2 border-b border-border sticky top-0 z-1;
+    background: var(--bg-2);
+    box-shadow: var(--hi-line);
   }
   .dtable thead th.num {
     @apply text-right;
   }
   .dtable tbody td {
-    @apply px-3.5 py-2 border-b border-border align-middle text-fg;
+    @apply px-4 py-3 border-b border-border align-middle text-fg;
   }
   .dtable tbody tr:last-child td {
     @apply border-b-0;
@@ -192,60 +225,79 @@
   @media (max-width: 1100px) {
     .dtable thead th,
     .dtable tbody td {
-      @apply px-2.5 py-1.5;
+      @apply px-3 py-2;
     }
   }
 
   .empty-state {
-    @apply p-7 text-center text-[13px] text-fg-dim;
+    @apply p-6 text-center text-[13px] text-fg-dim;
   }
   .empty-state code:not(.copyable-code code) {
     @apply rounded-sm border border-border bg-surface-2 px-1.5 py-px;
   }
 
   .err-banner {
-    @apply rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err;
+    @apply rounded border border-err bg-err-bg px-4 py-2 font-mono text-xs text-err;
     animation: badge-in var(--duration-slow) var(--ease-out);
   }
 }
 
 :root {
-  /* brand — default: ultraviolet (overridden by JS theme picker) */
-  --ld-phosphor-300: #d4c0e6;
-  --ld-phosphor-500: #b497d6;
-  --ld-phosphor-700: #7b5ca0;
+  /* Native form controls (select dropdowns, inputs, scrollbars) must render
+     in the same scheme as the app — without this the browser paints them
+     white regardless of our tokens. Kept in sync with the light blocks. */
+  color-scheme: dark;
 
-  /* surfaces */
-  --ld-surface-0: #070809;
-  --ld-surface-1: #0e1114;
-  --ld-surface-2: #161a1d;
-  --ld-border: #22282d;
+  /* brand — default: sapphire (overridden by JS theme picker) */
+  --ld-phosphor-300: #a9c4f0;
+  --ld-phosphor-500: #6e9ee0;
+  --ld-phosphor-700: #3b68a8;
 
-  /* text on dark */
-  --ld-text-1: #d6dbd9;
-  --ld-text-2: #8a9490;
-  --ld-text-3: #5d6461;
+  /* Surfaces — one elevation ramp, lightest step reads highest.
+     bg-0 is the stage: app shell, page canvas, and wells (code blocks).
+     bg-1 is the card layer that floats on the stage.
+     bg-2 is nested content inside a card.
+     bg-3 is controls, hover and selected rows.
+     bg-4 is popovers and menus.
+     The old ramp put the page canvas and the cards on the *same* step, which
+     is why panels only existed as hairline outlines.
+     The separation here is DELIBERATE and large: a card only reads as lifted
+     when its relative luminance sits at least ~1 full point above the stage.
+     A 0.3-point gap (the previous ramp) is invisible at a glance — that is
+     the difference between a card and a wireframe. */
+  --ld-surface-0: #06070b;
+  --ld-surface-1: #191e29;
+  --ld-surface-2: #222835;
 
-  /* status — default: ultraviolet */
+  /* text on dark — lifted off the old values; the 10px dim labels were
+     reading at ~3:1 against the canvas */
+  --ld-text-1: #e8ebf0;
+  --ld-text-2: #a4acb9;
+  --ld-text-3: #7c8593;
+  --ld-text-4: #5b6370;
+
+  /* status — default: sapphire */
   --ld-ok: #9dc98a;
   --ld-warn: #d9b88a;
   --ld-error: #c88a8a;
-  --info: #8aaedb;
+  --info: #6cb6c4;
 
   /* semantic aliases */
   --bg-0: var(--ld-surface-0);
   --bg-1: var(--ld-surface-1);
   --bg-2: var(--ld-surface-2);
-  --bg-3: #1c2024;
-  --bg-4: #22272b;
+  --bg-3: #2c3340;
+  --bg-4: #363e4d;
 
   --fg: var(--ld-text-1);
   --fg-muted: var(--ld-text-2);
   --fg-dim: var(--ld-text-3);
-  --fg-faint: #4a4f4d;
+  --fg-faint: var(--ld-text-4);
 
-  --border: var(--ld-border);
-  --border-strong: #2a2f33;
+  /* Alpha borders composite correctly over any surface, so one hairline reads
+     the same on the canvas, on a card, and on a popover. */
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: rgb(255 255 255 / 0.2);
 
   --accent: var(--ld-phosphor-500);
   --accent-strong: var(--ld-phosphor-300);
@@ -257,23 +309,34 @@
   --warn-bg: rgba(217, 184, 138, 0.12);
   --err: var(--ld-error);
   --err-bg: rgba(200, 138, 138, 0.12);
-  --info-bg: rgba(138, 174, 219, 0.12);
+  --info-bg: rgba(108, 182, 196, 0.12);
 
-  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
+  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 42%, transparent);
 
-  --accent-shifted: oklch(84% 0.036 300);
+  /* Elevation. A 1px outline is a *separator*, not a *surface* — depth comes
+     from a lit top edge plus a soft drop shadow onto the stage. On a near-black
+     stage a black shadow does almost nothing, so the lift is carried by the
+     surface ramp; the shadow only separates overlapping layers. */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px -4px rgb(0 0 0 / 0.5);
+  --shadow-2: 0 12px 28px -8px rgb(0 0 0 / 0.66), 0 4px 10px -4px rgb(0 0 0 / 0.5);
+  --shadow-3: 0 28px 64px -12px rgb(0 0 0 / 0.8), 0 8px 20px -8px rgb(0 0 0 / 0.55);
+  /* The lit top edge is the strongest single cue that a surface has a top. */
+  --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.09);
+  --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+  --accent-shifted: oklch(84% 0.052 255);
 
   /* Series (identity) ramp — see src/lib/series-color.ts.
      Hue and base chroma come from the active accent via themeStyleVars(); these
-     are the ultraviolet fallbacks so the first SSR paint is valid before the
+     are the sapphire fallbacks so the first SSR paint is valid before the
      blocking theme script runs. Lightness is anchored to an absolute band
      rather than offset from the accent's own L, because accent L ranges 72–87%
      across palettes and offsetting would clip past 100%.
-     Dark mode: bars sit on --bg-3 (#1c2024, L≈24%), so lightness descends as
+     Dark mode: bars sit on --bg-3 (#20242d, L≈25%), so lightness descends as
      chroma ascends. Chroma is capped at 0.55x accent to keep every step
      visibly desaturated relative to the status colors. */
-  --ld-series-h: 300;
-  --ld-series-c: 0.09;
+  --ld-series-h: 255;
+  --ld-series-c: 0.13;
 
   --series-1: oklch(88% calc(var(--ld-series-c) * 0.2) var(--ld-series-h));
   --series-2: oklch(80% calc(var(--ld-series-c) * 0.29) var(--ld-series-h));
@@ -281,10 +344,17 @@
   --series-4: oklch(64% calc(var(--ld-series-c) * 0.47) var(--ld-series-h));
   --series-5: oklch(56% calc(var(--ld-series-c) * 0.55) var(--ld-series-h));
 
-  --radius-sm: 3px;
-  --radius: 6px;
-  --radius-lg: 9px;
+  --radius-sm: 4px;
+  --radius: 10px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
+
+  /* Layout scale. The page gutter is the single source of horizontal
+     breathing room; card padding is the inner rhythm. Tailwind handles the
+     values in between, but these three are the contract every page shares. */
+  --gutter: 24px;
+  --content-max: 1180px;
+  --card-pad: 16px;
 
   /* Spacing is handled by Tailwind utilities; only --space-lg has a consumer
      (.dash-grid). The unused xs/sm/md/xl steps were removed rather than left as
@@ -349,6 +419,18 @@
   --check-ease-path: var(--motion-ease-smooth-out);
 }
 
+/* One gutter, three sizes. Every page and page header uses this value. */
+@media (max-width: 900px) {
+  :root {
+    --gutter: 16px;
+  }
+}
+@media (max-width: 600px) {
+  :root {
+    --gutter: 12px;
+  }
+}
+
 /*
  * LIGHT THEME — this block and the @media (prefers-color-scheme: light) block
  * below are intentional duplicates and MUST be edited together.
@@ -362,34 +444,44 @@
  * touches the SSR and hydration paths — deliberately out of scope here.
  */
 :root[data-theme='light'] {
-  --bg-0: #f5f6f3;
+  color-scheme: light;
+  /* Same elevation model as dark, inverted: the stage is a cool grey and the
+     cards are white, so a panel reads as a lifted sheet rather than a hole. */
+  --bg-0: #eceef2;
   --bg-1: #ffffff;
-  --bg-2: #fafbf8;
-  --bg-3: #eef0eb;
-  --bg-4: #e4e7e0;
+  --bg-2: #f6f7f9;
+  --bg-3: #e9ecf1;
+  --bg-4: #e0e4ea;
 
-  --fg: #1a1d1a;
-  --fg-muted: #4d5450;
-  --fg-dim: #747a76;
-  --fg-faint: #b0b5b2;
+  --fg: #14171c;
+  --fg-muted: #4d5560;
+  --fg-dim: #6d7683;
+  --fg-faint: #99a1ae;
 
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
+  --border: rgb(10 14 22 / 0.1);
+  --border-strong: rgb(10 14 22 / 0.18);
 
   --accent: var(--ld-phosphor-700);
   --accent-strong: color-mix(in oklab, var(--accent) 82%, black);
   --accent-on: #ffffff;
 
-  --ok: #4a8a3a;
-  --ok-bg: rgba(74, 138, 58, 0.1);
-  --warn: #9a7030;
-  --warn-bg: rgba(154, 112, 48, 0.12);
-  --err: #a84444;
-  --err-bg: rgba(168, 68, 68, 0.1);
-  --info: #3a7a8a;
-  --info-bg: rgba(58, 122, 138, 0.1);
+  --ok: #2f7d3a;
+  --ok-bg: rgba(47, 125, 58, 0.1);
+  --warn: #8a5a12;
+  --warn-bg: rgba(138, 90, 18, 0.12);
+  --err: #b3261e;
+  --err-bg: rgba(179, 38, 30, 0.1);
+  --info: #1f6f8b;
+  --info-bg: rgba(31, 111, 139, 0.1);
 
-  /* Series ramp inverts for light mode: bars sit on --bg-3 (#eef0eb, L≈94%),
+  --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
+  --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-2: 0 6px 20px -3px rgb(16 24 40 / 0.14), 0 2px 5px rgb(16 24 40 / 0.07);
+  --shadow-3: 0 22px 52px -10px rgb(16 24 40 / 0.2), 0 4px 10px rgb(16 24 40 / 0.1);
+  --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.9);
+  --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.7);
+
+  /* Series ramp inverts for light mode: bars sit on --bg-3 (#e9ecf1, L≈93%),
      so *darker* means stronger. Contrast ordering is preserved — --series-1 is
      the most prominent step in both modes. Keep in sync with the
      prefers-color-scheme block below. */
@@ -404,32 +496,40 @@
    editing either block. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --bg-0: #f5f6f3;
+    color-scheme: light;
+    --bg-0: #eceef2;
     --bg-1: #ffffff;
-    --bg-2: #fafbf8;
-    --bg-3: #eef0eb;
-    --bg-4: #e4e7e0;
+    --bg-2: #f6f7f9;
+    --bg-3: #e9ecf1;
+    --bg-4: #e0e4ea;
 
-    --fg: #1a1d1a;
-    --fg-muted: #4d5450;
-    --fg-dim: #747a76;
-    --fg-faint: #b0b5b2;
+    --fg: #14171c;
+    --fg-muted: #4d5560;
+    --fg-dim: #6d7683;
+    --fg-faint: #99a1ae;
 
-    --border: rgba(0, 0, 0, 0.08);
-    --border-strong: rgba(0, 0, 0, 0.14);
+    --border: rgb(10 14 22 / 0.1);
+    --border-strong: rgb(10 14 22 / 0.18);
 
     --accent: var(--ld-phosphor-700);
     --accent-strong: color-mix(in oklab, var(--accent) 82%, black);
     --accent-on: #ffffff;
 
-    --ok: #4a8a3a;
-    --ok-bg: rgba(74, 138, 58, 0.1);
-    --warn: #9a7030;
-    --warn-bg: rgba(154, 112, 48, 0.12);
-    --err: #a84444;
-    --err-bg: rgba(168, 68, 68, 0.1);
-    --info: #3a7a8a;
-    --info-bg: rgba(58, 122, 138, 0.1);
+    --ok: #2f7d3a;
+    --ok-bg: rgba(47, 125, 58, 0.1);
+    --warn: #8a5a12;
+    --warn-bg: rgba(138, 90, 18, 0.12);
+    --err: #b3261e;
+    --err-bg: rgba(179, 38, 30, 0.1);
+    --info: #1f6f8b;
+    --info-bg: rgba(31, 111, 139, 0.1);
+
+    --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
+    --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06);
+    --shadow-2: 0 6px 20px -3px rgb(16 24 40 / 0.14), 0 2px 5px rgb(16 24 40 / 0.07);
+    --shadow-3: 0 22px 52px -10px rgb(16 24 40 / 0.2), 0 4px 10px rgb(16 24 40 / 0.1);
+    --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.9);
+    --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.7);
 
     /* Keep in sync with :root[data-theme='light'] above. */
     --series-1: oklch(36% calc(var(--ld-series-c) * 0.55) var(--ld-series-h));
@@ -522,6 +622,27 @@
   }
   button:disabled {
     cursor: not-allowed;
+  }
+
+  /* Native select dropdown rows. color-scheme handles the popup chrome;
+     these cover the rows themselves — Chrome paints optgroup labels and the
+     selected row white unless they're styled directly. */
+  option,
+  optgroup {
+    background: var(--bg-4);
+    color: var(--fg);
+    font-style: normal;
+  }
+
+  optgroup {
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  option:checked {
+    background: var(--accent);
+    color: var(--accent-on);
+    font-weight: 600;
   }
 }
 
@@ -850,7 +971,7 @@
   gap: 0;
   flex: 1;
   min-height: 0;
-  background: var(--bg-1);
+  background: var(--bg-0);
 }
 
 .detail-header-actions {
@@ -871,12 +992,12 @@
 }
 
 .detail-meta-rail {
-  @apply bg-surface-1 px-3.5 py-4;
+  @apply bg-surface-1 px-4 py-4;
   border-right: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
 }
 
 .detail-meta-section + .detail-meta-section {
-  @apply mt-3.5 border-t pt-3.5;
+  @apply mt-3 border-t pt-3;
   border-color: color-mix(in srgb, var(--border) 72%, transparent);
 }
 
@@ -919,7 +1040,7 @@
 }
 
 .detail-sidecar {
-  @apply min-h-full bg-surface-0 px-3.5 py-3;
+  @apply min-h-full bg-surface-0 px-4 py-3;
 }
 
 .detail-page-sidecar .detail-main-stack > .detail-hero,
@@ -944,11 +1065,11 @@
 }
 
 .detail-sidecar-metrics {
-  @apply m-0 grid gap-2.5;
+  @apply m-0 grid gap-2;
 }
 
 .detail-sidecar-metrics > div {
-  @apply flex justify-between gap-2.5 font-mono text-xs tabular-nums;
+  @apply flex justify-between gap-2 font-mono text-xs tabular-nums;
 }
 
 .detail-sidecar-metrics dt {
@@ -1007,7 +1128,7 @@
 }
 
 .detail-header-right {
-  @apply flex shrink-0 items-center gap-2.5;
+  @apply flex shrink-0 items-center gap-2;
 }
 
 .detail-nav-arrows {
@@ -1064,7 +1185,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 8px 16px;
 }
 .token-stat-accent {
   background: var(--bg-3);
@@ -1104,7 +1225,7 @@
   font-size: 12px;
 }
 .dl-grid dt {
-  padding: 8px 14px;
+  padding: 8px 16px;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -1118,7 +1239,7 @@
 }
 .dl-grid dd {
   margin: 0;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -1146,7 +1267,7 @@
 }
 
 .detail-error {
-  @apply m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err;
+  @apply m-0 whitespace-pre-wrap break-all px-4 py-3 font-mono text-xs leading-normal text-err;
 }
 
 .panel-toggle {
@@ -1164,13 +1285,13 @@
 }
 
 .body-toolbar {
-  @apply flex items-center justify-between border-b px-3.5 py-1.5;
+  @apply flex items-center justify-between border-b px-4 py-1.5;
 }
 .body-tabs {
   @apply flex gap-0.5;
 }
 .body-tab {
-  @apply rounded-sm bg-transparent px-2.5 py-[3px] font-mono text-[11px] text-fg-dim transition-colors;
+  @apply rounded-sm bg-transparent px-2 py-1 font-mono text-[11px] text-fg-dim transition-colors;
 }
 .body-tab:hover {
   @apply bg-surface-3 text-fg-muted;
@@ -1179,7 +1300,7 @@
   @apply bg-surface-3 text-accent;
 }
 .body-pre {
-  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-3.5 py-3.5 pr-1 font-mono text-xs leading-[1.5] text-fg;
+  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-4 py-3 pr-1 font-mono text-xs leading-normal text-fg;
 }
 .body-pre::-webkit-scrollbar {
   width: 10px;
@@ -1354,7 +1475,7 @@
 .config-textarea {
   position: absolute;
   inset: 0;
-  padding: 12px 14px;
+  padding: 12px 16px;
   margin: 0;
   font: inherit;
   line-height: inherit;
@@ -1408,7 +1529,7 @@
   border: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .page.detail-page {
     gap: 12px;
   }
@@ -1458,31 +1579,27 @@
   .pg-input-bar {
     padding: 8px 10px;
   }
-  .page-header {
-    margin-inline: -12px;
-    padding-inline: 12px;
-  }
   .pg-tab-bar {
-    margin-inline: -12px;
-    padding-inline: 12px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
   }
   .pg-grid {
-    margin-inline: -12px;
-    padding-inline: 12px;
+    margin-inline: calc(var(--gutter) * -1);
+    padding-inline: var(--gutter);
   }
 }
 
 
 /* ---- page header ---- */
 
-.page > .page-header + * {
-  margin-top: 0;
-}
-
+/* The page owns the gutter; the header cancels it so its fill spans the full
+   page while its copy lines up with the content below. */
 .page-header {
-  padding: 10px 24px 12px;
-  background: color-mix(in srgb, var(--bg-1) 82%, var(--bg-2));
+  margin-inline: calc(var(--gutter) * -1);
+  padding: 20px var(--gutter) 12px;
+  background: color-mix(in srgb, var(--bg-0) 55%, var(--bg-1));
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--hi-line-soft);
 }
 
 .page-header-copy {
@@ -1502,7 +1619,7 @@
 .page-header-integrated {
   position: relative;
   align-items: flex-end;
-  padding: 16px 24px 12px;
+  padding: 20px var(--gutter) 12px;
   background: var(--bg-1);
   border-bottom-color: color-mix(in srgb, var(--border) 86%, transparent);
 }
@@ -1527,11 +1644,10 @@
   justify-content: flex-end;
 }
 
-/* Integrated routes render the header seam once; the first attached surface
-   below it should not add another top border. */
+/* Legacy class name kept because the usage totals grid and its tests reference
+   it. The totals are gap-3 cards now, so the old seam borders are gone. */
 .dashboard-stats-row {
-  border-top: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border: 0;
 }
 
 @media (max-width: 900px) {
@@ -1760,6 +1876,7 @@ a,
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  box-shadow: var(--shadow-1), var(--hi-line);
 }
 
 /* In @layer components so Tailwind utilities on the same element can override
@@ -1768,12 +1885,12 @@ a,
    classes that looked live but did nothing. */
 @layer components {
   .stat-card {
-    background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-2));
+    background: var(--bg-2);
     border-right: 1px solid var(--border);
-    padding: 14px 16px;
+    padding: var(--card-pad);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 }
 .stat-card:last-child {
@@ -1781,7 +1898,7 @@ a,
 }
 .stat-card-label {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--fg-dim);
@@ -1819,7 +1936,7 @@ a,
   border-left: 0;
   border-right: 1px solid var(--border);
   border-radius: 0;
-  padding: 14px 16px;
+  padding: 16px;
 }
 
 .stat-card-flat:last-child {
@@ -1916,7 +2033,7 @@ a,
   align-items: flex-end;
   gap: 2px;
   height: 112px;
-  padding: 10px 14px 12px;
+  padding: 12px 16px;
 }
 .histogram-bar {
   flex: 1;
@@ -2084,13 +2201,13 @@ a,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
 }
 .histogram-labels {
   display: flex;
   justify-content: space-between;
-  padding: 4px 14px 8px;
+  padding: 4px 16px 8px;
   font-family: var(--font-mono);
   font-size: 9px;
   color: var(--fg-faint);
@@ -2115,7 +2232,7 @@ a,
 /* ---- token trace ---- */
 
 .token-trace {
-  padding: 12px 14px 14px;
+  padding: 12px 16px 16px;
 }
 .token-trace-track {
   height: 16px;

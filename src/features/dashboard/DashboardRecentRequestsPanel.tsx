@@ -18,8 +18,8 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
   const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
-    <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-      <div className="panel-head bg-transparent px-4">
+    <section className="card flex min-h-0 flex-col">
+      <div className="panel-head">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
           newest first · {requests?.length ?? 0} shown{errCount > 0 ? ` · ${errCount} errors` : ''}
@@ -30,7 +30,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
         </Link>
       </div>
       {requests == null ? (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div className="max-h-110 overflow-auto">
           <table className="dtable">
             <thead>
               <tr>
@@ -88,7 +88,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
           <CopyableCode text={`${typeof window !== 'undefined' ? window.location.origin : ''}/v1/`} /> to see them here.
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div className="max-h-110 overflow-auto">
           <table className="dtable">
             <thead>
               <tr>

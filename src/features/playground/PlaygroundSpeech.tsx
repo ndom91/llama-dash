@@ -3,10 +3,12 @@ import { type FormEvent, type KeyboardEvent, useCallback, useState } from 'react
 import { Tooltip } from '../../components/Tooltip'
 import { api, type ArticleExtractResponse } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useModels } from '../../lib/queries'
+import { useModels, useProviderConnections } from '../../lib/queries'
 import { type SpeechSegment, usePlaygroundSpeech } from '../../lib/use-playground-speech'
+import { PlaygroundDropOverlay } from './PlaygroundDropOverlay'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
 import { PlaygroundSpeechSegmentedPlayer } from './PlaygroundSpeechSegmentedPlayer'
+import { isTextFile, usePlaygroundFileDrop } from './use-playground-file-drop'
 import { buildSpeechFilename, formatSpeechClock } from './playgroundSpeechUtils'
 
 type SpeechMode = 'text' | 'article'
@@ -20,8 +22,17 @@ export function PlaygroundSpeech() {
   const [articleLoading, setArticleLoading] = useState(false)
   const [articleError, setArticleError] = useState<string | null>(null)
   const { data: models } = useModels()
+  const { data: providerConnections = [] } = useProviderConnections()
+  const providerModels = providerConnections.flatMap((connection) => connection.models)
   const localModels = models?.filter((m) => m.kind === 'local') ?? []
   const peerModels = models?.filter((m) => m.kind === 'peer') ?? []
+  // Dropped text files become the speech input text.
+  const { dragging, dropHandlers } = usePlaygroundFileDrop({
+    accepts: isTextFile,
+    onFile: (file) => {
+      void file.text().then((text) => speech.setText(text))
+    },
+  })
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
@@ -119,7 +130,12 @@ export function PlaygroundSpeech() {
   const articleReady = Boolean(article && articleText.trim())
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col" {...dropHandlers}>
+      <PlaygroundDropOverlay
+        show={dragging}
+        title="Drop a text file for speech input"
+        hint="The file contents become the text below. Drop audio in Transcribe."
+      />
       <div className="border-b border-border bg-surface-1/70 px-6 py-3">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
@@ -150,18 +166,28 @@ export function PlaygroundSpeech() {
                   ))}
                 </optgroup>
               ) : null}
+              {providerModels.length > 0 ? (
+                <optgroup label="Providers">
+                  {providerModels.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
             </select>
           </div>
 
           <div className="flex items-center gap-3 border-r border-border pr-4">
             <label htmlFor="pg-speech-api" className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">API</label>
-            <select id="pg-speech-api" className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg" value={speech.speechApi} onChange={(e) => speech.setSpeechApi(e.target.value === 'llama' ? 'llama' : 'openai')}>
+            <select id="pg-speech-api" className="select-native min-w-0 border-0 bg-transparent py-0 font-mono text-xs text-fg" value={speech.speechApi} onChange={(e) => speech.setSpeechApi(e.target.value === 'llama' || e.target.value === 'chat' ? e.target.value : 'openai')}>
               <option value="openai">OpenAI compatible</option>
               <option value="llama">llama.cpp native /tts</option>
+              <option value="chat">provider chat TTS</option>
             </select>
           </div>
 
-          {speech.speechApi === 'openai' ? <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
+          {speech.speechApi !== 'llama' ? <div className="flex min-w-[180px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">voice</div>
             {speech.voices ? (
               <select
@@ -219,7 +245,7 @@ export function PlaygroundSpeech() {
         </div>
       </div>
 
-      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-surface-0 px-6 pt-5 pb-4">
           {speech.error ? (
             <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">

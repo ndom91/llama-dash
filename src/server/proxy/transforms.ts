@@ -2,6 +2,7 @@ import { resolveAlias } from '../admin/model-aliases.ts'
 import type { RoutingDecision } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
+import type { ProviderPathJoin } from '../../lib/providers.ts'
 import type { CredentialBinding } from '../../lib/schemas/routing-rule.ts'
 import { getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
 
@@ -22,6 +23,8 @@ export type RoutingOutcome = {
   preserveAuthorization: boolean
   targetType: 'llama_swap' | 'direct' | null
   targetBaseUrl: string | null
+  /** How the incoming path is joined onto a direct upstream base URL. */
+  targetPathJoin: ProviderPathJoin | null
   targetCredentialId: string | null
   requestedModel: string | null
   routedModel: string | null
@@ -117,6 +120,7 @@ export function emptyRoutingOutcome(): RoutingOutcome {
     preserveAuthorization: false,
     targetType: null,
     targetBaseUrl: null,
+    targetPathJoin: null,
     targetCredentialId: null,
     requestedModel: null,
     routedModel: null,
@@ -135,6 +139,7 @@ export function routingOutcomeFromDecision(decision: RoutingDecision, requestedM
     preserveAuthorization: decision.authMode === 'passthrough' && decision.preserveAuthorization,
     targetType: decision.target.type,
     targetBaseUrl: decision.target.type === 'direct' ? decision.target.baseUrl : null,
+    targetPathJoin: decision.target.type === 'direct' ? (decision.target.pathJoin ?? null) : null,
     targetCredentialId: decision.target.type === 'direct' ? (decision.target.credentialId ?? null) : null,
     requestedModel,
     routedModel: decision.action?.type === 'rewrite_model' ? decision.action.model : null,

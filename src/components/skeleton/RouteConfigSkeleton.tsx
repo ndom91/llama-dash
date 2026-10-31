@@ -6,16 +6,16 @@ export function RouteConfigSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={112} titleWidth={190} action="none" />
-      <div className="panel flex min-h-0 flex-1 flex-col overflow-hidden !rounded-none !border-x-0 !bg-surface-1 border-border-strong">
+      <div className="card flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="grid min-h-0 flex-1 grid-cols-[44px_minmax(0,1fr)] overflow-hidden bg-surface-0 font-mono text-xs">
           <div className="border-r border-border bg-surface-3 px-2.5 pt-3">
             {EDITOR_ROWS.map((row) => (
-              <SkeletonLine key={row} width={16} height={11} className="mb-[9.8px] block ml-auto" />
+              <SkeletonLine key={row} width={16} height={11} className="mb-2.5 block ml-auto" />
             ))}
           </div>
           <div className="p-3">
             {EDITOR_ROWS.map((row, index) => (
-              <div key={row} className="mb-[9.8px]">
+              <div key={row} className="mb-2.5">
                 <SkeletonLine width={`${34 + (index % 7) * 8}%`} />
               </div>
             ))}

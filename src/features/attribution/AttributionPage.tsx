@@ -31,7 +31,7 @@ export function AttributionPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="dsh · attribution"
           title="Attribution"
@@ -66,15 +66,15 @@ export function AttributionPage() {
         />
 
         {isLoading ? (
-          <div className="empty-state px-6 max-md:px-3">loading attribution settings…</div>
+          <div className="empty-state px-4 max-md:px-3">loading attribution settings…</div>
         ) : (
-          <div className="flex flex-col gap-0">
-            <section className="panel !rounded-none !border-x-0 !bg-surface-1">
-              <div className="panel-head bg-transparent px-6 max-md:px-3">
+          <div className="flex flex-col gap-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Header mapping</span>
                 <span className="panel-sub">· map incoming request headers to normalized attribution fields</span>
               </div>
-              <div className="grid gap-4 px-6 py-4 md:grid-cols-3 max-md:px-3">
+              <div className="grid gap-4 px-4 py-4 md:grid-cols-3 max-md:px-3">
                 <HeaderField
                   label="Client name"
                   helper="example: x-client-name"
@@ -94,19 +94,19 @@ export function AttributionPage() {
                   onChange={setSessionIdHeader}
                 />
               </div>
-              <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
+              <div className="px-4 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
                 Empty fields disable capture for that dimension. Values are trimmed and stored on each request row.
                 Client name falls back to a best-effort <code>user-agent</code> heuristic when no explicit client header
                 mapping is set.
               </div>
             </section>
 
-            <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
-              <div className="panel-head bg-transparent px-6 max-md:px-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Recommended conventions</span>
                 <span className="panel-sub">· suggested header names for new client setups</span>
               </div>
-              <div className="grid gap-3 px-6 py-4 font-mono text-xs text-fg md:grid-cols-3 max-md:px-3">
+              <div className="grid gap-3 px-4 py-4 font-mono text-xs text-fg md:grid-cols-3 max-md:px-3">
                 <HeaderConvention
                   name="x-client-name"
                   description="stable client/app identifier like claude-code or home-assistant"
@@ -117,15 +117,15 @@ export function AttributionPage() {
                 />
                 <HeaderConvention name="x-session-id" description="conversation, run, or workflow session identifier" />
               </div>
-              <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
-                If client name is not explicitly mapped, llama-dash will try to infer it from <code>user-agent</code>{' '}
+              <div className="px-4 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
+                If client name is not explicitly mapped, llswap-dash will try to infer it from <code>user-agent</code>{' '}
                 for a few known clients like Claude Code, OpenCode, Open WebUI, Home Assistant, curl, and
                 python-requests.
               </div>
             </section>
 
-            <section className="panel !rounded-none !border-x-0 !border-t-1 !bg-surface-1">
-              <div className="panel-head bg-transparent px-6 max-md:px-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Setup examples</span>
                 <span className="panel-sub">
                   · add custom headers if your client does not already send suitable metadata
@@ -138,7 +138,7 @@ export function AttributionPage() {
                   onChange={setExampleTab}
                   ariaLabel="Attribution setup examples"
                 />
-                <div className="px-6 py-4 max-md:px-3">
+                <div className="px-4 py-4 max-md:px-3">
                   <ExampleCard
                     title={activeExample.title}
                     code={activeExample.code}
@@ -174,7 +174,7 @@ const EXAMPLE_TABS = [
     code: `{
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "ANTHROPIC_BASE_URL": "http://llama-dash.local:5173"
+    "ANTHROPIC_BASE_URL": "http://llswap-dash.local:5173"
   }
 }`,
   },
@@ -187,11 +187,11 @@ const EXAMPLE_TABS = [
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "llama-dash": {
+    "llswap-dash": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "llama-dash",
+      "name": "llswap-dash",
       "options": {
-        "baseURL": "http://llama-dash.local:5173/v1",
+        "baseURL": "http://llswap-dash.local:5173/v1",
         "headers": {
           "x-client-name": "opencode",
           "x-end-user-id": "alice",
@@ -203,7 +203,7 @@ const EXAMPLE_TABS = [
       }
     }
   },
-  "model": "llama-dash/gemma-4-26B-A4B-it"
+  "model": "llswap-dash/gemma-4-26B-A4B-it"
 }`,
   },
   {
@@ -227,11 +227,11 @@ const EXAMPLE_TABS = [
     language: 'yaml',
     code: `# configuration.yaml
 # Built-in OpenAI/OpenRouter conversation integrations do not expose
-# arbitrary headers. For YAML automations that call llama-dash directly,
+# arbitrary headers. For YAML automations that call llswap-dash directly,
 # put attribution headers under rest_command.<name>.headers.
 rest_command:
   llama_dash_chat:
-    url: "http://llama-dash.local:5173/v1/chat/completions"
+    url: "http://llswap-dash.local:5173/v1/chat/completions"
     method: POST
     content_type: "application/json"
     headers:
@@ -278,7 +278,7 @@ function HeaderField({
 
 function HeaderConvention({ name, description }: { name: string; description: string }) {
   return (
-    <div className="rounded border border-border bg-surface-0 px-4 py-3">
+    <div className="rounded border border-border bg-surface-1 px-4 py-3">
       <div className="text-accent">{name}</div>
       <div className="mt-2 text-fg-dim">{description}</div>
     </div>

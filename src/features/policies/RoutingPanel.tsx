@@ -6,6 +6,7 @@ import {
   useCreateRoutingRule,
   useDeleteRoutingRule,
   useModels,
+  useProviderConnections,
   useReorderRoutingRules,
   useRoutingRules,
   useUpdateRoutingRule,
@@ -48,6 +49,7 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
+  const { data: providerConnections = [] } = useProviderConnections()
   const createRuleMutation = useCreateRoutingRule()
   const updateRuleMutation = useUpdateRoutingRule()
   const deleteRuleMutation = useDeleteRoutingRule()
@@ -62,7 +64,15 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   }, [draft, editingRuleId])
 
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
-  const modelOptions = models.map((model) => model.id)
+  // Suggested rewrite models: llama-swap's local models plus every
+  // auto-discovered provider model.
+  const modelOptions = useMemo(() => {
+    const seen = new Set<string>(models.map((model) => model.id))
+    for (const connection of providerConnections) {
+      for (const model of connection.models) seen.add(model)
+    }
+    return [...seen]
+  }, [models, providerConnections])
 
   const enabledCount = rules.filter((rule) => rule.enabled).length
   const isMutating =
@@ -139,8 +149,8 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   }
 
   return (
-    <section className="panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 border-t-0 !bg-surface-1">
-      <div className="panel-head shrink-0 bg-transparent px-6 max-md:px-3">
+    <section className="card flex min-h-0 flex-1 flex-col">
+      <div className="panel-head shrink-0">
         <span className="panel-title">Routing</span>
         <span className="panel-sub tabular-nums">
           · ordered rules evaluated before forwarding · first match wins · {rules.length} rules · {enabledCount} enabled
@@ -156,7 +166,7 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
           <div className="space-y-4">
             <div className="space-y-3">
               {rules.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
+                <div className="rounded-lg border border-dashed border-border bg-surface-1 px-5 py-6">
                   <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-faint">
                     No routing rules yet
                   </div>
@@ -319,7 +329,7 @@ function ObservabilityPanel({
   totalRules?: number
 }) {
   return (
-    <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+    <section className="rounded-lg border border-border bg-surface-1 px-5 py-5 font-mono text-xs text-fg-dim">
       <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         Observability · how a routed request surfaces on request detail
       </div>

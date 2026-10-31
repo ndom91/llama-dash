@@ -25,7 +25,7 @@ export function ModelsPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="dsh · models"
           title="Models"
@@ -63,7 +63,7 @@ export function ModelsPage() {
           }
         />
 
-        <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+        <section className="card flex min-h-0 flex-1 flex-col">
           {models == null ? (
             <ModelsPageSkeleton />
           ) : models.length === 0 ? (

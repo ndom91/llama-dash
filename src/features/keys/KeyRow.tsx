@@ -49,7 +49,7 @@ export function KeyRow({ apiKey, modelIds }: Props) {
         {apiKey.modelAccessMode === 'all' ? (
           <span className="dim">all</span>
         ) : (
-          <span className="mono" style={{ fontSize: 11 }}>
+          <span className="mono text-[11px]">
             {availableModels.length > 0 ? availableModels.join(', ') : 'no available models'}
             {unavailableModelCount > 0 ? (
               <span className="text-warn"> · +{unavailableModelCount} unavailable</span>
@@ -60,17 +60,14 @@ export function KeyRow({ apiKey, modelIds }: Props) {
       <td className="num mono hide-mobile">{apiKey.rateLimitRpm ?? <span className="dim">—</span>}</td>
       <td className="num mono hide-mobile">{apiKey.rateLimitTpm ?? <span className="dim">—</span>}</td>
       <td
-        className="hide-mobile"
+        className="hide-mobile text-xs"
         style={{
-          fontSize: 12,
           color: isExpired ? 'var(--color-error)' : expiresSoon ? 'var(--color-warn)' : 'var(--fg-dim)',
         }}
       >
         {apiKey.expiresAt ? new Date(apiKey.expiresAt).toLocaleDateString() : <span className="dim">Never</span>}
       </td>
-      <td className="hide-mobile" style={{ fontSize: 12, color: 'var(--fg-dim)' }}>
-        {new Date(apiKey.createdAt).toLocaleDateString()}
-      </td>
+      <td className="hide-mobile text-xs text-fg-dim">{new Date(apiKey.createdAt).toLocaleDateString()}</td>
       <td className="num">
         {isRevoked ? (
           <Tooltip label="Delete permanently">

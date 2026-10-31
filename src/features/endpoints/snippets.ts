@@ -114,9 +114,9 @@ rest_command:
           code: `{
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "llama-dash": {
+    "llswap-dash": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "llama-dash",
+      "name": "llswap-dash",
       "options": {
         "baseURL": "${baseUrl}/v1",
         "headers": {
@@ -130,7 +130,7 @@ rest_command:
       }
     }
   },
-  "model": "llama-dash/${model}"
+  "model": "llswap-dash/${model}"
 }`,
         }
       case 'continue':
@@ -159,7 +159,7 @@ rest_command:
 #    URL:     ${baseUrl}/v1
 #    API Key: ${apiKey}
 #
-# 2. Save and refresh — models from llama-dash
+# 2. Save and refresh — models from llswap-dash
 #    will appear in the model selector.`,
         }
     }

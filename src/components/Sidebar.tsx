@@ -38,6 +38,7 @@ import { Tooltip } from './Tooltip'
 type NavTarget =
   | '/'
   | '/models'
+  | '/cloud-models'
   | '/requests'
   | '/usage'
   | '/logs'
@@ -82,7 +83,8 @@ const SECTIONS: ReadonlyArray<NavSection> = [
   {
     title: 'interact',
     items: [
-      { to: '/models', label: 'Models', leader: 'm', Icon: Boxes },
+      { to: '/cloud-models', label: 'Models', leader: 'm', Icon: Boxes },
+      { to: '/models', label: 'llama-swap', leader: 'w', Icon: Boxes },
       { to: '/playground', label: 'Playground', leader: 'p', Icon: MessageSquare },
     ],
   },
@@ -138,7 +140,7 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, initialSession, 
   return (
     <aside
       className={cn(
-        'bg-surface-0 border-r border-border flex flex-col overflow-hidden',
+        'bg-surface-1 border-r border-border flex flex-col overflow-hidden',
         'max-md:fixed max-md:top-0 max-md:left-0 max-md:bottom-0 max-md:w-[260px] max-md:z-[100] max-md:-translate-x-full max-md:transition-transform max-md:duration-200',
         open && 'max-md:translate-x-0',
       )}

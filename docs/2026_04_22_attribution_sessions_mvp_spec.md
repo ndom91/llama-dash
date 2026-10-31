@@ -8,7 +8,7 @@ Add attribution capture and session grouping primitives so operators can underst
 - which end user a request belongs to
 - which requests belong to the same session / conversation / agent run
 
-This work should improve observability and operator usefulness without turning `llama-dash` into a full analytics platform.
+This work should improve observability and operator usefulness without turning `llswap-dash` into a full analytics platform.
 
 ## Product Placement
 
@@ -215,7 +215,7 @@ X-End-User-Id: alice
 X-Session-Id: session_123
 ```
 
-`llama-dash` stores:
+`llswap-dash` stores:
 
 - `clientName = "claude-code"`
 - `endUserId = "alice"`

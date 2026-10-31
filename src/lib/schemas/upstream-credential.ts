@@ -1,6 +1,11 @@
 import * as v from 'valibot'
 
-export const UpstreamCredentialTypeSchema = v.picklist(['bearer'])
+/**
+ * `bearer` credentials are injected as `Authorization: Bearer <value>`.
+ * `api_key` credentials are injected verbatim, which is what Anthropic-style
+ * `x-api-key` headers expect.
+ */
+export const UpstreamCredentialTypeSchema = v.picklist(['bearer', 'api_key'])
 export type UpstreamCredentialType = v.InferOutput<typeof UpstreamCredentialTypeSchema>
 
 export const UpstreamCredentialSlugSchema = v.pipe(

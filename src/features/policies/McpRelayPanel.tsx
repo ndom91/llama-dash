@@ -29,7 +29,7 @@ export function McpRelayPanel({
   const [slug, setSlug] = useState('')
   const [targetUrl, setTargetUrl] = useState('')
   const [credentialId, setCredentialId] = useState('')
-  const [origin, setOrigin] = useState('http://<llama-dash-host>:5173')
+  const [origin, setOrigin] = useState('http://<llswap-dash-host>:5173')
   const selectedCredentialId = credentialId || credentials[0]?.id || ''
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export function McpRelayPanel({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+      <section className="rounded-lg border border-border bg-surface-1 px-5 py-5 font-mono text-xs text-fg-dim">
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">MCP relays</span>
           <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">
@@ -108,7 +108,7 @@ export function McpRelayPanel({
             <div className="px-3 py-3 text-fg-faint">No MCP relays configured.</div>
           ) : (
             <div className="divide-y divide-border">
-              <div className="grid grid-cols-[minmax(130px,0.8fr)_minmax(220px,1fr)_minmax(260px,1.4fr)_minmax(140px,0.8fr)_40px] items-center gap-x-4 bg-surface-0 px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-fg-faint max-lg:hidden">
+              <div className="grid grid-cols-[minmax(130px,0.8fr)_minmax(220px,1fr)_minmax(260px,1.4fr)_minmax(140px,0.8fr)_40px] items-center gap-x-4 bg-surface-2 px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-fg-faint max-lg:hidden">
                 <span>Name</span>
                 <span>Relay URL</span>
                 <span>Target</span>
@@ -169,7 +169,7 @@ export function McpRelayPanel({
   )
 }
 
-function claudeCodeMcpConfig(slug = '<relay-slug>', origin = 'http://<llama-dash-host>:5173'): string {
+function claudeCodeMcpConfig(slug = '<relay-slug>', origin = 'http://<llswap-dash-host>:5173'): string {
   return JSON.stringify(
     {
       mcpServers: {

@@ -29,7 +29,7 @@ export function SkeletonBlock({
 export function SkeletonPageFrame({ children }: { children: ReactNode }) {
   return (
     <div className="content">
-      <div className="page min-h-0 flex-1 bg-surface-1">{children}</div>
+      <div className="page min-h-0 flex-1">{children}</div>
     </div>
   )
 }

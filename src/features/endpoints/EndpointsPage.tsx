@@ -20,17 +20,17 @@ export function EndpointsPage() {
 
   return (
     <div className="content">
-      <div className="page flex-1 bg-surface-1">
+      <div className="page flex-1">
         <PageHeader
           kicker="dsh · endpoints"
           title="Endpoints"
-          subtitle="connect clients to llama-dash"
+          subtitle="connect clients to llswap-dash"
           variant="integrated"
         />
 
-        <div className={`grid gap-0 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
-          <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1">
-            <div className="panel-head bg-transparent px-6 max-md:px-3">
+        <div className={`grid gap-3 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
+          <section className="card flex flex-col">
+            <div className="panel-head">
               <span className="panel-title">Base URL</span>
             </div>
             <div className="p-4 flex flex-col gap-3">
@@ -43,8 +43,8 @@ export function EndpointsPage() {
           </section>
 
           {hasKeys ? (
-            <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1 md:border-l md:border-l-border">
-              <div className="panel-head bg-transparent px-6 max-md:px-3">
+            <section className="card flex flex-col">
+              <div className="panel-head">
                 <span className="panel-title">API Key</span>
                 <span className="panel-sub">· used in examples below</span>
               </div>
@@ -68,8 +68,8 @@ export function EndpointsPage() {
           ) : null}
         </div>
 
-        <section className="panel flex min-h-0 flex-1 flex-col border-t !rounded-none !border-x-0 !bg-surface-1">
-          <div className="panel-head bg-transparent px-6 max-md:px-3">
+        <section className="card flex min-h-0 flex-col">
+          <div className="panel-head">
             <span className="panel-title">Code examples</span>
             <span className="panel-sub">· {ENDPOINT_TABS.find((t) => t.id === tab)?.label}</span>
           </div>

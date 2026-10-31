@@ -70,7 +70,7 @@ it('forwards native TTS to a model-specific upstream and preserves binary audio'
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('audio/wav')
     expect(Buffer.from(await response.arrayBuffer())).toEqual(wav)
-    expect(path).toBe('/upstream/lfm3-audio-2b/tts')
+    expect(path).toBe('/upstream/lfm3-audio-2b/v1/audio/speech')
     expect(JSON.parse(body)).toEqual({ model: 'lfm3-audio-2b', input: 'Hello' })
     expect(state.logs).toHaveBeenCalledWith(
       expect.objectContaining({ endpoint: '/v1/audio/llama-tts', statusCode: 200 }),
