@@ -22,7 +22,7 @@ function resolveTitle(pathname: string): string {
   if (normalized === '/endpoints') return 'Endpoints'
   if (normalized === '/policies') return 'Policies'
   if (normalized === '/system') return 'System'
-  return 'llama-dash'
+  return 'llswap-dash'
 }
 
 export function TopBar({ actions }: { actions?: ReactNode }) {

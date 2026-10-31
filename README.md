@@ -1,19 +1,19 @@
 <h1>
   <img src="./public/favicon.svg" alt="" width="42" align="left" />
-  &nbsp;llama-dash
+  &nbsp;llswap-dash
 </h1>
 
 <img alt="Dark - Dashboard" src="./.github/assets/dashboard.png" />
 
-llama-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. The implemented inference backend is currently [llama-swap](https://github.com/mostlygeek/llama-swap) over llama.cpp.
+llswap-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. The implemented inference backend is currently [llama-swap](https://github.com/mostlygeek/llama-swap) over llama.cpp.
 
-It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, routing, and backend normalization, your selected inference backend owns local model processes and inference when traffic is routed to local models.
+It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llswap-dash owns proxy policy, logging, auth, routing, and backend normalization, your selected inference backend owns local model processes and inference when traffic is routed to local models.
 
 ```text
 OpenAI SDK / Claude Code / Continue / Open WebUI
                     │
                     ▼
-              llama-dash :3000
+              llswap-dash :3000
       dashboard · auth · logs · routing · metrics
              │                     │
              ▼                     ▼
@@ -32,6 +32,8 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - Test chat, image, speech, and transcription models in the playground.
 - View logs, manage retention, and export Prometheus metrics at `/metrics`.
 - Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
+- Theme the dashboard to taste: 14 accent palettes, light and dark modes, and a picker that applies before first paint.
+- Read the same layout everywhere: a shared gutter, one spacing scale, dense data pages that use the full width, and reading pages that stay at a comfortable line length.
 
 <table>
   <tr>
@@ -95,7 +97,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 ## ⚡ Quick start (Docker Compose)
 
-Choose the compose file that matches your GPU vendor. Both setups pull the published `ghcr.io/ndom91/llama-dash:latest` image, use `./config/config.yaml` for llama-swap config, mount `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
+Choose the compose file that matches your GPU vendor. Both setups pull the published `ghcr.io/ndom91/llama-dash:latest` image, use `./config/config.yaml` for llama-swap config, mount `./models/` for model files, and expose llswap-dash on `http://localhost:3000`.
 
 Clone the repository for its Compose files and example configuration, then create the local environment and llama-swap config:
 
@@ -117,7 +119,7 @@ docker compose -f docker-compose.amd.yaml pull
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
-`docker-compose.amd.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-vulkan` image, passes through `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+`docker-compose.amd.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-vulkan` image, passes through `/dev/dri`, and also mounts `/dev/dri` into llswap-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llswap-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
 ### NVIDIA / CUDA
 
@@ -126,15 +128,15 @@ docker compose -f docker-compose.nvidia.yaml pull
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
-`docker-compose.nvidia.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-cuda13` image and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. `unified-cuda13` supports Turing (RTX 20xx, GTX 16xx) and newer GPUs; for Pascal cards such as the GTX 10xx or P40, change the image to `unified-cuda`. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+`docker-compose.nvidia.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-cuda13` image and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. `unified-cuda13` supports Turing (RTX 20xx, GTX 16xx) and newer GPUs; for Pascal cards such as the GTX 10xx or P40, change the image to `unified-cuda`. The config directory is mounted into both services so llswap-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
-Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llama-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
+Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llswap-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
 
 ```bash
 docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
 ```
 
-Open `http://localhost:3000`, create the first dashboard user, then load your configured model from **Models**. llama-dash runs database migrations automatically when it starts.
+Open `http://localhost:3000`, create the first dashboard user, then load your configured model from **Models**. llswap-dash runs database migrations automatically when it starts.
 
 ## 🏗️ Manual setup
 
@@ -162,7 +164,7 @@ for the complete list of variables, defaults, and deployment notes.
 
 ## ✴️ Claude Code / Anthropic passthrough
 
-Route any Anthropic SDK, including Claude Code, through llama-dash for logging,
+Route any Anthropic SDK, including Claude Code, through llswap-dash for logging,
 filtering, per-request inspection, and Anthropic subscription passthrough.
 
 See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code)

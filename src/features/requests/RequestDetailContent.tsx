@@ -207,7 +207,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         }
       />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-[1024px]:flex-none">
+      <div className="request-detail-grid workspace grid min-h-0 items-stretch gap-0 max-[1024px]:flex-none">
         <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
             <div className={railSectionTitle}>Summary</div>
@@ -656,7 +656,7 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `llama-dash-${req.id}.jsonl`
+  link.download = `llswap-dash-${req.id}.jsonl`
   link.click()
   URL.revokeObjectURL(url)
 }

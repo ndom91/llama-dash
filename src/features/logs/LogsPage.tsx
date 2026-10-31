@@ -22,7 +22,7 @@ export function LogsPage() {
   if (!system) {
     return (
       <div className="content">
-        <div className="page min-h-full flex-1 bg-surface-1">
+        <div className="page min-h-full flex-1">
           <PageHeader
             kicker="log · stream"
             title="Logs"
@@ -38,11 +38,11 @@ export function LogsPage() {
   if (system?.inference.capabilities.logs === false) {
     return (
       <div className="content">
-        <div className="page min-h-full flex-1 bg-surface-1">
+        <div className="page min-h-full flex-1">
           <PageHeader
             kicker="log · stream"
             title="Logs"
-            subtitle={`${system.inference.label} does not expose runtime logs through llama-dash.`}
+            subtitle={`${system.inference.label} does not expose runtime logs through llswap-dash.`}
             variant="integrated"
           />
           <div className="empty-state px-6 max-md:px-3">
@@ -150,7 +150,7 @@ function LlamaSwapLogsPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="log · stream"
           title="Logs"
@@ -180,14 +180,14 @@ function LlamaSwapLogsPage() {
           }
         />
 
-        <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-wrap max-md:px-3">
+        <section className="card flex min-h-0 flex-1 flex-col">
+          <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4 max-md:flex-wrap max-md:px-3">
             <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border">
               {(['all', 'upstream', 'proxy'] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
-                  className={`inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
+                  className={`inline-flex h-full items-center justify-center px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
                     filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg'
                   }`}
                   onClick={() => setFilter(s)}
@@ -241,7 +241,7 @@ function LlamaSwapLogsPage() {
           </div>
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto bg-surface-1" onScroll={onScroll}>
             {filtered.length === 0 ? (
-              <div className="px-6 py-2.5 font-mono text-[11.5px] text-fg-dim max-md:px-3">
+              <div className="px-6 py-2.5 font-mono text-xs text-fg-dim max-md:px-3">
                 {search ? 'no matches' : 'waiting for log data…'}
               </div>
             ) : (
@@ -263,7 +263,7 @@ function LlamaSwapLogsPage() {
                   return (
                     <div
                       key={vi.key}
-                      className="flex items-start px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted hover:bg-surface-3 max-md:px-3"
+                      className="flex items-start px-3.5 font-mono text-xs leading-5 text-fg-muted hover:bg-surface-3 max-md:px-3"
                       data-index={vi.index}
                       ref={measureRow}
                       style={{

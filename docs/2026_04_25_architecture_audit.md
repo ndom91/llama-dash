@@ -1,6 +1,6 @@
 # Architecture Audit
 
-This note captures a zoomed-out audit of the current llama-dash architecture,
+This note captures a zoomed-out audit of the current llswap-dash architecture,
 with recommendations focused on maintainability, security, and performance.
 
 ## Top Priorities
@@ -18,7 +18,7 @@ with recommendations focused on maintainability, security, and performance.
 2. Add passthrough rule guardrails.
 
    A broad `passthrough` + `preserveAuthorization` + direct target rule can turn
-   llama-dash into a public bearer-token relay if exposed. The implementation is
+   llswap-dash into a public bearer-token relay if exposed. The implementation is
    explicit, which is good, but it needs safety rails.
 
    Recommended fixes: require at least one endpoint matcher for passthrough
@@ -57,7 +57,7 @@ with recommendations focused on maintainability, security, and performance.
 
 6. Make passthrough rate limiting explicit.
 
-   Passthrough auth skips llama-dash key enforcement and therefore skips per-key
+   Passthrough auth skips llswap-dash key enforcement and therefore skips per-key
    RPM/TPM. That is documented, but operationally risky for direct upstreams.
 
    Recommended fix: add optional per-routing-rule RPM limits keyed by

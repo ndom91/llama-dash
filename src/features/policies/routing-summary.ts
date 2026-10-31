@@ -23,7 +23,7 @@ export function formatRuleSummary(rule: RoutingRule, keyMap: Map<string, string>
   const auth =
     rule.authMode === 'passthrough'
       ? `passthrough auth${rule.preserveAuthorization ? ' · keep Authorization' : ''}`
-      : 'require llama-dash key'
+      : 'require llswap-dash key'
   const target =
     rule.target.type === 'direct'
       ? `direct upstream ${rule.target.baseUrl}${rule.target.credentialId ? ' · inject credential' : ''}`

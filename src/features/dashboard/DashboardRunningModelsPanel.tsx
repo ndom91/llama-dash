@@ -20,8 +20,8 @@ export function DashboardRunningModelsPanel({ active, total }: Props) {
       : `${runningCount} of ${total} loaded${peerCount > 0 ? ` · ${peerCount} peer${peerCount > 1 ? 's' : ''}` : ''}`
 
   return (
-    <section className="panel border-t !rounded-none !border-x-0 !bg-surface-1">
-      <div className="panel-head bg-transparent px-4">
+    <section className="card flex min-h-0 flex-col">
+      <div className="panel-head">
         <span className="panel-title">Running</span>
         <span className="panel-sub">{subtitle}</span>
         <Link to="/models" className="panel-link ml-auto inline-flex items-center gap-1 font-mono text-[11px]">

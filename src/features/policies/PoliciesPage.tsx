@@ -30,7 +30,7 @@ export function PoliciesPage({ searchTab }: Props) {
 
   return (
     <div className="content">
-      <div className="page flex min-h-0 flex-1 flex-col bg-surface-1">
+      <div className="page flex min-h-0 flex-1 flex-col">
         <PageHeader
           kicker={`dsh · policies · ${tab}`}
           title="Policies"
@@ -42,10 +42,10 @@ export function PoliciesPage({ searchTab }: Props) {
           value={tab}
           onChange={setTab}
           variant="accent"
-          className="bg-surface-0 px-6"
+          className="bg-surface-0"
           ariaLabel="Policy sections"
         />
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="contents" hidden={tab !== 'routing'}>
             <RoutingPanel credentials={credentialState?.credentials ?? []} />
           </div>

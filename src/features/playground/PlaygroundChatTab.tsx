@@ -94,7 +94,7 @@ export function PlaygroundChatTab({ chat }: Props) {
         onClear={chat.clearChat}
       />
 
-      <section className="panel !rounded-none !border-t-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !border-b-0 !border-l-0 !border-r border-r-border !bg-surface-0">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-r border-r-border bg-surface-0">
         <div className="h-10 flex items-center justify-between gap-4 border-b border-border bg-surface-1 px-4 py-2 text-[11px] font-mono text-fg-dim">
           <div className="flex min-w-0 items-center gap-1.5">
             <StatusDot tone={activeModel?.running ? 'ok' : 'idle'} live={activeModel?.running ?? false} />

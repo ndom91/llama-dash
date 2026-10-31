@@ -80,7 +80,8 @@ it('keeps the header outside the scroll region with one divider for loaded and e
   }
   const view = render(createElement(TooltipProvider, null, createElement(UsagePage)))
   const header = view.getByRole('heading', { name: 'Usage' }).closest('.page-header')
-  const cards = header?.nextElementSibling
+  const stack = header?.nextElementSibling
+  const cards = stack?.querySelector('.dashboard-stats-row')
   const scrollRegion = cards?.nextElementSibling
   expect(header).not.toBeNull()
   expect(cards?.className).toContain('dashboard-stats-row')
@@ -96,13 +97,13 @@ it('keeps the header outside the scroll region with one divider for loaded and e
 it('shows a usage-shaped skeleton during navigation and initial data loading', () => {
   const pending = render(createElement(UsagePagePending))
   expect(pending.getByRole('status', { name: 'Loading usage' })).toBeDefined()
-  expect(pending.container.querySelectorAll('.stat-card')).toHaveLength(4)
+  expect(pending.container.querySelector('.dashboard-stats-row')?.children).toHaveLength(4)
   expect(pending.container.querySelectorAll('.skel-block')).toHaveLength(7)
   expect(pending.container.querySelector('.dashboard-stats-row')?.closest('.overflow-y-auto')).toBeNull()
   expect(pending.container.querySelector('.dashboard-stats-row')?.getAttribute('aria-hidden')).toBe('true')
   const skeletonPanels = pending.getByRole('status', { name: 'Loading usage' }).querySelector('.grid')?.children
-  expect(skeletonPanels?.[0].className).toContain('max-[1100px]:border-b')
-  expect(skeletonPanels?.[2].className).toContain('border-t')
+  expect(skeletonPanels?.[0].className).toContain('card')
+  expect(skeletonPanels?.[2].className).toContain('col-span-2')
   pending.unmount()
 
   const loading = render(createElement(TooltipProvider, null, createElement(UsagePage)))
@@ -118,7 +119,7 @@ it('shows a usage-shaped skeleton during navigation and initial data loading', (
   expect(loading.queryByRole('status', { name: 'Loading usage' })).toBeNull()
 })
 
-it('puts the full-width divider above the third configured breakdown', () => {
+it('spans the third configured breakdown across the full width', () => {
   const totals = { requests: 1, errors: 0, promptTokens: 20, completionTokens: 10, totalTokens: 30, costUsd: null }
   reportState.data = {
     days: 7,
@@ -136,13 +137,14 @@ it('puts the full-width divider above the third configured breakdown', () => {
     ],
   }
   const view = render(createElement(TooltipProvider, null, createElement(UsagePage)))
-  const first = view.getByText('By model').closest('section')?.parentElement
-  const second = view.getByText('By key').closest('section')?.parentElement
-  const third = view.getByText('By app').closest('section')?.parentElement
-  expect(first?.className).toContain('max-[1100px]:[&>section]:!border-b')
-  expect(second?.className).toContain('[&>section]:!border-b-0')
-  expect(third?.className).toContain('col-span-2 border-t border-border')
-  expect(third?.parentElement).toBe(first?.parentElement)
+  const first = view.getByText('By model').closest('section')
+  const second = view.getByText('By key').closest('section')
+  const third = view.getByText('By app').closest('section')
+  expect(first?.className).toContain('card')
+  expect(second?.className).toContain('card')
+  expect(third?.className).toContain('card')
+  expect(third?.parentElement?.className).toContain('col-span-2')
+  expect(third?.parentElement?.parentElement).toBe(first?.parentElement?.parentElement)
 })
 
 it('uses input and output labels without changing token values', () => {

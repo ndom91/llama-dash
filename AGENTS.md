@@ -4,7 +4,7 @@ Notes for agents (and humans operating as agents) working on this repo.
 
 ## What this is
 
-llama-dash is a dashboard UI plus a logging, auth-ready proxy for a local
+llswap-dash is a dashboard UI plus a logging, auth-ready proxy for a local
 inference backend. The implemented backend is currently
 [llama-swap](https://github.com/mostlygeek/llama-swap), fronting llama.cpp
 models through its `/v1/*` OpenAI/Anthropic-compatible endpoint. Feature ideas
@@ -29,7 +29,7 @@ Short version of non-goals:
 ## Architecture
 
 ```
-client ──► llama-dash :8080 ──► inference backend ──► model server procs
+client ──► llswap-dash :8080 ──► inference backend ──► model server procs
            │
            ├─ UI (/)
            ├─ Admin API (/api/*)
@@ -106,8 +106,8 @@ src/
     metrics.ts            — Prometheus text exporter for /metrics
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
-docker-compose.amd.yaml   — AMD/Vulkan compose setup bundling llama-dash + llama-swap
-docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llama-dash + llama-swap
+docker-compose.amd.yaml   — AMD/Vulkan compose setup bundling llswap-dash + llama-swap
+docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llswap-dash + llama-swap
 next-plan.md              — feature ideas and prioritization
 ```
 
@@ -122,7 +122,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
 - `src/server/article-extract.ts` — server-side article URL fetcher for the Speech playground. It validates public HTTP(S) URLs, caps HTML fetch size/time, parses readable article text with Readability, and returns editable text for TTS.
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
-- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists.
+- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists. Optional TOTP two-factor (Settings → Security) with backup codes and trusted devices; it gates dashboard sign-in only — API keys and `/v1/*` are unaffected.
 - `src/server/gpu-poller.ts` — polls inference-host CPU counters plus `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes hardware-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
@@ -134,7 +134,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions. Daily usage rollups preserve request history through pruning. Startup backfill runs one UTC day per event-loop turn, persists its cursor, and blocks inference deletion until complete; body and MCP cleanup continue on rollup failures. A persisted high-water cutoff protects partially pruned rollups when retention changes, and completed request logs update existing rollups in the same transaction.
   Scheduled cleanup logs total and candidate-selection durations and aggregate row counts; manual prune responses remain unchanged.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
-- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llswap-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
 - `.github/workflows/publish-docker.yml` — publishes multi-platform (`linux/amd64`, `linux/arm64`) GHCR images from `main` and version tags.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
@@ -155,7 +155,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
    MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
-   `user`, `session`, `account`, and `verification` tables for dashboard sessions.
+   `user`, `session`, `account`, `verification`, and `two_factor` tables for
+   dashboard sessions and TOTP two-factor.
 3. `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through proxy that streams SSE unchanged and queues one log row
    per completed request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). `handler.ts` owns the
@@ -199,10 +200,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/usage?days=1|7|30|90` — rolling 24-hour usage or the last N UTC days vs the preceding window, with totals, per-day series, and configured breakdowns
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
-    - `/api/model-timeline` — load/unload events for timeline viz
-    - `/api/events` — lightweight llama-dash dashboard invalidation/data events
-    - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
-    - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
+   - `/api/model-timeline` — load/unload events for timeline viz
+   - `/api/events` — lightweight llswap-dash dashboard invalidation/data events
+   - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
+   - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
    - `/api/playground/article-extract` — fetch and Readability-parse an article URL into clean text for Speech playground TTS
@@ -213,9 +214,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
-    - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
-    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
-    - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
+   - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
+   - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+   - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    credential injection success/failure, latency-window, queue, upstream,
@@ -267,7 +268,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model access is explicitly `all` or `restricted`; a restricted key may allow zero models. The API Key detail page identifies unavailable configured models and offers explicit cleanup without broadening access. MCP relay allow-lists remain separate.
    Routing rules can explicitly opt into `passthrough` auth, which skips
-   llama-dash key enforcement for matching requests and can preserve the
+   llswap-dash key enforcement for matching requests and can preserve the
    client's `Authorization` header for upstream OAuth/API-key validation.
    Routing rules can also target a configured direct HTTPS `/v1` upstream,
    bypassing llama-swap for that matched request while keeping proxy logging.
@@ -280,7 +281,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     injection metadata with non-secret credential name/slug labels. Stored
    credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
    Passthrough routing rules can use stored credentials, but a stored credential
-   is never injected without a valid llama-dash API key: the proxy rejects a
+   is never injected without a valid llswap-dash API key: the proxy rejects a
    credential-bearing matched rule with `401 credential_key_required` when no key
    resolved, before any secret is applied.
    MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
@@ -357,6 +358,16 @@ paths (proxy will grow middleware; admin will grow CRUD).
 15. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
+16. Theme system: 14 accent palettes in `src/lib/themes.json`, light/dark/auto
+    modes, a picker on the Settings page and the login page, and a
+    render-blocking init script that resolves the theme before first paint so
+    there is no flash. The default palette is `sapphire`. Surfaces follow a
+    five-step ramp (`surface-0` stage → `surface-4` popovers) with the canvas
+    and the cards on different steps; see the surface & elevation model above.
+17. Layout contract: one shared gutter, a 4px spacing scale, one full-bleed
+    page shape, and a `gap-3` grid of `.card` surfaces on every page; the
+    flush `.workspace` mosaic remains only in the detail sidecar shells.
+    See the layout contract above.
 
 ## Tooling
 
@@ -415,6 +426,87 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
+
+### Layout contract
+
+Every page follows the same measure. See
+[`docs/2026_10_31_layout_contract.md`](./docs/2026_10_31_layout_contract.md)
+for the full rationale.
+
+- **One gutter.** `--gutter` (24px desktop / 16px ≤900px / 12px ≤600px) is the
+  only horizontal inset. `.page` applies it as `padding-inline` +
+  `padding-bottom`. Do not add per-page side padding.
+- **4px scale.** Use Tailwind spacing utilities on a 4px scale
+  (`p-2`/`p-3`/`p-4`, `gap-2`/`gap-3`/`gap-4`). A `10px`, `14px`, `18px`,
+  `22px`, or `26px` value is off-contract — round it to the scale.
+- **One page shape.** Every page is full-bleed and uses the gutter only —
+  the old `--content-max` reading-column cap is gone, so the title band and
+  the cards share one measure even on wide monitors.
+- **Page header band is full-bleed** so it aligns with the TopBar chrome above
+  it. Only content below the header respects the gutter.
+- **Pages are card stacks.** Every page region is a `.card` (hairline border,
+  radius, shadow, `p-4` inner padding) laid out in `gap-3` grids under a
+  `pt-4` stack below the page header band — use `pt-4`, never `mt-*`, for
+  that first gap (`.page > .page-header + *` zeroes margin-top there). This
+  is the system for the dashboard, models, requests, usage, system, logs,
+  config, keys, policies, and playground. Do not fuse cards back into flush
+  slabs.
+- **Detail sidecars use `.workspace`.** The request/model/key detail shells
+  keep the flush three-column workspace mosaic (`.workspace .panel` drops
+  its own shadow) because the rails and column dividers are load-bearing
+  there.
+- **Reading pages use separate cards.** Their sections are individual
+  `.panel` cards separated by `gap-3`, not one flush stack.
+- **Nested surfaces step down.** Canvas `bg-surface-0` → card `bg-surface-1`
+  → nested surface `bg-surface-2` → well `bg-surface-0`. Never put
+  `bg-surface-1` on top of `bg-surface-1`.
+
+### Surface & elevation model
+
+The canvas and the cards must not share a surface step. This is the single
+most important rule in the theme layer — see
+[`docs/2026_10_31_design_refresh.md`](./docs/2026_10_31_design_refresh.md).
+
+| Token | Role | Dark | Light |
+| ----- | ---- | ---- | ----- |
+| `--bg-0` / `--surface-0` | **stage** — app shell, page canvas, wells | `#06070b` | `#eceef2` |
+| `--bg-1` / `--surface-1` | **card** — panels, rails, headers | `#191e29` | `#ffffff` |
+| `--bg-2` / `--surface-2` | nested content inside a card | `#222835` | `#f6f7f9` |
+| `--bg-3` / `--surface-3` | controls, hover, selected | `#2c3340` | `#e9ecf1` |
+| `--bg-4` / `--surface-4` | popovers, menus | `#363e4d` | `#e0e4ea` |
+
+- `.content` and `.page` are the **stage** (`bg-surface-0`). `.panel` and
+  `.stat-card` are **cards** (`bg-surface-1`). Never put a card on a card
+  step that the canvas already occupies — that is what made every panel read
+  as a wireframe outline. A page root that carries an explicit
+  `bg-surface-*` utility overrides the `.page` rule, so those roots must
+  either be dropped or set to the stage — a card-coloured page canvas makes
+  every panel on it invisible.
+- **The stage-to-card luminance gap must be ≥ ~1 point.** A 0.3-point gap
+  (the original ramp) is technically a split but is imperceptible at a
+  glance, which is the same wireframe failure as no split at all. On a
+  near-black stage a black shadow does almost nothing, so the lift is
+  carried by surface lightness; shadows only separate overlapping layers.
+- A well *inside* a card (chat transcript, code body, inspector pane) steps
+  back down to `bg-surface-0` and drops the shadow.
+- Nested surfaces inside a card (panel header, table head, stat tiles) use
+  `bg-surface-2` so they read as recessed structure, not as a second card.
+- Elevation is `--shadow-1/2/3` plus `--hi-line`
+  (`inset 0 1px 0 rgb(255 255 255 / 0.09)`) — a lit top edge, not a
+  gradient. Light mode overrides both (`rgb(16 24 40 / …)` shadows,
+  `rgb(255 255 255 / 0.9)` hi-line).
+- Borders are **alpha** (`rgb(255 255 255 / 0.1)` dark,
+  `rgb(10 14 22 / 0.1)` light) so one hairline composites correctly over
+  any surface. Don't hard-code opaque border colours.
+- Radius scale is 4 / 10 / 12 px (`--radius-sm`, `--radius`, `--radius-lg`).
+- Text contrast is deliberately lifted: dark `fg` `#e8ebf0`, muted `#a4acb9`,
+  dim `#7c8593`, faint `#5b6370`. The 10px dim labels used to sit near 3:1.
+- Accent palettes live in `src/lib/themes.json`; the default is `sapphire`
+  (`DEFAULT_THEME_ID` in `src/lib/theme.ts`). Adding a palette means adding
+  an entry there — never hard-coding accent hexes in components.
+- The `shared` block in `themes.json` is documentation only (it is not read
+  at runtime). Keep it truthful, and keep it in sync with the light-mode
+  blocks in `styles.css`.
 
 ### Status colour vs identity colour
 
@@ -580,14 +672,14 @@ sort lexicographically by creation time).
   Don't pick a YAML library that doesn't round-trip.
 - **Config reload is file-based.** llama-swap uses `-watch-config` with a
   stat-poll watcher to detect config changes and reload automatically. SIGHUP
-  reload is also supported upstream, but llama-dash still relies on atomic file
+  reload is also supported upstream, but llswap-dash still relies on atomic file
   writes rather than a reload endpoint.
 
 ## llama-swap API surface we consume
 
 - `POST /v1/*` — forward OpenAI / Anthropic calls unchanged (after our middleware)
 - `POST /infill` — forward native llama.cpp FIM requests unchanged (after the same auth and routing middleware)
-- `/v1/audio/llama-tts` — llama-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
+- `/v1/audio/llama-tts` — llswap-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
 - `/audiocpp/*` — forward llama-swap's audio.cpp UI and API passthrough unchanged (after the same auth and routing middleware)
 - `GET /running` — which models are currently loaded
 - `POST /models/unload` — unload a model
@@ -603,19 +695,19 @@ sort lexicographically by creation time).
 
 ## Claude Code / Anthropic passthrough
 
-llama-dash fronts Anthropic's Messages API end-to-end. Point any Anthropic
-SDK (including Claude Code) at llama-dash via `ANTHROPIC_BASE_URL` and the
+llswap-dash fronts Anthropic's Messages API end-to-end. Point any Anthropic
+SDK (including Claude Code) at llswap-dash via `ANTHROPIC_BASE_URL` and the
 proxy logs + forwards the call to `api.anthropic.com` through a llama-swap
 `peers:` entry.
 
 **Client config** (`~/.claude/settings.json`):
 
 ```json
-{ "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash>:5173" } }
+{ "env": { "ANTHROPIC_BASE_URL": "http://<llswap-dash>:5173" } }
 ```
 
 Do not set `ANTHROPIC_AUTH_TOKEN` when using subscription OAuth — Claude Code
-manages the bearer itself and llama-dash passes it through.
+manages the bearer itself and llswap-dash passes it through.
 
 **llama-swap peer** (fragment of `config.yaml`):
 
@@ -647,7 +739,7 @@ peers:
 
 ## Config contract
 
-`config.yaml` is the interface between llama-dash and llama-swap. Rules:
+`config.yaml` is the interface between llswap-dash and llama-swap. Rules:
 
 - Atomic writes (write to `.tmp`, fsync, rename).
 - Preserve user comments and key order (YAML round-tripper).
@@ -656,7 +748,7 @@ peers:
 - Keep `./config:/config` as a directory bind mount in bundled compose files;
   single-file mounts pin an inode and break atomic rename-over saves.
 - llama-swap reloads `-watch-config` changes through stat polling; SIGHUP is an
-  upstream escape hatch, not the normal llama-dash save path.
+  upstream escape hatch, not the normal llswap-dash save path.
 
 ## Before you call work "done"
 

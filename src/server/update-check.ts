@@ -30,7 +30,7 @@ export async function getUpdateCheck(current: string): Promise<UpdateCheck> {
 
   try {
     const res = await fetch(BRANCH_URL, {
-      headers: { accept: 'application/vnd.github+json', 'user-agent': 'llama-dash-update-check' },
+      headers: { accept: 'application/vnd.github+json', 'user-agent': 'llswap-dash-update-check' },
     })
     if (!res.ok) throw new Error(`GitHub returned ${res.status}`)
     const body = (await res.json()) as { commit?: { sha?: unknown; html_url?: unknown } }

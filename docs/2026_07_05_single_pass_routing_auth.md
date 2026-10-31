@@ -39,7 +39,7 @@ forwarded to Anthropic with the client's token and 401'd.
 3. **`resolveProxyRouting(...)`** — a single ordered, first-match-wins evaluation
    with the resolved key id.
 4. **`enforceAuth(keyResolution, decision.authMode)`** — the matched rule's auth
-   mode governs enforcement: `passthrough` never requires a llama-dash key (the
+   mode governs enforcement: `passthrough` never requires a llswap-dash key (the
    client owns the upstream Authorization); `require_key` (and the no-rule
    default) demands a valid, active, in-quota key when any user keys exist.
 5. **`applyTransforms(..., { routingDecision })`** — applies the already-decided
@@ -50,7 +50,7 @@ forwarded to Anthropic with the client's token and 401'd.
 
 | Bearer token            | Model  | Result                                              |
 | ----------------------- | ------ | --------------------------------------------------- |
-| valid llama-dash key    | haiku  | key-scoped `require_key` rewrite rule wins → local  |
+| valid llswap-dash key    | haiku  | key-scoped `require_key` rewrite rule wins → local  |
 | Anthropic OAuth token   | haiku  | key rule can't match → passthrough → Anthropic      |
 | Anthropic OAuth token   | opus   | passthrough → Anthropic                             |
 

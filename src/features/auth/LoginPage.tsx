@@ -2,10 +2,11 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Eye, Moon, Sun } from 'lucide-react'
 import type * as React from 'react'
 import { type SyntheticEvent, useEffect, useState } from 'react'
-import { authClient } from '../../lib/auth-client'
+import { authClient, TWO_FACTOR_REQUIRED_EVENT } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import { useColorTheme } from '../../lib/use-color-theme'
 import { useLoginMeta } from '../../lib/queries'
+import { TwoFactorForm } from './TwoFactorForm'
 
 type LoginSearch = { redirect?: string }
 type AuthMode = 'sign-in' | 'sign-up'
@@ -25,9 +26,16 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [mode, setMode] = useState<AuthMode>('sign-in')
+  const [twoFactor, setTwoFactor] = useState(false)
 
   useEffect(() => {
     setDashHost(window.location.host || window.location.hostname || 'local instance')
+  }, [])
+
+  useEffect(() => {
+    const onTwoFactorRequired = () => setTwoFactor(true)
+    window.addEventListener(TWO_FACTOR_REQUIRED_EVENT, onTwoFactorRequired)
+    return () => window.removeEventListener(TWO_FACTOR_REQUIRED_EVENT, onTwoFactorRequired)
   }, [])
 
   useEffect(() => {
@@ -68,6 +76,11 @@ export function LoginPage() {
       return
     }
 
+    if (result.data && 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect) {
+      setTwoFactor(true)
+      return
+    }
+
     await navigate({ to: safeRedirect(search.redirect) })
   }
 
@@ -89,11 +102,21 @@ export function LoginPage() {
                 }}
                 className="text-left lowercase tracking-normal text-fg-muted hover:text-accent"
               >
-                {'have an account? sign in ->'}
+                {'have an account? sign in'}
               </button>
             ) : null}
           </div>
-          {mode === 'sign-up' ? (
+          {twoFactor ? (
+            <TwoFactorForm
+              onVerified={() => {
+                void navigate({ to: safeRedirect(search.redirect) })
+              }}
+              onBack={() => {
+                setTwoFactor(false)
+                setError(null)
+              }}
+            />
+          ) : mode === 'sign-up' ? (
             <SignUpForm
               username={username}
               email={email}
@@ -128,7 +151,7 @@ export function LoginPage() {
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
             <span>
-              llama-dash ·{' '}
+              llswap-dash ·{' '}
               <a
                 href="https://github.com/ndom91/llama-dash"
                 target="_blank"
@@ -193,7 +216,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
       </div>
 
       <div className="mt-auto mb-[32vh] max-lg:hidden">
-        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llama-dash</div>
+        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llswap-dash</div>
         <div className="break-all font-mono text-2xl text-fg">{dashHost}</div>
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
           <span className={cn('size-1.5 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
@@ -216,7 +239,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
           <MetaLine label="commit" value={commit} href="https://github.com/ndom91/llama-dash" />
           <MetaLine label="tls" value={tls} valueClassName={tls.includes('no tls') ? 'text-warn' : 'text-ok'} />
         </div>
-        <div className="flex items-center gap-2 pt-5 max-lg:hidden">
+        <div className="flex flex-wrap items-center gap-1 pt-5 max-lg:hidden">
           {colorTheme.themes.map((theme) => (
             <button
               key={theme.id}
@@ -224,11 +247,11 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               onClick={() => colorTheme.select(theme.id)}
               aria-label={`Use ${theme.name} accent theme`}
               aria-pressed={colorTheme.themeId === theme.id}
-              className="group -m-2 inline-flex size-6.5 items-center justify-center rounded-full"
+              className="group -m-1 inline-flex size-5 items-center justify-center rounded-full"
             >
               <span
                 className={cn(
-                  'size-2.5 rounded-full transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
+                  'size-2 rounded-full transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
                   colorTheme.themeId === theme.id &&
                     'scale-115 shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring)] group-hover:shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring),0_0_6px_0.5px_var(--theme-glow)]',
                 )}
@@ -242,11 +265,13 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               />
             </button>
           ))}
+        </div>
+        <div className="flex items-center gap-2 pt-4 max-lg:hidden">
           <button
             type="button"
             onClick={toggleThemeMode}
             aria-label={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
-            className="-my-2 ml-0 inline-flex size-7 items-center justify-center text-fg-dim transition-colors hover:text-fg"
+            className="-my-2 inline-flex size-7 items-center justify-center text-fg-dim transition-colors hover:text-fg"
           >
             {themeMode === 'dark' ? (
               <Sun className="size-3" strokeWidth={1.75} />
@@ -339,9 +364,9 @@ function SignInForm({
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-68 max-lg:max-w-80">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
-      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash</p>
+      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llswap-dash</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username webauthn" />
       <PasswordField
         label="password"
@@ -367,7 +392,7 @@ function SignInForm({
           onClick={onSignup}
           className="mt-4 block font-mono text-[11px] text-fg-dim hover:text-accent"
         >
-          {'Signup ->'}
+          {'create an account'}
         </button>
       ) : null}
     </form>
@@ -400,7 +425,7 @@ function SignUpForm({
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-68 max-lg:max-w-80">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">first account on this instance · will be granted admin</p>
       <Field label="username" value={username} onChange={setUsername} autoComplete="username" />
@@ -519,7 +544,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
       className="mt-5 h-10 w-full rounded bg-accent font-mono text-sm font-bold text-accent-on transition-[background-color,transform] hover:bg-accent-strong active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
-      {pending ? pendingLabel : `${label}  ->`}
+      {pending ? pendingLabel : label}
     </button>
   )
 }

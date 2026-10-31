@@ -106,7 +106,7 @@ describe('resolveProxyRouting ordering', () => {
     })
     routingRulesMock.listRoutingRules.mockReturnValue([rewriteRule, passthroughRule])
 
-    // No resolved llama-dash key (e.g. Claude Code OAuth token): the key-scoped
+    // No resolved llswap-dash key (e.g. Claude Code OAuth token): the key-scoped
     // rule cannot match, so passthrough to Anthropic wins.
     const decision = resolveProxyRouting('/v1/messages', { model: 'claude-haiku-4-5-20251001' }, null, new Headers())
 

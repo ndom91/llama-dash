@@ -66,7 +66,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
             hasBody ? 'min-h-[25%] max-h-[50%]' : 'min-h-0 flex-1 max-h-none',
           )}
         >
-          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-1 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
             Headers
           </div>
           <table className="dtable headers-table">
@@ -83,7 +83,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
             <div className="t-acc border-t border-border" data-open={showBoilerplate}>
               <button
                 type="button"
-                className="t-acc-head flex w-full items-center gap-1.5 bg-surface-0 px-3.5 py-1.5 text-left"
+                className="t-acc-head flex w-full items-center gap-1.5 bg-surface-1 px-3.5 py-1.5 text-left"
                 onClick={() => setShowBoilerplate((prev) => !prev)}
                 aria-expanded={showBoilerplate}
                 aria-controls={`request-${title}-browser-headers`}

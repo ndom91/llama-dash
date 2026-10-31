@@ -95,8 +95,8 @@ export function Tabs<T extends string>({
                 'px-4 py-2 text-xs hover:bg-surface-2 hover:text-fg aria-selected:border-accent aria-selected:text-fg aria-[selected=false]:border-transparent aria-[selected=false]:text-fg-muted',
               variant === 'accent' &&
                 'inline-flex items-center justify-center border-transparent font-semibold uppercase text-fg-dim hover:bg-surface-2 hover:text-fg aria-selected:mb-px aria-selected:border-accent aria-selected:bg-transparent aria-selected:text-accent aria-selected:shadow-[0_2px_0_var(--accent)]',
-              variant === 'accent' && density === 'normal' && 'gap-1.5 px-3.5 py-2.5 text-[11px] tracking-[0.08em]',
-              variant === 'accent' && density === 'compact' && 'px-3 py-2.5 text-[10px] tracking-[0.1em]',
+              variant === 'accent' && density === 'normal' && 'gap-1.5 px-3 py-2 text-[11px] tracking-[0.08em]',
+              variant === 'accent' && density === 'compact' && 'px-3 py-2 text-[10px] tracking-[0.1em]',
             )}
             ref={(element) => {
               if (element) tabRefs.current.set(item.id, element)

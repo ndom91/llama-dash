@@ -43,7 +43,7 @@ export function RoutingRuleMatchSection({
 
         {draft.authMode === 'passthrough' ? (
           <div className="font-mono text-[11px] leading-5 text-fg-dim">
-            API-key matching is unavailable for passthrough rules because they run before llama-dash key auth.
+            API-key matching is unavailable for passthrough rules because they run before llswap-dash key auth.
           </div>
         ) : (
           <TokenInput

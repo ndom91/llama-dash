@@ -218,7 +218,7 @@ export function KeyDetailContent({ data }: Props) {
         }
       />
 
-      <div className="detail-sidecar-shell">
+      <div className="detail-sidecar-shell workspace">
         <aside className="detail-meta-rail">
           <div className="detail-meta-section">
             <div className="detail-meta-kicker">Key</div>

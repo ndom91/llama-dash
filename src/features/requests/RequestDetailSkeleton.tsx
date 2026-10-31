@@ -6,7 +6,7 @@ export function RequestDetailSkeleton() {
     <>
       <PageHeaderSkeleton titleWidth={220} />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
+      <div className="request-detail-grid workspace grid min-h-0 items-stretch gap-0">
         <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
           <DetailRailSection title="Summary" rows={7} />
           <DetailRailSection title="Model" rows={3} divider />

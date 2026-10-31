@@ -170,7 +170,7 @@ With `INFERENCE_BACKEND=ollama`:
 - Models page should list Ollama models.
 - Running models should show if `/api/ps` reports loaded models.
 - Load/unload controls should be hidden or disabled because lifecycle is unsupported.
-- Requests should log when clients call llama-dash `/v1/*` and llama-dash forwards to Ollama `/v1/*`.
+- Requests should log when clients call llswap-dash `/v1/*` and llswap-dash forwards to Ollama `/v1/*`.
 
 ## Validation Checklist
 
@@ -190,7 +190,7 @@ Manual smoke checks:
 - `INFERENCE_BACKEND=bad-value` fails loudly at startup.
 - `/api/system` reports the selected backend and capabilities.
 - `/api/models` returns normalized model rows for both backends.
-- `/v1/chat/completions` through llama-dash logs a request for both backends.
+- `/v1/chat/completions` through llswap-dash logs a request for both backends.
 
 ## Notes
 

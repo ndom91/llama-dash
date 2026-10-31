@@ -56,8 +56,8 @@ export function DashboardResidencyPanel({ events, active }: Props) {
   }, [active, spans])
 
   return (
-    <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
-      <div className="panel-head border-b border-border bg-transparent px-4">
+    <section className="card">
+      <div className="panel-head">
         <span className="panel-title">Model residency</span>
         <span className="panel-sub">· 60 min</span>
         <span className="panel-sub ml-auto flex items-center gap-1.5">

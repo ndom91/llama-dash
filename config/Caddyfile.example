@@ -1,6 +1,6 @@
 # https://caddyserver.com/docs/caddyfile
 
-(llama-dash-proxy) {
+(llswap-dash-proxy) {
     reverse_proxy 127.0.0.1:3000 {
         flush_interval -1
         transport http {
@@ -15,11 +15,11 @@
     }
 }
 
-http://llama-dash.puff.lan {
-    import llama-dash-proxy
+http://llswap-dash.puff.lan {
+    import llswap-dash-proxy
 }
 
-https://llama-dash.puff.lan {
+https://llswap-dash.puff.lan {
     tls /etc/caddy/certs/<cert>.pem /etc/caddy/certs/<key>.pem
-    import llama-dash-proxy
+    import llswap-dash-proxy
 }

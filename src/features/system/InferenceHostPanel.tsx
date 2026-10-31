@@ -47,8 +47,8 @@ export function InferenceHostPanel({ hardware }: { hardware: InferenceHardware }
   ])
 
   return (
-    <section className="panel border-t border-border !rounded-none !border-x-0 !bg-surface-1">
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
+    <section className="card">
+      <div className="panel-head">
         <h2 className="panel-title">Inference Host</h2>
         <span className="panel-sub ml-auto">startup snapshot · llama-swap</span>
       </div>

@@ -14,7 +14,7 @@ export function ModelDetailSkeleton() {
         action={<span className="skel skel-text" style={{ width: 70, height: 28 }} />}
       />
 
-      <div className="detail-sidecar-shell">
+      <div className="detail-sidecar-shell workspace">
         <aside className="detail-meta-rail">
           <DetailRailSection title="Summary" rows={5} />
           <DetailRailSection title="Aliases" rows={2} />

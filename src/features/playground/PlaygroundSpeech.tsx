@@ -219,7 +219,7 @@ export function PlaygroundSpeech() {
         </div>
       </div>
 
-      <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-surface-0 px-6 pt-5 pb-4">
           {speech.error ? (
             <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">

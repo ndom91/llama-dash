@@ -131,7 +131,7 @@ export function createLlamaSwapBackend(): InferenceBackend {
       return `${config.inferenceBaseUrl}${pathname}${search}`
     },
     // llama-swap v259 split log traffic from dashboard events. Request the two
-    // streams rendered by llama-dash's Logs page; the upstream sends backlog
+    // streams rendered by llswap-dash's Logs page; the upstream sends backlog
     // followed by live SSE logData envelopes.
     eventStreamUrl: `${config.inferenceBaseUrl}/api/events/logs?stream=proxy&stream=upstream`,
     async listModels() {

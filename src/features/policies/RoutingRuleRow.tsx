@@ -36,7 +36,7 @@ export function RoutingRuleRow({
   return (
     <article
       className={cn(
-        'rounded-lg border border-border bg-surface-0 px-5 py-4 transition-colors',
+        'rounded-lg border border-border bg-surface-1 px-5 py-4 transition-colors',
         rule.enabled ? 'opacity-100' : 'opacity-65',
         editingRuleId === rule.id && 'border-accent/60 bg-surface-2/60',
       )}

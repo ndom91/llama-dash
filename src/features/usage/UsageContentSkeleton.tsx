@@ -24,9 +24,9 @@ export function UsageContentSkeleton() {
   return (
     <div role="status" aria-label="Loading usage">
       <span className="sr-only">Loading usage…</span>
-      <div aria-hidden="true">
-        <div className="border-b border-border">
-          <div className="panel-head px-4">
+      <div aria-hidden="true" className="flex min-w-0 flex-col gap-3">
+        <div className="card">
+          <div className="panel-head">
             <span className="panel-title">Tokens per day</span>
           </div>
           <div className="px-4 pt-4 pb-6 pl-15">
@@ -37,22 +37,13 @@ export function UsageContentSkeleton() {
             </div>
           </div>
         </div>
-        <div className="flex h-9 items-center border-b border-border bg-surface-1 px-4">
+        <div className="card flex items-center px-4 py-2.5">
           <span className="panel-title">Breakdowns</span>
         </div>
-        <div className="grid grid-cols-2 max-[1100px]:grid-cols-1">
+        <div className="grid grid-cols-2 gap-3 max-[1100px]:grid-cols-1">
           {['first', 'second', 'third'].map((panel, index) => (
-            <div
-              key={panel}
-              className={
-                index === 2
-                  ? 'col-span-2 border-t border-border max-[1100px]:col-span-1'
-                  : index === 0
-                    ? 'border-r border-border max-[1100px]:border-r-0 max-[1100px]:border-b'
-                    : undefined
-              }
-            >
-              <div className="panel-head px-4">
+            <div key={panel} className={index === 2 ? 'card col-span-2 max-[1100px]:col-span-1' : 'card min-w-0'}>
+              <div className="panel-head">
                 <SkeletonLine width={100} height={10} />
               </div>
               {ROWS.map((row) => (

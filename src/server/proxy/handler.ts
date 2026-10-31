@@ -155,7 +155,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   if (usesStoredCredentials(ctx) && !ctx.keyId) {
     const body = {
       error: {
-        message: 'Stored credential routing requires a llama-dash API key',
+        message: 'Stored credential routing requires a llswap-dash API key',
         type: 'credential_key_required',
       },
     }
