@@ -12,11 +12,14 @@ import {
 import { MAX_PROXY_BODY_BYTES, type ProxyForwardBody } from '../proxy/body.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
-import { filterRequestHeaders, redactInjectedHeaders, redactSensitiveHeaders } from '../proxy/headers.ts'
+import {
+  deleteGatewayAuthHeaders,
+  filterRequestHeaders,
+  redactInjectedHeaders,
+  redactSensitiveHeaders,
+} from '../proxy/headers.ts'
 import { emptyRoutingOutcome, type RoutingOutcome } from '../proxy/transforms.ts'
 import type { ApiKey } from '../db/schema.ts'
-
-const GATEWAY_AUTH_HEADERS = ['x-llama-dash-api-key', 'x-llama-dash-key']
 
 export async function handleMcpRelayRequest(request: Request): Promise<Response> {
   const startedAt = Date.now()
@@ -26,7 +29,7 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   const endpoint = slug ? `${MCP_RELAY_ENDPOINT_PREFIX}${slug}` : MCP_RELAY_ENDPOINT_PREFIX.slice(0, -1)
   const attribution = extractAttribution(request.headers, getAttributionSettings())
   const headers = filterRequestHeaders(request.headers)
-  for (const header of GATEWAY_AUTH_HEADERS) deleteHeader(headers, header)
+  deleteGatewayAuthHeaders(headers)
 
   if (!slug) {
     return relayError({
@@ -282,12 +285,6 @@ function relayRoutingOutcome(relay: NonNullable<ReturnType<typeof getMcpRelayByS
 
 function loggedHeaders(headers: Record<string, string>, redactedInjectedHeaderNames: Set<string>): string {
   return JSON.stringify(redactInjectedHeaders(headers, redactedInjectedHeaderNames, REDACTED_INJECTED_CREDENTIAL))
-}
-
-function deleteHeader(headers: Record<string, string>, name: string) {
-  for (const key of Object.keys(headers)) {
-    if (key.toLowerCase() === name) delete headers[key]
-  }
 }
 
 function relayError(input: {

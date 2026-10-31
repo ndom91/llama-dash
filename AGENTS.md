@@ -289,6 +289,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Anthropic/Claude Code passthrough is configured explicitly with routing rules,
    typically matching `/v1/messages` and `/v1/messages/count_tokens` with
    `continue` + `passthrough` auth and preserved client `Authorization`.
+   Proxy key resolution checks `x-llama-dash-api-key` / `x-llama-dash-key`
+   before `Authorization: Bearer`, so passthrough clients can identify their
+   llama-dash key (request attribution, stored credentials) while the upstream
+   owns `Authorization`. Gateway key headers are stripped before forwarding.
 11. Proxy transform pipeline (`src/server/proxy/transforms.ts`). Intercepts
    POST `/v1/*` requests between auth and forwarding. Parses body once when
    needed, applies transforms in order, re-serializes only if mutated:

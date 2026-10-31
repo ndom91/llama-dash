@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
 import type { ApiKey } from '../db/schema.ts'
 import { findKeyByHash, hasAnyUserKeys } from '../admin/api-keys.ts'
+import { gatewayAuthToken } from './headers.ts'
 import { checkRpm, checkTpm } from './rate-limiter.ts'
 
 type AuthOk = {
@@ -19,12 +20,15 @@ export type KeyResolution =
   | { status: 'absent' }
   | { status: 'invalid'; reason: string }
 
-// Resolve the llama-dash API key from the Authorization header without deciding
-// whether the request is allowed. A missing/unknown/revoked/expired token is
+// Resolve the llama-dash API key without deciding whether the request is
+// allowed. The dedicated `x-llama-dash-api-key` header wins over
+// `Authorization: Bearer`, so passthrough clients whose Authorization header
+// belongs to the upstream (Claude OAuth, OpenAI keys) can still identify
+// themselves to llama-dash. A missing/unknown/revoked/expired token is
 // reported as `absent`/`invalid` rather than rejected here — the matched routing
 // rule's auth mode decides whether a valid key is actually required.
 export function resolveApiKey(request: Request): KeyResolution {
-  const token = bearerToken(request.headers.get('authorization'))
+  const token = gatewayAuthToken(request.headers) ?? bearerToken(request.headers.get('authorization'))
   if (!token) return { status: 'absent' }
 
   const hash = createHash('sha256').update(token).digest('hex')
@@ -78,7 +82,7 @@ export function enforceAuth(resolution: KeyResolution, authMode: 'require_key' |
 }
 
 export function authenticateGatewayRequest(request: Request): AuthResult {
-  const token = request.headers.get('x-llama-dash-api-key') ?? request.headers.get('x-llama-dash-key')
+  const token = gatewayAuthToken(request.headers)
   if (!hasAnyUserKeys()) {
     return {
       ok: false,
