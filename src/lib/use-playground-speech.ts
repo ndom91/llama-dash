@@ -15,6 +15,11 @@ function loadString(key: string, fallback: string): string {
   return localStorage.getItem(key) ?? fallback
 }
 
+// Voices differ per model, so each model remembers its own selected voice.
+function voiceStorageKey(model: string): string {
+  return `${LS_VOICE}:${model}`
+}
+
 function loadJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   try {
@@ -27,7 +32,7 @@ function loadJson<T>(key: string, fallback: T): T {
 
 export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
-  const [voice, setVoiceState] = useState(() => loadString(LS_VOICE, ''))
+  const [voice, setVoiceState] = useState(() => loadString(voiceStorageKey(loadString(LS_MODEL, '')), ''))
   const [speechApi, setSpeechApiState] = useState<'openai' | 'llama'>(() =>
     loadString(LS_API, 'openai') === 'llama' ? 'llama' : 'openai',
   )
@@ -78,12 +83,16 @@ export function usePlaygroundSpeech() {
   const setModel = useCallback((v: string) => {
     setModelState(v)
     localStorage.setItem(LS_MODEL, v)
+    setVoiceState(loadString(voiceStorageKey(v), ''))
   }, [])
 
-  const setVoice = useCallback((v: string) => {
-    setVoiceState(v)
-    localStorage.setItem(LS_VOICE, v)
-  }, [])
+  const setVoice = useCallback(
+    (v: string) => {
+      setVoiceState(v)
+      localStorage.setItem(voiceStorageKey(model), v)
+    },
+    [model],
+  )
 
   const setSpeechApi = useCallback((value: 'openai' | 'llama') => {
     setSpeechApiState(value)
