@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
@@ -90,9 +90,15 @@ export function KeysPage() {
                 <div className="px-6 py-8 text-sm text-fg-dim">No active API keys.</div>
               )}
               {inactiveKeys.length > 0 ? (
-                <details className="border-t border-border">
-                  <summary className="cursor-pointer px-6 py-4 text-sm text-fg-dim hover:text-fg">
-                    Revoked / expired keys ({inactiveKeys.length})
+                <details className="group border-t border-border">
+                  <summary className="panel-head cursor-pointer list-none hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
+                    <ChevronRight
+                      className="size-3 shrink-0 text-fg-muted group-open:rotate-90"
+                      strokeWidth={2}
+                      aria-hidden="true"
+                    />
+                    <span className="panel-title">Revoked / expired keys</span>
+                    <span className="panel-sub">{inactiveKeys.length}</span>
                   </summary>
                   <KeysTable keys={inactiveKeys} modelIds={modelIds} />
                 </details>
