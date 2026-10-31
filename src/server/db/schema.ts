@@ -158,6 +158,7 @@ export const user = sqliteTable('user', {
   updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
   username: text('username').unique(),
   displayUsername: text('display_username'),
+  twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).notNull().default(false),
 })
 
 export type User = typeof user.$inferSelect
@@ -248,6 +249,25 @@ export const passkey = sqliteTable(
 
 export type Passkey = typeof passkey.$inferSelect
 export type NewPasskey = typeof passkey.$inferInsert
+
+export const twoFactor = sqliteTable(
+  'two_factor',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    secret: text('secret').notNull(),
+    backupCodes: text('backup_codes').notNull(),
+    verified: integer('verified', { mode: 'boolean' }).default(true),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }),
+  },
+  (table) => [index('idx_two_factor_user_id').on(table.userId)],
+)
+
+export type TwoFactor = typeof twoFactor.$inferSelect
+export type NewTwoFactor = typeof twoFactor.$inferInsert
 
 export const modelAliases = sqliteTable('model_aliases', {
   id: text('id').primaryKey(),

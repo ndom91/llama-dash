@@ -4,7 +4,7 @@ import type { BetterAuthPlugin } from 'better-auth'
 import { betterAuth } from 'better-auth/minimal'
 import { createAuthMiddleware, APIError } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { username } from 'better-auth/plugins'
+import { twoFactor, username } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { authAuditLogger } from './auth-audit.ts'
 import { db, schema } from './db/index.ts'
@@ -39,6 +39,7 @@ export const auth = betterAuth({
   plugins: [
     firstUserOnlySignup(),
     username(),
+    twoFactor({ issuer: 'llswap-dash' }),
     passkey({ rpName: 'llswap-dash', rpID: passkeyRpId, origin: passkeyOrigin }),
     authAuditLogger(),
     tanstackStartCookies(),

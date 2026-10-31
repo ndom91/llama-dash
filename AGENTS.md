@@ -122,7 +122,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
 - `src/server/article-extract.ts` — server-side article URL fetcher for the Speech playground. It validates public HTTP(S) URLs, caps HTML fetch size/time, parses readable article text with Readability, and returns editable text for TTS.
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
-- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists.
+- `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists. Optional TOTP two-factor (Settings → Security) with backup codes and trusted devices; it gates dashboard sign-in only — API keys and `/v1/*` are unaffected.
 - `src/server/gpu-poller.ts` — polls inference-host CPU counters plus `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes hardware-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
 - `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
@@ -155,7 +155,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
    MCP reverse proxies with credential bindings), `settings` (key-value
    config like request limits and attribution header mapping), and Better Auth's
-   `user`, `session`, `account`, and `verification` tables for dashboard sessions.
+   `user`, `session`, `account`, `verification`, and `two_factor` tables for
+   dashboard sessions and TOTP two-factor.
 3. `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through proxy that streams SSE unchanged and queues one log row
    per completed request with token counts pulled from the final SSE `usage` chunk (or
    the JSON `usage` field for non-streamed responses). `handler.ts` owns the
@@ -199,10 +200,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/usage?days=1|7|30|90` — rolling 24-hour usage or the last N UTC days vs the preceding window, with totals, per-day series, and configured breakdowns
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
-    - `/api/model-timeline` — load/unload events for timeline viz
-    - `/api/events` — lightweight llswap-dash dashboard invalidation/data events
-    - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
-    - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
+   - `/api/model-timeline` — load/unload events for timeline viz
+   - `/api/events` — lightweight llswap-dash dashboard invalidation/data events
+   - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
+   - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
    - `/api/playground/article-extract` — fetch and Readability-parse an article URL into clean text for Speech playground TTS
@@ -213,9 +214,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
-    - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
-    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
-    - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
+   - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
+   - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+   - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
    credential injection success/failure, latency-window, queue, upstream,

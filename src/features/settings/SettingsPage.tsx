@@ -12,6 +12,7 @@ import {
   useUpdatePrivacySettings,
 } from '../../lib/queries'
 import { useColorTheme } from '../../lib/use-color-theme'
+import { TwoFactorSection } from './TwoFactorSection'
 import { UsagePanelSettingsForm } from './UsagePanelSettingsForm'
 
 function SettingsPanel({
@@ -71,7 +72,7 @@ function PrivacyToggle({
         <span
           className={cn(
             'motion-toggle-thumb inline-block h-3.5 w-3.5 rounded-full bg-fg',
-            enabled ? 'translate-x-[14px]' : 'translate-x-[2px]',
+            enabled ? 'translate-x-3.5' : 'translate-x-0.5',
           )}
         />
       </button>
@@ -243,6 +244,7 @@ export function SettingsPage() {
                 </div>
               </div>
             </div>
+            <TwoFactorSection />
           </SettingsPanel>
 
           <SettingsPanel title="Logging & Privacy" subtitle="global proxy capture policy">

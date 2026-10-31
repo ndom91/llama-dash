@@ -2,10 +2,11 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Eye, Moon, Sun } from 'lucide-react'
 import type * as React from 'react'
 import { type SyntheticEvent, useEffect, useState } from 'react'
-import { authClient } from '../../lib/auth-client'
+import { authClient, TWO_FACTOR_REQUIRED_EVENT } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
 import { useColorTheme } from '../../lib/use-color-theme'
 import { useLoginMeta } from '../../lib/queries'
+import { TwoFactorForm } from './TwoFactorForm'
 
 type LoginSearch = { redirect?: string }
 type AuthMode = 'sign-in' | 'sign-up'
@@ -25,9 +26,16 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [mode, setMode] = useState<AuthMode>('sign-in')
+  const [twoFactor, setTwoFactor] = useState(false)
 
   useEffect(() => {
     setDashHost(window.location.host || window.location.hostname || 'local instance')
+  }, [])
+
+  useEffect(() => {
+    const onTwoFactorRequired = () => setTwoFactor(true)
+    window.addEventListener(TWO_FACTOR_REQUIRED_EVENT, onTwoFactorRequired)
+    return () => window.removeEventListener(TWO_FACTOR_REQUIRED_EVENT, onTwoFactorRequired)
   }, [])
 
   useEffect(() => {
@@ -68,6 +76,11 @@ export function LoginPage() {
       return
     }
 
+    if (result.data && 'twoFactorRedirect' in result.data && result.data.twoFactorRedirect) {
+      setTwoFactor(true)
+      return
+    }
+
     await navigate({ to: safeRedirect(search.redirect) })
   }
 
@@ -93,7 +106,17 @@ export function LoginPage() {
               </button>
             ) : null}
           </div>
-          {mode === 'sign-up' ? (
+          {twoFactor ? (
+            <TwoFactorForm
+              onVerified={() => {
+                void navigate({ to: safeRedirect(search.redirect) })
+              }}
+              onBack={() => {
+                setTwoFactor(false)
+                setError(null)
+              }}
+            />
+          ) : mode === 'sign-up' ? (
             <SignUpForm
               username={username}
               email={email}
@@ -341,7 +364,7 @@ function SignInForm({
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-68 max-lg:max-w-80">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llswap-dash</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username webauthn" />
@@ -402,7 +425,7 @@ function SignUpForm({
   onSubmit: (event: SyntheticEvent<HTMLFormElement>) => void
 }) {
   return (
-    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
+    <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-68 max-lg:max-w-80">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">first account on this instance · will be granted admin</p>
       <Field label="username" value={username} onChange={setUsername} autoComplete="username" />
