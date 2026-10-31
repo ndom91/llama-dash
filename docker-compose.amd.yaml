@@ -1,6 +1,6 @@
 services:
   llama-swap:
-    image: ghcr.io/mostlygeek/llama-swap:rocm
+    image: ghcr.io/mostlygeek/llama-swap:unified-vulkan
     command: ['-config', '/config/config.yaml', '-watch-config']
     volumes:
       # Keep the config directory mounted: llama-dash writes config.yaml via atomic rename.
@@ -10,7 +10,6 @@ services:
       - internal
     restart: unless-stopped
     devices:
-      - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
     healthcheck:
       test: ['CMD-SHELL', 'curl -sf http://localhost:8080/ || wget -qO- http://localhost:8080/ || exit 1']

@@ -106,7 +106,7 @@ src/
     metrics.ts            — Prometheus text exporter for /metrics
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
-docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llama-dash + llama-swap
+docker-compose.amd.yaml   — AMD/Vulkan compose setup bundling llama-dash + llama-swap
 docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llama-dash + llama-swap
 next-plan.md              — feature ideas and prioritization
 ```
