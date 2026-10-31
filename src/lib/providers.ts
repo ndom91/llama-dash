@@ -89,6 +89,8 @@ export type ProviderEndpoint = {
 
 const OPENAI_COMPLETIONS = ['/v1/chat/completions', '/v1/completions']
 const ANTHROPIC_MESSAGES = ['/v1/messages', '/v1/messages/count_tokens']
+/** OpenAI-compatible media endpoints served by provider TTS/ASR/image models. */
+const OPENAI_MEDIA = ['/v1/audio/speech', '/v1/audio/transcriptions', '/v1/images/generations']
 
 const BEARER: ProviderAuthBinding[] = [{ name: 'authorization', scheme: 'bearer' }]
 const ANTHROPIC_AUTH: ProviderAuthBinding[] = [
@@ -102,7 +104,7 @@ const MIMO_SURFACES: ProviderSurface[] = [
     apiStyle: 'openai',
     path: '/v1',
     pathJoin: 'strip-v1',
-    matchEndpoints: OPENAI_COMPLETIONS,
+    matchEndpoints: [...OPENAI_COMPLETIONS, ...OPENAI_MEDIA],
     authHeaders: BEARER,
   },
   {
@@ -170,7 +172,7 @@ export const PROVIDER_TARGETS: readonly ProviderTarget[] = [
         apiStyle: 'openai',
         path: '/api/paas/v4',
         pathJoin: 'strip-v1',
-        matchEndpoints: OPENAI_COMPLETIONS,
+        matchEndpoints: [...OPENAI_COMPLETIONS, ...OPENAI_MEDIA],
         authHeaders: BEARER,
       },
       {
@@ -202,7 +204,7 @@ export const PROVIDER_TARGETS: readonly ProviderTarget[] = [
         apiStyle: 'openai',
         path: '/api/coding/paas/v4',
         pathJoin: 'strip-v1',
-        matchEndpoints: OPENAI_COMPLETIONS,
+        matchEndpoints: [...OPENAI_COMPLETIONS, ...OPENAI_MEDIA],
         authHeaders: BEARER,
       },
       {

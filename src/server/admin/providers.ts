@@ -2,7 +2,13 @@ import { eq } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import * as v from 'valibot'
 import type { ConnectProviderBody, ProviderConnection, ProviderTestResult } from '../../lib/schemas/provider.ts'
-import { findProviderTarget, providerAuthValue, providerModelsUrl, type ProviderTarget } from '../../lib/providers.ts'
+import {
+  findProviderTarget,
+  providerAuthValue,
+  providerEndpointForBaseUrl,
+  providerModelsUrl,
+  type ProviderTarget,
+} from '../../lib/providers.ts'
 import { db, schema } from '../db/index.ts'
 import { config } from '../config.ts'
 import {
@@ -177,15 +183,20 @@ export async function refreshProviderModels(targetId: string): Promise<ProviderC
     .where(eq(schema.providerConnections.id, connection.id))
     .run()
 
-  // Re-scope each rule to the refreshed model list so provider rules never
-  // claim models the provider doesn't serve (and disable them when it serves
-  // none we know of).
+  // Re-scope each rule to the refreshed model list and the catalog's current
+  // endpoint claims, so provider rules never claim models the provider doesn't
+  // serve (and disable them when it serves none we know of).
   const rulesById = new Map(listRoutingRules().map((rule) => [rule.id, rule]))
   for (const ruleId of connection.routingRuleIds) {
     const rule = rulesById.get(ruleId)
     if (!rule) continue
+    const surface = rule.target.type === 'direct' ? providerEndpointForBaseUrl(rule.target.baseUrl) : undefined
     updateRoutingRule(ruleId, {
-      match: { ...rule.match, requestedModels: [...probe.models] },
+      match: {
+        ...rule.match,
+        endpoints: surface ? [...surface.matchEndpoints] : rule.match.endpoints,
+        requestedModels: [...probe.models],
+      },
       enabled: probe.models.length > 0,
     })
   }

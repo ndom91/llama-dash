@@ -277,7 +277,7 @@ describe('handleProxyRequest auth/body ordering', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/tts-model/tts?format=wav')
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/tts-model/v1/audio/speech?format=wav')
     expect(lastForward().body).toBe(body)
   })
 
@@ -335,7 +335,7 @@ describe('handleProxyRequest auth/body ordering', () => {
         body: JSON.stringify({ model: 'source-model', input: 'Hello' }),
       })
     expect((await handleProxyRequest(request())).status).toBe(200)
-    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/target-model/tts')
+    expect(lastForward().upstream).toBe('http://llama-swap.test/upstream/target-model/v1/audio/speech')
     forwardMock.forwardUpstreamAndLog.mockClear()
     routingRulesMock.listRoutingRules.mockReturnValue([makeRule()])
     expect((await handleProxyRequest(request())).status).toBe(400)

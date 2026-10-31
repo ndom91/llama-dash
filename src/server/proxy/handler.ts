@@ -146,7 +146,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (typeof model !== 'string' || !model || model === '.' || model === '..' || model.includes('/')) {
       return rejectNativeTts(ctx, 'Native TTS requires a model ID without slashes')
     }
-    ctx.upstream = inferenceBackend.defaultProxyUpstream(`/upstream/${encodeURIComponent(model)}/tts`, ctx.url.search)
+    // Pin the model by routing through its llama-swap upstream. The TTS
+    // upstreams are OpenAI-style speech servers (POST /v1/audio/speech), so
+    // forward there — there is no bare /tts route on them.
+    ctx.upstream = inferenceBackend.defaultProxyUpstream(
+      `/upstream/${encodeURIComponent(model)}/v1/audio/speech`,
+      ctx.url.search,
+    )
   }
 
   if (!shouldPreserveAuthorization(ctx.routingOutcome)) {
