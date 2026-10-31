@@ -89,7 +89,7 @@ export function LoginPage() {
                 }}
                 className="text-left lowercase tracking-normal text-fg-muted hover:text-accent"
               >
-                {'have an account? sign in ->'}
+                {'have an account? sign in'}
               </button>
             ) : null}
           </div>
@@ -369,7 +369,7 @@ function SignInForm({
           onClick={onSignup}
           className="mt-4 block font-mono text-[11px] text-fg-dim hover:text-accent"
         >
-          {'Signup ->'}
+          {'create an account'}
         </button>
       ) : null}
     </form>
@@ -521,7 +521,7 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
       className="mt-5 h-10 w-full rounded bg-accent font-mono text-sm font-bold text-accent-on transition-[background-color,transform] hover:bg-accent-strong active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
       disabled={pending}
     >
-      {pending ? pendingLabel : `${label}  ->`}
+      {pending ? pendingLabel : label}
     </button>
   )
 }

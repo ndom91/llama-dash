@@ -23,14 +23,14 @@ const TONE_COLOR: Record<StatTone, string> = {
 
 export function DashboardStatCard({ label, value, unit, sparkline, tone = 'neutral' }: Props) {
   return (
-    <div className="stat-card min-h-[68px]">
+    <div className="card flex min-h-30 flex-col gap-2 p-4">
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-row">
         <span className={tone === 'err' ? 'stat-card-value text-err' : 'stat-card-value'}>{value}</span>
         <span className="stat-card-unit">{unit}</span>
       </div>
       {sparkline ? (
-        <div className="opacity-90">
+        <div className="mt-auto opacity-90">
           <Sparkline data={sparkline} height={32} color={TONE_COLOR[tone]} />
         </div>
       ) : null}

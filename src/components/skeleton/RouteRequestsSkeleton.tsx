@@ -6,7 +6,7 @@ export function RouteRequestsSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={104} titleWidth={142} action="live" />
-      <div className="workspace grid min-h-0 grid-cols-[240px_minmax(0,1fr)] items-stretch max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-3 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
         <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-b">
           {['Search', 'Status', 'Model', 'Key', 'Routing', 'Host', 'Client', 'End user', 'Session'].map((label) => (
             <div key={label} className="mb-4 flex flex-col gap-1.5">
@@ -17,7 +17,7 @@ export function RouteRequestsSkeleton() {
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-l border-border bg-surface-0 max-[900px]:border-l-0">
-          <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
+          <section className="card">
             <div className="panel-head bg-transparent px-4">
               <span className="panel-title">req/s</span>
               <span className="panel-sub">last 60m</span>
@@ -27,7 +27,7 @@ export function RouteRequestsSkeleton() {
             </div>
           </section>
 
-          <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+          <section className="card flex min-h-0 flex-1 flex-col">
             <div className="panel-head bg-transparent px-4">
               <span className="panel-title">Log</span>
               <span className="panel-sub">loading rows</span>

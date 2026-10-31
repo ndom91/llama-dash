@@ -31,7 +31,7 @@ export function AttributionPage() {
 
   return (
     <div className="content">
-      <div className="page page-reading min-h-full flex-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="dsh · attribution"
           title="Attribution"
@@ -68,9 +68,9 @@ export function AttributionPage() {
         {isLoading ? (
           <div className="empty-state px-4 max-md:px-3">loading attribution settings…</div>
         ) : (
-          <div className="flex flex-col gap-3 pt-3">
-            <section className="panel">
-              <div className="panel-head bg-transparent px-4 max-md:px-3">
+          <div className="flex flex-col gap-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Header mapping</span>
                 <span className="panel-sub">· map incoming request headers to normalized attribution fields</span>
               </div>
@@ -101,8 +101,8 @@ export function AttributionPage() {
               </div>
             </section>
 
-            <section className="panel">
-              <div className="panel-head bg-transparent px-4 max-md:px-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Recommended conventions</span>
                 <span className="panel-sub">· suggested header names for new client setups</span>
               </div>
@@ -124,8 +124,8 @@ export function AttributionPage() {
               </div>
             </section>
 
-            <section className="panel">
-              <div className="panel-head bg-transparent px-4 max-md:px-3">
+            <section className="card">
+              <div className="panel-head">
                 <span className="panel-title">Setup examples</span>
                 <span className="panel-sub">
                   · add custom headers if your client does not already send suitable metadata

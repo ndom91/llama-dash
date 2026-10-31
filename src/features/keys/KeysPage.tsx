@@ -66,7 +66,7 @@ export function KeysPage() {
           />
         ) : null}
 
-        <section className="workspace flex flex-col">
+        <section className="card flex min-h-0 flex-1 flex-col">
           {isLoading ? (
             <KeysPageSkeleton />
           ) : !keys || keys.length === 0 ? (

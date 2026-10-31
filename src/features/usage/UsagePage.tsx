@@ -62,7 +62,7 @@ export function UsagePage() {
           action={<UsagePeriodSwitch value={days} onChange={setDays} />}
         />
 
-        <div className="workspace flex flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           {report && !isEmpty ? <UsageTotalsRow report={report} /> : !report && !error ? <UsageTotalsSkeleton /> : null}
           <div className="min-h-0 flex-1 overflow-y-auto">
             {error ? <div className="err-banner m-4">{error.message}</div> : null}
@@ -82,7 +82,7 @@ export function UsagePage() {
                 <code translate="no">/v1/*</code>.
               </div>
             ) : (
-              <div className="flex min-w-0 flex-col">
+              <div className="flex min-w-0 flex-col gap-3">
                 <UsagePanel
                   title="Tokens per day"
                   sub={
@@ -109,7 +109,7 @@ export function UsagePage() {
                 >
                   <UsageDailyChart daily={report.daily} mode={chartMode} showTodayLabel={days !== 1} />
                 </UsagePanel>
-                <div className="flex h-9 items-center gap-2.5 border-b border-border bg-surface-1 px-4">
+                <div className="card flex items-center gap-2.5 px-4 py-2.5">
                   <span className="panel-title">Breakdowns</span>
                   <span className="panel-sub truncate max-[520px]:hidden">
                     {report.panels.map((panel) => USAGE_DIMENSION_META[panel.dimension].title).join(' · ')}
@@ -123,18 +123,9 @@ export function UsagePage() {
                     configure
                   </Link>
                 </div>
-                <div className="grid min-w-0 grid-cols-2 max-[1100px]:grid-cols-1">
+                <div className="grid min-w-0 grid-cols-2 gap-3 max-[1100px]:grid-cols-1">
                   {report.panels.map((panel, i) => (
-                    <div
-                      key={PANEL_SLOTS[i]}
-                      className={cn(
-                        'min-w-0',
-                        i === 0 && 'border-r border-border max-[1100px]:border-r-0',
-                        i < 2 && '[&>section]:!border-b-0',
-                        i === 0 && 'max-[1100px]:[&>section]:!border-b',
-                        i >= 2 && 'col-span-2 border-t border-border max-[1100px]:col-span-1',
-                      )}
-                    >
+                    <div key={PANEL_SLOTS[i]} className={cn('min-w-0', i >= 2 && 'col-span-2 max-[1100px]:col-span-1')}>
                       <UsageBreakdownPanel panel={panel} retentionDays={report.retentionDays} />
                     </div>
                   ))}

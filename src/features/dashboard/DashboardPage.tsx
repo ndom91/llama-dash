@@ -40,43 +40,48 @@ export function DashboardPage() {
           variant="integrated"
         />
 
-        <div className="workspace grid min-h-0 grid-cols-[250px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">
-          <DashboardTelemetryPanel health={health} gpu={gpu} />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border max-[900px]:border-l-0">
-            <div className="dashboard-stats-row grid grid-cols-4 gap-0 border-b border-border max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
-              <DashboardStatCard
-                label="req/s · 1m"
-                value={stats ? formatRate(stats.reqPerSec) : '—'}
-                unit="per-sec"
-                sparkline={stats?.sparklines.reqs}
-              />
-              <DashboardStatCard
-                label="tok/s · 1m"
-                value={stats ? Math.round(stats.tokPerSec).toLocaleString() : '—'}
-                unit="tok-sec"
-                sparkline={stats?.sparklines.toks}
-              />
-              <DashboardStatCard
-                label="p50 latency"
-                value={stats ? formatLatency(stats.p50Latency) : '—'}
-                unit="seconds"
-                sparkline={stats?.sparklines.latency}
-              />
-              <DashboardStatCard
-                label="error rate"
-                value={stats ? stats.errorRate.toFixed(1) : '—'}
-                unit="percent"
-                sparkline={stats?.sparklines.errors}
-                tone={stats && stats.errorRate > 0 ? 'err' : 'neutral'}
-              />
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-3 max-[900px]:grid-cols-1">
+            <DashboardTelemetryPanel health={health} gpu={gpu} />
+            <div className="grid min-w-0 gap-3">
+              <div className="grid grid-cols-4 gap-3 max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
+                <DashboardStatCard
+                  label="req/s · 1m"
+                  value={stats ? formatRate(stats.reqPerSec) : '—'}
+                  unit="per-sec"
+                  sparkline={stats?.sparklines.reqs}
+                />
+                <DashboardStatCard
+                  label="tok/s · 1m"
+                  value={stats ? Math.round(stats.tokPerSec).toLocaleString() : '—'}
+                  unit="tok-sec"
+                  sparkline={stats?.sparklines.toks}
+                />
+                <DashboardStatCard
+                  label="p50 latency"
+                  value={stats ? formatLatency(stats.p50Latency) : '—'}
+                  unit="seconds"
+                  sparkline={stats?.sparklines.latency}
+                />
+                <DashboardStatCard
+                  label="error rate"
+                  value={stats ? stats.errorRate.toFixed(1) : '—'}
+                  unit="percent"
+                  sparkline={stats?.sparklines.errors}
+                  tone={stats && stats.errorRate > 0 ? 'err' : 'neutral'}
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3 max-[700px]:grid-cols-1">
+                <DashboardUsageCard label="output · 24 hours" window={usage?.hours24} against="vs prev 24h" days={1} />
+                <DashboardUsageCard label="output · 7 days" window={usage?.days7} against="vs prev 7d" days={7} />
+                <DashboardUsageCard label="output · 30 days" window={usage?.days30} against="vs prev 30d" days={30} />
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-0 border-b border-border max-[700px]:grid-cols-1">
-              <DashboardUsageCard label="output · 24 hours" window={usage?.hours24} against="vs prev 24h" days={1} />
-              <DashboardUsageCard label="output · 7 days" window={usage?.days7} against="vs prev 7d" days={7} />
-              <DashboardUsageCard label="output · 30 days" window={usage?.days30} against="vs prev 30d" days={30} />
-            </div>
+          </div>
 
-            <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
+          <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
+
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 max-[1100px]:grid-cols-1">
             <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
             <DashboardRecentRequestsPanel requests={requests ?? null} />
           </div>

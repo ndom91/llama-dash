@@ -63,7 +63,7 @@ export function ModelsPage() {
           }
         />
 
-        <section className="workspace flex flex-col">
+        <section className="card flex min-h-0 flex-1 flex-col">
           {models == null ? (
             <ModelsPageSkeleton />
           ) : models.length === 0 ? (

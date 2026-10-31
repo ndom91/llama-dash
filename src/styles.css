@@ -38,7 +38,7 @@
 
   --radius-sm: 4px;
   --radius-DEFAULT: 10px;
-  --radius-lg: 14px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
 
   --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 42%, transparent);
@@ -63,18 +63,13 @@
     @apply flex flex-1 min-h-0 flex-col overflow-auto bg-surface-0;
   }
   .page {
-    @apply flex flex-col gap-0 bg-surface-0;
+    @apply flex flex-col gap-4 bg-surface-0;
     min-width: 0;
     padding-inline: var(--gutter);
     padding-bottom: var(--gutter);
   }
-  /* Reading/forms pages stop stretching on wide monitors. Data pages stay
-     full-bleed and only get the shared gutter. */
-  .page-reading {
-    width: 100%;
-    max-width: calc(var(--content-max) + var(--gutter) * 2);
-    margin-inline: auto;
-  }
+  /* Reading/forms pages no longer cap the column — every page is full-bleed
+     so the title band and cards share one measure on wide monitors. */
   /* A console workspace is the joined mosaic of flush panels below a page
      header. The mosaic used to run edge to edge, which read as one borderless
      slab. Now the page gutter insets it and this wrapper supplies the radius,
@@ -155,6 +150,14 @@
     @apply overflow-hidden rounded-lg border-border bg-surface-1;
     box-shadow: var(--shadow-2), var(--hi-line);
   }
+  /* The standalone card is the one surface every page region sits in: hairline
+     border plus the standard elevation, so a card reads identically on every
+     page. `.panel` stays for in-card panels (detail sidecars) that carry their
+     own border overrides. */
+  .card {
+    @apply overflow-hidden rounded-lg border border-border bg-surface-1;
+    box-shadow: var(--shadow-2), var(--hi-line);
+  }
   .panel-head {
     @apply h-10 flex items-center gap-2 border-b border-border bg-surface-2 px-4;
     box-shadow: var(--hi-line);
@@ -186,7 +189,7 @@
     @apply w-full border-collapse text-xs;
   }
   .dtable thead th {
-    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-4 py-2 border-b border-border sticky top-0 z-[1];
+    @apply text-fg-dim font-mono text-[10px] font-medium uppercase tracking-widest text-left px-4 py-2 border-b border-border sticky top-0 z-1;
     background: var(--bg-2);
     box-shadow: var(--hi-line);
   }
@@ -310,11 +313,11 @@
      stage a black shadow does almost nothing, so the lift is carried by the
      surface ramp; the shadow only separates overlapping layers. */
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 2px 8px -4px rgb(0 0 0 / 0.5);
-  --shadow-2: 0 6px 18px -4px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.4);
-  --shadow-3: 0 22px 50px -12px rgb(0 0 0 / 0.7), 0 6px 14px -6px rgb(0 0 0 / 0.45);
+  --shadow-2: 0 12px 28px -8px rgb(0 0 0 / 0.66), 0 4px 10px -4px rgb(0 0 0 / 0.5);
+  --shadow-3: 0 28px 64px -12px rgb(0 0 0 / 0.8), 0 8px 20px -8px rgb(0 0 0 / 0.55);
   /* The lit top edge is the strongest single cue that a surface has a top. */
-  --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.07);
-  --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.045);
+  --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.09);
+  --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.06);
 
   --accent-shifted: oklch(84% 0.052 255);
 
@@ -338,7 +341,7 @@
 
   --radius-sm: 4px;
   --radius: 10px;
-  --radius-lg: 14px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
 
   /* Layout scale. The page gutter is the single source of horizontal
@@ -467,8 +470,8 @@
 
   --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
   --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06);
-  --shadow-2: 0 4px 14px -3px rgb(16 24 40 / 0.1), 0 1px 3px rgb(16 24 40 / 0.06);
-  --shadow-3: 0 18px 44px -10px rgb(16 24 40 / 0.16), 0 3px 8px rgb(16 24 40 / 0.08);
+  --shadow-2: 0 6px 20px -3px rgb(16 24 40 / 0.14), 0 2px 5px rgb(16 24 40 / 0.07);
+  --shadow-3: 0 22px 52px -10px rgb(16 24 40 / 0.2), 0 4px 10px rgb(16 24 40 / 0.1);
   --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.9);
   --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.7);
 
@@ -516,8 +519,8 @@
 
     --shadow-focus: 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
     --shadow-1: 0 1px 2px rgb(16 24 40 / 0.06);
-    --shadow-2: 0 4px 14px -3px rgb(16 24 40 / 0.1), 0 1px 3px rgb(16 24 40 / 0.06);
-    --shadow-3: 0 18px 44px -10px rgb(16 24 40 / 0.16), 0 3px 8px rgb(16 24 40 / 0.08);
+    --shadow-2: 0 6px 20px -3px rgb(16 24 40 / 0.14), 0 2px 5px rgb(16 24 40 / 0.07);
+    --shadow-3: 0 22px 52px -10px rgb(16 24 40 / 0.2), 0 4px 10px rgb(16 24 40 / 0.1);
     --hi-line: inset 0 1px 0 rgb(255 255 255 / 0.9);
     --hi-line-soft: inset 0 1px 0 rgb(255 255 255 / 0.7);
 
@@ -1154,7 +1157,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 14px;
+  padding: 8px 16px;
 }
 .token-stat-accent {
   background: var(--bg-3);
@@ -1194,7 +1197,7 @@
   font-size: 12px;
 }
 .dl-grid dt {
-  padding: 8px 14px;
+  padding: 8px 16px;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -1208,7 +1211,7 @@
 }
 .dl-grid dd {
   margin: 0;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -1236,7 +1239,7 @@
 }
 
 .detail-error {
-  @apply m-0 whitespace-pre-wrap break-all px-4 py-3 font-mono text-xs leading-[1.5] text-err;
+  @apply m-0 whitespace-pre-wrap break-all px-4 py-3 font-mono text-xs leading-normal text-err;
 }
 
 .panel-toggle {
@@ -1269,7 +1272,7 @@
   @apply bg-surface-3 text-accent;
 }
 .body-pre {
-  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-4 py-3 pr-1 font-mono text-xs leading-[1.5] text-fg;
+  @apply m-0 overflow-auto whitespace-pre-wrap break-all px-4 py-3 pr-1 font-mono text-xs leading-normal text-fg;
 }
 .body-pre::-webkit-scrollbar {
   width: 10px;
@@ -1444,7 +1447,7 @@
 .config-textarea {
   position: absolute;
   inset: 0;
-  padding: 12px 14px;
+  padding: 12px 16px;
   margin: 0;
   font: inherit;
   line-height: inherit;
@@ -1561,10 +1564,6 @@
 
 /* ---- page header ---- */
 
-.page > .page-header + * {
-  margin-top: 0;
-}
-
 /* The page owns the gutter; the header cancels it so its fill spans the full
    page while its copy lines up with the content below. */
 .page-header {
@@ -1617,11 +1616,10 @@
   justify-content: flex-end;
 }
 
-/* Integrated routes render the header seam once; the first attached surface
-   below it should not add another top border. */
+/* Legacy class name kept because the usage totals grid and its tests reference
+   it. The totals are gap-3 cards now, so the old seam borders are gone. */
 .dashboard-stats-row {
-  border-top: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  border: 0;
 }
 
 @media (max-width: 900px) {
@@ -1910,7 +1908,7 @@ a,
   border-left: 0;
   border-right: 1px solid var(--border);
   border-radius: 0;
-  padding: 14px 16px;
+  padding: 16px;
 }
 
 .stat-card-flat:last-child {
@@ -2181,7 +2179,7 @@ a,
 .histogram-labels {
   display: flex;
   justify-content: space-between;
-  padding: 4px 14px 8px;
+  padding: 4px 16px 8px;
   font-family: var(--font-mono);
   font-size: 9px;
   color: var(--fg-faint);
@@ -2206,7 +2204,7 @@ a,
 /* ---- token trace ---- */
 
 .token-trace {
-  padding: 12px 14px 14px;
+  padding: 12px 16px 16px;
 }
 .token-trace-track {
   height: 16px;

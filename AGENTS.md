@@ -359,9 +359,10 @@ paths (proxy will grow middleware; admin will grow CRUD).
     there is no flash. The default palette is `sapphire`. Surfaces follow a
     five-step ramp (`surface-0` stage → `surface-4` popovers) with the canvas
     and the cards on different steps; see the surface & elevation model above.
-17. Layout contract: one shared gutter, a 4px spacing scale, full-bleed data
-    pages vs. width-capped reading pages, and `.workspace` cards that contain
-    the flush panel mosaics; see the layout contract above.
+17. Layout contract: one shared gutter, a 4px spacing scale, one full-bleed
+    page shape, and a `gap-3` grid of `.card` surfaces on every page; the
+    flush `.workspace` mosaic remains only in the detail sidecar shells.
+    See the layout contract above.
 
 ## Tooling
 
@@ -433,20 +434,22 @@ for the full rationale.
 - **4px scale.** Use Tailwind spacing utilities on a 4px scale
   (`p-2`/`p-3`/`p-4`, `gap-2`/`gap-3`/`gap-4`). A `10px`, `14px`, `18px`,
   `22px`, or `26px` value is off-contract — round it to the scale.
-- **Two page shapes.** Data pages (dashboard, requests, usage, logs, models,
-  system, config, playground, keys, detail pages) are full-bleed and use the
-  gutter only. Reading pages (settings, attribution, endpoints, policies) add
-  `.page-reading`, which caps the column at `--content-max` (1180px) and
-  centres it.
+- **One page shape.** Every page is full-bleed and uses the gutter only —
+  the old `--content-max` reading-column cap is gone, so the title band and
+  the cards share one measure even on wide monitors.
 - **Page header band is full-bleed** so it aligns with the TopBar chrome above
   it. Only content below the header respects the gutter.
-- **Workspace cards.** A mosaic of flush panels (dashboard grid, requests
-  split, models table, logs stream, config editor, usage breakdowns,
-  playground workspace, system panels, detail sidecar shells) is wrapped in a
-  single `.workspace` element — that wrapper owns the radius, border,
-  clipping, and shadow, and the inner panels stay flush and drop their own
-  shadow (`.workspace .panel { box-shadow: none }`). Do not reintroduce
-  `panel !rounded-none !border-x-0` mosaics that run to the window edge.
+- **Pages are card stacks.** Every page region is a `.card` (hairline border,
+  radius, shadow, `p-4` inner padding) laid out in `gap-3` grids under a
+  `pt-4` stack below the page header band — use `pt-4`, never `mt-*`, for
+  that first gap (`.page > .page-header + *` zeroes margin-top there). This
+  is the system for the dashboard, models, requests, usage, system, logs,
+  config, keys, policies, and playground. Do not fuse cards back into flush
+  slabs.
+- **Detail sidecars use `.workspace`.** The request/model/key detail shells
+  keep the flush three-column workspace mosaic (`.workspace .panel` drops
+  its own shadow) because the rails and column dividers are load-bearing
+  there.
 - **Reading pages use separate cards.** Their sections are individual
   `.panel` cards separated by `gap-3`, not one flush stack.
 - **Nested surfaces step down.** Canvas `bg-surface-0` → card `bg-surface-1`
@@ -484,13 +487,13 @@ most important rule in the theme layer — see
 - Nested surfaces inside a card (panel header, table head, stat tiles) use
   `bg-surface-2` so they read as recessed structure, not as a second card.
 - Elevation is `--shadow-1/2/3` plus `--hi-line`
-  (`inset 0 1px 0 rgb(255 255 255 / 0.07)`) — a lit top edge, not a
+  (`inset 0 1px 0 rgb(255 255 255 / 0.09)`) — a lit top edge, not a
   gradient. Light mode overrides both (`rgb(16 24 40 / …)` shadows,
   `rgb(255 255 255 / 0.9)` hi-line).
 - Borders are **alpha** (`rgb(255 255 255 / 0.1)` dark,
   `rgb(10 14 22 / 0.1)` light) so one hairline composites correctly over
   any surface. Don't hard-code opaque border colours.
-- Radius scale is 4 / 10 / 14 px (`--radius-sm`, `--radius`, `--radius-lg`).
+- Radius scale is 4 / 10 / 12 px (`--radius-sm`, `--radius`, `--radius-lg`).
 - Text contrast is deliberately lifted: dark `fg` `#e8ebf0`, muted `#a4acb9`,
   dim `#7c8593`, faint `#5b6370`. The 10px dim labels used to sit near 3:1.
 - Accent palettes live in `src/lib/themes.json`; the default is `sapphire`

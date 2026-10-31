@@ -14,7 +14,7 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
   const metaGrid = 'grid items-center gap-2 [grid-template-columns:90px_minmax(0,1fr)]'
 
   return (
-    <section className="panel !rounded-none border-t-0 !border-x-0 !bg-surface-1 h-full px-4 py-4">
+    <section className="card h-full px-4 py-4">
       <div className="mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Upstream</div>
       <dl className="mb-0 mt-0 grid gap-2.5 border-b border-border pb-4">
         <div className={metaGrid}>
@@ -59,14 +59,16 @@ export function DashboardTelemetryPanel({ health, gpu }: Props) {
                   </dd>
                 </div>
                 {gpuEntry.memoryTotalMiB != null ? (
-                  <div className="grid items-start gap-2 [grid-template-columns:70px_minmax(0,1fr)]">
+                  <div className="grid items-start gap-2 [grid-template-columns:90px_minmax(0,1fr)]">
                     <dt className="pt-0.5 font-mono text-[10px] lowercase tracking-[0.04em] text-fg-dim">vram</dt>
                     <div>
                       <dd className="m-0 inline-flex w-full items-center justify-between gap-2 font-mono tabular-nums text-[12px] leading-[1.35] whitespace-nowrap text-fg">
                         <span>
-                          {formatMiBGb(gpuEntry.memoryUsedMiB)} / {formatMiBGb(gpuEntry.memoryTotalMiB)}
+                          {formatMiBGb(gpuEntry.memoryUsedMiB)} / {formatMiBGb(gpuEntry.memoryTotalMiB)} GB
                         </span>
-                        <span>GB</span>
+                        {gpuEntry.memoryPercent != null ? (
+                          <span className="text-fg-dim">{gpuEntry.memoryPercent}%</span>
+                        ) : null}
                       </dd>
                       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-surface-3">
                         <span

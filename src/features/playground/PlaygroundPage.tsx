@@ -52,7 +52,7 @@ export function PlaygroundPage({ searchTab }: Props) {
           ariaLabel="Playground modes"
         />
 
-        <div className="workspace flex min-h-0 flex-col">
+        <div className="card flex min-h-0 flex-1 flex-col">
           <Suspense fallback={<PlaygroundTabPending label={tab} />}>
             {tab === 'chat' ? <PlaygroundChatTab chat={chat} /> : null}
             {tab === 'image' ? <PlaygroundImage /> : null}

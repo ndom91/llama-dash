@@ -6,12 +6,12 @@ export function RouteLogsSkeleton() {
   return (
     <SkeletonPageFrame>
       <PageHeaderSkeleton kickerWidth={104} titleWidth={90} />
-      <div className="workspace flex min-h-0 flex-col">
+      <div className="card flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-12 shrink-0 items-center justify-between border-b border-border bg-surface-1 px-4 max-md:flex-wrap max-md:px-3">
           <div className="flex h-12 items-stretch border-x border-border">
-            <SkeletonLine width={34} height="100%" className="!rounded-none" />
-            <SkeletonLine width={66} height="100%" className="!rounded-none border-l border-border" />
-            <SkeletonLine width={48} height="100%" className="!rounded-none border-l border-border" />
+            <SkeletonLine width={34} height="100%" className="rounded-none!" />
+            <SkeletonLine width={66} height="100%" className="rounded-none! border-l border-border" />
+            <SkeletonLine width={48} height="100%" className="rounded-none! border-l border-border" />
           </div>
           <div className="flex items-center gap-2 max-md:w-full max-md:pb-2">
             <SkeletonLine width={52} />
