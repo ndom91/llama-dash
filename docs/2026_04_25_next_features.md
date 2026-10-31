@@ -1,6 +1,6 @@
 # Next Feature Roadmap
 
-This roadmap focuses on features that make llama-dash the best homelab LLM
+This roadmap focuses on features that make llswap-dash the best homelab LLM
 operator dashboard/proxy: local-model aware routing, safe observability,
 operator notifications, and practical recovery tools.
 
@@ -8,7 +8,7 @@ operator notifications, and practical recovery tools.
 
 - Prefer homelab/operator value over enterprise SaaS breadth.
 - Build visibility before automation. Operators should see system state before
-  llama-dash starts making more autonomous decisions.
+  llswap-dash starts making more autonomous decisions.
 - Keep proxy behavior explicit and debuggable. Routing/fallback decisions should
   be visible in request logs.
 - Keep privacy controls first-class. Prompt/body capture should be intentional,
@@ -343,6 +343,6 @@ Technical notes:
 - Should fallback attempts be logged as one request row with attempt metadata, or
   multiple linked request rows?
 - Where should model memory estimates live: llama-swap config annotations,
-  llama-dash DB settings, or inferred-only?
+  llswap-dash DB settings, or inferred-only?
 - Should notifications be global-only at first, or configurable per alert rule
   from the beginning?

@@ -19,7 +19,7 @@ export type KeyResolution =
   | { status: 'absent' }
   | { status: 'invalid'; reason: string }
 
-// Resolve the llama-dash API key from the Authorization header without deciding
+// Resolve the llswap-dash API key from the Authorization header without deciding
 // whether the request is allowed. A missing/unknown/revoked/expired token is
 // reported as `absent`/`invalid` rather than rejected here — the matched routing
 // rule's auth mode decides whether a valid key is actually required.
@@ -43,8 +43,8 @@ export function resolveApiKey(request: Request): KeyResolution {
 // Enforce authentication for a proxy request given the resolved key and the auth
 // mode of the routing rule that matched (or `require_key` when no rule matched).
 //
-// - passthrough rules never require a llama-dash key; the client owns the
-//   Authorization header for the upstream. A valid llama-dash key is still
+// - passthrough rules never require a llswap-dash key; the client owns the
+//   Authorization header for the upstream. A valid llswap-dash key is still
 //   attached when present so stored-credential passthrough can use it.
 // - require_key rules demand a valid, active, in-quota key when any user keys
 //   exist. When no keys exist the proxy runs open.

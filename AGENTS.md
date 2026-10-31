@@ -4,7 +4,7 @@ Notes for agents (and humans operating as agents) working on this repo.
 
 ## What this is
 
-llama-dash is a dashboard UI plus a logging, auth-ready proxy for a local
+llswap-dash is a dashboard UI plus a logging, auth-ready proxy for a local
 inference backend. The implemented backend is currently
 [llama-swap](https://github.com/mostlygeek/llama-swap), fronting llama.cpp
 models through its `/v1/*` OpenAI/Anthropic-compatible endpoint. Feature ideas
@@ -29,7 +29,7 @@ Short version of non-goals:
 ## Architecture
 
 ```
-client ──► llama-dash :8080 ──► inference backend ──► model server procs
+client ──► llswap-dash :8080 ──► inference backend ──► model server procs
            │
            ├─ UI (/)
            ├─ Admin API (/api/*)
@@ -106,8 +106,8 @@ src/
     metrics.ts            — Prometheus text exporter for /metrics
 drizzle/                  — generated SQL migrations (checked in)
 data/                     — runtime DB lives here (gitignored)
-docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llama-dash + llama-swap
-docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llama-dash + llama-swap
+docker-compose.amd.yaml   — AMD/ROCm compose setup bundling llswap-dash + llama-swap
+docker-compose.nvidia.yaml — NVIDIA/CUDA compose setup bundling llswap-dash + llama-swap
 next-plan.md              — feature ideas and prioritization
 ```
 
@@ -134,7 +134,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/request-log-maintenance.ts` — hourly request-log retention cleanup plus manual prune/compact admin actions. Daily usage rollups preserve request history through pruning. Startup backfill runs one UTC day per event-loop turn, persists its cursor, and blocks inference deletion until complete; body and MCP cleanup continue on rollup failures. A persisted high-water cutoff protects partially pruned rollups when retention changes, and completed request logs update existing rollups in the same transaction.
   Scheduled cleanup logs total and candidate-selection durations and aggregate row counts; manual prune responses remain unchanged.
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
-- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
+- `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llswap-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
 - `.github/workflows/publish-docker.yml` — publishes multi-platform (`linux/amd64`, `linux/arm64`) GHCR images from `main` and version tags.
 - `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
@@ -200,7 +200,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
-    - `/api/events` — lightweight llama-dash dashboard invalidation/data events
+    - `/api/events` — lightweight llswap-dash dashboard invalidation/data events
     - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
     - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
@@ -267,7 +267,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    `Authorization: Bearer sk-...`. Per-key RPM/TPM token-bucket rate
    limiting (in-memory, resets on restart). Per-key model access is explicitly `all` or `restricted`; a restricted key may allow zero models. The API Key detail page identifies unavailable configured models and offers explicit cleanup without broadening access. MCP relay allow-lists remain separate.
    Routing rules can explicitly opt into `passthrough` auth, which skips
-   llama-dash key enforcement for matching requests and can preserve the
+   llswap-dash key enforcement for matching requests and can preserve the
    client's `Authorization` header for upstream OAuth/API-key validation.
    Routing rules can also target a configured direct HTTPS `/v1` upstream,
    bypassing llama-swap for that matched request while keeping proxy logging.
@@ -280,7 +280,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     injection metadata with non-secret credential name/slug labels. Stored
    credentials require `CREDENTIAL_ENCRYPTION_KEY` to be set to a 32+ character value.
    Passthrough routing rules can use stored credentials, but a stored credential
-   is never injected without a valid llama-dash API key: the proxy rejects a
+   is never injected without a valid llswap-dash API key: the proxy rejects a
    credential-bearing matched rule with `401 credential_key_required` when no key
    resolved, before any secret is applied.
    MCP relays live at `/mcp-relays/:slug`; they require `x-llama-dash-api-key`
@@ -629,14 +629,14 @@ sort lexicographically by creation time).
   Don't pick a YAML library that doesn't round-trip.
 - **Config reload is file-based.** llama-swap uses `-watch-config` with a
   stat-poll watcher to detect config changes and reload automatically. SIGHUP
-  reload is also supported upstream, but llama-dash still relies on atomic file
+  reload is also supported upstream, but llswap-dash still relies on atomic file
   writes rather than a reload endpoint.
 
 ## llama-swap API surface we consume
 
 - `POST /v1/*` — forward OpenAI / Anthropic calls unchanged (after our middleware)
 - `POST /infill` — forward native llama.cpp FIM requests unchanged (after the same auth and routing middleware)
-- `/v1/audio/llama-tts` — llama-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
+- `/v1/audio/llama-tts` — llswap-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
 - `/audiocpp/*` — forward llama-swap's audio.cpp UI and API passthrough unchanged (after the same auth and routing middleware)
 - `GET /running` — which models are currently loaded
 - `POST /models/unload` — unload a model
@@ -652,19 +652,19 @@ sort lexicographically by creation time).
 
 ## Claude Code / Anthropic passthrough
 
-llama-dash fronts Anthropic's Messages API end-to-end. Point any Anthropic
-SDK (including Claude Code) at llama-dash via `ANTHROPIC_BASE_URL` and the
+llswap-dash fronts Anthropic's Messages API end-to-end. Point any Anthropic
+SDK (including Claude Code) at llswap-dash via `ANTHROPIC_BASE_URL` and the
 proxy logs + forwards the call to `api.anthropic.com` through a llama-swap
 `peers:` entry.
 
 **Client config** (`~/.claude/settings.json`):
 
 ```json
-{ "env": { "ANTHROPIC_BASE_URL": "http://<llama-dash>:5173" } }
+{ "env": { "ANTHROPIC_BASE_URL": "http://<llswap-dash>:5173" } }
 ```
 
 Do not set `ANTHROPIC_AUTH_TOKEN` when using subscription OAuth — Claude Code
-manages the bearer itself and llama-dash passes it through.
+manages the bearer itself and llswap-dash passes it through.
 
 **llama-swap peer** (fragment of `config.yaml`):
 
@@ -696,7 +696,7 @@ peers:
 
 ## Config contract
 
-`config.yaml` is the interface between llama-dash and llama-swap. Rules:
+`config.yaml` is the interface between llswap-dash and llama-swap. Rules:
 
 - Atomic writes (write to `.tmp`, fsync, rename).
 - Preserve user comments and key order (YAML round-tripper).
@@ -705,7 +705,7 @@ peers:
 - Keep `./config:/config` as a directory bind mount in bundled compose files;
   single-file mounts pin an inode and break atomic rename-over saves.
 - llama-swap reloads `-watch-config` changes through stat polling; SIGHUP is an
-  upstream escape hatch, not the normal llama-dash save path.
+  upstream escape hatch, not the normal llswap-dash save path.
 
 ## Before you call work "done"
 

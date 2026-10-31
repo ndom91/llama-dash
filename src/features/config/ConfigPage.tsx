@@ -138,7 +138,7 @@ export function ConfigPage() {
           title="Configuration"
           subtitle={
             configUnsupported
-              ? `${system.inference.label} does not expose editable runtime configuration through llama-dash.`
+              ? `${system.inference.label} does not expose editable runtime configuration through llswap-dash.`
               : 'edit the inference backend configuration'
           }
           variant="integrated"

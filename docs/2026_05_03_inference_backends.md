@@ -4,7 +4,7 @@ Date: 2026-05-03
 
 ## Summary
 
-llama-dash now has an inference backend facade between the dashboard/proxy code
+llswap-dash now has an inference backend facade between the dashboard/proxy code
 and the concrete inference runtime. The only implemented backend is currently
 `llama-swap`, but the code is structured so another local runtime such as
 Ollama can be added without spreading runtime-specific assumptions through the
@@ -137,7 +137,7 @@ The current implementation uses a selected singleton:
 export const inferenceBackend = ...
 ```
 
-This is appropriate while llama-dash has one active inference backend per
+This is appropriate while llswap-dash has one active inference backend per
 process and only one implemented backend.
 
 A registry/selector becomes useful when there are multiple concrete backends:
@@ -146,7 +146,7 @@ A registry/selector becomes useful when there are multiple concrete backends:
 createInferenceBackend(config.inferenceBackend)
 ```
 
-or when llama-dash supports multiple active runtimes at the same time. Until
+or when llswap-dash supports multiple active runtimes at the same time. Until
 then, a registry would add indirection without behavior.
 
 ## Adding Ollama Later

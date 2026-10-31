@@ -656,7 +656,7 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `llama-dash-${req.id}.jsonl`
+  link.download = `llswap-dash-${req.id}.jsonl`
   link.click()
   URL.revokeObjectURL(url)
 }

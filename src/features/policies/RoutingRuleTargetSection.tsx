@@ -41,7 +41,7 @@ export function RoutingRuleTargetSection({
             />
           </label>
           <div className="font-mono text-[11px] leading-5 text-fg-dim">
-            Must use HTTPS and end with /v1. llama-dash appends the incoming /v1 path suffix.
+            Must use HTTPS and end with /v1. llswap-dash appends the incoming /v1 path suffix.
           </div>
           <label className="flex flex-col gap-1.5">
             <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Upstream credential</span>

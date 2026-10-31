@@ -24,7 +24,7 @@ export function EndpointsPage() {
         <PageHeader
           kicker="dsh · endpoints"
           title="Endpoints"
-          subtitle="connect clients to llama-dash"
+          subtitle="connect clients to llswap-dash"
           variant="integrated"
         />
 

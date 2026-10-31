@@ -17,7 +17,7 @@ export function formatRelative(timestamp: string) {
 }
 
 export function buildKeySnippet(keyPrefix: string) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llama-dash.example'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://llswap-dash.example'
 
   return `curl ${origin}/v1/\\
   chat/completions \\

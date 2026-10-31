@@ -128,7 +128,7 @@ export function LoginPage() {
           )}
           <div className="mt-auto flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] text-fg-dim">
             <span>
-              llama-dash ·{' '}
+              llswap-dash ·{' '}
               <a
                 href="https://github.com/ndom91/llama-dash"
                 target="_blank"
@@ -193,7 +193,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
       </div>
 
       <div className="mt-auto mb-[32vh] max-lg:hidden">
-        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llama-dash</div>
+        <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llswap-dash</div>
         <div className="break-all font-mono text-2xl text-fg">{dashHost}</div>
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
           <span className={cn('size-1.5 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
@@ -343,7 +343,7 @@ function SignInForm({
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
       <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
-      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash</p>
+      <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llswap-dash</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username webauthn" />
       <PasswordField
         label="password"

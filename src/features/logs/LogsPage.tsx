@@ -42,7 +42,7 @@ export function LogsPage() {
           <PageHeader
             kicker="log · stream"
             title="Logs"
-            subtitle={`${system.inference.label} does not expose runtime logs through llama-dash.`}
+            subtitle={`${system.inference.label} does not expose runtime logs through llswap-dash.`}
             variant="integrated"
           />
           <div className="empty-state px-6 max-md:px-3">

@@ -39,7 +39,7 @@ export const auth = betterAuth({
   plugins: [
     firstUserOnlySignup(),
     username(),
-    passkey({ rpName: 'llama-dash', rpID: passkeyRpId, origin: passkeyOrigin }),
+    passkey({ rpName: 'llswap-dash', rpID: passkeyRpId, origin: passkeyOrigin }),
     authAuditLogger(),
     tanstackStartCookies(),
   ],

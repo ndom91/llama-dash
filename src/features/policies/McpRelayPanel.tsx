@@ -29,7 +29,7 @@ export function McpRelayPanel({
   const [slug, setSlug] = useState('')
   const [targetUrl, setTargetUrl] = useState('')
   const [credentialId, setCredentialId] = useState('')
-  const [origin, setOrigin] = useState('http://<llama-dash-host>:5173')
+  const [origin, setOrigin] = useState('http://<llswap-dash-host>:5173')
   const selectedCredentialId = credentialId || credentials[0]?.id || ''
 
   useEffect(() => {
@@ -169,7 +169,7 @@ export function McpRelayPanel({
   )
 }
 
-function claudeCodeMcpConfig(slug = '<relay-slug>', origin = 'http://<llama-dash-host>:5173'): string {
+function claudeCodeMcpConfig(slug = '<relay-slug>', origin = 'http://<llswap-dash-host>:5173'): string {
   return JSON.stringify(
     {
       mcpServers: {

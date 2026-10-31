@@ -118,7 +118,7 @@ export function AttributionPage() {
                 <HeaderConvention name="x-session-id" description="conversation, run, or workflow session identifier" />
               </div>
               <div className="px-6 pb-4 font-mono text-[11px] text-fg-dim max-md:px-3">
-                If client name is not explicitly mapped, llama-dash will try to infer it from <code>user-agent</code>{' '}
+                If client name is not explicitly mapped, llswap-dash will try to infer it from <code>user-agent</code>{' '}
                 for a few known clients like Claude Code, OpenCode, Open WebUI, Home Assistant, curl, and
                 python-requests.
               </div>
@@ -174,7 +174,7 @@ const EXAMPLE_TABS = [
     code: `{
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "ANTHROPIC_BASE_URL": "http://llama-dash.local:5173"
+    "ANTHROPIC_BASE_URL": "http://llswap-dash.local:5173"
   }
 }`,
   },
@@ -187,11 +187,11 @@ const EXAMPLE_TABS = [
 {
   "$schema": "https://opencode.ai/config.json",
   "provider": {
-    "llama-dash": {
+    "llswap-dash": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "llama-dash",
+      "name": "llswap-dash",
       "options": {
-        "baseURL": "http://llama-dash.local:5173/v1",
+        "baseURL": "http://llswap-dash.local:5173/v1",
         "headers": {
           "x-client-name": "opencode",
           "x-end-user-id": "alice",
@@ -203,7 +203,7 @@ const EXAMPLE_TABS = [
       }
     }
   },
-  "model": "llama-dash/gemma-4-26B-A4B-it"
+  "model": "llswap-dash/gemma-4-26B-A4B-it"
 }`,
   },
   {
@@ -227,11 +227,11 @@ const EXAMPLE_TABS = [
     language: 'yaml',
     code: `# configuration.yaml
 # Built-in OpenAI/OpenRouter conversation integrations do not expose
-# arbitrary headers. For YAML automations that call llama-dash directly,
+# arbitrary headers. For YAML automations that call llswap-dash directly,
 # put attribution headers under rest_command.<name>.headers.
 rest_command:
   llama_dash_chat:
-    url: "http://llama-dash.local:5173/v1/chat/completions"
+    url: "http://llswap-dash.local:5173/v1/chat/completions"
     method: POST
     content_type: "application/json"
     headers:

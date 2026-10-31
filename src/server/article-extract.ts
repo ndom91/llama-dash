@@ -107,7 +107,7 @@ async function fetchArticleHtml(startUrl: SafeArticleUrl) {
       dispatcher,
       headers: {
         accept: 'text/html,application/xhtml+xml',
-        'user-agent': 'llama-dash article extractor',
+        'user-agent': 'llswap-dash article extractor',
       },
     }).catch(async (err) => {
       await dispatcher.close()
