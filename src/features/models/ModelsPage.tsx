@@ -25,7 +25,7 @@ export function ModelsPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="dsh · models"
           title="Models"

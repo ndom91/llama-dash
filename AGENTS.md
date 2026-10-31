@@ -353,6 +353,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
 15. Feature-local UI structure under `src/features/*`. Route files are thin
     entrypoints; page-specific components live with their feature instead of
     accumulating inside `src/routes/*` or flat shared component files.
+16. Theme system: 14 accent palettes in `src/lib/themes.json`, light/dark/auto
+    modes, a picker on the Settings page and the login page, and a
+    render-blocking init script that resolves the theme before first paint so
+    there is no flash. The default palette is `sapphire`. Surfaces follow a
+    five-step ramp (`surface-0` stage → `surface-4` popovers) with the canvas
+    and the cards on different steps; see the surface & elevation model above.
 
 ## Tooling
 
@@ -411,6 +417,53 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - **Conditional classnames**: use the `cn()` helper from `src/lib/cn.ts`
   for composing classnames conditionally. Prefer `cn('foo', condition && 'bar')`
   over template literals or string concatenation.
+
+### Surface & elevation model
+
+The canvas and the cards must not share a surface step. This is the single
+most important rule in the theme layer — see
+[`docs/2026_10_31_design_refresh.md`](./docs/2026_10_31_design_refresh.md).
+
+| Token | Role | Dark | Light |
+| ----- | ---- | ---- | ----- |
+| `--bg-0` / `--surface-0` | **stage** — app shell, page canvas, wells | `#06070b` | `#eceef2` |
+| `--bg-1` / `--surface-1` | **card** — panels, rails, headers | `#191e29` | `#ffffff` |
+| `--bg-2` / `--surface-2` | nested content inside a card | `#222835` | `#f6f7f9` |
+| `--bg-3` / `--surface-3` | controls, hover, selected | `#2c3340` | `#e9ecf1` |
+| `--bg-4` / `--surface-4` | popovers, menus | `#363e4d` | `#e0e4ea` |
+
+- `.content` and `.page` are the **stage** (`bg-surface-0`). `.panel` and
+  `.stat-card` are **cards** (`bg-surface-1`). Never put a card on a card
+  step that the canvas already occupies — that is what made every panel read
+  as a wireframe outline. A page root that carries an explicit
+  `bg-surface-*` utility overrides the `.page` rule, so those roots must
+  either be dropped or set to the stage — a card-coloured page canvas makes
+  every panel on it invisible.
+- **The stage-to-card luminance gap must be ≥ ~1 point.** A 0.3-point gap
+  (the original ramp) is technically a split but is imperceptible at a
+  glance, which is the same wireframe failure as no split at all. On a
+  near-black stage a black shadow does almost nothing, so the lift is
+  carried by surface lightness; shadows only separate overlapping layers.
+- A well *inside* a card (chat transcript, code body, inspector pane) steps
+  back down to `bg-surface-0` and drops the shadow.
+- Nested surfaces inside a card (panel header, table head, stat tiles) use
+  `bg-surface-2` so they read as recessed structure, not as a second card.
+- Elevation is `--shadow-1/2/3` plus `--hi-line`
+  (`inset 0 1px 0 rgb(255 255 255 / 0.07)`) — a lit top edge, not a
+  gradient. Light mode overrides both (`rgb(16 24 40 / …)` shadows,
+  `rgb(255 255 255 / 0.9)` hi-line).
+- Borders are **alpha** (`rgb(255 255 255 / 0.1)` dark,
+  `rgb(10 14 22 / 0.1)` light) so one hairline composites correctly over
+  any surface. Don't hard-code opaque border colours.
+- Radius scale is 4 / 10 / 14 px (`--radius-sm`, `--radius`, `--radius-lg`).
+- Text contrast is deliberately lifted: dark `fg` `#e8ebf0`, muted `#a4acb9`,
+  dim `#7c8593`, faint `#5b6370`. The 10px dim labels used to sit near 3:1.
+- Accent palettes live in `src/lib/themes.json`; the default is `sapphire`
+  (`DEFAULT_THEME_ID` in `src/lib/theme.ts`). Adding a palette means adding
+  an entry there — never hard-coding accent hexes in components.
+- The `shared` block in `themes.json` is documentation only (it is not read
+  at runtime). Keep it truthful, and keep it in sync with the light-mode
+  blocks in `styles.css`.
 
 ### Status colour vs identity colour
 

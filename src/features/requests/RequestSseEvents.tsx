@@ -36,7 +36,7 @@ export function RequestSseEvents({ body, stream }: Props) {
     <div className="flex min-h-[50%] min-w-0 flex-1 flex-col">
       {assembled ? (
         <div className="t-acc m-2 shrink-0 overflow-hidden rounded-sm border border-border text-xs" data-open={open}>
-          <div className="flex w-full items-center bg-surface-0">
+          <div className="flex w-full items-center bg-surface-1">
             <button
               type="button"
               className="t-acc-head flex flex-1 items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-fg-dim hover:bg-surface-1"

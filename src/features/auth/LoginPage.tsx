@@ -216,7 +216,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
           <MetaLine label="commit" value={commit} href="https://github.com/ndom91/llama-dash" />
           <MetaLine label="tls" value={tls} valueClassName={tls.includes('no tls') ? 'text-warn' : 'text-ok'} />
         </div>
-        <div className="flex items-center gap-2 pt-5 max-lg:hidden">
+        <div className="flex flex-wrap items-center gap-1 pt-5 max-lg:hidden">
           {colorTheme.themes.map((theme) => (
             <button
               key={theme.id}
@@ -224,11 +224,11 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               onClick={() => colorTheme.select(theme.id)}
               aria-label={`Use ${theme.name} accent theme`}
               aria-pressed={colorTheme.themeId === theme.id}
-              className="group -m-2 inline-flex size-6.5 items-center justify-center rounded-full"
+              className="group -m-1 inline-flex size-5 items-center justify-center rounded-full"
             >
               <span
                 className={cn(
-                  'size-2.5 rounded-full transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
+                  'size-2 rounded-full transition-all duration-500 ease-out group-hover:scale-140 group-hover:shadow-[0_0_6px_0.5px_var(--theme-glow)]',
                   colorTheme.themeId === theme.id &&
                     'scale-115 shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring)] group-hover:shadow-[0_0_0_1.5px_var(--color-surface-1),0_0_0_3px_var(--theme-ring),0_0_6px_0.5px_var(--theme-glow)]',
                 )}
@@ -242,11 +242,13 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
               />
             </button>
           ))}
+        </div>
+        <div className="flex items-center gap-2 pt-4 max-lg:hidden">
           <button
             type="button"
             onClick={toggleThemeMode}
             aria-label={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
-            className="-my-2 ml-0 inline-flex size-7 items-center justify-center text-fg-dim transition-colors hover:text-fg"
+            className="-my-2 inline-flex size-7 items-center justify-center text-fg-dim transition-colors hover:text-fg"
           >
             {themeMode === 'dark' ? (
               <Sun className="size-3" strokeWidth={1.75} />

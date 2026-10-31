@@ -22,7 +22,7 @@ export function LogsPage() {
   if (!system) {
     return (
       <div className="content">
-        <div className="page min-h-full flex-1 bg-surface-1">
+        <div className="page min-h-full flex-1">
           <PageHeader
             kicker="log · stream"
             title="Logs"
@@ -38,7 +38,7 @@ export function LogsPage() {
   if (system?.inference.capabilities.logs === false) {
     return (
       <div className="content">
-        <div className="page min-h-full flex-1 bg-surface-1">
+        <div className="page min-h-full flex-1">
           <PageHeader
             kicker="log · stream"
             title="Logs"
@@ -150,7 +150,7 @@ function LlamaSwapLogsPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="log · stream"
           title="Logs"

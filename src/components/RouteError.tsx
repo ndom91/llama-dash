@@ -17,7 +17,7 @@ export function RouteError({
 }: RouteErrorProps) {
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <div className="flex min-h-0 flex-1 items-center justify-center p-6">
           <div className="panel w-full max-w-md p-5">
             <div className="mb-3 flex h-1.5 items-stretch overflow-hidden rounded-pill bg-surface-3">

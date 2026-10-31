@@ -156,7 +156,7 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
           <div className="space-y-4">
             <div className="space-y-3">
               {rules.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-border bg-surface-0 px-5 py-6">
+                <div className="rounded-lg border border-dashed border-border bg-surface-1 px-5 py-6">
                   <div className="font-mono text-[11px] uppercase tracking-[0.14em] text-fg-faint">
                     No routing rules yet
                   </div>
@@ -319,7 +319,7 @@ function ObservabilityPanel({
   totalRules?: number
 }) {
   return (
-    <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+    <section className="rounded-lg border border-border bg-surface-1 px-5 py-5 font-mono text-xs text-fg-dim">
       <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         Observability · how a routed request surfaces on request detail
       </div>

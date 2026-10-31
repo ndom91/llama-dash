@@ -31,7 +31,7 @@ export function AttributionPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full flex-1 bg-surface-1">
+      <div className="page min-h-full flex-1">
         <PageHeader
           kicker="dsh · attribution"
           title="Attribution"
@@ -278,7 +278,7 @@ function HeaderField({
 
 function HeaderConvention({ name, description }: { name: string; description: string }) {
   return (
-    <div className="rounded border border-border bg-surface-0 px-4 py-3">
+    <div className="rounded border border-border bg-surface-1 px-4 py-3">
       <div className="text-accent">{name}</div>
       <div className="mt-2 text-fg-dim">{description}</div>
     </div>

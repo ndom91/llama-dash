@@ -99,7 +99,7 @@ function StatTile({ label, value, meta, tone }: { label: string; value: React.Re
 
 function ComponentRail({ components }: { components: Array<{ label: string; age: string; tone: Tone }> }) {
   return (
-    <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface-0/70 xl:block">
+    <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface-1 xl:block">
       <div className="flex h-12 items-center border-b border-border px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
         <span>components</span>
         <span className="ml-auto">all</span>
@@ -192,7 +192,7 @@ export function SystemPage() {
           <ComponentRail components={components} />
           <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">
             <div className="flex flex-col flex-1">
-              <div className="grid gap-3 border-b border-border bg-surface-0 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
+              <div className="grid gap-3 border-b border-border bg-surface-1 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
                 <StatTile
                   label="runtime"
                   value={formatUptime(data.runtime.uptimeSec)}

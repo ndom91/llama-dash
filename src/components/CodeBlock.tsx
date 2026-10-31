@@ -48,7 +48,7 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
   const heading = title ?? filename
 
   return (
-    <section className={cn('group relative overflow-hidden rounded border border-border bg-surface-0', className)}>
+    <section className={cn('group relative overflow-hidden rounded border border-border bg-surface-1', className)}>
       {heading ? (
         <div className="flex items-center gap-1.5 border-b border-border bg-surface-3 px-4 py-2 font-mono text-xs text-fg-muted">
           {filename ? <FileCode2 size={13} strokeWidth={2} className="shrink-0 text-fg-dim" /> : null}

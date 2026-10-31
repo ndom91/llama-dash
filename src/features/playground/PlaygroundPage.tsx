@@ -35,7 +35,7 @@ export function PlaygroundPage({ searchTab }: Props) {
 
   return (
     <div className="content">
-      <div className="page flex-1 min-h-0">
+      <div className="page flex-1 min-h-0 bg-surface-1">
         <PageHeader
           kicker={`dsh · playground · ${tab}`}
           title="Playground"

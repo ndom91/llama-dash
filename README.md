@@ -32,6 +32,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - Test chat, image, speech, and transcription models in the playground.
 - View logs, manage retention, and export Prometheus metrics at `/metrics`.
 - Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
+- Theme the dashboard to taste: 14 accent palettes, light and dark modes, and a picker that applies before first paint.
 
 <table>
   <tr>

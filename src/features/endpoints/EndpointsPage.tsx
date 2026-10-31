@@ -20,7 +20,7 @@ export function EndpointsPage() {
 
   return (
     <div className="content">
-      <div className="page flex-1 bg-surface-1">
+      <div className="page flex-1">
         <PageHeader
           kicker="dsh · endpoints"
           title="Endpoints"

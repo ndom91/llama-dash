@@ -1,37 +1,58 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema",
   "version": 1,
-  "description": "llama-dash brand themes. Each theme defines an accent palette (500/700/300), status colors, and the surface + text scale. Surfaces and text are shared across all themes — only the accent and a few harmonizing status colors change per theme.",
+  "description": "llama-dash brand themes. Each theme defines an accent palette (500/700/300), status colors, and the identity hue/chroma used to derive the series ramp. Surfaces, text and radius are shared across all themes — only the accent and a few harmonizing status colors change per theme. The 'shared' block below documents those shared tokens; it mirrors src/styles.css and is not read at runtime.",
   "shared": {
     "surface": {
-      "0": "#070809",
-      "1": "#0E1114",
-      "2": "#161A1D",
-      "border": "#1F2327"
+      "0": "#06070B",
+      "1": "#191E29",
+      "2": "#222835",
+      "3": "#2C3340",
+      "4": "#363E4D",
+      "border": "rgb(255 255 255 / 0.1)"
     },
     "text": {
-      "1": "#D6DBD9",
-      "2": "#8A9490",
-      "3": "#5D6461"
+      "1": "#E8EBF0",
+      "2": "#A4ACB9",
+      "3": "#7C8593"
     },
     "light": {
-      "bg": "#FBF9F4",
+      "bg": "#ECEEF2",
       "surface1": "#FFFFFF",
-      "border": "#E4E1D8",
-      "text1": "#1A1A1A",
-      "text2": "#4A453F",
-      "text3": "#8A857F"
+      "border": "rgb(10 14 22 / 0.10)",
+      "text1": "#14171C",
+      "text2": "#4D5560",
+      "text3": "#6D7683"
     },
     "font": {
-      "sans": "\"IBM Plex Sans\", system-ui, sans-serif",
-      "mono": "\"IBM Plex Mono\", ui-monospace, monospace"
+      "sans": "'Geist Sans', system-ui, sans-serif",
+      "mono": "'JetBrains Mono', ui-monospace, monospace"
     },
     "radius": {
-      "sm": "3px",
-      "md": "6px"
+      "sm": "4px",
+      "md": "10px",
+      "lg": "14px"
     }
   },
   "themes": [
+    {
+      "id": "sapphire",
+      "name": "Sapphire",
+      "tagline": "Confident instrument blue",
+      "description": "The default. A deep, saturated blue with real presence — reads as precision equipment rather than a terminal. Distinct from the info channel, which sits on the cyan side.",
+      "accent": {
+        "300": "#A9C4F0",
+        "500": "#6E9EE0",
+        "700": "#3B68A8",
+        "oklch": "70% 0.13 255"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#6CB6C4"
+      }
+    },
     {
       "id": "phosphor",
       "name": "Phosphor",
@@ -87,6 +108,42 @@
       }
     },
     {
+      "id": "jade",
+      "name": "Jade",
+      "tagline": "Cool mineral teal",
+      "description": "Blue-green without going green — closer to sea glass and deep water than to a terminal. Quiet, expensive, unmistakably not a status colour.",
+      "accent": {
+        "300": "#A3DEC9",
+        "500": "#68BFA1",
+        "700": "#37866E",
+        "oklch": "72% 0.10 168"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "tagline": "Hot signal orange",
+      "description": "Burnt orange with real heat in it. The most characterful pick — warmer and more alive than any of the blues, still legible on a dark canvas.",
+      "accent": {
+        "300": "#F6C3A4",
+        "500": "#E3855A",
+        "700": "#AC5730",
+        "oklch": "70% 0.14 45"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
       "id": "coral",
       "name": "Coral",
       "tagline": "Warm, characterful, alive",
@@ -100,6 +157,24 @@
       "status": {
         "ok": "#9DC98A",
         "warn": "#E0C878",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "orchid",
+      "name": "Orchid",
+      "tagline": "Modern magenta",
+      "description": "A clean pink-magenta with a violet lean. Younger and more expressive than ultraviolet, and unmistakably not a status colour.",
+      "accent": {
+        "300": "#F0B2D4",
+        "500": "#D980AF",
+        "700": "#A24F7D",
+        "oklch": "70% 0.13 330"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
         "error": "#C88A8A",
         "info": "#8AAEDB"
       }
@@ -141,6 +216,24 @@
       }
     },
     {
+      "id": "brass",
+      "name": "Brass",
+      "tagline": "Refined instrument gold",
+      "description": "Old brass and lacquered instrument cases. Warmer and more metallic than amber, with the warning channel pushed to a deeper orange so the two never blur.",
+      "accent": {
+        "300": "#E9DDA8",
+        "500": "#CEBD6C",
+        "700": "#8E7F3C",
+        "oklch": "80% 0.10 95"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#E0913F",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
       "id": "chartreuse",
       "name": "Chartreuse",
       "tagline": "High-viz yellow-green",
@@ -150,6 +243,24 @@
         "500": "#D4D97A",
         "700": "#94994A",
         "oklch": "85% 0.13 115"
+      },
+      "status": {
+        "ok": "#9DC98A",
+        "warn": "#D9B88A",
+        "error": "#C88A8A",
+        "info": "#8AAEDB"
+      }
+    },
+    {
+      "id": "slate",
+      "name": "Slate",
+      "tagline": "Barely-there blue grey",
+      "description": "A near-neutral ramp with only a trace of blue. For operators who want the data to carry every bit of the colour.",
+      "accent": {
+        "300": "#D3DAE5",
+        "500": "#A3B0C3",
+        "700": "#62718A",
+        "oklch": "72% 0.03 245"
       },
       "status": {
         "ok": "#9DC98A",

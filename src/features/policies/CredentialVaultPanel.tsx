@@ -57,7 +57,7 @@ export function CredentialVaultPanel({
         : 'disabled · set CREDENTIAL_ENCRYPTION_KEY and restart'
 
   return (
-    <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
+    <section className="rounded-lg border border-border bg-surface-1 px-5 py-5 font-mono text-xs text-fg-dim">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">Upstream credential vault</span>
         <span className="text-[10px] uppercase tracking-[0.12em] text-fg-faint">· {statusText}</span>
@@ -128,7 +128,7 @@ export function CredentialVaultPanel({
           <div className="px-3 py-3 text-fg-faint">No upstream credentials stored.</div>
         ) : (
           <div className="divide-y divide-border">
-            <div className="grid grid-cols-[minmax(120px,0.8fr)_minmax(140px,0.8fr)_minmax(420px,1.9fr)_minmax(160px,0.8fr)_40px] items-center gap-x-4 bg-surface-0 px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-fg-faint max-lg:hidden">
+            <div className="grid grid-cols-[minmax(120px,0.8fr)_minmax(140px,0.8fr)_minmax(420px,1.9fr)_minmax(160px,0.8fr)_40px] items-center gap-x-4 bg-surface-2 px-3 py-2 text-[10px] uppercase tracking-[0.12em] text-fg-faint max-lg:hidden">
               <span>Name</span>
               <span>Slug</span>
               <span>Placeholder</span>

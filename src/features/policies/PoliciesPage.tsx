@@ -30,7 +30,7 @@ export function PoliciesPage({ searchTab }: Props) {
 
   return (
     <div className="content">
-      <div className="page flex min-h-0 flex-1 flex-col bg-surface-1">
+      <div className="page flex min-h-0 flex-1 flex-col">
         <PageHeader
           kicker={`dsh · policies · ${tab}`}
           title="Policies"

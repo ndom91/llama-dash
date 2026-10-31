@@ -1,0 +1,26 @@
+# llama-dash only — talks to the existing host llama-swap (systemd, port 8080).
+services:
+  llama-dash:
+    # Build from this working tree so local changes are actually served.
+    # Tag is local-only, so it never clobbers the published GHCR tag.
+    image: llama-dash:local
+    build: .
+    container_name: llama-dash
+    # Host network: llama-swap is loopback-only, so dash must share the host net.
+    network_mode: host
+    env_file:
+      - .env
+    environment:
+      # Overrides: loopback llama-swap via host network; listen on 8181.
+      INFERENCE_BASE_URL: http://127.0.0.1:8080
+      PORT: '8181'
+      INFERENCE_CONFIG_FILE: /config/config.yaml
+      DATABASE_PATH: /data/dash.db
+    volumes:
+      # Read-only: analytics only, config editing stays with llama-swap service.
+      - /home/majed/llama-swap/config.yaml:/config/config.yaml:ro
+      - llama-dash-data:/data
+    restart: unless-stopped
+
+volumes:
+  llama-dash-data:
