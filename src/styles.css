@@ -243,6 +243,11 @@
 }
 
 :root {
+  /* Native form controls (select dropdowns, inputs, scrollbars) must render
+     in the same scheme as the app — without this the browser paints them
+     white regardless of our tokens. Kept in sync with the light blocks. */
+  color-scheme: dark;
+
   /* brand — default: sapphire (overridden by JS theme picker) */
   --ld-phosphor-300: #a9c4f0;
   --ld-phosphor-500: #6e9ee0;
@@ -439,6 +444,7 @@
  * touches the SSR and hydration paths — deliberately out of scope here.
  */
 :root[data-theme='light'] {
+  color-scheme: light;
   /* Same elevation model as dark, inverted: the stage is a cool grey and the
      cards are white, so a panel reads as a lifted sheet rather than a hole. */
   --bg-0: #eceef2;
@@ -490,6 +496,7 @@
    editing either block. */
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
+    color-scheme: light;
     --bg-0: #eceef2;
     --bg-1: #ffffff;
     --bg-2: #f6f7f9;
@@ -615,6 +622,13 @@
   }
   button:disabled {
     cursor: not-allowed;
+  }
+
+  /* Native <option> rows inside select dropdowns — color-scheme handles the
+     popup chrome, these cover the rows themselves. */
+  option {
+    background: var(--bg-4);
+    color: var(--fg);
   }
 }
 
