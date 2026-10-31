@@ -36,6 +36,8 @@ import {
   type McpRelay,
   type ModelAccessMode,
   type PrivacySettings,
+  type ProviderConnection,
+  type ProviderTestResult,
   type RoutingRule,
   type UpstreamCredential,
   type RequestLimits,
@@ -533,6 +535,65 @@ export function useMcpRelays(): UseQueryResult<Array<McpRelay>> {
   })
 }
 
+export function useProviderConnections(): UseQueryResult<Array<ProviderConnection>> {
+  return useQuery({
+    queryKey: qk.providers,
+    queryFn: () => api.listProviderConnections(),
+  })
+}
+
+export function useConnectProvider(): UseMutationResult<
+  ProviderConnection,
+  Error,
+  { targetId: string; apiKey: string; name?: string }
+> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.connectProvider(body),
+    onSuccess: () => {
+      toast.success('Provider connected')
+      invalidateKeys(qc, [qk.providers, qk.upstreamCredentials, qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to connect provider', e)
+    },
+  })
+}
+
+export function useDisconnectProvider(): UseMutationResult<{ ok: true }, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (targetId) => api.disconnectProvider(targetId),
+    onSuccess: () => {
+      toast.success('Provider disconnected')
+      invalidateKeys(qc, [qk.providers, qk.upstreamCredentials, qk.routingRules])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to disconnect provider', e)
+    },
+  })
+}
+
+export function useTestProvider(): UseMutationResult<ProviderTestResult, Error, { targetId: string; apiKey?: string }> {
+  return useMutation({
+    mutationFn: (body) => api.testProvider(body),
+  })
+}
+
+export function useRefreshProviderModels(): UseMutationResult<ProviderConnection, Error, string> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (targetId) => api.refreshProviderModels(targetId),
+    onSuccess: () => {
+      toast.success('Provider models refreshed')
+      invalidateKeys(qc, [qk.providers])
+    },
+    onError: (e) => {
+      toastMutationError('Failed to refresh provider models', e)
+    },
+  })
+}
+
 export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, CreateModelAliasBody> {
   const qc = useQueryClient()
   return useMutation({
@@ -591,7 +652,7 @@ export function useCreateRoutingRule(): UseMutationResult<RoutingRule, Error, Cr
 export function useCreateUpstreamCredential(): UseMutationResult<
   UpstreamCredential,
   Error,
-  { name: string; slug?: string; type: 'bearer'; value: string }
+  { name: string; slug?: string; type: 'bearer' | 'api_key'; value: string }
 > {
   const qc = useQueryClient()
   return useMutation({

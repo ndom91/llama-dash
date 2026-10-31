@@ -5,6 +5,7 @@ import {
   markCredentialUsed,
   type CredentialInjectionSecret,
 } from '../admin/upstream-credentials.ts'
+import { providerEndpointForBaseUrl } from '../../lib/providers.ts'
 import type { RoutingOutcome } from './transforms.ts'
 
 const PLACEHOLDER_RE = /\{\{llama-dash:credential:([a-z0-9][a-z0-9_-]{1,80})\}\}/g
@@ -89,12 +90,19 @@ export function auditToJson(audit: CredentialInjectionAudit | null): string | nu
 function credentialBindingsForRouting(routing: RoutingOutcome): CredentialBinding[] {
   const bindings = [...routing.credentialBindings]
   if (routing.targetCredentialId) {
-    bindings.push({
-      credentialId: routing.targetCredentialId,
-      mode: 'set_header',
-      headerName: 'authorization',
-      required: true,
-    })
+    // A provider target declares which headers it accepts the key in. Without
+    // one (a plain direct upstream) fall back to the bearer default.
+    const provider = routing.targetBaseUrl ? providerEndpointForBaseUrl(routing.targetBaseUrl) : undefined
+    const headers = provider?.authHeaders ?? [{ name: 'authorization' as const, scheme: 'bearer' as const }]
+    for (const header of headers) {
+      bindings.push({
+        credentialId: routing.targetCredentialId,
+        mode: 'set_header',
+        headerName: header.name,
+        scheme: header.scheme,
+        required: true,
+      })
+    }
   }
   return bindings
 }
@@ -130,7 +138,7 @@ function applyBinding(
     return { ok: true, audit, redactedHeaderNames }
   }
 
-  const template = binding.headerValueTemplate ?? defaultHeaderTemplate(secret)
+  const template = binding.headerValueTemplate ?? defaultHeaderTemplate(secret, binding.scheme)
   const placeholders = [...template.matchAll(PLACEHOLDER_RE)]
   if (placeholders.length !== 1 || placeholders[0][1] !== secret.slug) {
     return injectionError(
@@ -147,8 +155,9 @@ function applyBinding(
   return { ok: true, audit, redactedHeaderNames }
 }
 
-function defaultHeaderTemplate(secret: CredentialInjectionSecret): string {
-  if (secret.type === 'bearer') return `Bearer ${placeholderForSlug(secret.slug)}`
+function defaultHeaderTemplate(secret: CredentialInjectionSecret, scheme?: 'bearer' | 'raw'): string {
+  const resolved = scheme ?? (secret.type === 'bearer' ? 'bearer' : 'raw')
+  if (resolved === 'bearer') return `Bearer ${placeholderForSlug(secret.slug)}`
   return placeholderForSlug(secret.slug)
 }
 

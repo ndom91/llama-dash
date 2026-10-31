@@ -6,6 +6,7 @@ import {
   useCreateRoutingRule,
   useDeleteRoutingRule,
   useModels,
+  useProviderConnections,
   useReorderRoutingRules,
   useRoutingRules,
   useUpdateRoutingRule,
@@ -48,6 +49,7 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   const { data: models = [] } = useModels()
   const { data: keys = [] } = useApiKeys()
   const { data: rules = INITIAL_RULES } = useRoutingRules()
+  const { data: providerConnections = [] } = useProviderConnections()
   const createRuleMutation = useCreateRoutingRule()
   const updateRuleMutation = useUpdateRoutingRule()
   const deleteRuleMutation = useDeleteRoutingRule()
@@ -62,7 +64,15 @@ export function RoutingPanel({ credentials }: { credentials: UpstreamCredential[
   }, [draft, editingRuleId])
 
   const keyMap = useMemo(() => new Map(keys.map((key) => [key.id, key.name])), [keys])
-  const modelOptions = models.map((model) => model.id)
+  // Suggested rewrite models: llama-swap's local models plus every
+  // auto-discovered provider model.
+  const modelOptions = useMemo(() => {
+    const seen = new Set<string>(models.map((model) => model.id))
+    for (const connection of providerConnections) {
+      for (const model of connection.models) seen.add(model)
+    }
+    return [...seen]
+  }, [models, providerConnections])
 
   const enabledCount = rules.filter((rule) => rule.enabled).length
   const isMutating =

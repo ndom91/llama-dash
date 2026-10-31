@@ -18,6 +18,7 @@ import { Route as LogsRouteImport } from './routes/logs'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EndpointsRouteImport } from './routes/endpoints'
 import { Route as ConfigRouteImport } from './routes/config'
+import { Route as CloudModelsRouteImport } from './routes/cloud-models'
 import { Route as AttributionRouteImport } from './routes/attribution'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
@@ -72,6 +73,11 @@ const ConfigRoute = ConfigRouteImport.update({
   path: '/config',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CloudModelsRoute = CloudModelsRouteImport.update({
+  id: '/cloud-models',
+  path: '/cloud-models',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AttributionRoute = AttributionRouteImport.update({
   id: '/attribution',
   path: '/attribution',
@@ -116,6 +122,7 @@ const KeysIdRoute = KeysIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attribution': typeof AttributionRoute
+  '/cloud-models': typeof CloudModelsRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
   '/login': typeof LoginRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/attribution': typeof AttributionRoute
+  '/cloud-models': typeof CloudModelsRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
   '/login': typeof LoginRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/attribution': typeof AttributionRoute
+  '/cloud-models': typeof CloudModelsRoute
   '/config': typeof ConfigRoute
   '/endpoints': typeof EndpointsRoute
   '/login': typeof LoginRoute
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/attribution'
+    | '/cloud-models'
     | '/config'
     | '/endpoints'
     | '/login'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/attribution'
+    | '/cloud-models'
     | '/config'
     | '/endpoints'
     | '/login'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/attribution'
+    | '/cloud-models'
     | '/config'
     | '/endpoints'
     | '/login'
@@ -234,6 +246,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AttributionRoute: typeof AttributionRoute
+  CloudModelsRoute: typeof CloudModelsRoute
   ConfigRoute: typeof ConfigRoute
   EndpointsRoute: typeof EndpointsRoute
   LoginRoute: typeof LoginRoute
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cloud-models': {
+      id: '/cloud-models'
+      path: '/cloud-models'
+      fullPath: '/cloud-models'
+      preLoaderRoute: typeof CloudModelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/attribution': {
       id: '/attribution'
       path: '/attribution'
@@ -378,6 +398,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AttributionRoute: AttributionRoute,
+  CloudModelsRoute: CloudModelsRoute,
   ConfigRoute: ConfigRoute,
   EndpointsRoute: EndpointsRoute,
   LoginRoute: LoginRoute,

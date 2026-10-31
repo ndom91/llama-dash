@@ -303,7 +303,7 @@ export const upstreamCredentials = sqliteTable('upstream_credentials', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
-  type: text('type', { enum: ['bearer'] }).notNull(),
+  type: text('type', { enum: ['bearer', 'api_key'] }).notNull(),
   encryptedValue: text('encrypted_value').notNull(),
   placeholderEnabled: integer('placeholder_enabled', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
@@ -313,6 +313,27 @@ export const upstreamCredentials = sqliteTable('upstream_credentials', {
 
 export type UpstreamCredential = typeof upstreamCredentials.$inferSelect
 export type NewUpstreamCredential = typeof upstreamCredentials.$inferInsert
+
+/**
+ * A provider target the operator connected. One row per subscription entry
+ * point (`src/lib/providers.ts` targets), pointing at the encrypted credential
+ * that holds the provider API key, the routing rules that send traffic to each
+ * surface, and the auto-discovered model list.
+ */
+export const providerConnections = sqliteTable('provider_connections', {
+  id: text('id').primaryKey(),
+  targetId: text('target_id').notNull().unique(),
+  credentialId: text('credential_id').notNull(),
+  routingRuleIdsJson: text('routing_rule_ids_json').notNull().default('[]'),
+  modelsJson: text('models_json').notNull().default('[]'),
+  modelsDiscoveredAt: integer('models_discovered_at', { mode: 'timestamp_ms' }),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export type ProviderConnection = typeof providerConnections.$inferSelect
+export type NewProviderConnection = typeof providerConnections.$inferInsert
 
 export const mcpRelays = sqliteTable('mcp_relays', {
   id: text('id').primaryKey(),

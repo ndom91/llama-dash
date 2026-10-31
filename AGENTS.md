@@ -60,6 +60,7 @@ src/
     login.tsx               · /login Better Auth username/password + passkey form
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
+    cloud-models/          · Models page: auto-discovered provider models per connection
     dashboard/             · dashboard panels + metrics helpers
     endpoints/             · endpoint examples + copy/highlight helpers
     keys/                  · keys list/detail panels and forms
@@ -82,6 +83,8 @@ src/
     TopBar.tsx, Tooltip.tsx, ThemeToggle.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
+    providers.ts          — shared provider catalog: targets (one key per plan/region) with
+                            OpenAI/Anthropic/Responses surfaces, path-join semantics, and auth headers
     queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
     query-keys.ts         — dependency-light shared query keys and cache prefixes
     query-client.ts       — per-root QueryClient factory and payload retention policy wiring
@@ -99,7 +102,7 @@ src/
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
-    admin/                — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events
+    admin/                  — /api/* admin surface: dispatcher plus grouped routes/, requests, model-events, model-detail, key-detail, api-keys, aliases, settings, events, providers
     inference/            — selected inference backend facade plus backend-specific adapters and hints
     llama-swap/client.ts  — typed wrapper over llama-swap's HTTP API
     llama-swap/schemas.ts — valibot schemas for llama-swap API responses
@@ -214,6 +217,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/aliases` — CRUD for model aliases (global model name mapping)
     - `/api/routing-rules` — CRUD + reorder for ordered routing rules
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
+    - `/api/providers` — list connected provider targets with auto-discovered models
+    - `/api/providers/connect` — connect a subscription (one key wires every API surface; creates the credential, one routing rule per surface, and discovers models from the provider's `/v1/models`)
+    - `/api/providers/disconnect`, `/api/providers/test`, `/api/providers/models/refresh`
    - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
    - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
    - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows

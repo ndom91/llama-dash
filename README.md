@@ -27,6 +27,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - Browse request history with filters, timing, attribution, token counts, and cost estimates. Usage rollups persist beyond raw request retention.
 - Load and unload models, inspect their capabilities and history, and edit validated llama-swap configuration.
 - Proxy OpenAI and Anthropic clients to local models, peers, or direct upstreams; native llama.cpp and llama-swap audio endpoints are supported too.
+- Connect cloud subscription providers (MiniMax, Xiaomi MiMo incl. Token Plan regions, Z.AI GLM) with one API key per plan — OpenAI and Anthropic surfaces wire together, and the served models are discovered live from the provider.
 - Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
 - Route or reject requests, rewrite models, inject credentials and system prompts, and set request size limits.
 - Test chat, image, speech, and transcription models in the playground.

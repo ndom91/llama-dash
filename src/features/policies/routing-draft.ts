@@ -1,4 +1,5 @@
 import type { RoutingRule } from '../../lib/api'
+import type { ProviderPathJoin } from '../../lib/providers'
 import { coerceAction, type RoutingActionType, type RoutingStreamMode } from './routing-ui'
 
 type MatchListField = 'apiKeyIds' | 'endpoints' | 'requestedModels'
@@ -56,6 +57,20 @@ export function setDirectTargetBaseUrl(draft: RoutingRule, baseUrl: string): Rou
       type: 'direct',
       baseUrl,
       credentialId: draft.target.type === 'direct' ? draft.target.credentialId : null,
+      pathJoin: draft.target.type === 'direct' ? draft.target.pathJoin : undefined,
+    },
+  }
+}
+
+/** Point the direct target at a known provider surface. */
+export function setDirectTargetProvider(draft: RoutingRule, baseUrl: string, pathJoin: ProviderPathJoin): RoutingRule {
+  return {
+    ...draft,
+    target: {
+      type: 'direct',
+      baseUrl,
+      credentialId: draft.target.type === 'direct' ? draft.target.credentialId : null,
+      pathJoin,
     },
   }
 }

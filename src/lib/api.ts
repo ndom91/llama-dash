@@ -7,6 +7,11 @@ import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema 
 import type { ModelAccessMode } from './schemas/api-key'
 import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
+import {
+  ProviderConnectionListResponseSchema,
+  ProviderConnectionSchema,
+  ProviderTestResultSchema,
+} from './schemas/provider'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
 import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
 import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
@@ -66,6 +71,7 @@ export type { ModelAliasItem } from './schemas/model-alias'
 export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
 export type { UpstreamCredential } from './schemas/upstream-credential'
+export type { ProviderConnection, ProviderTestResult } from './schemas/provider'
 export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 export type { InferenceHardware } from './schemas/inference-hardware'
@@ -226,6 +232,16 @@ export const api = {
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
   listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
+  listProviderConnections: () =>
+    getJson('/api/providers', ProviderConnectionListResponseSchema).then((r) => r.connections),
+  connectProvider: (body: { targetId: string; apiKey: string; name?: string }) =>
+    sendJson('/api/providers/connect', ProviderConnectionSchema, { method: 'POST', body }),
+  disconnectProvider: (targetId: string) =>
+    sendJson('/api/providers/disconnect', OkSchema, { method: 'POST', body: { targetId } }),
+  testProvider: (body: { targetId: string; apiKey?: string }) =>
+    sendJson('/api/providers/test', ProviderTestResultSchema, { method: 'POST', body }),
+  refreshProviderModels: (targetId: string) =>
+    sendJson('/api/providers/models/refresh', ProviderConnectionSchema, { method: 'POST', body: { targetId } }),
   createMcpRelay: (body: {
     name: string
     slug?: string
@@ -235,7 +251,7 @@ export const api = {
     headerValueTemplate?: string
   }) => sendJson('/api/mcp-relays', McpRelaySchema, { method: 'POST', body }),
   deleteMcpRelay: (id: string) => sendEmpty(`/api/mcp-relays/${id}`, OkSchema, 'DELETE'),
-  createUpstreamCredential: (body: { name: string; slug?: string; type: 'bearer'; value: string }) =>
+  createUpstreamCredential: (body: { name: string; slug?: string; type: 'bearer' | 'api_key'; value: string }) =>
     sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
   updateUpstreamCredential: (id: string, body: { name?: string; slug?: string; value?: string }) =>
     sendJson(`/api/upstream-credentials/${id}`, UpstreamCredentialSchema, { method: 'PATCH', body }),

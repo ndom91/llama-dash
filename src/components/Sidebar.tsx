@@ -38,6 +38,7 @@ import { Tooltip } from './Tooltip'
 type NavTarget =
   | '/'
   | '/models'
+  | '/cloud-models'
   | '/requests'
   | '/usage'
   | '/logs'
@@ -82,7 +83,8 @@ const SECTIONS: ReadonlyArray<NavSection> = [
   {
     title: 'interact',
     items: [
-      { to: '/models', label: 'Models', leader: 'm', Icon: Boxes },
+      { to: '/cloud-models', label: 'Models', leader: 'm', Icon: Boxes },
+      { to: '/models', label: 'llama-swap', leader: 'w', Icon: Boxes },
       { to: '/playground', label: 'Playground', leader: 'p', Icon: MessageSquare },
     ],
   },

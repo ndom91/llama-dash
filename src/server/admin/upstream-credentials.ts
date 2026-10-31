@@ -191,7 +191,7 @@ export type CredentialInjectionSecret = {
   id: string
   name: string
   slug: string
-  type: 'bearer'
+  type: 'bearer' | 'api_key'
   value: string
 }
 

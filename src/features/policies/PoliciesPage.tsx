@@ -6,6 +6,7 @@ import { useUpstreamCredentials } from '../../lib/queries'
 import { CredentialVaultPanelContainer } from './CredentialVaultPanelContainer'
 import { McpRelayPanelContainer } from './McpRelayPanelContainer'
 import { POLICY_TABS, type PolicyTab, isPolicyTab } from './policy-tabs'
+import { ProvidersPanelContainer } from './ProvidersPanelContainer'
 import { RoutingPanel } from './RoutingPanel'
 
 type Props = {
@@ -48,6 +49,9 @@ export function PoliciesPage({ searchTab }: Props) {
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="contents" hidden={tab !== 'routing'}>
             <RoutingPanel credentials={credentialState?.credentials ?? []} />
+          </div>
+          <div className="contents" hidden={tab !== 'providers'}>
+            <ProvidersPanelContainer />
           </div>
           <div className="contents" hidden={tab !== 'credentials'}>
             <CredentialVaultPanelContainer />

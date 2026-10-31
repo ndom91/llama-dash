@@ -18,7 +18,7 @@ export function CredentialVaultPanel({
     id: string
     name: string
     slug: string
-    type: 'bearer'
+    type: 'bearer' | 'api_key'
     lastUsedAt: string | null
   }>
   vaultEnabled: boolean
@@ -27,7 +27,7 @@ export function CredentialVaultPanel({
   createPending: boolean
   deletePending: boolean
   usageById: Map<string, { routingRules: number; mcpRelays: number }>
-  onCreate: (body: { name: string; slug?: string; type: 'bearer'; value: string }) => void
+  onCreate: (body: { name: string; slug?: string; type: 'bearer' | 'api_key'; value: string }) => void
   onDelete: (id: string) => void
 }) {
   const [name, setName] = useState('')

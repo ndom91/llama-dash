@@ -23,6 +23,7 @@ export const qk = {
   routingRules: ['routing-rules'] as const,
   mcpRelays: ['mcp-relays'] as const,
   upstreamCredentials: ['upstream-credentials'] as const,
+  providers: ['providers'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
   requestLimits: ['settings', 'request-limits'] as const,

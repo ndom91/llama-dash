@@ -21,6 +21,7 @@ function routing(overrides: Partial<RoutingOutcome> = {}): RoutingOutcome {
     preserveAuthorization: true,
     targetType: 'direct',
     targetBaseUrl: 'https://api.anthropic.com/v1',
+    targetPathJoin: null,
     targetCredentialId: null,
     requestedModel: 'claude',
     routedModel: null,
@@ -157,6 +158,58 @@ describe('applyCredentialInjection', () => {
     })
 
     expect(result.ok).toBe(true)
+    expect(headers.authorization).toBe('Bearer sk-real-secret')
+  })
+
+  it('injects x-api-key verbatim for Anthropic-style provider targets', () => {
+    const headers: Record<string, string> = {}
+
+    const result = applyCredentialInjection({
+      headers,
+      routing: routing({
+        targetBaseUrl: 'https://api.minimax.io/anthropic',
+        targetCredentialId: 'ucr_anthropic',
+      }),
+      encryptionKey: 'x'.repeat(32),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(headers['x-api-key']).toBe('sk-real-secret')
+    expect(headers.authorization).toBe('Bearer sk-real-secret')
+  })
+
+  it('injects only a bearer header for OpenAI-style provider targets', () => {
+    const headers: Record<string, string> = {}
+
+    const result = applyCredentialInjection({
+      headers,
+      routing: routing({
+        targetBaseUrl: 'https://api.minimax.io/v1',
+        targetCredentialId: 'ucr_anthropic',
+      }),
+      encryptionKey: 'x'.repeat(32),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(headers.authorization).toBe('Bearer sk-real-secret')
+    expect(headers['x-api-key']).toBeUndefined()
+  })
+
+  it('sends an api_key credential raw when the binding says so', () => {
+    const headers: Record<string, string> = {}
+    credentialMock.getCredentialInjectionSecret.mockReturnValue(secret({ type: 'api_key', slug: 'raw-key' }))
+
+    const result = applyCredentialInjection({
+      headers,
+      routing: routing({
+        targetBaseUrl: 'https://api.z.ai/api/anthropic',
+        targetCredentialId: 'ucr_anthropic',
+      }),
+      encryptionKey: 'x'.repeat(32),
+    })
+
+    expect(result.ok).toBe(true)
+    expect(headers['x-api-key']).toBe('sk-real-secret')
     expect(headers.authorization).toBe('Bearer sk-real-secret')
   })
 
