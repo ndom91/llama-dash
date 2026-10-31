@@ -110,14 +110,14 @@ Set `BETTER_AUTH_SECRET` in `.env` to the output of `openssl rand -base64 33`. T
 
 Place a GGUF model in `./models/`, then set the matching path and model ID in `config/config.yaml`. The supplied example expects `./models/llama-3.gguf` and declares it as `llama3`.
 
-### AMD / ROCm
+### AMD / Vulkan
 
 ```bash
 docker compose -f docker-compose.amd.yaml pull
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
-`docker-compose.amd.yaml` runs `ghcr.io/mostlygeek/llama-swap:rocm`, passes through `/dev/kfd` and `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+`docker-compose.amd.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-vulkan` image, passes through `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
 ### NVIDIA / CUDA
 
@@ -126,7 +126,7 @@ docker compose -f docker-compose.nvidia.yaml pull
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
-`docker-compose.nvidia.yaml` runs `ghcr.io/mostlygeek/llama-swap:cuda` and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+`docker-compose.nvidia.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-cuda13` image and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. `unified-cuda13` supports Turing (RTX 20xx, GTX 16xx) and newer GPUs; for Pascal cards such as the GTX 10xx or P40, change the image to `unified-cuda`. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
 
 Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llama-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
 

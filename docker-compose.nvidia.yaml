@@ -1,6 +1,8 @@
 services:
   llama-swap:
-    image: ghcr.io/mostlygeek/llama-swap:cuda
+    # unified-cuda13 supports Turing (RTX 20xx, GTX 16xx) and newer GPUs.
+    # For Pascal cards (GTX 10xx, P40), use ghcr.io/mostlygeek/llama-swap:unified-cuda.
+    image: ghcr.io/mostlygeek/llama-swap:unified-cuda13
     command: ['-config', '/config/config.yaml', '-watch-config']
     volumes:
       # Keep the config directory mounted: llama-dash writes config.yaml via atomic rename.
