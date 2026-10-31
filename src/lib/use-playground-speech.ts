@@ -15,6 +15,11 @@ function loadString(key: string, fallback: string): string {
   return localStorage.getItem(key) ?? fallback
 }
 
+// Voices differ per model, so each model remembers its own selected voice.
+function voiceStorageKey(model: string): string {
+  return `${LS_VOICE}:${model}`
+}
+
 function loadJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback
   try {
@@ -27,7 +32,7 @@ function loadJson<T>(key: string, fallback: T): T {
 
 export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
-  const [voice, setVoiceState] = useState(() => loadString(LS_VOICE, ''))
+  const [voice, setVoiceState] = useState(() => loadString(voiceStorageKey(loadString(LS_MODEL, '')), ''))
   const [speechApi, setSpeechApiState] = useState<'openai' | 'llama'>(() =>
     loadString(LS_API, 'openai') === 'llama' ? 'llama' : 'openai',
   )
@@ -52,14 +57,20 @@ export function usePlaygroundSpeech() {
     void refreshApiKey()
   }, [refreshApiKey])
 
+  // Proxies such as llama-swap route /v1/audio/voices by model, so ask for the
+  // selected model's voices and reload them when the model changes.
   useEffect(() => {
+    let cancelled = false
     const timer = setTimeout(() => {
-      void loadVoices(apiKeyRef.current, refreshApiKey).then((names) => {
-        if (names) setVoices(names)
+      void loadVoices(model, apiKeyRef.current, refreshApiKey).then((names) => {
+        if (!cancelled) setVoices(names)
       })
     }, 500)
-    return () => clearTimeout(timer)
-  }, [refreshApiKey])
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [model, refreshApiKey])
 
   useEffect(() => {
     try {
@@ -72,12 +83,16 @@ export function usePlaygroundSpeech() {
   const setModel = useCallback((v: string) => {
     setModelState(v)
     localStorage.setItem(LS_MODEL, v)
+    setVoiceState(loadString(voiceStorageKey(v), ''))
   }, [])
 
-  const setVoice = useCallback((v: string) => {
-    setVoiceState(v)
-    localStorage.setItem(LS_VOICE, v)
-  }, [])
+  const setVoice = useCallback(
+    (v: string) => {
+      setVoiceState(v)
+      localStorage.setItem(voiceStorageKey(model), v)
+    },
+    [model],
+  )
 
   const setSpeechApi = useCallback((value: 'openai' | 'llama') => {
     setSpeechApiState(value)
@@ -320,14 +335,16 @@ function bearerHeaders(apiKey: string | null, base: Record<string, string> = {})
 }
 
 async function loadVoices(
+  model: string,
   apiKey: string | null,
   refreshKey: () => Promise<string | null>,
 ): Promise<Array<string> | null> {
+  const url = model ? `/v1/audio/voices?model=${encodeURIComponent(model)}` : '/v1/audio/voices'
   try {
-    let res = await fetch('/v1/audio/voices', { headers: bearerHeaders(apiKey) })
+    let res = await fetch(url, { headers: bearerHeaders(apiKey) })
     if (res.status === 401) {
       const fresh = await refreshKey()
-      if (fresh) res = await fetch('/v1/audio/voices', { headers: bearerHeaders(fresh) })
+      if (fresh) res = await fetch(url, { headers: bearerHeaders(fresh) })
     }
     if (!res.ok) return null
     const data = await res.json()

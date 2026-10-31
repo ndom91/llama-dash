@@ -36,3 +36,36 @@ it('uses native TTS without sending the OpenAI voice and preserves WAV data', as
   expect(result.current.entries[0].voice).toBe('default')
   unmount()
 })
+
+it('asks for the voices of the selected model', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+  const fetchMock = vi.fn(async (url: string) => {
+    if (url === '/api/playground-key') return Response.json({ key: 'test-key' })
+    if (url === '/v1/audio/voices?model=kokoro%2Fkokoro') return Response.json({ voices: [{ id: 'af_heart' }] })
+    return new Response('no model id could be identified', { status: 404 })
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  const { result, unmount } = renderHook(() => usePlaygroundSpeech())
+  act(() => {
+    result.current.setModel('kokoro/kokoro')
+  })
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(600)
+  })
+  expect(result.current.voices).toEqual(['af_heart'])
+  vi.useRealTimers()
+  unmount()
+})
+
+it('remembers the selected voice per model', () => {
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({})))
+  const { result, unmount } = renderHook(() => usePlaygroundSpeech())
+  act(() => result.current.setModel('kokoro/kokoro'))
+  act(() => result.current.setVoice('af_heart'))
+  act(() => result.current.setModel('other-tts'))
+  expect(result.current.voice).toBe('')
+  act(() => result.current.setVoice('alloy'))
+  act(() => result.current.setModel('kokoro/kokoro'))
+  expect(result.current.voice).toBe('af_heart')
+  unmount()
+})
