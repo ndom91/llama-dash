@@ -624,11 +624,25 @@
     cursor: not-allowed;
   }
 
-  /* Native <option> rows inside select dropdowns — color-scheme handles the
-     popup chrome, these cover the rows themselves. */
-  option {
+  /* Native select dropdown rows. color-scheme handles the popup chrome;
+     these cover the rows themselves — Chrome paints optgroup labels and the
+     selected row white unless they're styled directly. */
+  option,
+  optgroup {
     background: var(--bg-4);
     color: var(--fg);
+    font-style: normal;
+  }
+
+  optgroup {
+    font-weight: 600;
+    color: var(--fg-muted);
+  }
+
+  option:checked {
+    background: var(--accent);
+    color: var(--accent-on);
+    font-weight: 600;
   }
 }
 
