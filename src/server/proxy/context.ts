@@ -12,7 +12,7 @@ import {
   type ProxyForwardBody,
   type ProxyBodySnapshot,
 } from './body.ts'
-import { filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
+import { deleteGatewayAuthHeaders, filterRequestHeaders, redactInjectedHeaders } from './headers.ts'
 import { proxyRoutingNeedsBody } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
@@ -53,7 +53,7 @@ export function createProxyContext(request: Request): ProxyContext {
     endpoint: url.pathname,
     defaultUpstream,
     upstream: defaultUpstream,
-    reqHeaders: filterRequestHeaders(request.headers),
+    reqHeaders: forwardableRequestHeaders(request.headers),
     attribution: extractAttribution(request.headers, getAttributionSettings()),
     routingOutcome: emptyRoutingOutcome(),
     credentialInjectionJson: null,
@@ -108,4 +108,12 @@ export function loggedRequestBody(ctx: ProxyContext): string | null {
 
 export function forwardBody(ctx: ProxyContext): ProxyForwardBody {
   return ctx.body ? getProxyForwardBody(ctx.body, ctx.request) : undefined
+}
+
+// llama-dash's own API key header identifies the caller to the proxy only; it
+// must never reach the upstream provider.
+function forwardableRequestHeaders(headers: Headers): Record<string, string> {
+  const out = filterRequestHeaders(headers)
+  deleteGatewayAuthHeaders(out)
+  return out
 }

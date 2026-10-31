@@ -169,6 +169,12 @@ See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/
 for client setup, routing rules, subscription OAuth, and provider-key flows. For
 remote MCP servers, see the [MCP relays guide](https://llama-dash.dev/docs/clients/mcp-relays).
 
+On passthrough routes the client's `Authorization` header belongs to the
+upstream provider. To attribute those requests to a llama-dash API key, also send
+the key in `x-llama-dash-api-key`. For Claude Code, set
+`"ANTHROPIC_CUSTOM_HEADERS": "x-llama-dash-api-key: sk-..."` in `env`. The header
+is never forwarded upstream.
+
 ## 🤖 Acknowledgements
 
 This project was developed with significant assistance from LLMs. Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.

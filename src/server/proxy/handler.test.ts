@@ -89,7 +89,7 @@ vi.mock('./forward.ts', async () => {
 
 import { forwardUpstreamAndLog } from './forward.ts'
 
-type ForwardInput = { upstream: string; headers: Record<string, string>; body: unknown }
+type ForwardInput = { upstream: string; headers: Record<string, string>; body: unknown; keyId: string | null }
 
 function lastForward(): ForwardInput {
   const calls = vi.mocked(forwardUpstreamAndLog).mock.calls
@@ -446,6 +446,35 @@ describe('handleProxyRequest auth/body ordering', () => {
     const forwarded = lastForward()
     expect(forwarded.upstream).toBe('https://api.anthropic.com/v1/messages')
     expect(forwarded.headers.authorization).toBe('Bearer oauth-token')
+  })
+
+  it('attributes OAuth passthrough requests to the x-llama-dash-api-key key without forwarding it', async () => {
+    const rawKey = 'sk-t3code'
+    const key = makeKey(rawKey)
+    apiKeysMock.findKeyByHash.mockImplementation((hash: string) => (hash === key.keyHash ? key : undefined))
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({
+        id: 'rrl_anthropic',
+        authMode: 'passthrough',
+        preserveAuthorization: true,
+        action: { type: 'continue' },
+        target: { type: 'direct', baseUrl: 'https://api.anthropic.com/v1' },
+        match: { ...makeRule().match, endpoints: ['/v1/messages'] },
+      }),
+    ])
+    const request = new Request('http://dash.test/v1/messages', {
+      method: 'POST',
+      headers: { authorization: 'Bearer oauth-token', 'x-llama-dash-api-key': rawKey },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001' }),
+    })
+
+    const response = await handleProxyRequest(request)
+
+    expect(response.status).toBe(200)
+    const forwarded = lastForward()
+    expect(forwarded.keyId).toBe('key_test')
+    expect(forwarded.headers.authorization).toBe('Bearer oauth-token')
+    expect(forwarded.headers['x-llama-dash-api-key']).toBeUndefined()
   })
 
   it('requires key auth before injecting stored credentials for passthrough rules', async () => {

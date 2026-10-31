@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ApiKey } from '../db/schema'
-import { authenticateGatewayRequest } from './auth'
+import { authenticateGatewayRequest, resolveApiKey } from './auth'
 
 const apiKeysMock = vi.hoisted(() => ({
   hasAnyUserKeys: vi.fn(() => true),
@@ -65,5 +65,35 @@ describe('authenticateGatewayRequest', () => {
 
     expect(result.ok).toBe(true)
     expect(result.ok && result.keyId).toBe('key_test')
+  })
+})
+
+describe('resolveApiKey', () => {
+  beforeEach(() => {
+    apiKeysMock.findKeyByHash.mockReset()
+  })
+
+  it('prefers x-llama-dash-api-key over an upstream Authorization bearer', () => {
+    const key = makeKey('sk-gateway')
+    apiKeysMock.findKeyByHash.mockImplementation((hash) => (hash === key.keyHash ? key : undefined))
+
+    const result = resolveApiKey(
+      new Request('http://dash.test/v1/messages', {
+        headers: { authorization: 'Bearer oauth-token', 'x-llama-dash-api-key': 'sk-gateway' },
+      }),
+    )
+
+    expect(result.status).toBe('valid')
+  })
+
+  it('falls back to Authorization bearer when no gateway header is present', () => {
+    const key = makeKey('sk-bearer')
+    apiKeysMock.findKeyByHash.mockImplementation((hash) => (hash === key.keyHash ? key : undefined))
+
+    const result = resolveApiKey(
+      new Request('http://dash.test/v1/chat/completions', { headers: { authorization: 'Bearer sk-bearer' } }),
+    )
+
+    expect(result.status).toBe('valid')
   })
 })
