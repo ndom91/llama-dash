@@ -1,6 +1,7 @@
 import { Plus, RotateCcw, Square } from 'lucide-react'
 import { NumberInput } from '../../components/NumberInput'
 import { Tooltip } from '../../components/Tooltip'
+import { useProviderConnections } from '../../lib/queries'
 import type { SamplingParams } from '../../lib/stream-chat'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
@@ -38,6 +39,8 @@ export function PlaygroundSession({
   const localModels = models.filter((m) => m.kind === 'local')
   const peerModels = models.filter((m) => m.kind === 'peer')
   const selectors = models.filter((m) => m.kind === 'selector')
+  const { data: providerConnections = [] } = useProviderConnections()
+  const providerModels = providerConnections.flatMap((connection) => connection.models)
 
   return (
     <aside className="pg-session-shell flex min-h-0 flex-col gap-2 overflow-y-auto border-r border-border bg-surface-1 px-4 pt-3.5 pb-5 shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)]">
@@ -96,6 +99,15 @@ export function PlaygroundSession({
                 <option key={m.id} value={m.id}>
                   {m.id}
                   {m.running ? ' ●' : ''}
+                </option>
+              ))}
+            </optgroup>
+          ) : null}
+          {providerModels.length > 0 ? (
+            <optgroup label="Providers">
+              {providerModels.map((id) => (
+                <option key={id} value={id}>
+                  {id}
                 </option>
               ))}
             </optgroup>

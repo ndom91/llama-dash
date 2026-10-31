@@ -10,7 +10,13 @@ import {
   deleteUpstreamCredential,
   getCredentialInjectionSecret,
 } from './upstream-credentials.ts'
-import { createRoutingRule, deleteRoutingRule, listRoutingRules, reorderRoutingRules } from './routing-rules.ts'
+import {
+  createRoutingRule,
+  deleteRoutingRule,
+  listRoutingRules,
+  reorderRoutingRules,
+  updateRoutingRule,
+} from './routing-rules.ts'
 
 /**
  * Provider connections let the operator hand llswap-dash a subscription API key
@@ -165,11 +171,25 @@ export async function refreshProviderModels(targetId: string): Promise<ProviderC
   db.update(schema.providerConnections)
     .set({
       modelsJson: JSON.stringify(probe.models),
-      modelsDiscoveredAt: now,
+      modelsDiscoveredAt: probe.models.length > 0 ? now : null,
       updatedAt: now,
     })
     .where(eq(schema.providerConnections.id, connection.id))
     .run()
+
+  // Re-scope each rule to the refreshed model list so provider rules never
+  // claim models the provider doesn't serve (and disable them when it serves
+  // none we know of).
+  const rulesById = new Map(listRoutingRules().map((rule) => [rule.id, rule]))
+  for (const ruleId of connection.routingRuleIds) {
+    const rule = rulesById.get(ruleId)
+    if (!rule) continue
+    updateRoutingRule(ruleId, {
+      match: { ...rule.match, requestedModels: [...probe.models] },
+      enabled: probe.models.length > 0,
+    })
+  }
+
   return toApiShape(
     db.select().from(schema.providerConnections).where(eq(schema.providerConnections.id, connection.id)).get()!,
   )
@@ -197,16 +217,18 @@ export async function connectProvider(input: ConnectProviderBody): Promise<Provi
   const probe = await probeSurfaceModels(target, apiKey)
 
   // One routing rule per surface: each claims only that surface's proxy
-  // endpoints and forwards to that surface's mount path on the target origin.
+  // endpoints and ONLY the models this provider actually serves — a rule with
+  // an empty model list would hijack every request, including local
+  // llama-swap models. Rules stay disabled until models are discovered.
   const ruleIds: string[] = []
   try {
     for (const surface of target.surfaces) {
       const rule = createRoutingRule({
         name: `${target.label} · ${surface.apiStyle}`,
-        enabled: true,
+        enabled: probe.models.length > 0,
         match: {
           endpoints: [...surface.matchEndpoints],
-          requestedModels: [],
+          requestedModels: [...probe.models],
           apiKeyIds: [],
           stream: 'any' as const,
           minEstimatedPromptTokens: '',

@@ -67,6 +67,9 @@ it('connecting a target wires one credential, one rule per surface, and discover
     expect(rule.target.type === 'direct' && rule.target.credentialId).toBe(creds[0].id)
     expect(rule.authMode).toBe('require_key')
     expect(rule.action.type).toBe('continue')
+    // Provider rules only claim the provider's own models — never local ones.
+    expect(rule.match.requestedModels).toEqual(['mimo-v2.6-pro', 'mimo-v2.6-flash'])
+    expect(rule.enabled).toBe(true)
   }
 
   // The anthropic surface claims Messages endpoints only.
@@ -76,13 +79,18 @@ it('connecting a target wires one credential, one rule per surface, and discover
 
 it('connecting without a reachable models listing still works with an empty model list', async () => {
   const fetchMock = vi.fn(async () => new Response('down', { status: 500 }))
-  const { providers } = await loadProviderModule(fetchMock as unknown as typeof fetch)
+  const { providers, rules } = await loadProviderModule(fetchMock as unknown as typeof fetch)
 
   const connection = await providers.connectProvider({ targetId: 'minimax', apiKey: 'sk-minimax' })
 
   expect(connection.models).toEqual([])
   expect(connection.modelsDiscoveredAt).toBeNull()
   expect(connection.routingRuleIds).toHaveLength(2)
+  // With no known models the rules stay disabled so they can't hijack traffic.
+  for (const rule of rules.listRoutingRules()) {
+    expect(rule.match.requestedModels).toEqual([])
+    expect(rule.enabled).toBe(false)
+  }
 })
 
 it('rejects a second connection for the same target and unknown targets', async () => {
@@ -114,13 +122,17 @@ it('disconnecting removes every rule and the credential', async () => {
   expect(providers.disconnectProvider('zai-coding')).toBe(false)
 })
 
-it('refresh re-discovers models from the provider', async () => {
+it('refresh re-discovers models and re-scopes the routing rules', async () => {
   let response = ['old-model']
   const fetchMock = vi.fn(async () => modelsResponse(response))
-  const { providers } = await loadProviderModule(fetchMock as unknown as typeof fetch)
+  const { providers, rules } = await loadProviderModule(fetchMock as unknown as typeof fetch)
 
   await providers.connectProvider({ targetId: 'minimax', apiKey: 'sk-minimax' })
   response = ['new-model-a', 'new-model-b']
   const refreshed = await providers.refreshProviderModels('minimax')
   expect(refreshed.models).toEqual(['new-model-a', 'new-model-b'])
+  for (const rule of rules.listRoutingRules()) {
+    expect(rule.match.requestedModels).toEqual(['new-model-a', 'new-model-b'])
+    expect(rule.enabled).toBe(true)
+  }
 })

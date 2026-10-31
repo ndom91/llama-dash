@@ -3,10 +3,12 @@ import { type FormEvent, type KeyboardEvent, useCallback, useState } from 'react
 import { Tooltip } from '../../components/Tooltip'
 import { api, type ArticleExtractResponse } from '../../lib/api'
 import { cn } from '../../lib/cn'
-import { useModels } from '../../lib/queries'
+import { useModels, useProviderConnections } from '../../lib/queries'
 import { type SpeechSegment, usePlaygroundSpeech } from '../../lib/use-playground-speech'
+import { PlaygroundDropOverlay } from './PlaygroundDropOverlay'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
 import { PlaygroundSpeechSegmentedPlayer } from './PlaygroundSpeechSegmentedPlayer'
+import { isTextFile, usePlaygroundFileDrop } from './use-playground-file-drop'
 import { buildSpeechFilename, formatSpeechClock } from './playgroundSpeechUtils'
 
 type SpeechMode = 'text' | 'article'
@@ -20,8 +22,17 @@ export function PlaygroundSpeech() {
   const [articleLoading, setArticleLoading] = useState(false)
   const [articleError, setArticleError] = useState<string | null>(null)
   const { data: models } = useModels()
+  const { data: providerConnections = [] } = useProviderConnections()
+  const providerModels = providerConnections.flatMap((connection) => connection.models)
   const localModels = models?.filter((m) => m.kind === 'local') ?? []
   const peerModels = models?.filter((m) => m.kind === 'peer') ?? []
+  // Dropped text files become the speech input text.
+  const { dragging, dropHandlers } = usePlaygroundFileDrop({
+    accepts: isTextFile,
+    onFile: (file) => {
+      void file.text().then((text) => speech.setText(text))
+    },
+  })
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
@@ -119,7 +130,12 @@ export function PlaygroundSpeech() {
   const articleReady = Boolean(article && articleText.trim())
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col" {...dropHandlers}>
+      <PlaygroundDropOverlay
+        show={dragging}
+        title="Drop a text file for speech input"
+        hint="The file contents become the text below. Drop audio in Transcribe."
+      />
       <div className="border-b border-border bg-surface-1/70 px-6 py-3">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
@@ -146,6 +162,15 @@ export function PlaygroundSpeech() {
                   {peerModels.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.id}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {providerModels.length > 0 ? (
+                <optgroup label="Providers">
+                  {providerModels.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
                     </option>
                   ))}
                 </optgroup>

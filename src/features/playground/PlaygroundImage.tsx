@@ -1,15 +1,22 @@
 import { ImageIcon, Loader2, Trash2 } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback } from 'react'
 import { Tooltip } from '../../components/Tooltip'
-import { useModels } from '../../lib/queries'
+import { useModels, useProviderConnections } from '../../lib/queries'
 import { usePlaygroundImage } from '../../lib/use-playground-image'
+import { PlaygroundDropOverlay } from './PlaygroundDropOverlay'
+import { usePlaygroundFileDrop } from './use-playground-file-drop'
 import { PlaygroundImageEntryCard } from './PlaygroundImageEntryCard'
 
 export function PlaygroundImage() {
   const img = usePlaygroundImage()
   const { data: models } = useModels()
+  const { data: providerConnections = [] } = useProviderConnections()
+  const providerModels = providerConnections.flatMap((connection) => connection.models)
   const localModels = models?.filter((m) => m.kind === 'local') ?? []
   const peerModels = models?.filter((m) => m.kind === 'peer') ?? []
+  // Text-to-image takes no file input — the drop shield only replaces the
+  // browser's white drag chrome and explains where files ARE accepted.
+  const { dragging, dropHandlers } = usePlaygroundFileDrop({ accepts: () => false, onFile: () => {} })
 
   const handleSubmit = useCallback(
     (e: FormEvent) => {
@@ -44,7 +51,12 @@ export function PlaygroundImage() {
   }, [])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col" {...dropHandlers}>
+      <PlaygroundDropOverlay
+        show={dragging}
+        title="No file input in this tab"
+        hint="Image generation runs from the prompt. Drop audio in Transcribe, or a text file in Speech."
+      />
       <div className="border-b border-border bg-surface-1/70 px-6 py-3">
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
@@ -71,6 +83,15 @@ export function PlaygroundImage() {
                   {peerModels.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.id}
+                    </option>
+                  ))}
+                </optgroup>
+              ) : null}
+              {providerModels.length > 0 ? (
+                <optgroup label="Providers">
+                  {providerModels.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
                     </option>
                   ))}
                 </optgroup>
