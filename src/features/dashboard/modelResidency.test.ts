@@ -65,16 +65,12 @@ describe('groupModels', () => {
     model({ id: 'asr/p', kind: 'peer', peerId: 'asr', peerHost: 'http://voice.lan:10314', running: false }),
   ]
 
-  it('hides unloaded local models and selectors by default and puts every peer in one group', () => {
-    const groups = groupModels(models, false, 'swap:8080')
+  it('hides unloaded local models and selectors and puts every peer in one group', () => {
+    const groups = groupModels(models, 'swap:8080')
     expect(groups.map((g) => [g.kind, g.host, g.models.map((m) => m.id)])).toEqual([
       ['local', 'swap:8080', ['busy']],
       ['peer', 'rig-02, voice.lan', ['asr/p', 'kokoro/kokoro', 'tts/q']],
     ])
-  })
-
-  it('lists unloaded local models after resident ones when requested', () => {
-    expect(groupModels(models, true, null)[0].models.map((m) => m.id)).toEqual(['busy', 'idle'])
   })
 })
 

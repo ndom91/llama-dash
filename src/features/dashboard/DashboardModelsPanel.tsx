@@ -32,7 +32,6 @@ const EMPTY_SPANS: never[] = []
 
 export function DashboardModelsPanel({ models, health }: Props) {
   const [windowMs, setWindowMs] = useState<ResidencyWindowMs>(DEFAULT_RESIDENCY_WINDOW_MS)
-  const [showUnloaded, setShowUnloaded] = useState(false)
   const { data: events } = useModelTimeline(windowMs)
   const { data: activity } = useModelActivity(windowMs)
   const loadModel = useLoadModel()
@@ -46,11 +45,10 @@ export function DashboardModelsPanel({ models, health }: Props) {
       configured: list.length,
       running: list.filter((m) => m.kind === 'local' && m.running).length,
       peers: list.filter((m) => m.kind === 'peer').length,
-      unloaded: list.filter((m) => m.kind === 'local' && !m.running).length,
     }
   }, [models])
 
-  const groups = useMemo(() => groupModels(models ?? [], showUnloaded, localHost), [models, showUnloaded, localHost])
+  const groups = useMemo(() => groupModels(models ?? [], localHost), [models, localHost])
 
   // Use the bucket-aligned activity range as the frame so ticks and spans share one axis.
   const { frame, spans, loadedAt } = useMemo(() => {
@@ -79,8 +77,8 @@ export function DashboardModelsPanel({ models, health }: Props) {
   const bucketMs = activity?.bucketMs ?? windowMs
 
   return (
-    <section className="panel border-t !rounded-none !border-x-0 !border-t-0 !bg-surface-1">
-      <div className="panel-head flex-wrap bg-transparent px-4 max-[700px]:h-auto">
+    <section className="panel !rounded-none !bg-surface-1">
+      <div className="panel-head h-11 flex-wrap bg-transparent px-4 py-0 max-[700px]:h-auto max-[700px]:py-2">
         <span className="panel-title">Models</span>
         <span className="panel-sub">
           {models == null
@@ -88,17 +86,6 @@ export function DashboardModelsPanel({ models, health }: Props) {
             : `${counts.running} running${counts.peers > 0 ? ` · ${counts.peers} peer` : ''} · ${counts.configured} configured`}
         </span>
         <div className="ml-auto flex items-center gap-3">
-          {counts.unloaded > 0 ? (
-            <label className="flex cursor-pointer items-center gap-1.5 font-mono text-[11px] text-fg-dim transition-colors hover:text-fg">
-              <input
-                type="checkbox"
-                className="accent-accent"
-                checked={showUnloaded}
-                onChange={(event) => setShowUnloaded(event.target.checked)}
-              />
-              show unloaded ({counts.unloaded})
-            </label>
-          ) : null}
           <SegmentedControl
             legend="Residency window"
             options={RESIDENCY_WINDOWS}

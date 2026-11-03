@@ -99,21 +99,17 @@ export function formatAgo(ts: number, now: number): string {
 
 export type ModelGroup = { kind: 'local' | 'peer'; key: string; host: string | null; models: Array<ApiModel> }
 
-/** Local models (resident first), then every peer in one group whose header lists the distinct peer hosts. */
-export function groupModels(
-  models: ReadonlyArray<ApiModel>,
-  showUnloaded: boolean,
-  localHost: string | null,
-): Array<ModelGroup> {
+/** Resident local models, then every peer in one group whose header lists the distinct peer hosts. */
+export function groupModels(models: ReadonlyArray<ApiModel>, localHost: string | null): Array<ModelGroup> {
   const local: Array<ApiModel> = []
   const peers: Array<ApiModel> = []
   for (const model of models) {
     if (model.kind === 'selector') continue
     if (model.kind === 'peer') peers.push(model)
-    else if (model.running || showUnloaded) local.push(model)
+    else if (model.running) local.push(model)
   }
 
-  local.sort((a, b) => Number(b.running) - Number(a.running) || a.id.localeCompare(b.id))
+  local.sort((a, b) => a.id.localeCompare(b.id))
   peers.sort((a, b) => a.id.localeCompare(b.id))
   const groups: Array<ModelGroup> = []
   if (local.length > 0) groups.push({ kind: 'local', key: 'local', host: localHost, models: local })

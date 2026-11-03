@@ -18,7 +18,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
   const maxDuration = useMemo(() => Math.max(0, ...(requests?.map((r) => r.durationMs) ?? [])), [requests])
 
   return (
-    <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+    <section className="panel !rounded-none border-t !bg-surface-1 flex min-h-0 flex-1 flex-col">
       <div className="panel-head bg-transparent px-4">
         <span className="panel-title">Recent requests</span>
         <span className="panel-sub">
