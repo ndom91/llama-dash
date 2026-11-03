@@ -52,16 +52,12 @@ export function DashboardModelsPanel({ models, health }: Props) {
 
   const groups = useMemo(() => groupModels(models ?? [], showUnloaded, localHost), [models, showUnloaded, localHost])
 
-  // The activity response is bucket-aligned; use its range as the frame so
-  // ticks and spans share one time axis. Before it arrives, fall back to
-  // "the last windowMs". `now` is derived inside the memo — as a render-body
-  // dependency it would invalidate the memo on every render.
+  // Use the bucket-aligned activity range as the frame so ticks and spans share one axis.
   const { frame, spans, loadedAt } = useMemo(() => {
     const now = Date.now()
-    const frame: ResidencyFrame =
-      activity && activity.windowMs === windowMs
-        ? { start: activity.since, end: activity.since + activity.windowMs, now }
-        : { start: now - windowMs, end: now, now }
+    const frame: ResidencyFrame = activity
+      ? { start: activity.since, end: activity.since + activity.windowMs, now }
+      : { start: now - windowMs, end: now, now }
     return {
       frame,
       spans: buildResidencySpans(events ?? [], frame),
@@ -74,8 +70,6 @@ export function DashboardModelsPanel({ models, health }: Props) {
     [activity],
   )
 
-  // Identity colours are hashed from the model id (not list position) and only
-  // spent on local models — peers have no local residency to colour.
   const seriesSteps = useMemo(
     () => assignSeriesSteps(groups.flatMap((g) => (g.kind === 'local' ? g.models.map((m) => m.id) : []))),
     [groups],
@@ -167,13 +161,12 @@ export function DashboardModelsPanel({ models, health }: Props) {
                   key={model.id}
                   model={model}
                   frame={frame}
-                  spans={group.kind === 'local' ? (spans.get(model.id) ?? EMPTY_SPANS) : EMPTY_SPANS}
-                  color={group.kind === 'local' && step != null ? seriesVar(step) : null}
+                  spans={spans.get(model.id) ?? EMPTY_SPANS}
+                  color={step != null ? seriesVar(step) : null}
                   loadedAt={loadedAt.get(model.id) ?? null}
                   activity={activityByModel.get(model.id)}
                   bucketMs={bucketMs}
-                  onLoad={(id) => loadModel.mutate(id)}
-                  onUnload={(id) => unloadModel.mutate(id)}
+                  onToggleLoaded={() => (model.running ? unloadModel : loadModel).mutate(model.id)}
                 />
               )
             })}

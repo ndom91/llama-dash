@@ -1,4 +1,5 @@
 import { gte } from 'drizzle-orm'
+import type { ApiModelActivity, ApiModelActivityEntry } from '../../lib/schemas/model.ts'
 import { db, schema, sqliteDb } from '../db/index.ts'
 
 export function getModelTimeline(windowMs = 30 * 60_000) {
@@ -39,12 +40,8 @@ export function getModelTimeline(windowMs = 30 * 60_000) {
 /** Ticks per window. 1h → 15s buckets, 24h → 6min buckets. */
 export const MODEL_ACTIVITY_BUCKETS = 240
 
-/**
- * Per-model inference request activity over the window, bucketed so the
- * payload stays bounded regardless of traffic. Drives the request ticks on
- * the dashboard's model residency tracks.
- */
-export function getModelActivity(windowMs: number, now = Date.now()) {
+/** Per-model inference request counts, bucketed so the payload stays bounded regardless of traffic. */
+export function getModelActivity(windowMs: number, now = Date.now()): ApiModelActivity {
   const bucketMs = Math.max(1000, Math.ceil(windowMs / MODEL_ACTIVITY_BUCKETS))
   // Align the window to bucket boundaries so ticks don't shuffle between
   // neighbouring buckets on every refetch.
@@ -71,22 +68,10 @@ export function getModelActivity(windowMs: number, now = Date.now()) {
     lastAt: number
   }>
 
-  const byModel = new Map<
-    string,
-    {
-      model: string
-      total: number
-      errors: number
-      lastAt: number | null
-      ticks: Array<{ bucket: number; count: number; errors: number }>
-    }
-  >()
+  const byModel = new Map<string, ApiModelActivityEntry>()
   for (const row of rows) {
-    let entry = byModel.get(row.model)
-    if (!entry) {
-      entry = { model: row.model, total: 0, errors: 0, lastAt: null, ticks: [] }
-      byModel.set(row.model, entry)
-    }
+    const entry = byModel.get(row.model) ?? { model: row.model, total: 0, errors: 0, lastAt: row.lastAt, ticks: [] }
+    byModel.set(row.model, entry)
     entry.total += row.count
     entry.errors += row.errors
     entry.lastAt = Math.max(entry.lastAt ?? 0, row.lastAt)

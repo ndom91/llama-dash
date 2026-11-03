@@ -21,7 +21,6 @@ export type ResidencySpan = {
   open: boolean
 }
 
-/** Pairs load/unload events into per-model resident spans, clipped to the frame. */
 export function buildResidencySpans(
   events: ReadonlyArray<ApiModelEvent>,
   frame: ResidencyFrame,
@@ -97,16 +96,14 @@ export function formatAgo(ts: number, now: number): string {
   return `${Math.round(mins / 60)}h ago`
 }
 
-export type ModelGroup =
-  | { kind: 'local'; key: string; host: string | null; models: Array<ApiModel> }
-  | { kind: 'peer'; key: string; host: string; models: Array<ApiModel> }
+export type ModelGroup = { kind: 'local' | 'peer'; key: string; host: string | null; models: Array<ApiModel> }
 
-/**
- * Local models first (resident before unloaded), then one group per peer host.
- * Peers are keyed by their proxy host when the config exposes it so several
- * llama-swap `peers:` entries on one machine share a header.
- */
-export function groupModels(models: ReadonlyArray<ApiModel>, showUnloaded: boolean, localHost: string | null) {
+/** Local models (resident first), then one group per peer host so peers on one machine share a header. */
+export function groupModels(
+  models: ReadonlyArray<ApiModel>,
+  showUnloaded: boolean,
+  localHost: string | null,
+): Array<ModelGroup> {
   const local: Array<ApiModel> = []
   const peers = new Map<string, Array<ApiModel>>()
   for (const model of models) {
@@ -132,10 +129,7 @@ export function groupModels(models: ReadonlyArray<ApiModel>, showUnloaded: boole
 
 export type PeerHealth = { tone: 'ok' | 'warn' | 'err' | 'idle'; label: string; lastAt: number | null }
 
-/**
- * llama-swap does not report peer health, so derive it from the requests the
- * proxy actually routed to this host's models inside the window.
- */
+/** llama-swap doesn't report peer health, so derive it from proxied requests in the window. */
 export function derivePeerHealth(
   models: ReadonlyArray<ApiModel>,
   activity: ReadonlyMap<string, ApiModelActivityEntry>,

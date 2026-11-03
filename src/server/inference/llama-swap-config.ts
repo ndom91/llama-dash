@@ -77,12 +77,7 @@ export function getLlamaSwapPeerHosts(): Map<string, string> {
   for (const [peerId, peerConfig] of Object.entries(peers as Record<string, unknown>)) {
     if (!peerConfig || typeof peerConfig !== 'object' || !('proxy' in peerConfig)) continue
     const proxy = peerConfig.proxy
-    if (typeof proxy !== 'string') continue
-    try {
-      hosts.set(peerId, new URL(proxy).host)
-    } catch {
-      // Unparseable proxy URLs fall back to the peer id in the UI.
-    }
+    if (typeof proxy === 'string' && URL.canParse(proxy)) hosts.set(peerId, new URL(proxy).host)
   }
   return hosts
 }

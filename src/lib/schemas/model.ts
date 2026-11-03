@@ -23,7 +23,6 @@ export const ApiModelSchema = v.object({
   name: v.string(),
   kind: v.union([v.literal('local'), v.literal('peer'), v.literal('selector')]),
   peerId: v.nullable(v.string()),
-  /** Host of the peer's proxy URL from the backend config, when known. */
   peerHost: v.nullable(v.string()),
   selector: v.nullable(ApiModelSelectorSchema),
   contextLength: v.nullable(v.number()),
@@ -53,7 +52,6 @@ export const ModelTimelineResponseSchema = v.object({
 })
 
 export const ModelActivityTickSchema = v.object({
-  /** Bucket index from the start of the window. */
   bucket: v.number(),
   count: v.number(),
   errors: v.number(),

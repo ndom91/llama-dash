@@ -62,8 +62,6 @@ function LlamaSwapLogsPage() {
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
   const [wrap, setWrap] = useState(true)
-  // `?q=` lets other pages deep-link into a pre-filtered log view (e.g. the
-  // dashboard's per-model "logs" action).
   const initialSearch = useSearch({ from: '/logs' }).q ?? ''
   const [search, setSearch] = useState(initialSearch)
   const [useRegex, setUseRegex] = useState(false)

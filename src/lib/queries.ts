@@ -169,7 +169,6 @@ export function useModelActivity(windowMs: number): UseQueryResult<ApiModelActiv
     queryKey: qk.modelActivityWindow(windowMs),
     queryFn: ({ signal }) => api.modelActivity(windowMs, { signal }),
     refetchInterval: FALLBACK_POLL_MS,
-    placeholderData: keepPreviousData,
   })
 }
 
