@@ -50,6 +50,7 @@ describe('axisLabels', () => {
 describe('formatResident', () => {
   it('switches to hours past 60 minutes', () => {
     expect(formatResident(47 * 60_000)).toBe('47m')
+    expect(formatResident(60 * 60_000)).toBe('60m')
     expect(formatResident(125 * 60_000)).toBe('2h 5m')
   })
 })
@@ -61,13 +62,14 @@ describe('groupModels', () => {
     model({ id: 'sel', kind: 'selector' }),
     model({ id: 'kokoro/kokoro', kind: 'peer', peerId: 'kokoro', peerHost: 'rig-02:8080', running: false }),
     model({ id: 'tts/q', kind: 'peer', peerId: 'tts', peerHost: 'rig-02:8080', running: false }),
+    model({ id: 'asr/p', kind: 'peer', peerId: 'asr', peerHost: 'http://voice.lan:10314', running: false }),
   ]
 
-  it('hides unloaded local models and selectors by default and groups peers by host', () => {
+  it('hides unloaded local models and selectors by default and puts every peer in one group', () => {
     const groups = groupModels(models, false, 'swap:8080')
     expect(groups.map((g) => [g.kind, g.host, g.models.map((m) => m.id)])).toEqual([
       ['local', 'swap:8080', ['busy']],
-      ['peer', 'rig-02:8080', ['kokoro/kokoro', 'tts/q']],
+      ['peer', 'rig-02, voice.lan', ['asr/p', 'kokoro/kokoro', 'tts/q']],
     ])
   })
 

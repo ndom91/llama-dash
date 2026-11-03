@@ -33,7 +33,7 @@ export function DashboardModelRow({ model, frame, spans, color, loadedAt, activi
     <div
       className={cn(
         MODEL_ROW_GRID,
-        'group relative min-h-12 cursor-pointer border-b border-border py-2 transition-colors duration-100 hover:bg-surface-2',
+        'group relative min-h-11 cursor-pointer border-b border-border py-1.5 transition-colors duration-100 hover:bg-surface-2',
         clickableRowFocusClass,
       )}
       {...clickableRowProps(() => navigate({ to: '/models/$id', params: { id: model.id } }))}
@@ -74,7 +74,7 @@ export function DashboardModelRow({ model, frame, spans, color, loadedAt, activi
         )}
       </div>
 
-      <div className="min-w-0 font-mono max-[900px]:hidden">
+      <div className="min-w-0 whitespace-nowrap font-mono max-[900px]:hidden">
         <div className={cn('text-[11px]', isPeer ? 'text-fg-dim' : `state-label state-label-${tone}`)}>
           {stateLabel}
         </div>
@@ -94,7 +94,12 @@ export function DashboardModelRow({ model, frame, spans, color, loadedAt, activi
         dim={!isPeer && !model.running}
       />
 
-      <div className="text-right font-mono text-[11px] tabular-nums text-fg-dim max-[900px]:hidden">
+      <div
+        className={cn(
+          'text-right font-mono text-[12px] tabular-nums max-[900px]:hidden',
+          residentMs > 0 ? 'text-fg' : 'text-fg-faint',
+        )}
+      >
         {residentMs > 0 ? formatResident(residentMs) : '—'}
       </div>
       <div className={cn('text-right font-mono text-[12px] tabular-nums', requests > 0 ? 'text-fg' : 'text-fg-faint')}>

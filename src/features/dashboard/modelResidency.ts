@@ -75,7 +75,7 @@ function trimNumber(value: number): string {
 
 export function formatResident(ms: number): string {
   const mins = Math.round(ms / 60_000)
-  if (mins < 60) return `${mins}m`
+  if (mins <= 60) return `${mins}m`
   const h = Math.floor(mins / 60)
   const m = mins % 60
   return m === 0 ? `${h}h` : `${h}h ${m}m`
@@ -85,7 +85,8 @@ export function formatClock(ts: number, now: number): string {
   const d = new Date(ts)
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
   if (now - ts < 20 * 60 * 60_000) return time
-  return `${d.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${time}`
+  // Date only for older loads so the state column stays two lines.
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
 }
 
 export function formatAgo(ts: number, now: number): string {
@@ -98,33 +99,36 @@ export function formatAgo(ts: number, now: number): string {
 
 export type ModelGroup = { kind: 'local' | 'peer'; key: string; host: string | null; models: Array<ApiModel> }
 
-/** Local models (resident first), then one group per peer host so peers on one machine share a header. */
+/** Local models (resident first), then every peer in one group whose header lists the distinct peer hosts. */
 export function groupModels(
   models: ReadonlyArray<ApiModel>,
   showUnloaded: boolean,
   localHost: string | null,
 ): Array<ModelGroup> {
   const local: Array<ApiModel> = []
-  const peers = new Map<string, Array<ApiModel>>()
+  const peers: Array<ApiModel> = []
   for (const model of models) {
     if (model.kind === 'selector') continue
-    if (model.kind === 'peer') {
-      const host = model.peerHost ?? model.peerId ?? 'peer'
-      const list = peers.get(host) ?? []
-      list.push(model)
-      peers.set(host, list)
-      continue
-    }
-    if (model.running || showUnloaded) local.push(model)
+    if (model.kind === 'peer') peers.push(model)
+    else if (model.running || showUnloaded) local.push(model)
   }
 
   local.sort((a, b) => Number(b.running) - Number(a.running) || a.id.localeCompare(b.id))
+  peers.sort((a, b) => a.id.localeCompare(b.id))
   const groups: Array<ModelGroup> = []
   if (local.length > 0) groups.push({ kind: 'local', key: 'local', host: localHost, models: local })
-  for (const [host, list] of [...peers.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    groups.push({ kind: 'peer', key: `peer:${host}`, host, models: list.sort((a, b) => a.id.localeCompare(b.id)) })
-  }
+  if (peers.length > 0) groups.push({ kind: 'peer', key: 'peer', host: peerHostLabel(peers), models: peers })
   return groups
+}
+
+/** Hostnames without ports: one machine often serves several peers on different ports. */
+function peerHostLabel(peers: ReadonlyArray<ApiModel>): string | null {
+  const hosts = new Set<string>()
+  for (const peer of peers) {
+    const host = peer.peerHost ?? peer.peerId
+    if (host) hosts.add(host.replace(/^[a-z]+:\/\//i, '').replace(/:\d+$/, ''))
+  }
+  return hosts.size > 0 ? [...hosts].sort().join(', ') : null
 }
 
 export type PeerHealth = { tone: 'ok' | 'warn' | 'err' | 'idle'; label: string; lastAt: number | null }
@@ -152,4 +156,4 @@ export function derivePeerHealth(
 
 /** Shared by the column header and every model row so the track columns line up. */
 export const MODEL_ROW_GRID =
-  'grid grid-cols-[20px_minmax(150px,1.15fr)_96px_minmax(0,2.4fr)_64px_52px] items-center gap-x-3 px-4 max-[900px]:grid-cols-[20px_minmax(0,1fr)_minmax(0,1.4fr)_44px]'
+  'grid grid-cols-[20px_minmax(160px,1.15fr)_88px_minmax(0,1fr)_72px_72px] items-center gap-x-3 px-4 max-[900px]:grid-cols-[20px_minmax(0,1fr)_minmax(0,1.4fr)_44px]'
