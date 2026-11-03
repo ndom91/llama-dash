@@ -12,6 +12,7 @@ import {
   getLlamaSwapConfigContextLengths,
   getLlamaSwapModelConfigSnippet,
   getLlamaSwapModelLogNames,
+  getLlamaSwapPeerHosts,
 } from '../llama-swap-config.ts'
 
 function pickLlamaSwapModelContextLength(model: OpenAiModel): number | null {
@@ -146,6 +147,7 @@ export function createLlamaSwapBackend(): InferenceBackend {
     modelLogNames: getLlamaSwapModelLogNames,
     modelConfigSnippet: getLlamaSwapModelConfigSnippet,
     modelContextLengthHints: getLlamaSwapConfigContextLengths,
+    peerHostHints: getLlamaSwapPeerHosts,
     async loadModel(id) {
       await llamaSwap.loadModel(id)
     },

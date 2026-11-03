@@ -71,6 +71,8 @@ export type InferenceBackend = {
   modelLogNames?(modelId: string): Array<string>
   modelConfigSnippet?(modelId: string): string | null
   modelContextLengthHints?(): Map<string, number>
+  /** Peer id → host of the peer's proxy URL. */
+  peerHostHints?(): Map<string, string>
   loadModel?(id: string): Promise<void>
   unloadModel?(id: string): Promise<void>
   unloadAll?(): Promise<void>

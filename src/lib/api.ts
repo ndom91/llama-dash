@@ -14,7 +14,12 @@ import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
-import { ModelDetailResponseSchema, ModelsResponseSchema, ModelTimelineResponseSchema } from './schemas/model'
+import {
+  ModelActivityResponseSchema,
+  ModelDetailResponseSchema,
+  ModelsResponseSchema,
+  ModelTimelineResponseSchema,
+} from './schemas/model'
 import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
@@ -33,6 +38,9 @@ import {
 
 export type {
   ApiModel,
+  ApiModelActivity,
+  ApiModelActivityEntry,
+  ApiModelActivityTick,
   ApiModelDetail,
   ApiModelEvent,
   ApiModelKeyBreakdown,
@@ -181,6 +189,8 @@ export const api = {
     const q = windowMs != null ? `?window=${windowMs}` : ''
     return getJson(`/api/model-timeline${q}`, ModelTimelineResponseSchema, { priority: 'low', ...options })
   },
+  modelActivity: (windowMs: number, options: ApiFetchOptions = {}) =>
+    getJson(`/api/model-activity?window=${windowMs}`, ModelActivityResponseSchema, { priority: 'low', ...options }),
   gpu: (options: ApiFetchOptions = {}) => getJson('/api/gpu', GpuSnapshotSchema, { priority: 'low', ...options }),
   usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
   usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),

@@ -25,6 +25,7 @@ import {
   type ApiKeyItem,
   type ApiModel,
   type ApiModelDetail,
+  type ApiModelActivity,
   type ApiModelEvent,
   type ApiRequest,
   type ApiRequestStats,
@@ -154,10 +155,19 @@ export function useGpu(): UseQueryResult<ApiGpuSnapshot> {
   })
 }
 
-export function useModelTimeline(): UseQueryResult<Array<ApiModelEvent>> {
+export function useModelTimeline(windowMs: number): UseQueryResult<Array<ApiModelEvent>> {
   return useQuery({
-    queryKey: qk.modelTimeline,
-    queryFn: ({ signal }) => api.modelTimeline(undefined, { signal }).then((r) => r.events),
+    queryKey: qk.modelTimelineWindow(windowMs),
+    queryFn: ({ signal }) => api.modelTimeline(windowMs, { signal }).then((r) => r.events),
+    refetchInterval: FALLBACK_POLL_MS,
+    placeholderData: (previous) => previous,
+  })
+}
+
+export function useModelActivity(windowMs: number): UseQueryResult<ApiModelActivity> {
+  return useQuery({
+    queryKey: qk.modelActivityWindow(windowMs),
+    queryFn: ({ signal }) => api.modelActivity(windowMs, { signal }),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }

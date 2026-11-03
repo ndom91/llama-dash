@@ -1887,6 +1887,31 @@ a,
   }
 }
 
+/* Resident but still starting: a real state, so --warn is allowed here. */
+.residency-span-loading {
+  background-color: color-mix(in oklab, var(--warn) 10%, transparent);
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--warn) 55%, transparent) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+/* Surface-coloured hairlines keep ticks legible on top of light series spans. */
+.residency-tick {
+  box-shadow:
+    -1px 0 0 color-mix(in oklab, var(--surface-1) 70%, transparent),
+    1px 0 0 color-mix(in oklab, var(--surface-1) 70%, transparent);
+}
+
+@media (forced-colors: active) {
+  .residency-span-loading {
+    background-image: none;
+    outline: 1px dashed CanvasText;
+    outline-offset: -1px;
+  }
+}
+
 /* ---- dashboard grid ---- */
 
 .dash-grid {

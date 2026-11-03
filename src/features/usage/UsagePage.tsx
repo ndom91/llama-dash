@@ -11,7 +11,7 @@ import { GENERATED_SERIES, PROMPT_SERIES, UsageDailyChart } from './UsageDailyCh
 import { UsageLegendSwatch } from './UsageLegendSwatch'
 import { UsagePanel } from './UsagePanel'
 import { UsagePeriodSwitch } from './UsagePeriodSwitch'
-import { UsageSegmentedControl } from './UsageSegmentedControl'
+import { SegmentedControl } from '../../components/SegmentedControl'
 import { UsageTotalsRow } from './UsageTotalsRow'
 import { USAGE_DIMENSION_META } from './usageDimensions'
 import { formatUsageDay, type UsageChartMode } from './usageUtils'
@@ -95,7 +95,7 @@ export function UsagePage() {
                       <UsageLegendSwatch color={GENERATED_SERIES} label="output" />
                       {chartMode === 'all' ? <UsageLegendSwatch color={PROMPT_SERIES} label="input" /> : null}
                     </span>
-                    <UsageSegmentedControl
+                    <SegmentedControl
                       legend="Chart series"
                       options={CHART_MODES}
                       value={chartMode}

@@ -56,7 +56,7 @@ src/
     attribution.tsx         · /attribution header mapping + client setup examples
     policies.tsx            · /policies model aliases + request limits
     endpoints.tsx           · /endpoints client connection examples
-    logs.tsx                · /logs raw log viewer
+    logs.tsx                · /logs raw log viewer (`?q=` pre-fills the search)
     login.tsx               · /login Better Auth username/password + passkey form
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
@@ -200,6 +200,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
     - `/api/model-timeline` — load/unload events for timeline viz
+    - `/api/model-activity?window=` — per-model inference request counts, error counts, and 240 time-bucketed ticks for the dashboard Models panel
     - `/api/events` — lightweight llama-dash dashboard invalidation/data events
     - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
     - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
@@ -227,7 +228,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 8. Model watcher: polls the selected backend's running-model capability every
    15s, diffs against known state, inserts `load`/`unload` events into SQLite,
    and publishes model-change dashboard events.
-9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, timeline, running models, upstream+GPU,
+9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, a merged Models panel with local/peer-host groups, 15m/1h/6h/24h residency tracks, per-request ticks, traffic-derived peer health, an opt-in unloaded-model view, and hover load/unload/logs actions, upstream+GPU,
     recent requests), Models (list + load/unload + capability badges + llama-swap selector routing + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
     update status, DB, proxy, queue, and GPU poller/device status), Playground

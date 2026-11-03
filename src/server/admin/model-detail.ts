@@ -187,12 +187,14 @@ export function buildApiModel(
   model: BackendModel,
   running: BackendRunningModel | undefined,
   configContextLengths: Map<string, number>,
+  peerHosts: Map<string, string> = new Map(),
 ): ApiModel {
   return {
     id: model.id,
     name: model.name,
     kind: model.kind,
     peerId: model.peerId,
+    peerHost: model.peerId ? (peerHosts.get(model.peerId) ?? null) : null,
     selector: model.selector,
     contextLength:
       model.contextLength ??
@@ -202,6 +204,10 @@ export function buildApiModel(
     ttl: running?.ttl ?? null,
     capabilities: model.capabilities,
   }
+}
+
+export function getPeerHosts(): Map<string, string> {
+  return inferenceBackend.peerHostHints?.() ?? new Map()
 }
 
 export function getConfigContextLengths(): Map<string, number> {

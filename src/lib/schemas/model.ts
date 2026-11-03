@@ -23,6 +23,7 @@ export const ApiModelSchema = v.object({
   name: v.string(),
   kind: v.union([v.literal('local'), v.literal('peer'), v.literal('selector')]),
   peerId: v.nullable(v.string()),
+  peerHost: v.nullable(v.string()),
   selector: v.nullable(ApiModelSelectorSchema),
   contextLength: v.nullable(v.number()),
   state: v.string(),
@@ -49,6 +50,34 @@ export const ModelsResponseSchema = v.object({
 export const ModelTimelineResponseSchema = v.object({
   events: v.array(ApiModelEventSchema),
 })
+
+export const ModelActivityTickSchema = v.object({
+  bucket: v.number(),
+  count: v.number(),
+  errors: v.number(),
+})
+
+export type ApiModelActivityTick = v.InferOutput<typeof ModelActivityTickSchema>
+
+export const ModelActivityEntrySchema = v.object({
+  model: v.string(),
+  total: v.number(),
+  errors: v.number(),
+  lastAt: v.nullable(v.number()),
+  ticks: v.array(ModelActivityTickSchema),
+})
+
+export type ApiModelActivityEntry = v.InferOutput<typeof ModelActivityEntrySchema>
+
+export const ModelActivityResponseSchema = v.object({
+  windowMs: v.number(),
+  bucketMs: v.number(),
+  /** Window start in epoch ms; bucket `n` covers `[since + n·bucketMs, since + (n+1)·bucketMs)`. */
+  since: v.number(),
+  models: v.array(ModelActivityEntrySchema),
+})
+
+export type ApiModelActivity = v.InferOutput<typeof ModelActivityResponseSchema>
 
 export const ModelStatsSchema = v.object({
   totalRequests: v.number(),

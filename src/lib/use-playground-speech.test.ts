@@ -58,7 +58,10 @@ it('asks for the voices of the selected model', async () => {
 })
 
 it('remembers the selected voice per model', () => {
-  vi.stubGlobal('fetch', vi.fn(async () => Response.json({})))
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => Response.json({})),
+  )
   const { result, unmount } = renderHook(() => usePlaygroundSpeech())
   act(() => result.current.setModel('kokoro/kokoro'))
   act(() => result.current.setVoice('af_heart'))

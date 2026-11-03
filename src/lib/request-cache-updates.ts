@@ -72,6 +72,7 @@ export function resyncLiveQueries(client: QueryClient) {
     qk.models,
     qk.keys,
     qk.modelTimeline,
+    qk.modelActivity,
     qk.systemStatus,
     qk.health,
     qk.gpu,

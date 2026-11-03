@@ -1,4 +1,4 @@
-import { cn } from '../../lib/cn'
+import { cn } from '../lib/cn'
 
 type Props<T extends string | number> = {
   legend: string
@@ -7,7 +7,7 @@ type Props<T extends string | number> = {
   onChange: (value: T) => void
 }
 
-export function UsageSegmentedControl<T extends string | number>({ legend, options, value, onChange }: Props<T>) {
+export function SegmentedControl<T extends string | number>({ legend, options, value, onChange }: Props<T>) {
   return (
     <fieldset className="m-0 flex min-w-0 shrink-0 overflow-hidden rounded border border-border bg-surface-2 p-0.5">
       <legend className="sr-only">{legend}</legend>
