@@ -57,6 +57,7 @@ export function useAdminEvents() {
       requestStatsTimer = setTimeout(() => {
         requestStatsTimer = null
         queryClient.invalidateQueries({ queryKey: qk.requestStats })
+        queryClient.invalidateQueries({ queryKey: qk.modelActivity })
       }, REQUEST_STATS_INVALIDATE_MS)
     }
 

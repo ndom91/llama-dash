@@ -8,8 +8,9 @@ import {
   getModelKeyBreakdown,
   getModelRequestStats,
   getModelRequests,
+  getPeerHosts,
 } from '../model-detail.ts'
-import { getModelTimeline } from '../model-events.ts'
+import { getModelActivity, getModelTimeline } from '../model-events.ts'
 import { formatSseEvent, publishAdminEvent, subscribeAdminEvents } from '../events.ts'
 import { clamp, error, json, type Route } from './types.ts'
 
@@ -24,7 +25,8 @@ export const modelRoutes: Route[] = [
       ])
       const runningById = new Map(running.map((r) => [r.model, r]))
       const configContextLengths = getConfigContextLengths()
-      const rows = models.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths))
+      const peerHosts = getPeerHosts()
+      const rows = models.map((m) => buildApiModel(m, runningById.get(m.id), configContextLengths, peerHosts))
       return json(200, { models: rows })
     },
   },
@@ -42,7 +44,7 @@ export const modelRoutes: Route[] = [
       if (!modelData) return error(404, `Model ${id} not found`)
 
       const runInfo = runningRes.find((r) => r.model === id)
-      const model = buildApiModel(modelData, runInfo, configContextLengths)
+      const model = buildApiModel(modelData, runInfo, configContextLengths, getPeerHosts())
 
       const [events, stats, requests, keyBreakdown] = await Promise.all([
         getModelEvents(id),
@@ -99,6 +101,15 @@ export const modelRoutes: Route[] = [
       const url = new URL(request.url)
       const windowMs = clamp(parseInt(url.searchParams.get('window') ?? '1800000', 10), 60_000, 86_400_000)
       return json(200, { events: getModelTimeline(windowMs) })
+    },
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/model-activity$/,
+    handler: async (request) => {
+      const url = new URL(request.url)
+      const windowMs = clamp(parseInt(url.searchParams.get('window') ?? '3600000', 10) || 3_600_000, 60_000, 86_400_000)
+      return json(200, getModelActivity(windowMs))
     },
   },
   {

@@ -1,3 +1,4 @@
+import { useSearch } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Eraser, Search, WrapText } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -61,7 +62,10 @@ function LlamaSwapLogsPage() {
   const [filter, setFilter] = useState<SourceFilter>('all')
   const [autoScroll, setAutoScroll] = useState(true)
   const [wrap, setWrap] = useState(true)
-  const [search, setSearch] = useState('')
+  // `?q=` lets other pages deep-link into a pre-filtered log view (e.g. the
+  // dashboard's per-model "logs" action).
+  const initialSearch = useSearch({ from: '/logs' }).q ?? ''
+  const [search, setSearch] = useState(initialSearch)
   const [useRegex, setUseRegex] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const maxWidthRef = useRef(0)

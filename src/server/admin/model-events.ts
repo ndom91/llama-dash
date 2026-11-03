@@ -35,3 +35,63 @@ export function getModelTimeline(windowMs = 30 * 60_000) {
 
   return [...stillLoaded, ...inWindow].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
 }
+
+/** Ticks per window. 1h → 15s buckets, 24h → 6min buckets. */
+export const MODEL_ACTIVITY_BUCKETS = 240
+
+/**
+ * Per-model inference request activity over the window, bucketed so the
+ * payload stays bounded regardless of traffic. Drives the request ticks on
+ * the dashboard's model residency tracks.
+ */
+export function getModelActivity(windowMs: number, now = Date.now()) {
+  const bucketMs = Math.max(1000, Math.ceil(windowMs / MODEL_ACTIVITY_BUCKETS))
+  // Align the window to bucket boundaries so ticks don't shuffle between
+  // neighbouring buckets on every refetch.
+  const end = Math.ceil(now / bucketMs) * bucketMs
+  const since = end - bucketMs * MODEL_ACTIVITY_BUCKETS
+
+  const rows = sqliteDb
+    .prepare(
+      `select model,
+        cast((started_at - ?) / ? as integer) as bucket,
+        count(*) as count,
+        sum(case when status_code >= 400 then 1 else 0 end) as errors,
+        max(started_at) as lastAt
+      from requests
+      where request_class = 'inference' and started_at >= ? and model is not null
+      group by model, bucket
+      order by model, bucket`,
+    )
+    .all(since, bucketMs, since) as Array<{
+    model: string
+    bucket: number
+    count: number
+    errors: number
+    lastAt: number
+  }>
+
+  const byModel = new Map<
+    string,
+    {
+      model: string
+      total: number
+      errors: number
+      lastAt: number | null
+      ticks: Array<{ bucket: number; count: number; errors: number }>
+    }
+  >()
+  for (const row of rows) {
+    let entry = byModel.get(row.model)
+    if (!entry) {
+      entry = { model: row.model, total: 0, errors: 0, lastAt: null, ticks: [] }
+      byModel.set(row.model, entry)
+    }
+    entry.total += row.count
+    entry.errors += row.errors
+    entry.lastAt = Math.max(entry.lastAt ?? 0, row.lastAt)
+    entry.ticks.push({ bucket: Math.min(row.bucket, MODEL_ACTIVITY_BUCKETS - 1), count: row.count, errors: row.errors })
+  }
+
+  return { windowMs: bucketMs * MODEL_ACTIVITY_BUCKETS, bucketMs, since, models: [...byModel.values()] }
+}

@@ -36,7 +36,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 <table>
   <tr>
     <td align="center" valign="top">
-      <sub><strong>Dashboard</strong><br />Live traffic, tokens, model residency, upstream and GPU health</sub>
+      <sub><strong>Dashboard</strong><br />Live traffic, tokens, model residency with per-request ticks, upstream and GPU health</sub>
     </td>
     <td align="center" valign="top">
       <sub><strong>Playground</strong><br />Chat against local endpoints with request/response inspection</sub>

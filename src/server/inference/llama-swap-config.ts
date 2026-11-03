@@ -66,3 +66,23 @@ function extractCtxSize(value: unknown): number | null {
   const match = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)
   return match ? Number(match[1]) : null
 }
+
+/** Maps llama-swap `peers:` ids to the host of their `proxy` URL. */
+export function getLlamaSwapPeerHosts(): Map<string, string> {
+  const parsed = readParsedConfig()
+  const hosts = new Map<string, string>()
+  if (!parsed || typeof parsed !== 'object' || !('peers' in parsed)) return hosts
+  const peers = parsed.peers
+  if (!peers || typeof peers !== 'object') return hosts
+  for (const [peerId, peerConfig] of Object.entries(peers as Record<string, unknown>)) {
+    if (!peerConfig || typeof peerConfig !== 'object' || !('proxy' in peerConfig)) continue
+    const proxy = peerConfig.proxy
+    if (typeof proxy !== 'string') continue
+    try {
+      hosts.set(peerId, new URL(proxy).host)
+    } catch {
+      // Unparseable proxy URLs fall back to the peer id in the UI.
+    }
+  }
+  return hosts
+}

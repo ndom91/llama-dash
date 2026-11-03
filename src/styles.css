@@ -1887,6 +1887,34 @@ a,
   }
 }
 
+/* A model that is resident but still starting. Loading is a real state, so it
+   uses --warn, hatched so it reads as "not ready yet" rather than as a fill. */
+.residency-span-loading {
+  background-color: color-mix(in oklab, var(--warn) 10%, transparent);
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--warn) 55%, transparent) 0 2px,
+    transparent 2px 5px
+  );
+}
+
+/* Request ticks sit on top of resident spans, whose series colour can be close
+   to --fg. A hairline in the panel surface keeps a tick legible on both the
+   bare track and a filled span. */
+.residency-tick {
+  box-shadow:
+    -1px 0 0 color-mix(in oklab, var(--surface-1) 70%, transparent),
+    1px 0 0 color-mix(in oklab, var(--surface-1) 70%, transparent);
+}
+
+@media (forced-colors: active) {
+  .residency-span-loading {
+    background-image: none;
+    outline: 1px dashed CanvasText;
+    outline-offset: -1px;
+  }
+}
+
 /* ---- dashboard grid ---- */
 
 .dash-grid {

@@ -1,17 +1,7 @@
-import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
-import {
-  useGpu,
-  useHealth,
-  useModels,
-  useModelTimeline,
-  useRecentRequests,
-  useRequestStats,
-  useUsageSummary,
-} from '../../lib/queries'
+import { useGpu, useHealth, useModels, useRecentRequests, useRequestStats, useUsageSummary } from '../../lib/queries'
 import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
-import { DashboardResidencyPanel } from './DashboardResidencyPanel'
-import { DashboardRunningModelsPanel } from './DashboardRunningModelsPanel'
+import { DashboardModelsPanel } from './DashboardModelsPanel'
 import { DashboardStatCard } from './DashboardStatCard'
 import { DashboardTelemetryPanel } from './DashboardTelemetryPanel'
 import { DashboardUsageCard } from './DashboardUsageCard'
@@ -22,14 +12,9 @@ export function DashboardPage() {
   const { data: requests } = useRecentRequests(30)
   const { data: stats } = useRequestStats()
   const { data: health } = useHealth()
-  const { data: timelineEvents } = useModelTimeline()
   const { data: gpu } = useGpu()
   const { data: usage } = useUsageSummary()
 
-  const active = useMemo(
-    () => models?.filter((m) => m.kind !== 'selector' && (m.running || m.kind === 'peer')) ?? [],
-    [models],
-  )
   return (
     <div className="content">
       <div className="page min-h-full px-0">
@@ -76,8 +61,7 @@ export function DashboardPage() {
               <DashboardUsageCard label="output · 30 days" window={usage?.days30} against="vs prev 30d" days={30} />
             </div>
 
-            <DashboardResidencyPanel events={timelineEvents ?? []} active={active} />
-            <DashboardRunningModelsPanel active={active} total={models?.length ?? null} />
+            <DashboardModelsPanel models={models} health={health} />
             <DashboardRecentRequestsPanel requests={requests ?? null} />
           </div>
         </div>
