@@ -19,7 +19,7 @@ const STRIP_RESPONSE_HEADERS = new Set(['content-encoding', 'content-length'])
 // Dedicated llama-dash API key headers. They identify the caller to llama-dash
 // without occupying `Authorization`, which passthrough routes and MCP relays
 // leave to the upstream provider. Never forward them upstream.
-export const GATEWAY_AUTH_HEADERS = ['x-llama-dash-api-key', 'x-llama-dash-key'] as const
+const GATEWAY_AUTH_HEADERS = ['x-llama-dash-api-key', 'x-llama-dash-key'] as const
 
 export function gatewayAuthToken(headers: Headers): string | null {
   for (const header of GATEWAY_AUTH_HEADERS) {

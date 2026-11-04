@@ -8,7 +8,6 @@ const POLL_INTERVAL_MS = 15_000
 
 let knownRunning = new Set<string>()
 let started = false
-let pollTimer: ReturnType<typeof setInterval> | null = null
 
 function seedFromDb() {
   const rows = db
@@ -64,13 +63,5 @@ export function startModelWatcher() {
 
   seedFromDb()
   diffRunning()
-  pollTimer = setInterval(diffRunning, POLL_INTERVAL_MS)
-}
-
-export function stopModelWatcher() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-  }
-  started = false
+  setInterval(diffRunning, POLL_INTERVAL_MS)
 }

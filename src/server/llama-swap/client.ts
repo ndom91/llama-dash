@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { InferenceHardwareSchema, type InferenceHardware } from '../../lib/schemas/inference-hardware.ts'
+import { InferenceHardwareSchema } from '../../lib/schemas/inference-hardware.ts'
 import { config } from '../config.ts'
 import {
   ModelsListResponseSchema,
@@ -9,7 +9,7 @@ import {
   type RunningModel,
 } from './schemas.ts'
 
-export type { InferenceHardware, OpenAiModel, RunningModel }
+export type { OpenAiModel, RunningModel }
 
 const callText = async (path: string, init?: RequestInit): Promise<string> => {
   const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)

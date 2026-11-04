@@ -1,20 +1,12 @@
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 
 type RouteErrorProps = {
   title: string
   message: string
-  kicker?: string
-  onRetry?: () => void
-  retryLabel?: string
+  kicker: string
 }
 
-export function RouteError({
-  title,
-  message,
-  kicker = 'client route',
-  onRetry,
-  retryLabel = 'retry',
-}: RouteErrorProps) {
+export function RouteError({ title, message, kicker }: RouteErrorProps) {
   return (
     <div className="content">
       <div className="page min-h-full flex-1 bg-surface-1">
@@ -29,14 +21,6 @@ export function RouteError({
             </div>
             <div className="mt-1 text-sm font-medium text-fg">{title}</div>
             <div className="mt-1 break-words font-mono text-xs text-fg-dim">{message}</div>
-            {onRetry ? (
-              <div className="mt-4">
-                <button type="button" className="btn btn-ghost btn-xs" onClick={onRetry}>
-                  <RefreshCw size={12} strokeWidth={2} aria-hidden="true" />
-                  {retryLabel}
-                </button>
-              </div>
-            ) : null}
           </div>
         </div>
       </div>

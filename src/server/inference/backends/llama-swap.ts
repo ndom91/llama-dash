@@ -78,7 +78,7 @@ function mapLlamaSwapRunningModel(model: RunningModel): BackendRunningModel {
   return {
     model: model.model,
     state: model.state,
-    ttl: model.ttl ?? null,
+    ttl: model.ttl,
     contextLength: extractCtxSize(model.cmd),
   }
 }

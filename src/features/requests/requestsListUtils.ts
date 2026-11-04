@@ -70,7 +70,7 @@ export function requestKeyLabel(r: RequestKeySource): string {
   return r.keyName ?? 'system'
 }
 
-export function requestKeyFilterValue(r: RequestKeySource): string {
+function requestKeyFilterValue(r: RequestKeySource): string {
   if (isProxyRequestKey(r)) return REQUEST_KEY_FILTER_PROXY
   return r.keyName ? requestKeyNameFilterValue(r.keyName) : REQUEST_KEY_FILTER_NONE
 }

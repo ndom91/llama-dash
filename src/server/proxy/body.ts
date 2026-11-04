@@ -74,9 +74,6 @@ export function applyProxyBodyTransform(
   transform: ProxyBodyTransformResult,
 ): ProxyBodySnapshot {
   if (!transform.body) return body
-  if (body.isMultipart) {
-    return snapshot({ ...body, parsedBody: transform.body, preserveContentLength: false }, body.hasBody)
-  }
   return snapshot(
     {
       ...body,

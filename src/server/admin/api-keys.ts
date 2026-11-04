@@ -84,11 +84,6 @@ export function rotateApiKey(id: string): { key: ApiKeyItem; rawKey: string } | 
   return { key: toApiShape({ ...existing, keyHash, keyPrefix }), rawKey }
 }
 
-export function renameApiKey(id: string, name: string): boolean {
-  const result = db.update(schema.apiKeys).set({ name }).where(eq(schema.apiKeys.id, id)).run()
-  return result.changes > 0
-}
-
 export function updateApiKey(
   id: string,
   fields: {

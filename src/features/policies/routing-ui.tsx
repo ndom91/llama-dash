@@ -6,7 +6,7 @@ import { cn } from '../../lib/cn'
 export type RoutingStreamMode = 'any' | 'stream' | 'non_stream'
 export type RoutingActionType = 'rewrite_model' | 'reject' | 'continue'
 
-export const segmentedSelectedClass = 'relative z-20 text-fg transition-colors duration-150 hover:text-fg'
+const segmentedSelectedClass = 'relative z-20 text-fg transition-colors duration-150 hover:text-fg'
 
 export function SegmentedControl<T extends string>({
   options,

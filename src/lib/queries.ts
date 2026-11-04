@@ -33,27 +33,20 @@ import {
   type ApiUsageReport,
   type ApiUsageSummary,
   type AttributionSettings,
-  type ModelAliasItem,
   type McpRelay,
   type ModelAccessMode,
   type PrivacySettings,
   type RoutingRule,
   type UpstreamCredential,
-  type RequestLimits,
   type UpdateUsagePanelSettingsBody,
   type UsagePanelSettings,
   type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
 import type { RequestMetadataResponseSchema } from './schemas/request'
-import type { CreateModelAliasBody, UpdateModelAliasBody } from './schemas/model-alias'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
-import type {
-  UpdateAttributionSettingsBody,
-  UpdatePrivacySettingsBody,
-  UpdateRequestLimitsBody,
-} from './schemas/settings'
+import type { UpdateAttributionSettingsBody, UpdatePrivacySettingsBody } from './schemas/settings'
 
 export const POLL_MS = 5_000
 export const FALLBACK_POLL_MS = 60_000
@@ -99,10 +92,6 @@ export function useModels<T = Array<ApiModel>>(select?: (data: Array<ApiModel>) 
 
 export function useRunningModels() {
   return useModels((models) => models.filter((m) => m.running))
-}
-
-export function useRunningCount() {
-  return useModels((models) => models.filter((m) => m.running).length)
 }
 
 export function useModelCounts() {
@@ -520,15 +509,6 @@ export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string
   })
 }
 
-// ---- Model aliases ----
-
-export function useAliases(): UseQueryResult<Array<ModelAliasItem>> {
-  return useQuery({
-    queryKey: qk.aliases,
-    queryFn: () => api.listAliases().then((r) => r.aliases),
-  })
-}
-
 export function useRoutingRules(): UseQueryResult<Array<RoutingRule>> {
   return useQuery({
     queryKey: qk.routingRules,
@@ -540,48 +520,6 @@ export function useMcpRelays(): UseQueryResult<Array<McpRelay>> {
   return useQuery({
     queryKey: qk.mcpRelays,
     queryFn: () => api.listMcpRelays().then((r) => r.relays),
-  })
-}
-
-export function useCreateAlias(): UseMutationResult<ModelAliasItem, Error, CreateModelAliasBody> {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (body: CreateModelAliasBody) => api.createAlias(body),
-    onSuccess: () => {
-      toast.success('Alias created')
-      invalidateKeys(qc, [qk.aliases])
-    },
-    onError: (e) => {
-      toastMutationError('Failed to create alias', e)
-    },
-  })
-}
-
-export function useUpdateAlias(): UseMutationResult<ModelAliasItem, Error, { id: string } & UpdateModelAliasBody> {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...body }: { id: string } & UpdateModelAliasBody) => api.updateAlias(id, body),
-    onSuccess: () => {
-      toast.success('Alias updated')
-      invalidateKeys(qc, [qk.aliases])
-    },
-    onError: (e) => {
-      toastMutationError('Failed to update alias', e)
-    },
-  })
-}
-
-export function useDeleteAlias(): UseMutationResult<{ ok: true }, Error, string> {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.deleteAlias(id),
-    onSuccess: () => {
-      toast.success('Alias deleted')
-      invalidateKeys(qc, [qk.aliases])
-    },
-    onError: (e) => {
-      toastMutationError('Failed to delete alias', e)
-    },
   })
 }
 
@@ -702,15 +640,6 @@ export function useReorderRoutingRules(): UseMutationResult<Array<RoutingRule>, 
   })
 }
 
-// ---- Request limits ----
-
-export function useRequestLimits(): UseQueryResult<RequestLimits> {
-  return useQuery({
-    queryKey: qk.requestLimits,
-    queryFn: () => api.getRequestLimits(),
-  })
-}
-
 export function useAttributionSettings(): UseQueryResult<AttributionSettings> {
   return useQuery({
     queryKey: qk.attributionSettings,
@@ -722,20 +651,6 @@ export function usePrivacySettings(): UseQueryResult<PrivacySettings> {
   return useQuery({
     queryKey: qk.privacySettings,
     queryFn: () => api.getPrivacySettings(),
-  })
-}
-
-export function useUpdateRequestLimits(): UseMutationResult<RequestLimits, Error, UpdateRequestLimitsBody> {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (body: UpdateRequestLimitsBody) => api.updateRequestLimits(body),
-    onSuccess: () => {
-      toast.success('Request limits updated')
-      invalidateKeys(qc, [qk.requestLimits])
-    },
-    onError: (e) => {
-      toastMutationError('Failed to update limits', e)
-    },
   })
 }
 

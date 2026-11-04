@@ -5,9 +5,6 @@ import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 import { requestSummaryColumns } from './request-summary-columns.ts'
 
-export type RequestRow = ApiRequest
-export type RequestDetail = ApiRequestDetail
-
 const INFERENCE_REQUEST_SQL = "request_class = 'inference'"
 
 type RequestSummarySource = Pick<
@@ -47,7 +44,7 @@ function inferenceRequest() {
   return eq(schema.requests.requestClass, 'inference')
 }
 
-export function toRequestRow(row: RequestSummarySource, keyName: string | null): RequestRow {
+export function toRequestRow(row: RequestSummarySource, keyName: string | null): ApiRequest {
   return {
     id: row.id,
     startedAt: row.startedAt.toISOString(),
@@ -88,7 +85,7 @@ export function listRecentRequests(opts: {
   includeMcp?: boolean
   minutes?: number[]
   status?: 'ok' | 'err'
-}): Array<RequestRow> {
+}): Array<ApiRequest> {
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
     opts.includeMcp ? undefined : inferenceRequest(),
@@ -143,7 +140,7 @@ export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number
   return row.count
 }
 
-export function getRequestById(id: string): RequestDetail | null {
+export function getRequestById(id: string): ApiRequestDetail | null {
   const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
   if (!r) return null
   return {
@@ -211,13 +208,11 @@ export function getRequestPayloadsById(id: string) {
   return toRequestPayloads(row, getRecentBodies(id))
 }
 
-export type RequestStats = ApiRequestStats
-
-type StatsCache = { at: number; value: RequestStats }
+type StatsCache = { at: number; value: ApiRequestStats }
 let statsCache: StatsCache | null = null
 const STATS_CACHE_MS = 1_000
 
-export function getRequestStats(): RequestStats {
+export function getRequestStats(): ApiRequestStats {
   const now = Date.now()
   if (statsCache && now - statsCache.at < STATS_CACHE_MS) return statsCache.value
 
@@ -307,9 +302,7 @@ export function getRequestStats(): RequestStats {
   return value
 }
 
-export type HistogramBucket = ApiHistogramBucket
-
-export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<HistogramBucket> {
+export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<ApiHistogramBucket> {
   const now = Date.now()
   const sinceMs = now - windowMs
 
@@ -340,7 +333,7 @@ export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Ar
     }
   }
 
-  const result: Array<HistogramBucket> = []
+  const result: Array<ApiHistogramBucket> = []
   for (let i = 0; i < count; i++) {
     result.push({
       timestamp: (startBucket + i) * bucketMs,

@@ -26,10 +26,6 @@ const EncryptedPayloadSchema = v.object({
   data: v.pipe(v.string(), v.minLength(1)),
 })
 
-export function isCredentialVaultEnabled(): boolean {
-  return isCredentialVaultKeyEnabled(getCredentialEncryptionKey())
-}
-
 export function isCredentialVaultKeyEnabled(key: string): boolean {
   return key.length >= 32
 }
@@ -174,17 +170,6 @@ export function updateUpstreamCredential(
 
 export function deleteUpstreamCredential(id: string): boolean {
   return db.delete(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).run().changes > 0
-}
-
-export function getCredentialAuthorizationHeader(id: string, encryptionKey?: string): string | null {
-  const row = db.select().from(schema.upstreamCredentials).where(eq(schema.upstreamCredentials.id, id)).get()
-  if (!row) return null
-  db.update(schema.upstreamCredentials)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(schema.upstreamCredentials.id, id))
-    .run()
-  if (row.type === 'bearer') return `Bearer ${decryptSecret(row.encryptedValue, encryptionKey)}`
-  return null
 }
 
 export type CredentialInjectionSecret = {

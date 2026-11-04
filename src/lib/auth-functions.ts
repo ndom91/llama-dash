@@ -6,11 +6,6 @@ import { parseCookieHeader } from './cookies'
 import { parseSidebarCollapsed, SIDEBAR_COOKIE } from './sidebar'
 import { getRequestTheme } from './theme-server'
 
-export const getSession = createServerFn({ method: 'GET' }).handler(async () => {
-  const headers = getRequestHeaders()
-  return getDashboardSessionForHeaders(headers)
-})
-
 export const getShellContext = createServerFn({ method: 'GET' }).handler(async () => {
   const headers = getRequestHeaders()
   const session = await getDashboardSessionForHeaders(headers)

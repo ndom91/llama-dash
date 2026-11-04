@@ -2,8 +2,6 @@ import { execFile } from 'node:child_process'
 import { platform } from 'node:os'
 import type { GpuInfo, GpuSnapshot } from '../lib/schemas/gpu'
 
-export type { GpuInfo, GpuSnapshot }
-
 import { publishAdminEvent } from './admin/events.ts'
 import { pollCpuUtilizationPercent } from './cpu-poller.ts'
 

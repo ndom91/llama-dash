@@ -1,6 +1,6 @@
 import { useMatches } from '@tanstack/react-router'
 import { Menu } from 'lucide-react'
-import { type ReactNode, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatVersionLabel } from '../lib/format'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
@@ -25,7 +25,7 @@ function resolveTitle(pathname: string): string {
   return 'llama-dash'
 }
 
-export function TopBar({ actions }: { actions?: ReactNode }) {
+export function TopBar() {
   const { toggle } = useMobileMenu()
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
@@ -45,7 +45,6 @@ export function TopBar({ actions }: { actions?: ReactNode }) {
       <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
       <TopBarLiveStats />
       <div className="ml-auto flex items-center gap-1.5">
-        {actions}
         <TopBarClock />
       </div>
     </header>

@@ -18,7 +18,6 @@ import {
 } from './theme'
 
 export type { ThemeMode } from './theme'
-export { themes } from './theme'
 
 const THEME_CHANGE_EVENT = 'llama-dash:color-theme-change'
 

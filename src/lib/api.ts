@@ -5,11 +5,10 @@ import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
 import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
 import type { ModelAccessMode } from './schemas/api-key'
-import { ModelAliasListResponseSchema, ModelAliasSchema } from './schemas/model-alias'
 import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
 import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
 import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
-import { AttributionSettingsSchema, PrivacySettingsSchema, RequestLimitsSchema } from './schemas/settings'
+import { AttributionSettingsSchema, PrivacySettingsSchema } from './schemas/settings'
 import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
@@ -70,11 +69,10 @@ export type {
   ApiKeyModelBreakdown,
   ModelAccessMode,
 } from './schemas/api-key'
-export type { ModelAliasItem } from './schemas/model-alias'
 export type { McpRelay } from './schemas/mcp-relay'
 export type { RoutingRule, RoutingMatch, RoutingAction } from './schemas/routing-rule'
 export type { UpstreamCredential } from './schemas/upstream-credential'
-export type { AttributionSettings, PrivacySettings, RequestLimits } from './schemas/settings'
+export type { AttributionSettings, PrivacySettings } from './schemas/settings'
 export type { ApiSystemStatus, LoginMeta } from './schemas/system'
 export type { InferenceHardware } from './schemas/inference-hardware'
 export type { ArticleExtractResponse } from './schemas/article'
@@ -227,12 +225,6 @@ export const api = {
   rotateKey: (id: string) => sendEmpty(`/api/keys/${id}/rotate`, ApiKeyCreatedSchema, 'POST'),
   revokeKey: (id: string) => sendEmpty(`/api/keys/${id}/revoke`, OkSchema, 'POST'),
   deleteKey: (id: string) => sendEmpty(`/api/keys/${id}`, OkSchema, 'DELETE'),
-  listAliases: () => getJson('/api/aliases', ModelAliasListResponseSchema),
-  createAlias: (body: { alias: string; model: string }) =>
-    sendJson('/api/aliases', ModelAliasSchema, { method: 'POST', body }),
-  updateAlias: (id: string, body: { alias?: string; model?: string }) =>
-    sendJson(`/api/aliases/${id}`, ModelAliasSchema, { method: 'PATCH', body }),
-  deleteAlias: (id: string) => sendEmpty(`/api/aliases/${id}`, OkSchema, 'DELETE'),
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
   listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
@@ -247,8 +239,6 @@ export const api = {
   deleteMcpRelay: (id: string) => sendEmpty(`/api/mcp-relays/${id}`, OkSchema, 'DELETE'),
   createUpstreamCredential: (body: { name: string; slug?: string; type: 'bearer'; value: string }) =>
     sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
-  updateUpstreamCredential: (id: string, body: { name?: string; slug?: string; value?: string }) =>
-    sendJson(`/api/upstream-credentials/${id}`, UpstreamCredentialSchema, { method: 'PATCH', body }),
   deleteUpstreamCredential: (id: string) => sendEmpty(`/api/upstream-credentials/${id}`, OkSchema, 'DELETE'),
   createRoutingRule: (body: {
     name: string
@@ -282,9 +272,6 @@ export const api = {
     endUserIdHeader?: string | null
     sessionIdHeader?: string | null
   }) => sendJson('/api/settings/attribution', AttributionSettingsSchema, { method: 'PATCH', body }),
-  getRequestLimits: () => getJson('/api/settings/request-limits', RequestLimitsSchema),
-  updateRequestLimits: (body: { maxMessages?: number | null; maxEstimatedTokens?: number | null }) =>
-    sendJson('/api/settings/request-limits', RequestLimitsSchema, { method: 'PATCH', body }),
   getPrivacySettings: () => getJson('/api/settings/privacy', PrivacySettingsSchema),
   updatePrivacySettings: (body: {
     captureRequestBodies?: boolean

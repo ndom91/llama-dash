@@ -42,7 +42,6 @@ vi.mock('../admin/routing-rules.ts', async () => {
 })
 
 vi.mock('../admin/upstream-credentials.ts', () => ({
-  getCredentialAuthorizationHeader: () => null,
   getCredentialInjectionSecret: () => null,
   markCredentialUsed: vi.fn(),
 }))

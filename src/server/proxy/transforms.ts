@@ -38,31 +38,21 @@ type TransformErr = {
 }
 export type TransformResult = TransformOk | TransformErr
 
-export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx: TransformContext): TransformResult {
-  if (!parsedBody) {
-    return {
-      ok: true,
-      body: parsedBody,
-      mutated: false,
-      routing: routingOutcomeFromDecision(ctx.routingDecision, null),
-    }
-  }
-
+export function applyTransforms(parsedBody: Record<string, unknown>, ctx: TransformContext): TransformResult {
   let mutated = false
 
-  const routingDecision = ctx.routingDecision
   const routing = routingOutcomeFromDecision(
-    routingDecision,
+    ctx.routingDecision,
     typeof parsedBody.model === 'string' ? parsedBody.model : null,
   )
 
-  if (routingDecision.action?.type === 'reject') {
+  if (ctx.routingDecision.action?.type === 'reject') {
     return {
       ok: false,
       status: 422,
       body: {
         error: {
-          message: routingDecision.action.reason,
+          message: ctx.routingDecision.action.reason,
           type: 'routing_rule_rejected',
         },
       },
@@ -70,8 +60,8 @@ export function applyTransforms(parsedBody: Record<string, unknown> | null, ctx:
     }
   }
 
-  if (routingDecision.action?.type === 'rewrite_model') {
-    parsedBody.model = routingDecision.action.model
+  if (ctx.routingDecision.action?.type === 'rewrite_model') {
+    parsedBody.model = ctx.routingDecision.action.model
     mutated = true
   }
 

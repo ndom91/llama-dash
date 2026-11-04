@@ -1,4 +1,4 @@
-export const MAX_CAPTURED_RESPONSE_BYTES = 256 * 1024
+const MAX_CAPTURED_RESPONSE_BYTES = 256 * 1024
 
 export class BoundedTextCapture {
   private chunks: string[] = []

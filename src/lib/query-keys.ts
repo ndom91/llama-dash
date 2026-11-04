@@ -22,12 +22,10 @@ export const qk = {
   modelDetail: (id: string) => ['models', id] as const,
   keys: ['keys'] as const,
   keyDetail: (id: string) => ['keys', id] as const,
-  aliases: ['aliases'] as const,
   routingRules: ['routing-rules'] as const,
   mcpRelays: ['mcp-relays'] as const,
   upstreamCredentials: ['upstream-credentials'] as const,
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
-  requestLimits: ['settings', 'request-limits'] as const,
   usagePanelSettings: ['settings', 'usage'] as const,
 }

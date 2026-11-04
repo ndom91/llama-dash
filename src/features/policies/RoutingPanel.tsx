@@ -314,20 +314,16 @@ function ObservabilityPanel({
   keyMap,
   totalRules,
 }: {
-  rule?: RoutingRule
-  keyMap?: Map<string, string>
-  totalRules?: number
+  rule: RoutingRule
+  keyMap: Map<string, string>
+  totalRules: number
 }) {
   return (
     <section className="rounded-lg border border-border bg-surface-0 px-5 py-5 font-mono text-xs text-fg-dim">
       <div className="mb-3 text-[10px] uppercase tracking-[0.12em] text-fg-faint">
         Observability · how a routed request surfaces on request detail
       </div>
-      {rule && keyMap && totalRules ? (
-        <ObservabilityPreview rule={rule} keyMap={keyMap} totalRules={totalRules} />
-      ) : (
-        <div>Select a rule to preview its request-detail surface.</div>
-      )}
+      <ObservabilityPreview rule={rule} keyMap={keyMap} totalRules={totalRules} />
     </section>
   )
 }

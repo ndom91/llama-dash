@@ -3,12 +3,11 @@ import { useState } from 'react'
 import { cn } from '../lib/cn'
 
 type CopyButtonVariant = 'text' | 'icon' | 'button'
-type CopyButtonIcon = 'copy' | 'clipboard' | 'link'
+type CopyButtonIcon = 'copy' | 'link'
 
 type Props = {
   text: string
   label?: string
-  copiedLabel?: string
   ariaLabel?: string
   variant?: CopyButtonVariant
   icon?: CopyButtonIcon
@@ -26,7 +25,6 @@ const variantClasses: Record<CopyButtonVariant, string> = {
 export function CopyButton({
   text,
   label = 'copy',
-  copiedLabel = 'copied',
   ariaLabel,
   variant = 'text',
   icon = 'copy',
@@ -54,7 +52,7 @@ export function CopyButton({
       {variant === 'icon' ? null : (
         <span className={cn('copy-text-swap', copied && 'copy-text-swap-done')}>
           <span className="copy-text-swap-from">{label}</span>
-          <span className="copy-text-swap-to">{copiedLabel}</span>
+          <span className="copy-text-swap-to">copied</span>
         </span>
       )}
     </button>

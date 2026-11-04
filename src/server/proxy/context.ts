@@ -80,17 +80,12 @@ export function setAuthContext(ctx: ProxyContext, auth: { keyId: string | null; 
 }
 
 export function applyTransformResultToContext(ctx: ProxyContext, transform: Extract<TransformResult, { ok: true }>) {
-  if (!ctx.body) return
-  ctx.body = applyProxyBodyTransform(ctx.body, transform)
+  ctx.body = applyProxyBodyTransform(ctx.body!, transform)
 }
 
 export function finalizeRoutingAndBody(ctx: ProxyContext) {
-  if (!ctx.body) return
-  if (!ctx.body.hasBody) {
-    ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
-    return
-  }
   ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
+  if (!ctx.body?.hasBody) return
   applyProxyBodyHeaders(ctx.body, ctx.reqHeaders)
   restoreProxyBodyContentLength(ctx.body, ctx.request, ctx.reqHeaders)
 }

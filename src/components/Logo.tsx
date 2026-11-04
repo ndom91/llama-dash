@@ -1,6 +1,6 @@
-type Props = { size?: number; withWordmark?: boolean; decorative?: boolean; className?: string }
+type Props = { size?: number; decorative?: boolean; className?: string }
 
-export function Logo({ size = 20, withWordmark = false, decorative = false, className }: Props) {
+export function Logo({ size = 20, decorative = false, className }: Props) {
   const accessibilityProps = decorative ? { 'aria-hidden': true } : { role: 'img' as const, 'aria-label': 'llama-dash' }
 
   return (
@@ -42,19 +42,6 @@ export function Logo({ size = 20, withWordmark = false, decorative = false, clas
           }}
         />
       </span>
-      {withWordmark && (
-        <span
-          style={{
-            fontFamily: '"IBM Plex Sans", system-ui, sans-serif',
-            fontWeight: 500,
-            fontSize: '0.75em',
-            letterSpacing: '-0.005em',
-            color: 'currentColor',
-          }}
-        >
-          llama-dash
-        </span>
-      )}
     </span>
   )
 }

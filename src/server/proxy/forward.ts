@@ -36,7 +36,7 @@ export type ProxyLogInput = {
   credentialInjectionJson?: string | null
 }
 
-export function formatUpstreamError(err: unknown): string {
+function formatUpstreamError(err: unknown): string {
   if (!(err instanceof Error)) return String(err)
   const cause = err.cause instanceof Error ? `: ${err.cause.message}` : err.cause ? `: ${String(err.cause)}` : ''
   return `${err.message}${cause}`

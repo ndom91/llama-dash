@@ -50,7 +50,7 @@ export function RequestSseEvents({ body, stream }: Props) {
               <span>assembled text</span>
               <span className="dim normal-case tracking-normal">{assembled.length.toLocaleString()} chars</span>
             </button>
-            <CopyButton text={assembled} variant="icon" icon="clipboard" ariaLabel="Copy assembled text" />
+            <CopyButton text={assembled} variant="icon" ariaLabel="Copy assembled text" />
           </div>
           <div id="request-sse-assembled" className="t-acc-panel" aria-hidden={!open}>
             <div className="t-acc-panel-inner">

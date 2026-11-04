@@ -46,7 +46,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
         </span>
         <span className="panel-sub min-w-0 truncate">{subtitle}</span>
         <div className="ml-auto" />
-        <CopyButton text={body} variant="button" icon="clipboard" ariaLabel={`Copy ${title} payload`} />
+        <CopyButton text={body} variant="button" ariaLabel={`Copy ${title} payload`} />
       </div>
       {hasBody ? (
         mode === 'sse' ? (

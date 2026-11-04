@@ -134,7 +134,7 @@ export function SettingsPage() {
                 <div className="mt-1 font-mono text-xs text-fg-dim">Accent and semantic status colors.</div>
                 <div className="mt-4 space-y-2 flex-1 flex flex-col justify-end">
                   <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">mode</div>
-                  <ThemeToggle variant="segmented" />
+                  <ThemeToggle />
                 </div>
               </div>
 
