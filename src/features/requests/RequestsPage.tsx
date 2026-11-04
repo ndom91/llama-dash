@@ -1,28 +1,29 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { Search, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { RequestsSearch } from '../../routes/requests.index'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
-import { Select, type SelectOption } from '../../components/Select'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
-import { formatCompactNumber } from '../../lib/format'
 import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
 import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { formatCostUsd } from './requestDetailUtils'
+import { RequestsFilterSidebar } from './RequestsFilterSidebar'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import {
+  applyRequestFilters,
   colWidthsFor,
+  isMcpRelayRequest,
+  REQUEST_HOST_FILTER_NONE,
   REQUESTS_ALL_COLS,
   REQUEST_KEY_FILTER_NONE,
   REQUEST_KEY_FILTER_PROXY,
@@ -32,13 +33,17 @@ import {
   isProxyRequestKey,
   requestKeyLabel,
   requestKeyNameFilterValue,
-  requestMatchesKeyFilter,
+  type RequestListFilters,
   type RoutingFilter,
   sortVal,
   type SortDir,
   type SortKey,
   type StatusFilter,
+  toOption,
+  uniqueSorted,
+  withSelected,
 } from './requestsListUtils'
+import type { RequestsSearch } from './requestsSearch'
 
 const requestsRouteApi = getRouteApi('/requests/')
 
@@ -110,7 +115,6 @@ export function RequestsPage() {
 
   const hosts = useMemo(() => uniqueSorted(allRows, (r) => r.clientHost), [allRows])
 
-  // Selected values stay listed even when the loaded page no longer contains them.
   const modelOptions = useMemo(() => withSelected(models.map(toOption), modelFilter), [models, modelFilter])
   const keyOptions = useMemo(
     () =>
@@ -129,21 +133,8 @@ export function RequestsPage() {
     [hosts, hostFilter],
   )
 
-  const filtered = useMemo(
-    () =>
-      applyRequestFilters(allRows, {
-        statusFilter,
-        modelFilter,
-        keyFilter,
-        routingFilter,
-        clientFilter,
-        hostFilter,
-        endUserFilter,
-        sessionFilter,
-        search: searchDraft,
-      }),
-    [
-      allRows,
+  const filters = useMemo<RequestListFilters>(
+    () => ({
       statusFilter,
       modelFilter,
       keyFilter,
@@ -152,8 +143,12 @@ export function RequestsPage() {
       hostFilter,
       endUserFilter,
       sessionFilter,
-      searchDraft,
-    ],
+    }),
+    [statusFilter, modelFilter, keyFilter, routingFilter, clientFilter, hostFilter, endUserFilter, sessionFilter],
+  )
+  const filtered = useMemo(
+    () => applyRequestFilters(allRows, { ...filters, search: searchDraft }),
+    [allRows, filters, searchDraft],
   )
 
   const mcpCount = useMemo(() => filtered.filter(isMcpRelayRequest).length, [filtered])
@@ -318,6 +313,23 @@ export function RequestsPage() {
     sessionFilter !== '' ||
     selectedMinutes.length > 0
 
+  const clearFilters = () => {
+    setSearchDraft('')
+    setSelectedMinutes([])
+    updateSearch({
+      q: undefined,
+      status: undefined,
+      model: undefined,
+      key: undefined,
+      routing: undefined,
+      mcp: undefined,
+      host: undefined,
+      client: undefined,
+      endUser: undefined,
+      session: undefined,
+    })
+  }
+
   if (error) {
     return <RouteError kicker="dsh · requests" title="Failed to load requests" message={error.message} />
   }
@@ -342,201 +354,21 @@ export function RequestsPage() {
           <RequestsPageSkeleton />
         ) : (
           <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
-            <aside className="h-full border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b">
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Search</div>
-                <div className="relative min-w-0">
-                  <Search
-                    className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-fg-dim"
-                    size={14}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    className="h-8 w-full rounded border border-border-strong bg-surface-2 px-7 pr-7 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                    placeholder="endpoint, model, status"
-                    value={searchDraft}
-                    onChange={(e) => setSearchDraft(e.target.value)}
-                  />
-                  {!searchDraft ? (
-                    <span className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-[3px] border border-border px-[3px] py-0 font-mono text-[10px] text-fg-faint">
-                      /
-                    </span>
-                  ) : null}
-                  {searchDraft ? (
-                    <button
-                      type="button"
-                      className="absolute top-1/2 right-1.5 inline-flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-[3px] bg-transparent p-0 text-fg-dim transition-colors hover:bg-surface-3 hover:text-fg"
-                      onClick={() => {
-                        setSearchDraft('')
-                        updateSearch({ q: undefined })
-                      }}
-                      aria-label="Clear search"
-                    >
-                      <X size={12} strokeWidth={2} />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Status</div>
-                <Select
-                  aria-label="Status"
-                  value={statusFilter}
-                  onValueChange={(v) => updateSearch({ status: v as StatusFilter })}
-                  options={STATUS_OPTIONS}
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Model</div>
-                <Select
-                  multiple
-                  aria-label="Model"
-                  placeholder="All models"
-                  value={modelFilter}
-                  onValueChange={(v) => updateSearch({ model: v })}
-                  options={modelOptions}
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Key</div>
-                <Select
-                  multiple
-                  aria-label="Key"
-                  placeholder="All keys"
-                  value={keyFilter}
-                  onValueChange={(v) => updateSearch({ key: v })}
-                  options={keyOptions}
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Routing</div>
-                <Select
-                  aria-label="Routing"
-                  value={routingFilter}
-                  onValueChange={(v) => updateSearch({ routing: v as RoutingFilter })}
-                  options={ROUTING_OPTIONS}
-                />
-              </div>
-
-              <label className="mb-4 flex cursor-pointer items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-fg-dim transition-colors hover:border-border-strong hover:text-fg">
-                <input
-                  type="checkbox"
-                  className="accent-accent"
-                  checked={showMcpRelays}
-                  onChange={(e) => updateSearch({ mcp: e.target.checked ? true : undefined })}
-                />
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-2 text-fg">
-                  <span className="truncate">Show MCP reqs</span>
-                  <span className="shrink-0 text-fg-faint">
-                    {`${formatCompactNumber(mcpCount)} ${showMcpRelays ? 'visible' : 'hidden'}`}
-                  </span>
-                </span>
-              </label>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">Host</div>
-                <Select
-                  multiple
-                  aria-label="Host"
-                  placeholder="All hosts"
-                  value={hostFilter}
-                  onValueChange={(v) => updateSearch({ host: v })}
-                  options={hostOptions}
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-                  Client
-                  <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                    {attribution?.clientNameHeader ?? 'x-client-name'}
-                  </span>
-                </div>
-                <input
-                  className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  type="text"
-                  value={clientFilter}
-                  onChange={(e) => updateSearch({ client: e.target.value })}
-                  placeholder="claude-code"
-                  autoComplete="off"
-                  data-1p-ignore
-                  data-lpignore="true"
-                  data-bwignore="true"
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-                  End user
-                  <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                    {attribution?.endUserIdHeader ?? 'x-end-user-id'}
-                  </span>
-                </div>
-                <input
-                  className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  type="text"
-                  value={endUserFilter}
-                  onChange={(e) => updateSearch({ endUser: e.target.value })}
-                  placeholder="alice"
-                  autoComplete="off"
-                  data-1p-ignore
-                  data-lpignore="true"
-                  data-bwignore="true"
-                />
-              </div>
-
-              <div className="mb-4 flex flex-col gap-1.5">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-                  Session
-                  <span className="ml-1.5 normal-case tracking-normal text-fg-faint">
-                    {attribution?.sessionIdHeader ?? 'x-session-id'}
-                  </span>
-                </div>
-                <input
-                  className="h-8 rounded border border-border-strong bg-surface-2 px-2 font-mono text-xs text-fg outline-none transition-[border-color,box-shadow] duration-100 focus:border-accent focus:[box-shadow:var(--shadow-focus)]"
-                  type="text"
-                  value={sessionFilter}
-                  onChange={(e) => updateSearch({ session: e.target.value })}
-                  placeholder="sess_123"
-                  autoComplete="off"
-                  data-1p-ignore
-                  data-lpignore="true"
-                  data-bwignore="true"
-                />
-              </div>
-
-              {hasFilters ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs self-start"
-                  onClick={() => {
-                    setSearchDraft('')
-                    setSelectedMinutes([])
-                    updateSearch({
-                      q: undefined,
-                      status: undefined,
-                      model: undefined,
-                      key: undefined,
-                      routing: undefined,
-                      mcp: undefined,
-                      host: undefined,
-                      client: undefined,
-                      endUser: undefined,
-                      session: undefined,
-                    })
-                  }}
-                >
-                  Clear filters
-                </button>
-              ) : null}
-            </aside>
+            <RequestsFilterSidebar
+              searchRef={searchRef}
+              searchDraft={searchDraft}
+              onSearchDraftChange={setSearchDraft}
+              filters={filters}
+              showMcpRelays={showMcpRelays}
+              mcpCount={mcpCount}
+              modelOptions={modelOptions}
+              keyOptions={keyOptions}
+              hostOptions={hostOptions}
+              attribution={attribution}
+              updateSearch={updateSearch}
+              hasFilters={hasFilters}
+              onClearFilters={clearFilters}
+            />
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
               {histogram && histogram.length > 0 ? (
@@ -768,115 +600,3 @@ export function RequestsPage() {
 }
 
 const NO_VALUES: readonly string[] = []
-const REQUEST_HOST_FILTER_NONE = '__none__'
-
-const STATUS_OPTIONS: readonly SelectOption[] = [
-  { value: 'all', label: 'All status' },
-  { value: 'ok', label: 'Success' },
-  { value: 'err', label: 'Errors' },
-]
-
-const ROUTING_OPTIONS: readonly SelectOption[] = [
-  { value: 'all', label: 'All requests' },
-  { value: 'routed', label: 'Routed only' },
-  { value: 'unrouted', label: 'Unrouted only' },
-]
-
-function toOption(value: string): SelectOption {
-  return { value, label: value }
-}
-
-function uniqueSorted<T>(rows: ReadonlyArray<T>, pick: (row: T) => string | null | undefined): Array<string> {
-  const set = new Set<string>()
-  for (const row of rows) {
-    const value = pick(row)
-    if (value) set.add(value)
-  }
-  return Array.from(set).sort()
-}
-
-function withSelected(options: SelectOption[], selected: readonly string[]): SelectOption[] {
-  const known = new Set(options.map((o) => o.value))
-  const missing = selected.filter((v) => !known.has(v)).map(toOption)
-  return missing.length > 0 ? [...options, ...missing] : options
-}
-
-function isMcpRelayRequest(row: { requestClass: string }): boolean {
-  return row.requestClass === 'mcp_relay'
-}
-
-type RequestFilterRow = {
-  statusCode: number
-  model: string | null
-  keyName: string | null
-  routingAuthMode: string | null
-  routingActionType: string | null
-  clientName: string | null
-  clientHost: string | null
-  endUserId: string | null
-  sessionId: string | null
-  endpoint: string
-  method: string
-}
-
-function applyRequestFilters<T extends RequestFilterRow>(
-  rows: T[],
-  filters: {
-    statusFilter: StatusFilter
-    modelFilter: readonly string[]
-    keyFilter: readonly string[]
-    routingFilter: RoutingFilter
-    clientFilter: string
-    hostFilter: readonly string[]
-    endUserFilter: string
-    sessionFilter: string
-    search: string
-  },
-) {
-  let out = rows
-  const client = filters.clientFilter.toLowerCase()
-  const endUser = filters.endUserFilter.toLowerCase()
-  const session = filters.sessionFilter.toLowerCase()
-  const query = filters.search.toLowerCase()
-
-  if (filters.statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
-  else if (filters.statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
-
-  if (filters.modelFilter.length > 0) out = out.filter((r) => r.model != null && filters.modelFilter.includes(r.model))
-
-  if (filters.keyFilter.length > 0) {
-    out = out.filter((r) => filters.keyFilter.some((f) => requestMatchesKeyFilter(r, f)))
-  }
-
-  if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
-  else if (filters.routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
-
-  if (client) {
-    out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(client))
-  }
-  if (filters.hostFilter.length > 0) {
-    out = out.filter((r) => filters.hostFilter.includes(r.clientHost ?? REQUEST_HOST_FILTER_NONE))
-  }
-  if (endUser) {
-    out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUser))
-  }
-  if (session) {
-    out = out.filter((r) => (r.sessionId ?? '').toLowerCase().includes(session))
-  }
-
-  if (query) {
-    out = out.filter(
-      (r) =>
-        r.endpoint.toLowerCase().includes(query) ||
-        r.method.toLowerCase().includes(query) ||
-        (r.model?.toLowerCase().includes(query) ?? false) ||
-        (r.clientName?.toLowerCase().includes(query) ?? false) ||
-        (r.clientHost?.toLowerCase().includes(query) ?? false) ||
-        (r.endUserId?.toLowerCase().includes(query) ?? false) ||
-        (r.sessionId?.toLowerCase().includes(query) ?? false) ||
-        String(r.statusCode).includes(query),
-    )
-  }
-
-  return out
-}

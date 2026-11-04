@@ -1,5 +1,5 @@
 import type { ApiUsageBreakdownRow, UsageDimension } from '../../lib/api'
-import type { RequestsSearch } from '../../routes/requests.index'
+import type { RequestsSearch } from '../requests/requestsSearch'
 import { requestKeyNameFilterValue } from '../requests/requestsListUtils'
 
 type DimensionMeta = {
