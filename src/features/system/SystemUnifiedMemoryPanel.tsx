@@ -74,8 +74,6 @@ export function SystemUnifiedMemoryPanel({
   const used = segments.filter((segment) => !segment.striped).reduce((sum, segment) => sum + segment.bytes, 0)
   const listed = segments.reduce((sum, segment) => sum + segment.bytes, 0)
   const free = Math.max(0, poolTotal - listed)
-  const gpuFree = Math.max(0, Math.min(gpuLimit - gpuUsed, free))
-  const nextFit = largestFit(models, footprints, gpuFree)
 
   return (
     <section className="border-t border-border">
@@ -142,21 +140,7 @@ export function SystemUnifiedMemoryPanel({
             ),
           )}
         </dl>
-        <p className="m-0 mt-3 font-mono text-[10px] text-fg-faint">
-          Per-model sizes are the GPU memory growth observed when each model last loaded on its own.{' '}
-          <span className="text-fg-dim">What fits next?</span> {nextFit}
-        </p>
       </div>
     </section>
   )
-}
-
-function largestFit(models: Array<ApiModel>, footprints: Map<string, number>, freeBytes: number): string {
-  const candidates = models
-    .filter((model) => model.kind === 'local' && !model.running && footprints.has(model.id))
-    .map((model) => ({ id: model.id, bytes: footprints.get(model.id)! }))
-  if (candidates.length === 0) return 'no measured footprints for stopped models yet.'
-  const fitting = candidates.filter((candidate) => candidate.bytes <= freeBytes).sort((a, b) => b.bytes - a.bytes)
-  if (fitting.length === 0) return `${formatGiB(freeBytes)} GiB free · no measured model fits without unloading.`
-  return `${formatGiB(freeBytes)} GiB free → largest measured model that fits: ${fitting[0].id} (${formatGiB(fitting[0].bytes)} GiB).`
 }

@@ -243,7 +243,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     Requests (filtered/sorted log + histogram + detail), Logs, System (CPU/GPU/GPU-memory/RAM
     tiles with threshold meters and sparklines, utilization and thermals/power charts with
     model-load bands, a `?range=` picker of 5m–24h, a unified-memory bar split by
-    measured model footprints with a "what fits next" hint, a components rail with editable
+    measured model footprints, a components rail with editable
     thresholds, and a compact grid of control bus, backend capabilities, events, inference host,
     CPU cores, and runtime/database), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
