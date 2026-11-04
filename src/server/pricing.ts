@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import type { ModelPricingStatus } from '../lib/schemas/system.ts'
 import { errorMessage } from './error-message.ts'
 
 export type ModelPricing = {
@@ -24,11 +25,6 @@ type ModelPricingCandidate = ModelPricingEntry & {
   providerPriority: number
   score: number
 }
-
-export type ModelPricingStatus =
-  | { status: 'idle' | 'loading' }
-  | { status: 'ready'; count: number; skippedRecords: number; partialCacheRecords: number }
-  | { status: 'unavailable'; reason: string }
 
 const MODELS_DEV_API_URL = 'https://models.dev/api.json'
 

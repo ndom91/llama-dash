@@ -1,6 +1,7 @@
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
 import { useSystemStatus } from '../../lib/queries'
+import type { ModelPricingStatus } from '../../lib/schemas/system'
 import { InferenceHostPanel } from './InferenceHostPanel'
 import { MetaRow } from './MetaRow'
 import { SystemPanel } from './SystemPanel'
@@ -33,6 +34,17 @@ function formatGpuVendor(driver: 'nvidia' | 'amd' | 'apple' | null): string {
 function formatGpuMeta(deviceName: string | null, gpuCount: number, ageMs: number | null): string {
   const parts = [deviceName, `${gpuCount} ${gpuCount === 1 ? 'device' : 'devices'}`, formatAge(ageMs)]
   return parts.filter(Boolean).join(' · ')
+}
+
+function formatPricingStatus(pricing: ModelPricingStatus): string {
+  switch (pricing.status) {
+    case 'ready':
+      return `ready · ${pricing.count.toLocaleString()} models`
+    case 'unavailable':
+      return `unavailable · ${pricing.reason}`
+    default:
+      return pricing.status
+  }
 }
 
 function formatUpdateStatus(update: {
@@ -268,6 +280,7 @@ export function SystemPage() {
                   <MetaRow label="node" value={data.runtime.nodeVersion} />
                   <MetaRow label="commit" value={data.runtime.gitCommit} />
                   <MetaRow label="updates" value={formatUpdateStatus(data.runtime.update)} />
+                  <MetaRow label="pricing" value={formatPricingStatus(data.runtime.pricing)} />
                 </SystemPanel>
 
                 <SystemPanel title="Database" className="xl:border-l">

@@ -4,7 +4,8 @@ import type * as React from 'react'
 import { type SyntheticEvent, useEffect, useState } from 'react'
 import { authClient } from '../../lib/auth-client'
 import { cn } from '../../lib/cn'
-import { useColorTheme } from '../../lib/use-color-theme'
+import { resolveThemeMode } from '../../lib/theme'
+import { applyThemeMode, getStoredThemeMode, persistThemeMode, useColorTheme } from '../../lib/use-color-theme'
 import { useLoginMeta } from '../../lib/queries'
 
 type LoginSearch = { redirect?: string }
@@ -161,13 +162,14 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
   const tls = data?.tlsLabel ?? 'checking tls'
 
   useEffect(() => {
-    setThemeMode(getInitialThemeMode())
+    setThemeMode(resolveThemeMode(getStoredThemeMode(), window.matchMedia('(prefers-color-scheme: dark)').matches))
   }, [])
 
   function toggleThemeMode() {
     const next = themeMode === 'dark' ? 'light' : 'dark'
     setThemeMode(next)
     applyThemeMode(next)
+    persistThemeMode(next)
   }
 
   return (
@@ -262,27 +264,12 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
   )
 }
 
-type LoginThemeMode = 'light' | 'dark'
+type LoginThemeMode = ReturnType<typeof resolveThemeMode>
 
 function splitUptimeLabel(label: string): { prefix: string; value: string } {
   const idx = label.lastIndexOf(' · ')
   if (idx === -1) return { prefix: '', value: label }
   return { prefix: label.slice(0, idx + 3), value: label.slice(idx + 3) }
-}
-
-function getInitialThemeMode(): LoginThemeMode {
-  if (typeof window === 'undefined') return 'dark'
-  const stored = window.localStorage.getItem('theme')
-  if (stored === 'light' || stored === 'dark') return stored
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
-
-function applyThemeMode(mode: LoginThemeMode) {
-  document.documentElement.classList.remove('light', 'dark')
-  document.documentElement.classList.add(mode)
-  document.documentElement.setAttribute('data-theme', mode)
-  document.documentElement.style.colorScheme = mode
-  window.localStorage.setItem('theme', mode)
 }
 
 function MetaLine({

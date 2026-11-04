@@ -10,7 +10,8 @@ vi.mock('../db/index.ts', async () => ({
 }))
 vi.mock('./api-keys.ts', () => ({ getApiKeyName: () => null, getApiKeyNameMap: () => new Map() }))
 
-import { getRequestById, getRequestMetadataById, getRequestPayloadsById } from './requests'
+import { getRequestMetadataById, getRequestPayloadsById } from './requests'
+import { requestRoutes } from './routes/requests'
 import { clearRecentBodiesForTest, storeRecentBodies } from '../proxy/recent-bodies'
 
 afterEach(() => {
@@ -51,7 +52,7 @@ it('returns missing independently for deleted requests', () => {
   expect(getRequestPayloadsById('req_deleted')).toBeNull()
 })
 
-it('maps legacy detail with the same metadata and payload helpers without extra selects', () => {
+it('maps metadata routing and timing fields alongside payloads that prefer recent bodies', () => {
   row({
     id: 'req_test',
     startedAt: new Date(),
@@ -66,9 +67,26 @@ it('maps legacy detail with the same metadata and payload helpers without extra 
     streamCloseMs: 5,
   })
   storeRecentBodies('req_test', { requestBody: 'full request', responseBody: 'full response' })
-  const detail = getRequestById('req_test')
-  expect(mocks.select).toHaveBeenCalledOnce()
-  expect(detail).toEqual({ ...getRequestMetadataById('req_test'), ...getRequestPayloadsById('req_test') })
-  expect(detail?.requestBody).toBe('full request')
-  expect(detail?.routingRequestedModel).toBe('original')
+  const metadata = getRequestMetadataById('req_test')
+  const payloads = getRequestPayloadsById('req_test')
+  expect(mocks.select).toHaveBeenCalledTimes(2)
+  expect(metadata).toMatchObject({ id: 'req_test', routingRequestedModel: 'original', streamCloseMs: 5 })
+  expect(payloads).toEqual({
+    requestHeaders: '{}',
+    requestBody: 'full request',
+    responseHeaders: null,
+    responseBody: 'full response',
+  })
+})
+
+it('routes metadata and payloads but no longer serves combined request detail', () => {
+  const matching = (path: string) =>
+    requestRoutes.filter((r) => r.method === 'GET' && r.pattern.test(path)).map((r) => r.pattern.source)
+  expect(matching('/api/requests/req_test/metadata')).toHaveLength(1)
+  expect(matching('/api/requests/req_test/metadata')[0]).toContain('metadata')
+  expect(matching('/api/requests/req_test/payloads')).toHaveLength(1)
+  expect(matching('/api/requests/req_test/payloads')[0]).toContain('payloads')
+  expect(matching('/api/requests/stats')).toHaveLength(1)
+  expect(matching('/api/requests/histogram')).toHaveLength(1)
+  expect(matching('/api/requests/req_test')).toEqual([])
 })

@@ -3,6 +3,7 @@ import { config } from '../../config.ts'
 import { databasePathInfo } from '../../db/index.ts'
 import { getGpuSnapshot } from '../../gpu-poller.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
+import { getModelPricingStatus } from '../../pricing.ts'
 import { getRequestLogQueueStats } from '../../proxy/log.ts'
 import { compactDatabase, pruneRequestLogs } from '../../request-log-maintenance.ts'
 import { getUpdateCheck } from '../../update-check.ts'
@@ -62,6 +63,7 @@ export const systemRoutes: Route[] = [
           nodeVersion: process.version,
           gitCommit: GIT_COMMIT,
           update,
+          pricing: getModelPricingStatus(),
         },
         database: {
           path: databasePathInfo.filename,

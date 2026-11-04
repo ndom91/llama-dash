@@ -2,6 +2,19 @@ import * as v from 'valibot'
 import { GpuInfoSchema } from './gpu'
 import { InferenceHardwareSchema } from './inference-hardware'
 
+export const ModelPricingStatusSchema = v.union([
+  v.object({ status: v.picklist(['idle', 'loading']) }),
+  v.object({
+    status: v.literal('ready'),
+    count: v.number(),
+    skippedRecords: v.number(),
+    partialCacheRecords: v.number(),
+  }),
+  v.object({ status: v.literal('unavailable'), reason: v.string() }),
+])
+
+export type ModelPricingStatus = v.InferOutput<typeof ModelPricingStatusSchema>
+
 export const ApiSystemStatusSchema = v.object({
   runtime: v.object({
     uptimeSec: v.number(),
@@ -14,6 +27,7 @@ export const ApiSystemStatusSchema = v.object({
       url: v.nullable(v.string()),
       checkedAt: v.nullable(v.number()),
     }),
+    pricing: ModelPricingStatusSchema,
   }),
   database: v.object({
     path: v.string(),

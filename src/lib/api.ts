@@ -41,7 +41,6 @@ import {
 import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
-  RequestDetailResponseSchema,
   RequestMetadataResponseSchema,
   RequestPayloadsSchema,
   RequestsListResponseSchema,
@@ -183,7 +182,6 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
-  getRequest: (id: string) => getJson(`/api/requests/${id}`, RequestDetailResponseSchema),
   getRequestMetadata: (id: string, options: ApiFetchOptions = {}) =>
     getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema, { priority: 'high', ...options }),
   getRequestPayloads: (id: string, options: ApiFetchOptions = {}) =>

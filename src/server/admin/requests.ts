@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, gte, lt, or, getTableColumns, type SQL } from 'drizzle-orm'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
-import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
+import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
@@ -198,15 +198,6 @@ export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number
     count: number
   }
   return row.count
-}
-
-export function getRequestById(id: string): ApiRequestDetail | null {
-  const r = db.select().from(schema.requests).where(eq(schema.requests.id, id)).get()
-  if (!r) return null
-  return {
-    ...toRequestMetadata(r, r.keyId ? getApiKeyName(r.keyId) : null),
-    ...toRequestPayloads(r, getRecentBodies(id)),
-  }
 }
 
 type RequestMetadataSource = Omit<
