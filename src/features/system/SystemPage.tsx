@@ -1,293 +1,191 @@
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { PageHeader } from '../../components/PageHeader'
-import { StatusDot } from '../../components/StatusDot'
-import { useSystemStatus } from '../../lib/queries'
-import type { ModelPricingStatus } from '../../lib/schemas/system'
+import { useHealth, useModels, useSystemStatus, useSystemTelemetry, useSystemThresholds } from '../../lib/queries'
+import {
+  type ApiSystemStatus,
+  type ApiSystemTelemetry,
+  SYSTEM_TELEMETRY_RANGE_MS,
+  type SystemTelemetryRange,
+} from '../../lib/schemas/system'
+import type { SystemThresholds } from '../../lib/schemas/system-thresholds'
 import { InferenceHostPanel } from './InferenceHostPanel'
-import { MetaRow } from './MetaRow'
-import { SystemPanel } from './SystemPanel'
+import { SystemBackendPanel } from './SystemBackendPanel'
+import { type SystemComponentRow, SystemComponentsRail } from './SystemComponentsRail'
+import { SystemControlBusPanel } from './SystemControlBusPanel'
+import { SystemCpuCoresPanel } from './SystemCpuCoresPanel'
+import { SystemEventsPanel } from './SystemEventsPanel'
+import { SystemRangeControls } from './SystemRangeControls'
+import { SystemResourceTiles } from './SystemResourceTiles'
+import { SystemRuntimePanel } from './SystemRuntimePanel'
+import { SystemThermalsChart } from './SystemThermalsChart'
+import { SystemThresholdsPanel } from './SystemThresholdsPanel'
+import { SystemUnifiedMemoryPanel } from './SystemUnifiedMemoryPanel'
+import { SystemUtilizationChart } from './SystemUtilizationChart'
+import {
+  breachTone,
+  evaluateBreaches,
+  formatAge,
+  formatBytesShort,
+  formatUptime,
+  systemReadings,
+  type Tone,
+} from './systemMetrics'
 
-type Tone = 'ok' | 'warn' | 'err' | 'idle'
+const DEFAULT_RANGE: SystemTelemetryRange = '15m'
+// Uptime, queue counts and DB size are not pushed over SSE, so refresh them while this page is open.
+const STATUS_REFRESH_MS = 30_000
+const HEADER_COPY = {
+  kicker: 'sys · system',
+  title: 'System',
+  subtitle: 'Resource telemetry, process health, control-bus state, and database posture.',
+} as const
 
-function formatAge(ms: number | null): string {
-  if (ms == null) return 'never'
-  if (ms < 1_000) return `${ms}ms ago`
-  return `${Math.round(ms / 1_000)}s ago`
+function worstTone(tones: Array<Tone>): Tone {
+  if (tones.includes('err')) return 'err'
+  if (tones.includes('warn')) return 'warn'
+  return 'ok'
 }
 
-function formatUptime(seconds: number): string {
-  const days = Math.floor(seconds / 86_400)
-  const hours = Math.floor((seconds % 86_400) / 3_600)
-  const minutes = Math.floor((seconds % 3_600) / 60)
-  if (days === 0 && hours === 0 && minutes === 0) return `${Math.max(1, Math.floor(seconds))}s`
-  return [days > 0 ? `${days}d` : null, hours > 0 || days > 0 ? `${hours}h` : null, `${minutes}m`]
-    .filter(Boolean)
-    .join(' ')
+function backendTone(reachable: boolean | undefined): Tone {
+  if (reachable == null) return 'idle'
+  return reachable ? 'ok' : 'err'
 }
 
-function formatGpuVendor(driver: 'nvidia' | 'amd' | 'apple' | null): string {
-  if (driver === 'nvidia') return 'Nvidia'
-  if (driver === 'amd') return 'AMD'
-  if (driver === 'apple') return 'Apple'
-  return 'offline'
+function gpuTelemetryDetail(status: ApiSystemStatus, temperatureC: number | null): string {
+  if (temperatureC != null) return `${temperatureC}°C`
+  return status.gpu.available ? 'live' : 'offline'
 }
 
-function formatGpuMeta(deviceName: string | null, gpuCount: number, ageMs: number | null): string {
-  const parts = [deviceName, `${gpuCount} ${gpuCount === 1 ? 'device' : 'devices'}`, formatAge(ageMs)]
-  return parts.filter(Boolean).join(' · ')
-}
-
-function formatPricingStatus(pricing: ModelPricingStatus): string {
-  switch (pricing.status) {
-    case 'ready':
-      return `ready · ${pricing.count.toLocaleString()} models`
-    case 'unavailable':
-      return `unavailable · ${pricing.reason}`
-    default:
-      return pricing.status
-  }
-}
-
-function formatUpdateStatus(update: {
-  status: 'unknown' | 'current' | 'available' | 'error'
-  latest: string | null
-  url: string | null
-}) {
-  if (update.status === 'available') {
-    const label = update.latest ? `update available · ${update.latest}` : 'update available'
-    return update.url ? (
-      <a className="text-accent hover:underline" href={update.url} target="_blank" rel="noreferrer">
-        {label}
-      </a>
-    ) : (
-      label
-    )
-  }
-  if (update.status === 'current') return update.latest ? `current · ${update.latest}` : 'current'
-  if (update.status === 'error') return 'check failed'
-  return 'unknown'
-}
-
-function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
-  return (
-    <section className="min-w-0 rounded border border-border bg-surface-1 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
-      <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
-        <StatusDot tone={tone} /> {label}
-      </div>
-      <div className="truncate font-mono tabular-nums text-xl font-semibold tracking-[-0.04em] text-fg">{value}</div>
-      {meta ? <div className="mt-1 truncate font-mono text-[10px] text-fg-dim">{meta}</div> : null}
-    </section>
-  )
-}
-
-function ComponentRail({ components }: { components: Array<{ label: string; age: string; tone: Tone }> }) {
-  return (
-    <aside className="hidden w-[232px] shrink-0 border-r border-border bg-surface-0/70 xl:block">
-      <div className="flex h-12 items-center border-b border-border px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint">
-        <span>components</span>
-        <span className="ml-auto">all</span>
-      </div>
-      <div className="py-2">
-        {components.map((item) => (
-          <div
-            key={item.label}
-            className="grid items-center gap-2 px-4 py-2.5 [grid-template-columns:12px_minmax(0,1fr)_auto]"
-          >
-            <StatusDot tone={item.tone} />
-            <span className="truncate font-mono text-[11px] text-fg-muted">{item.label}</span>
-            <span className="font-mono tabular-nums text-[10px] text-fg-faint">{item.age}</span>
-          </div>
-        ))}
-      </div>
-    </aside>
-  )
-}
-
-function DirectTargets({ targets }: { targets: string[] }) {
-  return (
-    <div className="mt-3 flex flex-col items-end gap-2">
-      <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">
-        whitelisted direct upstream targets
-      </div>
-      <div className="flex flex-wrap justify-end gap-2">
-        {targets.map((target) => (
-          <span
-            key={target}
-            className="rounded-sm border border-border/70 bg-surface-2 px-2 py-1 font-mono text-[10px] text-fg-dim"
-          >
-            {target.replace('https://', '')}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
+function componentRows(
+  status: ApiSystemStatus,
+  telemetry: ApiSystemTelemetry | undefined,
+  thresholds: SystemThresholds | undefined,
+  backendReachable: boolean | undefined,
+): Array<SystemComponentRow> {
+  const breached = evaluateBreaches(systemReadings(status, telemetry), thresholds)
+  const gpu = status.gpu.available ? (status.gpu.gpus[0] ?? null) : null
+  const latestAt = telemetry?.latest?.timestamp ?? null
+  return [
+    {
+      label: 'resources',
+      detail: latestAt == null ? 'waiting' : formatAge(Date.now() - latestAt),
+      tone: worstTone(
+        (['gpuTempC', 'gpuMemPercent', 'ramPercent', 'cpuPercent'] as const).map((metric) =>
+          breachTone(metric, breached),
+        ),
+      ),
+    },
+    { label: 'control bus', detail: 'now', tone: 'ok' },
+    {
+      label: 'backend',
+      detail: status.inference.label,
+      tone: backendTone(backendReachable),
+    },
+    {
+      label: 'log queue',
+      detail: `${status.logging.queued} · ${status.logging.dropped > 0 ? 'dropping' : 'ready'}`,
+      tone: breachTone('queueDropped', breached),
+    },
+    {
+      label: 'gpu telemetry',
+      detail: gpuTelemetryDetail(status, gpu?.temperatureC ?? null),
+      tone: status.gpu.available ? breachTone('gpuTempC', breached) : 'idle',
+    },
+    {
+      label: 'database',
+      detail: status.database.sizeBytes == null ? 'file' : formatBytesShort(status.database.sizeBytes),
+      tone: 'ok',
+    },
+    { label: 'runtime', detail: formatUptime(status.runtime.uptimeSec), tone: 'ok' },
+  ]
 }
 
 export function SystemPage() {
-  const { data, isLoading, error } = useSystemStatus()
+  const search = useSearch({ from: '/system' })
+  const navigate = useNavigate({ from: '/system' })
+  const range = search.range ?? DEFAULT_RANGE
 
-  if (isLoading) {
+  const { data: status, isLoading, error } = useSystemStatus({ refetchIntervalMs: STATUS_REFRESH_MS })
+  const { data: telemetry } = useSystemTelemetry(range)
+  const { data: thresholds } = useSystemThresholds()
+  const { data: health } = useHealth()
+  const { data: models = [] } = useModels()
+
+  const setRange = (next: SystemTelemetryRange) => {
+    void navigate({ search: { range: next === DEFAULT_RANGE ? undefined : next }, replace: true })
+  }
+
+  const controls = (
+    <SystemRangeControls range={range} onRangeChange={setRange} intervalMs={telemetry?.intervalMs ?? 10_000} />
+  )
+
+  if (isLoading || error || !status) {
     return (
       <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
+        <PageHeader {...HEADER_COPY} variant="integrated" />
         <main className="flex-1 p-4">
-          <div className="panel h-64 animate-pulse bg-surface-2" />
+          {error ? (
+            <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
+          ) : (
+            <div className="panel h-64 animate-pulse bg-surface-2" />
+          )}
         </main>
       </div>
     )
   }
 
-  if (error || !data) {
-    return (
-      <div className="content">
-        <PageHeader kicker="Observe · System" title="System" subtitle="Runtime and proxy internals" />
-        <main className="flex-1 p-4">
-          <div className="panel p-4 text-sm text-danger">Failed to load system status.</div>
-        </main>
-      </div>
-    )
-  }
-
-  const queueTone: Tone = data.logging.dropped > 0 ? 'err' : data.logging.queued > 0 ? 'warn' : 'ok'
-  const gpuTone: Tone = data.gpu.available ? 'ok' : 'idle'
-  const primaryGpu = data.gpu.gpus[0] ?? null
-  const gpuVendor = formatGpuVendor(data.gpu.driver)
-  const gpuModel = primaryGpu?.name ?? null
-  const components = [
-    { label: 'control bus', age: 'now', tone: 'ok' as const },
-    { label: 'backend', age: data.inference.label, tone: 'ok' as const },
-    { label: 'logging queue', age: 'live', tone: queueTone },
-    { label: 'gpu telemetry', age: formatAge(data.gpu.ageMs), tone: gpuTone },
-    { label: 'database', age: data.database.specialPath ? 'special' : 'file', tone: 'ok' as const },
-    { label: 'runtime', age: formatUptime(data.runtime.uptimeSec), tone: 'ok' as const },
-  ]
+  const toMs = telemetry?.series.t.at(-1) ?? telemetry?.latest?.timestamp ?? Date.now()
+  const fromMs = toMs - SYSTEM_TELEMETRY_RANGE_MS[range]
+  const readings = systemReadings(status, telemetry)
+  const breached = evaluateBreaches(readings, thresholds)
 
   return (
     <div className="content">
       <div className="page min-h-full px-0">
-        <PageHeader
-          kicker="sys · system"
-          title="System"
-          subtitle="Process health, control-bus state, GPU telemetry, and database posture."
-          variant="integrated"
-        />
+        <PageHeader {...HEADER_COPY} action={controls} variant="integrated" />
         <div className="flex min-h-0 flex-1">
-          <ComponentRail components={components} />
-          <main className="min-h-0 flex flex-col flex-1 overflow-y-auto">
-            <div className="flex flex-col flex-1">
-              <div className="grid gap-3 border-b border-border bg-surface-0 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
-                <StatTile
-                  label="runtime"
-                  value={formatUptime(data.runtime.uptimeSec)}
-                  meta={`Node ${data.runtime.nodeVersion}`}
-                  tone="ok"
+          <SystemComponentsRail components={componentRows(status, telemetry, thresholds, health?.upstream.reachable)}>
+            <SystemThresholdsPanel thresholds={thresholds} />
+          </SystemComponentsRail>
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            {telemetry ? (
+              <>
+                <SystemResourceTiles
+                  status={status}
+                  telemetry={telemetry}
+                  thresholds={thresholds}
+                  breached={breached}
+                  readings={readings}
+                  residentModels={models.filter((model) => model.kind === 'local' && model.running).length}
+                  fromMs={fromMs}
+                  toMs={toMs}
                 />
-                <StatTile
-                  label="queue"
-                  value={data.logging.queued}
-                  meta={`${data.logging.dropped} dropped · live`}
-                  tone={queueTone}
-                />
-                <StatTile
-                  label="gpu"
-                  value={gpuVendor}
-                  meta={formatGpuMeta(gpuModel, data.gpu.gpuCount, data.gpu.ageMs)}
-                  tone={gpuTone}
-                />
-                <StatTile
-                  label="proxy"
-                  value={data.proxy.upstreamHost}
-                  meta={`${data.inference.label} · ${data.proxy.insecureTls ? 'insecure tls' : 'tls normal'}`}
-                  tone="ok"
-                />
-              </div>
-
-              <SystemPanel title="Control Bus" className="!border-t-0">
-                <MetaRow label="backend" value={data.inference.label} />
-                <MetaRow label="upstream" value={<span className="break-all">{data.proxy.upstreamBaseUrl}</span>} />
-                <MetaRow label="host" value={data.proxy.upstreamHost} />
-                <MetaRow label="auth" value={data.proxy.insecureTls ? 'insecure tls enabled' : 'standard tls'} />
-                <MetaRow label="metrics" value="/metrics" />
-                <MetaRow label="direct targets" value={data.proxy.directTargets.length} />
-                <DirectTargets targets={data.proxy.directTargets} />
-              </SystemPanel>
-
-              <SystemPanel title="Inference Backend">
-                <MetaRow label="runtime" value={data.inference.label} />
-                <MetaRow label="models" value={data.inference.capabilities.models ? 'supported' : 'unsupported'} />
-                <MetaRow
-                  label="running"
-                  value={data.inference.capabilities.runningModels ? 'supported' : 'unsupported'}
-                />
-                <MetaRow
-                  label="lifecycle"
-                  value={data.inference.capabilities.lifecycle ? 'supported' : 'unsupported'}
-                />
-                <MetaRow label="logs" value={data.inference.capabilities.logs ? 'supported' : 'unsupported'} />
-                <MetaRow label="config" value={data.inference.capabilities.config ? 'supported' : 'unsupported'} />
-              </SystemPanel>
-
-              <div className="grid xl:grid-cols-2">
-                <SystemPanel title="Loading Queue" aside={`· ${data.logging.dropped > 0 ? 'dropping' : 'ready'}`}>
-                  <MetaRow
-                    label="state"
-                    value={
-                      <span className="inline-flex items-center gap-1.5">
-                        <StatusDot tone={queueTone} /> {data.logging.dropped > 0 ? 'dropping' : 'ready'}
-                      </span>
-                    }
+                <div className="grid border-t border-border xl:grid-cols-2">
+                  <SystemUtilizationChart telemetry={telemetry} fromMs={fromMs} toMs={toMs} />
+                  <SystemThermalsChart
+                    telemetry={telemetry}
+                    fromMs={fromMs}
+                    toMs={toMs}
+                    tempThreshold={thresholds?.gpuTempC ?? null}
+                    className="border-border max-xl:border-t xl:border-l"
                   />
-                  <MetaRow label="queued" value={data.logging.queued} />
-                  <MetaRow label="dropped" value={data.logging.dropped} />
-                </SystemPanel>
-
-                <SystemPanel title="GPU Telemetry" aside={`· ${data.gpu.gpuCount} device`} className="xl:border-l">
-                  <MetaRow
-                    label="state"
-                    value={
-                      <span className="inline-flex items-center gap-1.5">
-                        <StatusDot tone={gpuTone} /> {data.gpu.available ? 'available' : 'unavailable'}
-                      </span>
-                    }
-                  />
-                  <MetaRow label="driver" value={data.gpu.driver ?? 'none'} />
-                  <MetaRow label="devices" value={data.gpu.gpuCount} />
-                  {primaryGpu ? <MetaRow label="device" value={primaryGpu.name} /> : null}
-                  {primaryGpu?.cores != null ? <MetaRow label="cores" value={primaryGpu.cores} /> : null}
-                  {primaryGpu?.memoryUsedMiB != null && primaryGpu.memoryTotalMiB != null ? (
-                    <MetaRow
-                      label={data.gpu.driver === 'apple' ? 'unified memory' : 'memory'}
-                      value={`${(primaryGpu.memoryUsedMiB / 1024).toFixed(1)} / ${(primaryGpu.memoryTotalMiB / 1024).toFixed(1)} GiB`}
-                    />
-                  ) : null}
-                  {primaryGpu?.memoryPercent != null ? (
-                    <MetaRow label="memory used" value={`${primaryGpu.memoryPercent}%`} />
-                  ) : null}
-                  {primaryGpu?.utilizationPercent != null ? (
-                    <MetaRow label="utilization" value={`${primaryGpu.utilizationPercent}%`} />
-                  ) : null}
-                  {primaryGpu?.temperatureC != null ? (
-                    <MetaRow label="temperature" value={`${primaryGpu.temperatureC}°C`} />
-                  ) : null}
-                  {primaryGpu?.powerW != null ? <MetaRow label="power" value={`${primaryGpu.powerW} W`} /> : null}
-                </SystemPanel>
-              </div>
-
-              {data.inferenceHardware ? <InferenceHostPanel hardware={data.inferenceHardware} /> : null}
-
-              <div className="grid xl:grid-cols-2 flex-1">
-                <SystemPanel title="Runtime">
-                  <MetaRow label="uptime" value={formatUptime(data.runtime.uptimeSec)} />
-                  <MetaRow label="node" value={data.runtime.nodeVersion} />
-                  <MetaRow label="commit" value={data.runtime.gitCommit} />
-                  <MetaRow label="updates" value={formatUpdateStatus(data.runtime.update)} />
-                  <MetaRow label="pricing" value={formatPricingStatus(data.runtime.pricing)} />
-                </SystemPanel>
-
-                <SystemPanel title="Database" className="xl:border-l">
-                  <MetaRow label="path" value={<span className="break-all">{data.database.path}</span>} />
-                  <MetaRow label="special" value={data.database.specialPath ? 'yes' : 'no'} />
-                </SystemPanel>
-              </div>
+                </div>
+              </>
+            ) : (
+              <div className="h-80 animate-pulse border-b border-border bg-surface-1" />
+            )}
+            <SystemUnifiedMemoryPanel status={status} latest={telemetry?.latest ?? null} models={models} />
+            <div className="grid flex-1 md:grid-cols-2 xl:grid-cols-3 [&>*]:border-border md:[&>*:nth-child(even)]:border-l xl:[&>*:not(:nth-child(3n+1))]:border-l xl:[&>*:nth-child(even):nth-child(3n+1)]:border-l-0">
+              <SystemControlBusPanel status={status} />
+              <SystemBackendPanel
+                status={status}
+                version={health?.upstream.reachable ? (health.upstream.version ?? null) : null}
+                queueTone={breachTone('queueDropped', breached)}
+              />
+              <SystemEventsPanel events={telemetry?.events ?? []} />
+              <InferenceHostPanel hardware={status.inferenceHardware} />
+              <SystemCpuCoresPanel latest={telemetry?.latest ?? null} />
+              <SystemRuntimePanel status={status} />
             </div>
           </main>
         </div>

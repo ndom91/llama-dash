@@ -73,3 +73,23 @@ export const VersionResponseSchema = v.object({
   commit: v.string(),
   build_date: v.string(),
 })
+
+export const PerformanceSysStatSchema = v.object({
+  timestamp: v.string(),
+  cpu_util_per_core: v.array(v.number()),
+  mem_total_mb: v.number(),
+  mem_used_mb: v.number(),
+  mem_free_mb: v.number(),
+  swap_total_mb: v.number(),
+  swap_used_mb: v.number(),
+  load_avg_1: v.number(),
+  load_avg_5: v.number(),
+  load_avg_15: v.number(),
+})
+
+export type PerformanceSysStat = v.InferOutput<typeof PerformanceSysStatSchema>
+
+export const PerformanceResponseSchema = v.object({
+  enabled: v.boolean(),
+  sys_stats: v.optional(v.nullable(v.array(PerformanceSysStatSchema))),
+})

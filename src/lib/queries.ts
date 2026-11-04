@@ -43,6 +43,8 @@ import {
   type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
+import { type ApiSystemTelemetry, isLiveAppendRange, type SystemTelemetryRange } from './schemas/system'
+import type { SystemThresholds, UpdateSystemThresholdsBody } from './schemas/system-thresholds'
 import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
@@ -67,10 +69,23 @@ export function useHealth(): UseQueryResult<ApiHealth> {
   })
 }
 
-export function useSystemStatus(): UseQueryResult<ApiSystemStatus> {
+export function useSystemStatus(options: { refetchIntervalMs?: number } = {}): UseQueryResult<ApiSystemStatus> {
   return useQuery({
     queryKey: qk.systemStatus,
     queryFn: ({ signal }) => api.systemStatus({ signal }),
+    refetchInterval: options.refetchIntervalMs ?? false,
+  })
+}
+
+// Short ranges get live points appended from /api/events; downsampled long ranges refetch instead.
+const SYSTEM_TELEMETRY_LONG_RANGE_REFETCH_MS = 60_000
+
+export function useSystemTelemetry(range: SystemTelemetryRange): UseQueryResult<ApiSystemTelemetry> {
+  return useQuery({
+    queryKey: qk.systemTelemetry(range),
+    queryFn: ({ signal }) => api.systemTelemetry(range, { signal }),
+    refetchInterval: isLiveAppendRange(range) ? false : SYSTEM_TELEMETRY_LONG_RANGE_REFETCH_MS,
+    placeholderData: (previous) => previous,
   })
 }
 
@@ -675,6 +690,27 @@ export function useUpdatePrivacySettings(): UseMutationResult<PrivacySettings, E
     },
     onError: (e) => {
       toastMutationError('Failed to update privacy settings', e)
+    },
+  })
+}
+
+export function useSystemThresholds(): UseQueryResult<SystemThresholds> {
+  return useQuery({
+    queryKey: qk.systemThresholds,
+    queryFn: () => api.getSystemThresholds(),
+  })
+}
+
+export function useUpdateSystemThresholds(): UseMutationResult<SystemThresholds, Error, UpdateSystemThresholdsBody> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body) => api.updateSystemThresholds(body),
+    onSuccess: (thresholds) => {
+      qc.setQueryData(qk.systemThresholds, thresholds)
+      toast.success('Thresholds updated')
+    },
+    onError: (e) => {
+      toastMutationError('Failed to update thresholds', e)
     },
   })
 }

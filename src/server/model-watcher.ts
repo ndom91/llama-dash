@@ -3,11 +3,13 @@ import { ulid } from 'ulidx'
 import { db, schema } from './db/index.ts'
 import { inferenceBackend } from './inference/backend.ts'
 import { publishAdminEvent } from './admin/events.ts'
+import { scheduleFootprintMeasurement } from './model-footprints.ts'
 
 const POLL_INTERVAL_MS = 15_000
 
 let knownRunning = new Set<string>()
 let started = false
+let lastPollAt: number | null = null
 
 function seedFromDb() {
   const rows = db
@@ -49,9 +51,14 @@ async function diffRunning() {
         db.insert(schema.modelEvents).values(row).run()
       }
       publishAdminEvent('model.changed', { events: inserts.map((row) => ({ modelId: row.modelId, event: row.event })) })
+      // A lone load is the only case where memory growth is attributable to one model.
+      if (inserts.length === 1 && inserts[0].event === 'load' && lastPollAt != null) {
+        scheduleFootprintMeasurement(inserts[0].modelId, lastPollAt)
+      }
     }
 
     knownRunning = current
+    lastPollAt = now.getTime()
   } catch {
     // upstream unreachable — keep last known state
   }

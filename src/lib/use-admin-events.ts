@@ -5,6 +5,8 @@ import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
 import { qk } from './query-keys'
 import { GpuSnapshotSchema } from './schemas/gpu'
+import { appendSystemTelemetryPoint } from './system-telemetry-cache'
+import { SystemTelemetryEventSchema } from './schemas/system'
 import { ApiRequestSchema, type ApiRequest } from './schemas/request'
 import { invalidateRequestLists, resyncLiveQueries, updateRequestsListCache } from './request-cache-updates'
 
@@ -84,6 +86,11 @@ export function useAdminEvents() {
       if (data) queryClient.setQueryData(qk.gpu, data)
     }
 
+    const updateTelemetry = (event: MessageEvent) => {
+      const data = parseEventData(SystemTelemetryEventSchema, event)
+      if (data) appendSystemTelemetryPoint(queryClient, data)
+    }
+
     const invalidateSystem = () => {
       queryClient.invalidateQueries({ queryKey: qk.systemStatus })
       queryClient.invalidateQueries({ queryKey: qk.health })
@@ -103,6 +110,7 @@ export function useAdminEvents() {
       events.addEventListener('model.changed', invalidateModels)
       events.addEventListener('gpu.updated', updateGpu)
       events.addEventListener('system.changed', invalidateSystem)
+      events.addEventListener('system.telemetry', updateTelemetry)
     }
 
     const onVisibilityChange = () => {

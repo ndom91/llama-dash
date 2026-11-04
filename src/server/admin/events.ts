@@ -1,4 +1,4 @@
-type AdminEventType = 'request.completed' | 'model.changed' | 'gpu.updated' | 'system.changed'
+type AdminEventType = 'request.completed' | 'model.changed' | 'gpu.updated' | 'system.changed' | 'system.telemetry'
 
 type AdminEvent = {
   id: number

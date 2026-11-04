@@ -13,12 +13,12 @@ export function SystemPanel({
   className?: string
 }) {
   return (
-    <section className={cn('panel border-t border-border !rounded-none border-x-0 !bg-surface-1', className)}>
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
+    <section className={cn('flex min-w-0 flex-col border-t border-border', className)}>
+      <div className="flex h-10 items-center gap-3 border-b border-border px-5 max-md:px-4">
         <h2 className="panel-title">{title}</h2>
-        {aside ? <span className="panel-sub ml-auto">{aside}</span> : null}
+        {aside ? <span className="ml-auto font-mono text-[10px] text-fg-faint">{aside}</span> : null}
       </div>
-      <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
+      <div className="flex-1 px-5 pt-2 pb-4 max-md:px-4">{children}</div>
     </section>
   )
 }

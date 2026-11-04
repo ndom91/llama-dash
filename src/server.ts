@@ -26,6 +26,9 @@ startModelWatcher()
 const { startGpuPoller } = await import('./server/gpu-poller.ts')
 startGpuPoller()
 
+const { startSystemTelemetry } = await import('./server/system-telemetry.ts')
+startSystemTelemetry(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown')
+
 const { startRequestLogMaintenance } = await import('./server/request-log-maintenance.ts')
 startRequestLogMaintenance()
 

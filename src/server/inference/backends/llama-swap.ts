@@ -1,10 +1,12 @@
 import { config } from '../../config.ts'
 import { llamaSwap } from '../../llama-swap/client.ts'
 import type { OpenAiModel, RunningModel } from '../../llama-swap/client.ts'
+import type { PerformanceSysStat } from '../../llama-swap/schemas.ts'
 import type {
   BackendModel,
   BackendModelCapabilities,
   BackendRunningModel,
+  HostPerformanceSample,
   InferenceBackend,
   InferenceBackendInfo,
 } from '../backend.ts'
@@ -79,6 +81,20 @@ function mapLlamaSwapRunningModel(model: RunningModel): BackendRunningModel {
   }
 }
 
+const MIB = 1024 * 1024
+
+function mapLlamaSwapPerformanceSample(stat: PerformanceSysStat): HostPerformanceSample {
+  return {
+    timestamp: Date.parse(stat.timestamp),
+    cpuPerCore: stat.cpu_util_per_core,
+    memTotalBytes: stat.mem_total_mb * MIB,
+    memUsedBytes: stat.mem_used_mb * MIB,
+    swapTotalBytes: stat.swap_total_mb * MIB,
+    swapUsedBytes: stat.swap_used_mb * MIB,
+    loadAvg: [stat.load_avg_1, stat.load_avg_5, stat.load_avg_15],
+  }
+}
+
 function getLlamaSwapInfo(): InferenceBackendInfo {
   const upstreamUrl = new URL(config.inferenceBaseUrl)
   return {
@@ -140,6 +156,10 @@ export function createLlamaSwapBackend(): InferenceBackend {
       return running.map(mapLlamaSwapRunningModel)
     },
     hardware: () => llamaSwap.hardware(),
+    async hostPerformance(afterMs) {
+      const res = await llamaSwap.performance(afterMs == null ? undefined : new Date(afterMs).toISOString())
+      return (res.sys_stats ?? []).map(mapLlamaSwapPerformanceSample)
+    },
     modelLogNames: getLlamaSwapModelLogNames,
     modelConfigSnippet: getLlamaSwapModelConfigSnippet,
     modelContextLengthHints: getLlamaSwapConfigContextLengths,

@@ -1,6 +1,8 @@
 export const qk = {
   health: ['health'] as const,
   systemStatus: ['system'] as const,
+  systemTelemetryRoot: ['system-telemetry'] as const,
+  systemTelemetry: (range: string) => ['system-telemetry', range] as const,
   models: ['models'] as const,
   requests: ['requests'] as const,
   requestsList: ['requests', 'list'] as const,
@@ -29,4 +31,5 @@ export const qk = {
   attributionSettings: ['settings', 'attribution'] as const,
   privacySettings: ['settings', 'privacy'] as const,
   usagePanelSettings: ['settings', 'usage'] as const,
+  systemThresholds: ['settings', 'system-thresholds'] as const,
 }

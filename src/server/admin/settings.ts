@@ -1,5 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { parseUsagePanelsSetting, type UsagePanelSettings } from '../../lib/schemas/usage.ts'
+import {
+  parseSystemThresholdsSetting,
+  type SystemThresholds,
+  type UpdateSystemThresholdsBody,
+} from '../../lib/schemas/system-thresholds.ts'
 import { db, schema } from '../db/index.ts'
 
 type RequestLimits = {
@@ -41,12 +46,14 @@ let _limitsCache: RequestLimits | null = null
 let _privacyCache: PrivacySettings | null = null
 let _attributionCache: AttributionSettings | null = null
 let _usagePanelsCache: UsagePanelSettings | null = null
+let _systemThresholdsCache: SystemThresholds | null = null
 
 function invalidateCache() {
   _limitsCache = null
   _privacyCache = null
   _attributionCache = null
   _usagePanelsCache = null
+  _systemThresholdsCache = null
 }
 
 function parseBooleanSetting(value: string | null, fallback: boolean): boolean {
@@ -181,4 +188,14 @@ export function getUsagePanelSettings(): UsagePanelSettings {
 
 export function setUsagePanelSettings(settings: UsagePanelSettings) {
   setSetting('usage_panels', JSON.stringify(settings.panels))
+}
+
+export function getSystemThresholds(): SystemThresholds {
+  if (_systemThresholdsCache) return _systemThresholdsCache
+  _systemThresholdsCache = parseSystemThresholdsSetting(getSetting('system_thresholds'))
+  return _systemThresholdsCache
+}
+
+export function setSystemThresholds(update: UpdateSystemThresholdsBody) {
+  setSetting('system_thresholds', JSON.stringify({ ...getSystemThresholds(), ...update }))
 }

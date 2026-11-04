@@ -70,7 +70,7 @@ src/
     requests/              · request list/detail pages, payload helpers, `RequestsFilterSidebar`, and `requestsSearch.ts` (/requests search-param type + validator)
     usage/                 · usage page: period switch, input/output chart, breakdown panels, and route/data loading skeletons
     policies/              · routing, credentials, and MCP relays (shared `PolicyPanel` shell)
-    system/                · system runtime/host panels (shared `SystemPanel` + `MetaRow`)
+    system/                · System page: resource tiles, SVG time-series charts, unified-memory bar, components rail + thresholds, compact detail grid (shared `SystemPanel` + `MetaRow`, helpers in `systemMetrics.ts`)
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
     Sidebar.tsx             · nav + `g`-leader shortcuts + VRAM-resident readout in footer
@@ -100,6 +100,9 @@ src/
     config.ts             — env-var loader (INFERENCE_BASE_URL, DATABASE_PATH, …)
     cpu-poller.ts         — samples inference-host CPU counters from procfs
     gpu-poller.ts         — polls nvidia-smi/rocm-smi/system_profiler and combines hardware telemetry
+    system-telemetry.ts   — 10s telemetry tick: 24h in-memory ring (`telemetry-ring.ts`), backend host performance, SSE samples
+    system-events.ts      — in-memory System page event log (startup, threshold crossings, log-queue drops)
+    model-footprints.ts   — measures per-model accelerator-memory growth on lone model loads
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
@@ -128,7 +131,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures keep the normal bounded debug capture policy.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls inference-host CPU counters plus `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes hardware-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
-- `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events.
+- `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events. A lone load schedules a footprint measurement (`model-footprints.ts`).
+- `src/server/system-telemetry.ts` — every 10s, records GPU values from the GPU poller plus inference-host CPU/RAM/swap/load from the backend `hostPerformance()` capability (llama-swap `/api/performance`, falling back to local counters) into a 24h columnar `Float32Array` ring (~0.5 MB, reset on restart). On startup it backfills CPU/RAM from llama-swap's own 1h buffer. Each tick evaluates threshold crossings and publishes a `system.telemetry` SSE event.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata and v247 inference-host hardware snapshots.
 - `src/server/db/*` — Drizzle schema, SQLite initialization, and request/model-event indexes for common dashboard query paths. Migrations run at server startup; `pnpm db:migrate` remains available for manual operation.
@@ -153,7 +157,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    model × client × key × status class × routing action × client host × end
    user usage rollup that outlives request-log retention; sessions are not
    rolled up), `model_events` (load/unload
-   event-sourced timeline), `api_keys` (hashed keys + rate limits + ACLs +
+   event-sourced timeline), `model_footprints` (last observed accelerator-memory
+   growth per model, measured only when a model loads alone), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
     `routing_rules` (ordered request routing rules), `upstream_credentials`
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
@@ -208,6 +213,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
     - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
    - `/api/system` — runtime, update status, `models.dev` pricing catalog status, DB, proxy, log queue, and poller status with GPU device details
+   - `/api/system/telemetry?range=5m|15m|1h|6h|24h` — telemetry series (≤360 points, mean or max downsampling), latest host sample (per-core CPU, load, memory, page cache, llama-dash process), model-load bands, and last-hour System events
    - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
    - `/api/playground/article-extract` — fetch and Readability-parse an article URL into clean text for Speech playground TTS
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
@@ -219,6 +225,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/upstream-credentials` — encrypted bearer credential vault for direct upstream routing and MCP relays
     - `/api/mcp-relays` — CRUD for configured remote MCP relay endpoints
     - `/api/settings/attribution` — GET/PATCH header mappings for client/end-user/session capture
+    - `/api/settings/system-thresholds` — GET/PATCH System page thresholds (GPU temp, GPU memory, RAM, 5m CPU, dropped log rows)
     - `/api/settings/usage` — GET/PATCH which dimension each Usage page breakdown panel shows
    - `/api/settings/request-limits` — GET/PATCH global request size limits
 6. `/metrics` — Prometheus text exporter with low-cardinality request, token,
@@ -233,8 +240,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
    and publishes model-change dashboard events.
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, a merged Models panel with a local group and one combined peer group, 15m/1h/6h/24h residency tracks, per-request ticks, traffic-derived peer health, and hover unload/logs actions, upstream+GPU,
     recent requests), Models (list + load/unload + capability badges + llama-swap selector routing + per-model detail),
-    Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
-    update status, pricing catalog, DB, proxy, queue, and GPU poller/device status), Playground
+    Requests (filtered/sorted log + histogram + detail), Logs, System (CPU/GPU/GPU-memory/RAM
+    tiles with threshold meters and sparklines, utilization and thermals/power charts with
+    model-load bands, a `?range=` picker of 5m–24h, a unified-memory bar split by
+    measured model footprints with a "what fits next" hint, a components rail with editable
+    thresholds, and a compact grid of control bus, backend capabilities, events, inference host,
+    CPU cores, and runtime/database), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
     with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
     image and transcription testing; timing sidebar shows TTFT, prefill,
@@ -502,6 +513,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ApiKey      | `key`  |
 | ModelAlias  | `mal`  |
 | McpRelay    | `mrl`  |
+| ModelFootprint | `mfp` |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

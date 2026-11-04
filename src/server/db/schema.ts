@@ -121,6 +121,14 @@ export const modelEvents = sqliteTable(
   (table) => [index('idx_model_events_timestamp').on(table.timestamp)],
 )
 
+/** Last observed accelerator-memory growth when a model loaded alone; one row per model. */
+export const modelFootprints = sqliteTable('model_footprints', {
+  id: text('id').primaryKey(),
+  modelId: text('model_id').notNull().unique(),
+  footprintMiB: integer('footprint_mib').notNull(),
+  measuredAt: integer('measured_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
 export type ModelEvent = typeof modelEvents.$inferSelect
 export type NewModelEvent = typeof modelEvents.$inferInsert
 

@@ -59,6 +59,17 @@ export type BackendRunningModel = {
   contextLength: number | null
 }
 
+/** One inference-host resource sample. Memory values are bytes. */
+export type HostPerformanceSample = {
+  timestamp: number
+  cpuPerCore: Array<number>
+  memTotalBytes: number
+  memUsedBytes: number
+  swapTotalBytes: number
+  swapUsedBytes: number
+  loadAvg: [number, number, number]
+}
+
 export type InferenceBackend = {
   info: InferenceBackendInfo
   ping(): Promise<{ reachable: boolean; latencyMs?: number }>
@@ -68,6 +79,8 @@ export type InferenceBackend = {
   listModels(): Promise<Array<BackendModel>>
   listRunning?(): Promise<Array<BackendRunningModel>>
   hardware?(): Promise<InferenceHardware>
+  /** Host resource samples newer than `afterMs`, oldest first. */
+  hostPerformance?(afterMs?: number): Promise<Array<HostPerformanceSample>>
   modelLogNames?(modelId: string): Array<string>
   modelConfigSnippet?(modelId: string): string | null
   modelContextLengthHints?(): Map<string, number>

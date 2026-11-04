@@ -3,6 +3,7 @@ import { InferenceHardwareSchema } from '../../lib/schemas/inference-hardware.ts
 import { config } from '../config.ts'
 import {
   ModelsListResponseSchema,
+  PerformanceResponseSchema,
   RunningResponseSchema,
   VersionResponseSchema,
   type OpenAiModel,
@@ -37,4 +38,6 @@ export const llamaSwap = {
   health: () => callText('/health'),
   version: () => callJson('/api/version', VersionResponseSchema),
   hardware: () => callJson('/api/hardware', InferenceHardwareSchema),
+  performance: (after?: string) =>
+    callJson(`/api/performance${after ? `?after=${encodeURIComponent(after)}` : ''}`, PerformanceResponseSchema),
 }

@@ -28,7 +28,13 @@ import {
   type UpdateAttributionSettingsBody,
   type UpdatePrivacySettingsBody,
 } from './schemas/settings'
-import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
+import {
+  ApiSystemStatusSchema,
+  ApiSystemTelemetrySchema,
+  LoginMetaSchema,
+  type SystemTelemetryRange,
+} from './schemas/system'
+import { SystemThresholdsSchema, type UpdateSystemThresholdsBody } from './schemas/system-thresholds'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
 import { ApiHealthSchema } from './schemas/health'
@@ -198,6 +204,8 @@ export const api = {
   loginMeta: () => getJson('/api/login-meta', LoginMetaSchema),
   systemStatus: (options: ApiFetchOptions = {}) =>
     getJson('/api/system', ApiSystemStatusSchema, { priority: 'low', ...options }),
+  systemTelemetry: (range: SystemTelemetryRange, options: ApiFetchOptions = {}) =>
+    getJson(`/api/system/telemetry?range=${range}`, ApiSystemTelemetrySchema, { priority: 'low', ...options }),
   requestStats: (options: ApiFetchOptions = {}) =>
     getJson('/api/requests/stats', ApiRequestStatsSchema, { priority: 'low', ...options }),
   modelTimeline: (windowMs?: number, options: ApiFetchOptions = {}) => {
@@ -209,6 +217,9 @@ export const api = {
   gpu: (options: ApiFetchOptions = {}) => getJson('/api/gpu', GpuSnapshotSchema, { priority: 'low', ...options }),
   usage: (days: UsagePeriodDays) => getJson(`/api/usage?days=${days}`, ApiUsageReportSchema),
   usageSummary: () => getJson('/api/usage/summary', ApiUsageSummarySchema),
+  getSystemThresholds: () => getJson('/api/settings/system-thresholds', SystemThresholdsSchema),
+  updateSystemThresholds: (body: UpdateSystemThresholdsBody) =>
+    sendJson('/api/settings/system-thresholds', SystemThresholdsSchema, { method: 'PATCH', body }),
   getUsagePanelSettings: () => getJson('/api/settings/usage', UsagePanelSettingsSchema),
   updateUsagePanelSettings: (body: UpdateUsagePanelSettingsBody) =>
     sendJson('/api/settings/usage', UsagePanelSettingsSchema, { method: 'PATCH', body }),

@@ -4,20 +4,38 @@ import {
   UpdatePrivacySettingsBodySchema,
   UpdateRequestLimitsBodySchema,
 } from '../../../lib/schemas/settings.ts'
+import { UpdateSystemThresholdsBodySchema } from '../../../lib/schemas/system-thresholds.ts'
 import { UpdateUsagePanelSettingsBodySchema } from '../../../lib/schemas/usage.ts'
 import {
   getAttributionSettings,
   getPrivacySettings,
   getRequestLimits,
+  getSystemThresholds,
   getUsagePanelSettings,
   setAttributionSettings,
   setPrivacySettings,
   setRequestLimits,
+  setSystemThresholds,
   setUsagePanelSettings,
 } from '../settings.ts'
 import { error, json, parseBody, type Route } from './types.ts'
 
 export const settingRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/settings\/system-thresholds$/,
+    handler: async () => json(200, getSystemThresholds()),
+  },
+  {
+    method: 'PATCH',
+    pattern: /^\/api\/settings\/system-thresholds$/,
+    handler: async (request) => {
+      const result = await parseBody(request, UpdateSystemThresholdsBodySchema, 'Invalid system thresholds body')
+      if (!result.ok) return result.response
+      setSystemThresholds(result.value)
+      return json(200, getSystemThresholds())
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/api\/settings\/attribution$/,
