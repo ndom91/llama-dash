@@ -1,7 +1,8 @@
+import { Tooltip } from '../../components/Tooltip'
 import type { SystemTelemetryLatest } from '../../lib/schemas/system'
 import { MetaRow } from './MetaRow'
 import { SystemPanel } from './SystemPanel'
-import { formatBytesShort } from './systemMetrics'
+import { formatBytesShort, formatPercent } from './systemMetrics'
 
 export function SystemCpuCoresPanel({ latest }: { latest: SystemTelemetryLatest | null }) {
   const cores = latest?.cpuPerCore ?? []
@@ -14,12 +15,17 @@ export function SystemCpuCoresPanel({ latest }: { latest: SystemTelemetryLatest 
           {cores.map((value, index) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: core index is the identity
             <div key={index} className="flex flex-col items-center gap-1">
-              <div className="relative h-10 w-full overflow-hidden rounded-sm border border-border bg-surface-2">
-                <div
-                  className="absolute inset-x-0 bottom-0 bg-[var(--series-3)] transition-[height] duration-300 ease-out"
-                  style={{ height: `${Math.min(100, value)}%` }}
-                />
-              </div>
+              <Tooltip
+                side="top"
+                label={<span className="font-mono">{`core ${index} · ${formatPercent(value)}`}</span>}
+              >
+                <div className="relative h-10 w-full overflow-hidden rounded-sm border border-border bg-surface-2">
+                  <div
+                    className="absolute inset-x-0 bottom-0 bg-[var(--series-3)] transition-[height] duration-300 ease-out"
+                    style={{ height: `${Math.min(100, value)}%` }}
+                  />
+                </div>
+              </Tooltip>
               <span className="font-mono text-[9px] tabular-nums text-fg-faint">{index}</span>
             </div>
           ))}

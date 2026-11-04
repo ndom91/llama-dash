@@ -1,7 +1,8 @@
+import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/schemas/model'
 import type { ApiSystemStatus, SystemTelemetryLatest } from '../../lib/schemas/system'
 import { assignSeriesSteps, seriesVar } from '../../lib/series-color'
-import { formatGiB, mibToBytes } from './systemMetrics'
+import { formatGiB, formatPercent, mibToBytes } from './systemMetrics'
 
 type Segment = { id: string; label: string; detail?: string; bytes: number; color: string; striped?: boolean }
 
@@ -94,16 +95,26 @@ export function SystemUnifiedMemoryPanel({
         </div>
         <div className="relative flex h-5 overflow-hidden rounded-sm border border-border bg-surface-2">
           {segments.map((segment) => (
-            <div
+            <Tooltip
               key={segment.id}
-              className="h-full border-r border-surface-0/60 transition-[width] duration-300 ease-out"
-              style={{
-                width: `${(segment.bytes / poolTotal) * 100}%`,
-                background: segment.striped
-                  ? `repeating-linear-gradient(135deg, ${segment.color} 0 3px, transparent 3px 6px)`
-                  : segment.color,
-              }}
-            />
+              side="top"
+              label={
+                <span className="font-mono">
+                  {segment.label} · {formatGiB(segment.bytes)} GiB · {formatPercent((segment.bytes / poolTotal) * 100)}
+                  {segment.detail ? <span className="block text-[10px] opacity-70">{segment.detail}</span> : null}
+                </span>
+              }
+            >
+              <div
+                className="h-full border-r border-surface-0/60 transition-[width] duration-300 ease-out"
+                style={{
+                  width: `${(segment.bytes / poolTotal) * 100}%`,
+                  background: segment.striped
+                    ? `repeating-linear-gradient(135deg, ${segment.color} 0 3px, transparent 3px 6px)`
+                    : segment.color,
+                }}
+              />
+            </Tooltip>
           ))}
           {unified ? (
             <div

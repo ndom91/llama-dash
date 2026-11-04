@@ -1,7 +1,20 @@
 import type { ApiSystemStatus, ApiSystemTelemetry } from '../../lib/schemas/system'
 import type { SystemThresholds, ThresholdMetric } from '../../lib/schemas/system-thresholds'
 import { SystemResourceTile } from './SystemResourceTile'
-import { breachTone, formatClock, formatGiB, lastValue, mibToBytes, peak, type SystemReadings } from './systemMetrics'
+import {
+  breachTone,
+  formatClock,
+  formatGiB,
+  formatPercent,
+  lastValue,
+  mibToBytes,
+  peak,
+  type SystemReadings,
+} from './systemMetrics'
+
+function formatMiBAsGiB(value: number): string {
+  return `${formatGiB(mibToBytes(value))} GiB`
+}
 
 function gpuMemoryKind(driver: ApiSystemStatus['gpu']['driver']): string {
   switch (driver) {
@@ -64,6 +77,7 @@ export function SystemResourceTiles({
         tone={breachTone('cpuPercent', breached)}
         values={series.cpu}
         domain={[0, 100]}
+        formatValue={formatPercent}
       />
       <SystemResourceTile
         {...shared}
@@ -77,6 +91,7 @@ export function SystemResourceTiles({
         tone={gpu ? breachTone('gpuTempC', breached) : 'idle'}
         values={series.gpuUtil}
         domain={[0, 100]}
+        formatValue={formatPercent}
       />
       <SystemResourceTile
         {...shared}
@@ -94,6 +109,7 @@ export function SystemResourceTiles({
         tone={gpu ? breachTone('gpuMemPercent', breached) : 'idle'}
         values={series.gpuMemUsedMiB}
         domain={[0, gpu?.memoryTotalMiB ?? lastValue(series.gpuMemTotalMiB) ?? 1]}
+        formatValue={formatMiBAsGiB}
       />
       <SystemResourceTile
         {...shared}
@@ -117,6 +133,7 @@ export function SystemResourceTiles({
         tone={latest ? breachTone('ramPercent', breached) : 'idle'}
         values={series.memUsedMiB}
         domain={[0, lastValue(series.memTotalMiB) ?? 1]}
+        formatValue={formatMiBAsGiB}
       />
     </div>
   )

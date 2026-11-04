@@ -17,5 +17,5 @@ export function rangeXLabels(range: SystemTelemetryRange): Array<string> {
 export function swapBands(swaps: ApiSystemTelemetry['swaps']): Array<ChartBand> {
   return swaps
     .filter((swap) => swap.event === 'load')
-    .map((swap) => ({ start: swap.t - MODEL_WATCH_INTERVAL_MS, end: swap.t }))
+    .map((swap) => ({ start: swap.t - MODEL_WATCH_INTERVAL_MS, end: swap.t, label: `${swap.modelId} loaded` }))
 }

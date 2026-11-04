@@ -42,8 +42,20 @@ export function SystemThermalsChart({
         <TimeSeriesChart
           t={telemetry.series.t}
           series={[
-            { id: 'temp', values: telemetry.series.gpuTemp, color: TEMP_COLOR },
-            { id: 'power', values: telemetry.series.gpuPower, color: POWER_COLOR },
+            {
+              id: 'temp',
+              label: 'temp',
+              values: telemetry.series.gpuTemp,
+              color: TEMP_COLOR,
+              format: (value) => `${Math.round(value)}°C`,
+            },
+            {
+              id: 'power',
+              label: 'power',
+              values: telemetry.series.gpuPower,
+              color: POWER_COLOR,
+              format: (value) => `${Math.round(value)} W`,
+            },
           ]}
           fromMs={fromMs}
           toMs={toMs}

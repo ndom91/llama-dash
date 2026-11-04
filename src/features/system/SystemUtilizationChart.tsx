@@ -1,5 +1,6 @@
 import type { ApiSystemTelemetry } from '../../lib/schemas/system'
 import { rangeXLabels, swapBands } from './systemChartAxis'
+import { formatPercent } from './systemMetrics'
 import { SystemChartPanel } from './SystemChartPanel'
 import { TimeSeriesChart } from './TimeSeriesChart'
 
@@ -28,8 +29,15 @@ export function SystemUtilizationChart({
       <TimeSeriesChart
         t={telemetry.series.t}
         series={[
-          { id: 'gpu', values: telemetry.series.gpuUtil, color: GPU_COLOR, area: true },
-          { id: 'cpu', values: telemetry.series.cpu, color: CPU_COLOR },
+          {
+            id: 'gpu',
+            label: 'gpu',
+            values: telemetry.series.gpuUtil,
+            color: GPU_COLOR,
+            format: formatPercent,
+            area: true,
+          },
+          { id: 'cpu', label: 'cpu', values: telemetry.series.cpu, color: CPU_COLOR, format: formatPercent },
         ]}
         fromMs={fromMs}
         toMs={toMs}

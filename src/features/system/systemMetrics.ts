@@ -19,6 +19,10 @@ export function mibToBytes(mib: number): number {
   return mib * 1024 * 1024
 }
 
+export function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`
+}
+
 export function formatBytesShort(bytes: number): string {
   if (bytes >= GIB) return `${formatGiB(bytes)} GiB`
   if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`

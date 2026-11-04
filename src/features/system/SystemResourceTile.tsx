@@ -32,6 +32,7 @@ export function SystemResourceTile({
   fromMs,
   toMs,
   domain,
+  formatValue,
 }: {
   label: string
   aside?: ReactNode
@@ -46,6 +47,8 @@ export function SystemResourceTile({
   fromMs: number
   toMs: number
   domain: [number, number]
+  /** Formats a history sample for the sparkline hover tooltip. */
+  formatValue: (value: number) => string
 }) {
   const color = TONE_COLOR[tone]
   return (
@@ -83,7 +86,7 @@ export function SystemResourceTile({
       <div className="mt-2">
         <TimeSeriesChart
           t={t}
-          series={[{ id: 'v', values, color, area: true }]}
+          series={[{ id: 'v', label, values, color, format: formatValue, area: true }]}
           fromMs={fromMs}
           toMs={toMs}
           domain={domain}
