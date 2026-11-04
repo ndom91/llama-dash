@@ -52,12 +52,7 @@ type NavTarget =
 type NavItem = {
   to: NavTarget
   label: string
-  /**
-   * Second key of the `g`-leader sequence. These replaced decorative codes
-   * (`D01`, `R02`, …) that nothing read — the letters weren't even unique
-   * (`P06` Playground vs `P10` Policies) and the ordinals renumbered whenever a
-   * nav item was hidden by backend capability.
-   */
+  /** Second key of the `g`-leader sequence. */
   leader: string
   Icon: typeof LayoutDashboard
 }

@@ -23,12 +23,8 @@ export function RequestTokenTrace({
   firstOutputMs,
   outputSpanMs,
 }: Props) {
-  // The bar previously had a hard-coded `w-full` and an infinite 4.2s gradient
-  // sweep, so a request that finished minutes ago animated forever as though
-  // tokens were still arriving — decoration standing in for data, while the real
-  // phase split the parent already computed was never passed in. Now the
-  // segments are proportional to measured prefill and decode time, and the
-  // remainder (queue, network, stream teardown) shows as untinted track.
+  // Segments are proportional to measured prefill/decode; the rest (queue,
+  // network, teardown) stays untinted.
   const hasPhases = durationMs > 0 && (prefillMs != null || decodeMs != null)
   const prefillPct = prefillMs != null && hasPhases ? Math.max(0, Math.min(100, (prefillMs / durationMs) * 100)) : 0
   const decodePct =

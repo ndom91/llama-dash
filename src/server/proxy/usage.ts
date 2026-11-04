@@ -29,11 +29,11 @@ const emptyUsage = (): Usage => ({
 
 type RawJson = Record<string, unknown>
 
-// Anthropic's message_start event wraps model + usage under `message`.
 const asRecord = (v: unknown): RawJson | null => (v && typeof v === 'object' ? (v as RawJson) : null)
 
 const pickModel = (body: RawJson): string | null => {
   if (typeof body.model === 'string') return body.model
+  // Anthropic's message_start event wraps model + usage under `message`.
   const msg = asRecord(body.message)
   if (msg && typeof msg.model === 'string') return msg.model
   const response = asRecord(body.response)

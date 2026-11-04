@@ -84,8 +84,8 @@ function LlamaSwapLogsPage() {
     if (!searchRe) return sourceFiltered
     return sourceFiltered.filter((l) => {
       // Search matches what a row *says*, so the level is only included when it
-      // was actually parsed off the line — searching "DEBUG" no longer matches
-      // every unprefixed upstream line. The source label stays per-line even
+      // was actually parsed off the line, so "DEBUG" doesn't match every
+      // unprefixed upstream line. The source label stays per-line even
       // though it renders once per chunk: collapsing is presentation only, and
       // filtering by "llama.cpp" must still match every one of its rows.
       const { level } = parseLogLevel(l.text)

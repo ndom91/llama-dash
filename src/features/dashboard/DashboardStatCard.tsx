@@ -1,10 +1,8 @@
 import { Sparkline } from '../../components/Sparkline'
 
 /**
- * `tone` is the *state* the value is reporting, not the identity of the metric.
- * The error-rate card previously passed a static `color="var(--err)"`, so it
- * drew red at 0.0% — the loudest element on the dashboard reporting that
- * nothing was wrong.
+ * `tone` is the *state* the value is reporting, not the identity of the metric,
+ * so an error-rate card at 0.0% stays neutral rather than drawing red.
  */
 type StatTone = 'neutral' | 'err'
 

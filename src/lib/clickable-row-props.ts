@@ -14,8 +14,7 @@ export const clickableRowFocusClass =
   'focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent focus-visible:bg-surface-2'
 
 /**
- * Props for a table row that activates on click. Rows carried `onClick` with no
- * keyboard equivalent, making these tables mouse-only.
+ * Props for a table row that activates on click or Enter/Space.
  *
  * Deliberately no `role="button"`: a `<tr>` with `role="button"` is no longer a
  * row, which orphans its `<td>` cells (`cell` requires a `row` parent) and

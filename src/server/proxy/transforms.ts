@@ -71,7 +71,6 @@ export function applyTransforms(parsedBody: Record<string, unknown>, ctx: Transf
   const allowErr = checkModelAllowed(ctx.keyRow, parsedBody, routing)
   if (allowErr) return allowErr
 
-  // Alias resolution
   if (typeof parsedBody.model === 'string') {
     const resolved = resolveAlias(parsedBody.model)
     if (resolved !== parsedBody.model) {
@@ -80,7 +79,6 @@ export function applyTransforms(parsedBody: Record<string, unknown>, ctx: Transf
     }
   }
 
-  // System prompt injection
   if (ctx.keyRow?.systemPrompt) {
     if (ctx.endpoint === '/v1/chat/completions' && Array.isArray(parsedBody.messages)) {
       parsedBody.messages = [{ role: 'system', content: ctx.keyRow.systemPrompt }, ...parsedBody.messages]
@@ -91,7 +89,7 @@ export function applyTransforms(parsedBody: Record<string, unknown>, ctx: Transf
     }
   }
 
-  // Request size limits (checks run after system prompt injection)
+  // Runs after system prompt injection so injected text counts toward limits.
   const limitsErr = checkRequestLimits(parsedBody, routing)
   if (limitsErr) return limitsErr
 
@@ -163,8 +161,7 @@ function checkRequestLimits(body: Record<string, unknown>, routing: RoutingOutco
 
   if (limits.maxEstimatedTokens) {
     // Count everything the model sees on input: OpenAI `messages`, Anthropic
-    // top-level `system` and `tools`. Size limits were previously bypassable
-    // with a giant system prompt or tool definition.
+    // top-level `system` and `tools`.
     const estimated = estimatePromptTokens(body)
     if (estimated != null) {
       if (estimated > limits.maxEstimatedTokens) {

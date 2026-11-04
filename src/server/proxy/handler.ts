@@ -41,8 +41,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     return rejectBodyTooLarge(ctx, err)
   }
 
-  // Single ordered, first-match-wins routing pass with the resolved key. The
-  // matched rule's auth mode then governs whether a valid key is required.
+  // Matched rule's auth mode decides whether a valid key is required.
   const routingDecision = resolveProxyRouting(
     ctx.endpoint,
     ctx.body?.parsedBody ?? null,

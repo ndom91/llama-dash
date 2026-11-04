@@ -25,8 +25,7 @@ import { MobileMenuContext } from '../lib/use-mobile-menu'
 /**
  * Module-level, not inline: HotkeysProvider memoises `defaultOptions` on
  * identity, so a fresh object each render would rebuild the context value.
- * Setting the sequence timeout here avoids repeating it on all twelve nav
- * bindings.
+ * Setting the sequence timeout here avoids repeating it on every nav binding.
  */
 const HOTKEY_DEFAULTS = { hotkeySequence: { timeout: LEADER_TIMEOUT_MS } }
 

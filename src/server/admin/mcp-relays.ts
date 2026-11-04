@@ -71,9 +71,7 @@ function parseCredentialBindings(relayId: string, value: string): CredentialBind
   try {
     const result = v.safeParse(v.array(CredentialBindingSchema), JSON.parse(value))
     if (result.success) return result.output
-  } catch {
-    // Fall through to the fail-closed error below.
-  }
+  } catch {}
   throw new Error(`Invalid credential bindings for MCP relay ${relayId}`)
 }
 

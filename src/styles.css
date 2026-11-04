@@ -280,9 +280,7 @@
   --radius-lg: 9px;
   --radius-pill: 9999px;
 
-  /* Spacing is handled by Tailwind utilities; only --space-lg has a consumer
-     (.dash-grid). The unused xs/sm/md/xl steps were removed rather than left as
-     a second, competing spacing scale. */
+  /* Spacing is handled by Tailwind utilities; --space-lg is only for .dash-grid. */
   --space-lg: 16px;
 
   /* Animation tokens — Easing Blueprint */
@@ -353,7 +351,7 @@
  * selector is what lets an explicit choice override the OS preference. CSS has
  * no mixin, so the declarations are repeated. Collapsing this properly means
  * changing the `data-theme` contract to always carry the *resolved* mode, which
- * touches the SSR and hydration paths — deliberately out of scope here.
+ * touches the SSR and hydration paths.
  */
 :root[data-theme='light'] {
   --bg-0: #f5f6f3;
@@ -832,11 +830,8 @@
 
 .detail-meta-list > div {
   @apply grid min-w-0 items-start gap-2;
-  /* 31% clipped the longest labels ("authorization", "stream close") into
-     "authorizat…" / "stream clo…" — while the sidecar rendered the same strings
-     in full, so one screen both truncated and didn't. The labels themselves are
-     shorter now; this leaves headroom for the longest remaining one
-     ("credentials") at the narrow end of the rail's clamp. */
+  /* Leaves headroom for the longest label ("credentials") at the narrow end
+     of the rail's clamp without truncating it. */
   grid-template-columns: minmax(66px, 36%) minmax(0, 1fr);
 }
 
@@ -1026,8 +1021,8 @@
   word-break: break-word;
 }
 
-/* Browser boilerplate, shown only when expanded. Accent on every key meant
-   sec-ch-ua-platform-version read as loudly as authorization. */
+/* Browser boilerplate, shown only when expanded and muted so it doesn't read
+   as loudly as the headers that matter. */
 .dtable tbody td.header-key-muted {
   color: var(--fg-muted);
   font-weight: 400;
@@ -1457,9 +1452,7 @@ a {
 }
 
 /* In @layer components so Tailwind utilities on the same element can override
-   it. Unlayered, this rule beat @layer utilities regardless of specificity, and
-   DashboardStatCard's `bg-surface-2 px-3.5 pt-3 pb-2.5` were silently inert —
-   classes that looked live but did nothing. */
+   it; unlayered rules beat @layer utilities regardless of specificity. */
 @layer components {
   .stat-card {
     background: color-mix(in srgb, var(--bg-1) 88%, var(--bg-2));
@@ -1643,7 +1636,7 @@ a {
   animation: badge-in var(--duration-normal) var(--ease-out);
 }
 
-/* ---- token trace ---- */
+/* ---- request payload panes ---- */
 
 @media (max-width: 1024px) {
   .request-payload-pane {

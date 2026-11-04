@@ -310,7 +310,6 @@ export function usePlaygroundChat() {
 
   const forkMessage = useCallback(
     (index: number) => {
-      // Fork = take messages up to and including index as a fresh chat
       const forked = messages.slice(0, index + 1).map((m) => ({ ...m, id: msgId() }))
       setMessages(forked)
     },

@@ -28,10 +28,8 @@ describe('assignSeriesSteps', () => {
     }
   })
 
-  // The regression this whole module exists to prevent: colors used to be keyed
-  // off the active-models array index, so unloading *any* model reshuffled the
-  // colors of *every* other model. Now a model on its natural bucket is
-  // unaffected by unrelated churn.
+  // The regression this module exists to prevent: unloading *any* model must not
+  // reshuffle the colors of every other model on its natural bucket.
   it('keeps non-colliding models on their step when another model unloads', () => {
     const before = assignSeriesSteps(['gemma-4-12B-fast', 'ornith-1.0-35B', 'qwen3.6-35b'])
     const after = assignSeriesSteps(['gemma-4-12B-fast', 'ornith-1.0-35B'])

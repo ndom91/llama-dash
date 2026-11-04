@@ -113,10 +113,6 @@ const STATUS_CLASS_SQL =
   "case when error is not null and status_code < 400 then 'error' else (status_code / 100) || 'xx' end"
 const GEN_SQL = `${OK_SQL} and streamed = 1 and completion_tokens > 0 and duration_ms > 0`
 
-/**
- * Aggregates raw inference requests in `[fromMs, toMs)` into day rows. Shared by
- * the rollup writer and the live read path so both produce identical numbers.
- */
 const MEASURES_SQL = `
     count(*) as requests,
     sum(case when ${OK_SQL} then 0 else 1 end) as errors,
@@ -128,6 +124,10 @@ const MEASURES_SQL = `
     coalesce(sum(case when ${GEN_SQL} then completion_tokens else 0 end), 0) as genCompletionTokens,
     coalesce(sum(case when ${GEN_SQL} then duration_ms else 0 end), 0) as genDurationMs`
 
+/**
+ * Aggregates raw inference requests matching `where` into day rows. Shared by
+ * the rollup writer and the live read path so both produce identical numbers.
+ */
 const aggregateSql = (where: string) => `
   select
     date(started_at / 1000, 'unixepoch') as day,

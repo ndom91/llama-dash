@@ -1,12 +1,10 @@
 /**
  * Phase timings scraped from the upstream response.
  *
- * There is deliberately no `queueMs` or `ttftMs` here. `queueMs` was never
- * assigned by analyzeTiming(), so it could only ever render an em-dash, and
- * `ttftMs` was assigned the prefill value verbatim — two rows that always
- * printed the same number. Real time-to-first-token needs queue and network
- * time, which we don't capture for proxied requests (the Playground measures it
- * properly from its own request clock; see use-playground-chat.ts).
+ * There is deliberately no `queueMs` or `ttftMs` here: real time-to-first-token
+ * needs queue and network time, which we don't capture for proxied requests
+ * (the Playground measures it from its own request clock; see
+ * use-playground-chat.ts).
  */
 export type RequestTiming = {
   prefillMs: number | null

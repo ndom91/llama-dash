@@ -1,4 +1,5 @@
-const PRE_AUTH_PREFIX_BYTES = 16 * 1024
+// Prefix scanned for routing fields when the full body fails to JSON.parse.
+const ROUTING_FALLBACK_PREFIX_BYTES = 16 * 1024
 export const MAX_PROXY_BODY_BYTES = 10 * 1024 * 1024
 
 export type PreparedProxyBody = {
@@ -121,7 +122,7 @@ function extractModel(parsedBody: Record<string, unknown> | null): string | null
 async function readBody(request: Request, maxBytes: number): Promise<{ text: string; prefix: string }> {
   assertContentLengthWithinLimit(request.headers)
   const text = new TextDecoder().decode(await readLimitedBytes(request, maxBytes))
-  return { text, prefix: text.slice(0, PRE_AUTH_PREFIX_BYTES) }
+  return { text, prefix: text.slice(0, ROUTING_FALLBACK_PREFIX_BYTES) }
 }
 
 export async function readLimitedBytes(request: Request, maxBytes: number): Promise<Uint8Array<ArrayBuffer>> {

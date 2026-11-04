@@ -296,28 +296,20 @@ async function detectDriver(): Promise<Driver | null> {
   try {
     await run('nvidia-smi', ['--query-gpu=name', '--format=csv,noheader'])
     return 'nvidia'
-  } catch {
-    // not nvidia
-  }
+  } catch {}
   try {
     await run('amdgpu_top', ['-J', '-n', '1'])
     return 'amd-top'
-  } catch {
-    // amdgpu_top not available
-  }
+  } catch {}
   try {
     await run('rocm-smi', ['--showproductname', '--csv'])
     return 'amd'
-  } catch {
-    // not amd
-  }
+  } catch {}
   if (platform() === 'darwin') {
     try {
       await run('system_profiler', ['SPDisplaysDataType', '-json'])
       return 'apple'
-    } catch {
-      // no system_profiler
-    }
+    } catch {}
   }
   return null
 }

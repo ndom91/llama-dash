@@ -252,9 +252,6 @@ export function RequestsPage() {
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest?.('[data-request-histogram]')) return
-      // isTypingTarget walks the composed path, so it also catches
-      // contenteditable and nested wrappers that a bare tagName check missed —
-      // and it doesn't treat <input type="button"> as typing.
       if (isTypingTarget(e)) {
         setSelectedIdx(-1)
         if (e.key === 'Escape') (e.target as HTMLElement).blur()

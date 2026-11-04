@@ -30,10 +30,8 @@ export function Sparkline({
   height?: number
   color?: string
 }) {
-  // useId, not a module counter mutated during render — the latter produced
-  // different ids on server and client and could not survive hydration.
-  // Sanitized because React's generated ids contain punctuation that is unsafe
-  // inside a url(#...) fragment reference.
+  // React's generated ids contain punctuation that is unsafe inside a
+  // url(#...) fragment reference.
   const id = `spark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   if (data.length < 2) return null
 

@@ -24,8 +24,6 @@ describe('parseLogLevel', () => {
   })
 
   // llama.cpp writes severity as a single letter after its uptime timestamp.
-  // Before this was parsed, every such line was labelled a fabricated DEBUG, so
-  // a real warning looked identical to trace spam.
   describe('llama.cpp single-letter levels', () => {
     it('parses a warning', () => {
       const line = '4801.04.670.511 W srv          alloc: - making room for prompt cache entry'

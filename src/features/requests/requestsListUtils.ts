@@ -2,7 +2,6 @@ import type { ApiRequest } from '../../lib/api'
 
 export const REQUESTS_ROW_HEIGHT = 37
 
-// columns: t, endpoint, api-key, model, status, tok-in, tok-out, cache, cost, duration
 export type RequestsColKey =
   | 't'
   | 'endpoint'

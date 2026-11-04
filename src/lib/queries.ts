@@ -60,8 +60,6 @@ function toastMutationError(title: string, error: Error) {
   toast.error(title, { description: error.message })
 }
 
-// ---- queries ----
-
 export function useHealth(): UseQueryResult<ApiHealth> {
   return useQuery({
     queryKey: qk.health,
@@ -292,8 +290,6 @@ function mergeModelTransitions(models: Array<ApiModel>): Array<ApiModel> {
   })
 }
 
-// ---- mutations ----
-
 export function useLoadModel(): UseMutationResult<{ ok: true }, Error, string> {
   const qc = useQueryClient()
   return useMutation({
@@ -359,8 +355,6 @@ export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
     },
   })
 }
-
-// ---- API keys ----
 
 export function useKeyDetail(id: string): UseQueryResult<ApiKeyDetail> {
   return useQuery({

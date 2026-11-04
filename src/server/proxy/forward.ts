@@ -176,8 +176,6 @@ export async function forwardUpstreamAndLog(input: {
 }): Promise<Response | { upstreamError: string }> {
   let upstreamResponse: Awaited<ReturnType<typeof undiciFetch>>
   try {
-    // `duplex` (streaming request bodies) and `dispatcher` (custom undici
-    // timeouts) are not in the standard RequestInit type.
     const init: UndiciRequestInit = {
       method: input.method,
       headers: stripContentLength(input.headers),

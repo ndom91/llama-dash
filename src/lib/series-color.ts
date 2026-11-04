@@ -24,10 +24,8 @@ function hash32(value: string): number {
 /**
  * Maps entity ids to series steps (0-indexed).
  *
- * Hash-primary, so an entity keeps its step across re-renders and across
- * changes in API ordering — the previous implementation keyed off array
- * position, which meant a model's color changed whenever a *different* model
- * loaded or unloaded.
+ * Hash-primary, so an entity keeps its step regardless of API ordering or other
+ * entities loading/unloading.
  *
  * Linear probing then guarantees that up to SERIES_STEPS concurrent entities
  * are visually distinct. This is a deliberate trade: with 5 ids into 5 buckets

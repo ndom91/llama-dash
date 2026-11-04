@@ -6,10 +6,8 @@ export const SOURCE_LABEL = {
 } as const
 
 /**
- * Only WARN and ERROR get colour. INFO used to be `text-info` (blue), which
- * painted the most common level — the one that means "nothing to see here" —
- * more brightly than DEBUG, and turned the level gutter into a solid blue column
- * on any info-heavy stream. Colour here means "look at this".
+ * Only WARN and ERROR get colour; colour here means "look at this". INFO is the
+ * most common level and means "nothing to see here", so it stays neutral.
  */
 export const LEVEL_CLASS: Record<LogLevel, string> = {
   INFO: 'text-fg-dim',
@@ -26,8 +24,7 @@ const LEVEL_RE = /^\s*\[(INFO|WARN|WARNING|ERROR|ERR|DEBUG|DBG|TRACE|TRC|FATAL)\
  * llama.cpp / llama-server writes severity as a single letter between its own
  * uptime timestamp and the component name, e.g.
  *   `4801.04.670.511 W srv   alloc: - making room for prompt cache entry`
- * Without this branch those lines parse as level-less, which previously meant
- * they were all labelled a fabricated `DEBUG` — so genuine warnings were
+ * Without this branch those lines parse as level-less and genuine warnings are
  * indistinguishable from trace spam. The marker is left in `rest` because the
  * timestamp+letter is one unit in the raw line and clipping only the letter
  * reads worse than leaving it.
