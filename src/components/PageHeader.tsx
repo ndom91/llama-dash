@@ -40,7 +40,7 @@ export function PageHeader({
           </h1>
         )}
         {subtitle ? (
-          <p className="page-header-subtitle text-pretty font-mono text-xs text-fg-dim m-0">{subtitle}</p>
+          <div className="page-header-subtitle text-pretty font-mono text-xs text-fg-dim m-0">{subtitle}</div>
         ) : null}
       </div>
       {action ? <div className="page-header-action shrink-0 flex items-center gap-1.5">{action}</div> : null}

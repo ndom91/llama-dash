@@ -26,6 +26,8 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools({
+      // Piping echoes server logs to the browser and back in a loop, starving browser connections.
+      consolePiping: { enabled: false },
       editor: {
         name: 'macOS open',
         open: async (path) => {
