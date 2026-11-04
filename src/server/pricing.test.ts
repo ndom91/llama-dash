@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { buildModelPricingFromModelsDev, computeCostUsd, resetModelPricingForTest } from './pricing'
+import { buildModelPricingResult, computeCostUsd, resetModelPricingForTest } from './pricing'
 
 describe('model pricing', () => {
   beforeEach(() => {
@@ -7,7 +7,7 @@ describe('model pricing', () => {
   })
 
   it('computes costs from models.dev pricing records', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       anthropic: {
         models: {
           'claude-sonnet-4-5': {
@@ -17,7 +17,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('claude-sonnet-4-5', {
@@ -30,7 +30,7 @@ describe('model pricing', () => {
   })
 
   it('prefers priced records over subscription zero-cost duplicates', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       'github-copilot': {
         models: {
           'gpt-4o': { id: 'gpt-4o', cost: { input: 0, output: 0 } },
@@ -42,7 +42,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -55,7 +55,7 @@ describe('model pricing', () => {
   })
 
   it('prefers canonical providers over higher-priced resellers', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       requesty: {
         models: {
           'claude-sonnet-4-5': { id: 'claude-sonnet-4-5', cost: { input: 6, output: 30 } },
@@ -67,7 +67,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('claude-sonnet-4-5', {
@@ -80,14 +80,14 @@ describe('model pricing', () => {
   })
 
   it('does not guess costs when cache pricing is unavailable', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           'gpt-4o': { id: 'gpt-4o', cost: { input: 2.5, output: 10 } },
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -100,14 +100,14 @@ describe('model pricing', () => {
   })
 
   it('charges OpenAI cached input at the cache-read rate instead of the full input rate', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           'gpt-4o': { id: 'gpt-4o', cost: { input: 2.5, output: 10, cache_read: 1.25 } },
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -121,7 +121,7 @@ describe('model pricing', () => {
   })
 
   it('prefers duplicate records with cache pricing when provider priority ties', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           'gpt-4o-partial': { id: 'gpt-4o', cost: { input: 2.5, output: 10 } },
@@ -129,7 +129,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -142,7 +142,7 @@ describe('model pricing', () => {
   })
 
   it('does not let zero-cost duplicate records replace priced records', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           'gpt-4o-priced': { id: 'gpt-4o', cost: { input: 2.5, output: 10 } },
@@ -150,7 +150,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -163,14 +163,14 @@ describe('model pricing', () => {
   })
 
   it('does not return partial costs when usage counters are missing', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           'gpt-4o': { id: 'gpt-4o', cost: { input: 2.5, output: 10 } },
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -183,7 +183,7 @@ describe('model pricing', () => {
   })
 
   it('skips invalid records without discarding the whole catalog', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       openai: {
         models: {
           broken: { id: 123, cost: { input: 2.5, output: 10 } },
@@ -191,7 +191,7 @@ describe('model pricing', () => {
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('gpt-4o', {
@@ -204,14 +204,14 @@ describe('model pricing', () => {
   })
 
   it('matches versioned model names by longest known prefix', () => {
-    const pricing = buildModelPricingFromModelsDev({
+    const pricing = buildModelPricingResult({
       anthropic: {
         models: {
           'claude-sonnet-4-5': { id: 'claude-sonnet-4-5', cost: { input: 3, output: 15 } },
         },
       },
     })
-    resetModelPricingForTest(pricing)
+    resetModelPricingForTest(pricing.entries)
 
     expect(
       computeCostUsd('claude-sonnet-4-5-20250929', {

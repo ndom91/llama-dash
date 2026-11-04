@@ -3,7 +3,7 @@ import type { RoutingDecision } from '../admin/routing-rules.ts'
 import { getRequestLimits } from '../admin/settings.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { CredentialBinding } from '../../lib/schemas/routing-rule.ts'
-import { getPromptTokenEstimateParts, estimateTokensFromJson } from './tokens.ts'
+import { estimatePromptTokens } from './tokens.ts'
 
 export type TransformContext = {
   keyRow: ApiKey | null
@@ -144,7 +144,6 @@ function injectAnthropicSystem(existing: unknown, injected: string): unknown {
 
 function checkRequestLimits(body: Record<string, unknown>, routing: RoutingOutcome): TransformErr | null {
   const limits = getRequestLimits()
-  if (!limits.maxMessages && !limits.maxEstimatedTokens) return null
 
   if (limits.maxMessages && Array.isArray(body.messages)) {
     if (body.messages.length > limits.maxMessages) {
@@ -166,9 +165,8 @@ function checkRequestLimits(body: Record<string, unknown>, routing: RoutingOutco
     // Count everything the model sees on input: OpenAI `messages`, Anthropic
     // top-level `system` and `tools`. Size limits were previously bypassable
     // with a giant system prompt or tool definition.
-    const parts = getPromptTokenEstimateParts(body)
-    if (parts.length > 0) {
-      const estimated = estimateTokensFromJson(parts)
+    const estimated = estimatePromptTokens(body)
+    if (estimated != null) {
       if (estimated > limits.maxEstimatedTokens) {
         return {
           ok: false,

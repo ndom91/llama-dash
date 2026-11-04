@@ -60,7 +60,7 @@ export function getLlamaSwapConfigContextLengths(): Map<string, number> {
   return lengths
 }
 
-function extractCtxSize(value: unknown): number | null {
+export function extractCtxSize(value: unknown): number | null {
   const snippet = typeof value === 'string' ? value : value == null ? null : stringifyYaml(value, { indent: 2 })
   if (typeof snippet !== 'string') return null
   const match = snippet.match(/--ctx-size(?:\s+|=)(\d+)/)

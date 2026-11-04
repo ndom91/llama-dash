@@ -4,22 +4,18 @@ import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import type { ProxyForwardBody } from './body.ts'
 import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
-import { writeRequestLog } from './log.ts'
+import type { RequestAttribution } from './attribution.ts'
+import { type RequestLogInput, writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import { BoundedTextCapture } from './text-capture.ts'
 import type { RoutingOutcome } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
-
-type Attribution = {
-  clientName: string | null
-  endUserId: string | null
-  sessionId: string | null
-}
+import { errorMessage } from '../error-message.ts'
 
 export type ProxyLogInput = {
   startedAt: number
   status: number
-  requestClass?: 'inference' | 'mcp_relay'
+  requestClass?: RequestLogInput['requestClass']
   method: string
   endpoint: string
   usage: UsageWithClose
@@ -31,7 +27,7 @@ export type ProxyLogInput = {
   resBody: string | null
   keyId: string | null
   reqModel: string | null
-  attribution: Attribution
+  attribution: RequestAttribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
 }
@@ -168,13 +164,13 @@ export async function forwardUpstreamAndLog(input: {
   hasBody: boolean
   startedAt: number
   endpoint: string
-  requestClass?: 'inference' | 'mcp_relay'
+  requestClass?: RequestLogInput['requestClass']
   reqModel: string | null
   reqHeadersJson: string
   reqBody: string | null
   keyId: string | null
   keyRow: ApiKey | null
-  attribution: Attribution
+  attribution: RequestAttribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
 }): Promise<Response | { upstreamError: string }> {
@@ -205,27 +201,29 @@ export async function forwardUpstreamAndLog(input: {
   const isJson = contentType.includes('application/json') || (isHeaderlessCodex && !isSse)
   const isBinaryResponse = !isSse && !isJson
   const captureResponseBodies = getPrivacySettings().captureResponseBodies
-
-  if (!upstreamResponse.body) {
+  const log = (usage: UsageWithClose, streamed: boolean, error: string | null, resBody: string | null) =>
     writeProxyLog({
       startedAt: input.startedAt,
       status: upstreamResponse.status,
       requestClass: input.requestClass,
       method: input.method,
       endpoint: input.endpoint,
-      usage: nullUsage(input.reqModel),
-      streamed: false,
-      error: null,
+      usage,
+      streamed,
+      error,
       reqHeaders: input.reqHeadersJson,
       reqBody: input.reqBody,
       resHeaders: resHeadersJson,
-      resBody: null,
+      resBody,
       keyId: input.keyId,
       reqModel: input.reqModel,
       attribution: input.attribution,
       routing: input.routing,
       credentialInjectionJson: input.credentialInjectionJson,
     })
+
+  if (!upstreamResponse.body) {
+    log(nullUsage(input.reqModel), false, null, null)
     return new Response(null, { status: upstreamResponse.status, headers: resHeadersObj })
   }
 
@@ -240,6 +238,8 @@ export async function forwardUpstreamAndLog(input: {
   // closed".
   let cancelled = false
   let logged = false
+  const capturedResBody = () => (captureResponseBodies ? (responseCapture?.text() ?? null) : null)
+  const partialUsage = () => (sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel))
 
   const responseBody = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -255,7 +255,7 @@ export async function forwardUpstreamAndLog(input: {
               if (sseScanner) sseScanner.feed(tail, Date.now())
             }
           }
-          const resBody = captureResponseBodies ? (responseCapture?.text() ?? null) : null
+          const resBody = capturedResBody()
           const usageBody = responseCapture?.usageText()
           const usage: UsageWithClose = sseScanner
             ? sseScanner.done(Date.now())
@@ -271,25 +271,7 @@ export async function forwardUpstreamAndLog(input: {
           }
 
           logged = true
-          writeProxyLog({
-            startedAt: input.startedAt,
-            status: upstreamResponse.status,
-            requestClass: input.requestClass,
-            method: input.method,
-            endpoint: input.endpoint,
-            usage,
-            streamed: isSse,
-            error: null,
-            reqHeaders: input.reqHeadersJson,
-            reqBody: input.reqBody,
-            resHeaders: resHeadersJson,
-            resBody,
-            keyId: input.keyId,
-            reqModel: input.reqModel,
-            attribution: input.attribution,
-            routing: input.routing,
-            credentialInjectionJson: input.credentialInjectionJson,
-          })
+          log(usage, isSse, null, resBody)
 
           if (input.keyRow?.rateLimitTpm != null && usage.totalTokens != null) {
             recordTokenUsage(input.keyRow.id, input.keyRow.rateLimitTpm, usage.totalTokens)
@@ -305,27 +287,9 @@ export async function forwardUpstreamAndLog(input: {
       } catch (err) {
         if (cancelled || logged) return
         controller.error(err)
-        const message = err instanceof Error ? err.message : String(err)
+        const message = errorMessage(err)
         logged = true
-        writeProxyLog({
-          startedAt: input.startedAt,
-          status: upstreamResponse.status,
-          requestClass: input.requestClass,
-          method: input.method,
-          endpoint: input.endpoint,
-          usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel),
-          streamed: isSse,
-          error: message,
-          reqHeaders: input.reqHeadersJson,
-          reqBody: input.reqBody,
-          resHeaders: resHeadersJson,
-          resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
-          keyId: input.keyId,
-          reqModel: input.reqModel,
-          attribution: input.attribution,
-          routing: input.routing,
-          credentialInjectionJson: input.credentialInjectionJson,
-        })
+        log(partialUsage(), isSse, message, capturedResBody())
       }
     },
     cancel() {
@@ -333,26 +297,8 @@ export async function forwardUpstreamAndLog(input: {
       reader.cancel().catch(() => {})
       if (logged) return
       logged = true
-      writeProxyLog({
-        startedAt: input.startedAt,
-        status: upstreamResponse.status,
-        requestClass: input.requestClass,
-        method: input.method,
-        endpoint: input.endpoint,
-        usage: sseScanner ? sseScanner.done(Date.now()) : nullUsage(input.reqModel),
-        streamed: isSse,
-        // A client that read the stream to [DONE] got the whole reply.
-        error: sseScanner?.sawDone ? null : 'Client disconnected',
-        reqHeaders: input.reqHeadersJson,
-        reqBody: input.reqBody,
-        resHeaders: resHeadersJson,
-        resBody: captureResponseBodies ? (responseCapture?.text() ?? null) : null,
-        keyId: input.keyId,
-        reqModel: input.reqModel,
-        attribution: input.attribution,
-        routing: input.routing,
-        credentialInjectionJson: input.credentialInjectionJson,
-      })
+      // A client that read the stream to [DONE] got the whole reply.
+      log(partialUsage(), isSse, sseScanner?.sawDone ? null : 'Client disconnected', capturedResBody())
     },
   })
 

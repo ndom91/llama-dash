@@ -330,8 +330,9 @@ async function poll() {
     return
   }
 
+  let gpus: Array<GpuInfo> = []
+  let available = true
   try {
-    let gpus: Array<GpuInfo>
     switch (detectedDriver) {
       case 'nvidia':
         gpus = await pollNvidia()
@@ -346,24 +347,17 @@ async function poll() {
         gpus = await pollApple()
         break
     }
-    cached = {
-      available: true,
-      cpuUtilizationPercent,
-      driver: schemaDriver(detectedDriver),
-      gpus,
-      polledAt: Date.now(),
-    }
-    publishGpuUpdateIfChanged(cached)
   } catch {
-    cached = {
-      available: false,
-      cpuUtilizationPercent,
-      driver: schemaDriver(detectedDriver),
-      gpus: [],
-      polledAt: Date.now(),
-    }
-    publishGpuUpdateIfChanged(cached)
+    available = false
   }
+  cached = {
+    available,
+    cpuUtilizationPercent,
+    driver: schemaDriver(detectedDriver),
+    gpus,
+    polledAt: Date.now(),
+  }
+  publishGpuUpdateIfChanged(cached)
 }
 
 function publishGpuUpdateIfChanged(snapshot: GpuSnapshot) {

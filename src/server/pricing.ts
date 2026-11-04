@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { errorMessage } from './error-message.ts'
 
 export type ModelPricing = {
   input: number
@@ -104,7 +105,7 @@ function shouldReplacePricing(existing: ModelPricingCandidate | undefined, next:
   return existing.score === 0 && next.score > 0
 }
 
-function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
+export function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
   const root = v.safeParse(ModelsDevResponseSchema, data)
   if (!root.success) throw new PricingCatalogUnavailableError('models.dev response root was not a provider map')
 
@@ -173,10 +174,6 @@ function buildModelPricingResult(data: unknown): ModelPricingBuildResult {
   return { entries, skippedRecords, partialCacheRecords }
 }
 
-export function buildModelPricingFromModelsDev(data: unknown): ModelPricingEntry[] {
-  return buildModelPricingResult(data).entries
-}
-
 async function fetchModelsDevCatalog(): Promise<unknown> {
   try {
     const res = await fetch(MODELS_DEV_API_URL, {
@@ -187,7 +184,7 @@ async function fetchModelsDevCatalog(): Promise<unknown> {
     return await res.json()
   } catch (err) {
     if (err instanceof PricingCatalogUnavailableError) throw err
-    const message = err instanceof Error ? err.message : String(err)
+    const message = errorMessage(err)
     throw new PricingCatalogUnavailableError(`failed to fetch or parse models.dev catalog: ${message}`)
   }
 }

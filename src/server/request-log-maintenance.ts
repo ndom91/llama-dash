@@ -1,10 +1,27 @@
 import { getPrivacySettings } from './admin/settings.ts'
 import { sqliteDb } from './db/index.ts'
 import { deleteRecentBodies } from './proxy/recent-bodies.ts'
-import { backfillDay, backfillDays, finishBackfill, markPrunedBefore, refreshDailyStats } from './usage-rollup.ts'
+import {
+  backfillDay,
+  backfillDays,
+  DAY_MS,
+  finishBackfill,
+  markPrunedBefore,
+  refreshDailyStats,
+} from './usage-rollup.ts'
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const MAINTENANCE_INTERVAL_MS = 60 * 60 * 1000
+
+// Shared between the eviction candidate select and the delete/update statements.
+const INFERENCE_EXPIRED_SQL = "request_class = 'inference' and started_at < ?"
+const MCP_SUCCESS_EXPIRED_SQL = "request_class = 'mcp_relay' and status_code < 400 and error is null and started_at < ?"
+const MCP_ERROR_EXPIRED_SQL =
+  "request_class = 'mcp_relay' and (status_code >= 400 or error is not null) and started_at < ?"
+const BODY_EXPIRED_SQL = `started_at < ?
+  and (request_headers is not null
+    or request_body is not null
+    or response_headers is not null
+    or response_body is not null)`
 
 let started = false
 let backfillComplete = false
@@ -78,14 +95,10 @@ function runRequestLogPrune(now: number, allowInference: boolean) {
     .prepare(
       `select id
        from requests
-       where ${allowInference ? "(request_class = 'inference' and started_at < ?)" : '0'}
-          or (request_class = 'mcp_relay' and status_code < 400 and error is null and started_at < ?)
-          or (request_class = 'mcp_relay' and (status_code >= 400 or error is not null) and started_at < ?)
-          or (started_at < ?
-            and (request_headers is not null
-              or request_body is not null
-              or response_headers is not null
-              or response_body is not null))`,
+       where ${allowInference ? `(${INFERENCE_EXPIRED_SQL})` : '0'}
+          or (${MCP_SUCCESS_EXPIRED_SQL})
+          or (${MCP_ERROR_EXPIRED_SQL})
+          or (${BODY_EXPIRED_SQL})`,
     )
     .all(...(allowInference ? [inferenceCutoff] : []), mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff) as Array<{
     id: string
@@ -94,20 +107,14 @@ function runRequestLogPrune(now: number, allowInference: boolean) {
   const inferenceDeleted = allowInference
     ? sqliteDb.transaction(() => {
         markPrunedBefore(sqliteDb, now, settings.requestLogRetentionDays)
-        return sqliteDb
-          .prepare("delete from requests where request_class = 'inference' and started_at < ?")
-          .run(inferenceCutoff).changes
+        return sqliteDb.prepare(`delete from requests where ${INFERENCE_EXPIRED_SQL}`).run(inferenceCutoff).changes
       })()
     : 0
   const mcpRelaySuccessDeleted = sqliteDb
-    .prepare(
-      "delete from requests where request_class = 'mcp_relay' and status_code < 400 and error is null and started_at < ?",
-    )
+    .prepare(`delete from requests where ${MCP_SUCCESS_EXPIRED_SQL}`)
     .run(mcpSuccessCutoff).changes
   const mcpRelayErrorDeleted = sqliteDb
-    .prepare(
-      "delete from requests where request_class = 'mcp_relay' and (status_code >= 400 or error is not null) and started_at < ?",
-    )
+    .prepare(`delete from requests where ${MCP_ERROR_EXPIRED_SQL}`)
     .run(mcpErrorCutoff).changes
   const bodiesCleared = sqliteDb
     .prepare(
@@ -116,11 +123,7 @@ function runRequestLogPrune(now: number, allowInference: boolean) {
            request_body = null,
            response_headers = null,
            response_body = null
-       where started_at < ?
-         and (request_headers is not null
-           or request_body is not null
-           or response_headers is not null
-           or response_body is not null)`,
+       where ${BODY_EXPIRED_SQL}`,
     )
     .run(bodyCutoff).changes
 

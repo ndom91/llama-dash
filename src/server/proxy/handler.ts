@@ -18,6 +18,7 @@ import { applyTransforms, routingOutcomeFromDecision } from './transforms.ts'
 import { applyCredentialInjection, auditToJson } from './credential-placeholders.ts'
 import { config } from '../config.ts'
 import { inferenceBackend } from '../inference/backend.ts'
+import { errorMessage } from '../error-message.ts'
 
 const HARD_BODY_CAP = 20 * 1024 * 1024
 
@@ -56,23 +57,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     if (authResult.retryAfterMs) {
       headers.set('retry-after', String(Math.ceil(authResult.retryAfterMs / 1000)))
     }
-    writeProxyLog({
-      startedAt: ctx.startedAt,
+    logRejection(ctx, {
       status: authResult.status,
-      method: ctx.method,
-      endpoint: ctx.endpoint,
-      usage: nullUsage(ctx.body?.reqModel),
-      streamed: false,
       error: authResult.body.error.message,
-      reqHeaders: loggedRequestHeaders(ctx),
       reqBody: null,
-      resHeaders: null,
       resBody: JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)),
       keyId: null,
-      reqModel: ctx.body?.reqModel ?? null,
-      attribution: ctx.attribution,
-      routing: ctx.routingOutcome,
-      credentialInjectionJson: ctx.credentialInjectionJson,
     })
     return new Response(JSON.stringify(toErrorBody(ctx.endpoint, authResult.body)), {
       status: authResult.status,
@@ -88,15 +78,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   if (ctx.endpoint === '/v1/audio/llama-tts') {
-    const model = ctx.body?.parsedBody?.model
-    if (
-      ctx.method !== 'POST' ||
-      typeof model !== 'string' ||
-      !model ||
-      model === '.' ||
-      model === '..' ||
-      model.includes('/')
-    ) {
+    if (ctx.method !== 'POST' || !isValidTtsModelId(ctx.body?.parsedBody?.model)) {
       return rejectNativeTts(ctx, 'Native TTS requires a JSON body with a model ID without slashes')
     }
     if (ctx.routingOutcome.targetType === 'direct') {
@@ -114,23 +96,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
       })
       ctx.routingOutcome = transformResult.routing
       if (!transformResult.ok) {
-        writeProxyLog({
-          startedAt: ctx.startedAt,
+        logRejection(ctx, {
           status: transformResult.status,
-          method: ctx.method,
-          endpoint: ctx.endpoint,
-          usage: nullUsage(ctx.body.reqModel),
-          streamed: false,
           error: transformResult.body.error.message,
-          reqHeaders: loggedRequestHeaders(ctx),
           reqBody: loggedRequestBody(ctx),
-          resHeaders: null,
           resBody: JSON.stringify(transformResult.body),
           keyId: ctx.keyId,
-          reqModel: ctx.body.reqModel,
-          attribution: ctx.attribution,
-          routing: ctx.routingOutcome,
-          credentialInjectionJson: ctx.credentialInjectionJson,
         })
         return Response.json(toErrorBody(ctx.endpoint, transformResult.body), { status: transformResult.status })
       }
@@ -142,7 +113,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
 
   if (ctx.endpoint === '/v1/audio/llama-tts') {
     const model = ctx.body?.parsedBody?.model
-    if (typeof model !== 'string' || !model || model === '.' || model === '..' || model.includes('/')) {
+    if (!isValidTtsModelId(model)) {
       return rejectNativeTts(ctx, 'Native TTS requires a model ID without slashes')
     }
     ctx.upstream = inferenceBackend.defaultProxyUpstream(`/upstream/${encodeURIComponent(model)}/tts`, ctx.url.search)
@@ -159,22 +130,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
         type: 'credential_key_required',
       },
     }
-    writeProxyLog({
-      startedAt: ctx.startedAt,
+    logRejection(ctx, {
       status: 401,
-      method: ctx.method,
-      endpoint: ctx.endpoint,
-      usage: nullUsage(ctx.body?.reqModel),
-      streamed: false,
       error: body.error.message,
-      reqHeaders: loggedRequestHeaders(ctx),
       reqBody: loggedRequestBody(ctx),
-      resHeaders: null,
       resBody: JSON.stringify(toErrorBody(ctx.endpoint, body)),
       keyId: null,
-      reqModel: ctx.body?.reqModel ?? null,
-      attribution: ctx.attribution,
-      routing: ctx.routingOutcome,
     })
     return Response.json(toErrorBody(ctx.endpoint, body), { status: 401 })
   }
@@ -187,23 +148,12 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   ctx.credentialInjectionJson = auditToJson(credentialInjection.audit)
   ctx.redactedInjectedHeaderNames = credentialInjection.redactedHeaderNames
   if (!credentialInjection.ok) {
-    writeProxyLog({
-      startedAt: ctx.startedAt,
+    logRejection(ctx, {
       status: credentialInjection.status,
-      method: ctx.method,
-      endpoint: ctx.endpoint,
-      usage: nullUsage(ctx.body?.reqModel),
-      streamed: false,
       error: credentialInjection.message,
-      reqHeaders: loggedRequestHeaders(ctx),
       reqBody: loggedRequestBody(ctx),
-      resHeaders: null,
       resBody: null,
       keyId: ctx.keyId,
-      reqModel: ctx.body?.reqModel ?? null,
-      attribution: ctx.attribution,
-      routing: ctx.routingOutcome,
-      credentialInjectionJson: ctx.credentialInjectionJson,
     })
     return Response.json(
       toErrorBody(ctx.endpoint, {
@@ -234,23 +184,13 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   })
 
   if ('upstreamError' in forwardedResponse) {
-    writeProxyLog({
-      startedAt: ctx.startedAt,
+    logRejection(ctx, {
       status: 502,
-      method: ctx.method,
-      endpoint: ctx.endpoint,
-      usage: nullUsage(ctx.body?.reqModel),
-      streamed: false,
       error: forwardedResponse.upstreamError,
       reqHeaders: reqHeadersJson,
       reqBody,
-      resHeaders: null,
       resBody: null,
       keyId: ctx.keyId,
-      reqModel: ctx.body?.reqModel ?? null,
-      attribution: ctx.attribution,
-      routing: ctx.routingOutcome,
-      credentialInjectionJson: ctx.credentialInjectionJson,
     })
     return Response.json(
       toErrorBody(ctx.endpoint, {
@@ -263,52 +203,68 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   return forwardedResponse
 }
 
+function isValidTtsModelId(model: unknown): model is string {
+  return typeof model === 'string' && model !== '' && model !== '.' && model !== '..' && !model.includes('/')
+}
+
+// Logs a request the proxy answered itself without a successful upstream exchange.
+function logRejection(
+  ctx: ProxyContext,
+  input: {
+    status: number
+    error: string
+    reqHeaders?: string
+    reqBody: string | null
+    resBody: string | null
+    keyId: string | null
+  },
+) {
+  const reqModel = ctx.body?.reqModel ?? null
+  writeProxyLog({
+    startedAt: ctx.startedAt,
+    status: input.status,
+    method: ctx.method,
+    endpoint: ctx.endpoint,
+    usage: nullUsage(reqModel),
+    streamed: false,
+    error: input.error,
+    reqHeaders: input.reqHeaders ?? loggedRequestHeaders(ctx),
+    reqBody: input.reqBody,
+    resHeaders: null,
+    resBody: input.resBody,
+    keyId: input.keyId,
+    reqModel,
+    attribution: ctx.attribution,
+    routing: ctx.routingOutcome,
+    credentialInjectionJson: ctx.credentialInjectionJson,
+  })
+}
+
 function usesStoredCredentials(ctx: ProxyContext): boolean {
   return Boolean(ctx.routingOutcome.targetCredentialId) || ctx.routingOutcome.credentialBindings.length > 0
 }
 
 function rejectNativeTts(ctx: ProxyContext, message: string): Response {
   const body = { error: { message, type: 'invalid_request' } }
-  writeProxyLog({
-    startedAt: ctx.startedAt,
+  logRejection(ctx, {
     status: 400,
-    method: ctx.method,
-    endpoint: ctx.endpoint,
-    usage: nullUsage(ctx.body?.reqModel),
-    streamed: false,
     error: message,
-    reqHeaders: loggedRequestHeaders(ctx),
     reqBody: loggedRequestBody(ctx),
-    resHeaders: null,
     resBody: JSON.stringify(body),
     keyId: ctx.keyId,
-    reqModel: ctx.body?.reqModel ?? null,
-    attribution: ctx.attribution,
-    routing: ctx.routingOutcome,
   })
   return Response.json(body, { status: 400 })
 }
 
 function rejectBodyTooLarge(ctx: ProxyContext, err: unknown): Response {
-  const message = err instanceof Error ? err.message : String(err)
+  const message = errorMessage(err)
   const body = { error: { message, type: 'request_too_large' } }
-  writeProxyLog({
-    startedAt: ctx.startedAt,
+  logRejection(ctx, {
     status: 413,
-    method: ctx.method,
-    endpoint: ctx.endpoint,
-    usage: nullUsage(),
-    streamed: false,
     error: message,
-    reqHeaders: loggedRequestHeaders(ctx),
     reqBody: null,
-    resHeaders: null,
     resBody: JSON.stringify(toErrorBody(ctx.endpoint, body)),
     keyId: null,
-    reqModel: ctx.body?.reqModel ?? null,
-    attribution: ctx.attribution,
-    routing: ctx.routingOutcome,
-    credentialInjectionJson: ctx.credentialInjectionJson,
   })
   return Response.json(toErrorBody(ctx.endpoint, body), { status: 413 })
 }

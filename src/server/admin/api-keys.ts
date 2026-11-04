@@ -35,9 +35,7 @@ export function createApiKey(input: {
   systemPrompt?: string | null
   expiresAt?: Date | null
 }): { key: ApiKeyItem; rawKey: string } {
-  const rawKey = `sk-${randomBytes(32).toString('hex')}`
-  const keyHash = createHash('sha256').update(rawKey).digest('hex')
-  const keyPrefix = rawKey.slice(0, 8)
+  const { rawKey, keyHash, keyPrefix } = generateKey('sk-', 8)
   const id = `key_${ulid()}`
   const now = new Date()
 
@@ -63,7 +61,7 @@ export function createApiKey(input: {
   db.insert(schema.apiKeys).values(row).run()
   invalidateKeyCache()
 
-  return { key: toApiShape({ ...row, createdAt: now, disabledAt: null, expiresAt: input.expiresAt ?? null }), rawKey }
+  return { key: toApiShape(row), rawKey }
 }
 
 export function rotateApiKey(id: string): { key: ApiKeyItem; rawKey: string } | null {
@@ -74,9 +72,7 @@ export function rotateApiKey(id: string): { key: ApiKeyItem; rawKey: string } | 
     .get()
   if (!existing || existing.disabledAt) return null
 
-  const rawKey = `sk-${randomBytes(32).toString('hex')}`
-  const keyHash = createHash('sha256').update(rawKey).digest('hex')
-  const keyPrefix = rawKey.slice(0, 8)
+  const { rawKey, keyHash, keyPrefix } = generateKey('sk-', 8)
   const result = db.update(schema.apiKeys).set({ keyHash, keyPrefix }).where(eq(schema.apiKeys.id, id)).run()
   if (result.changes === 0) return null
 
@@ -174,8 +170,7 @@ export function ensureSystemKey(): void {
     return
   }
 
-  const rawKey = `sk-sys-${randomBytes(32).toString('hex')}`
-  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+  const { rawKey, keyHash, keyPrefix } = generateKey('sk-sys-', 10)
   const id = `key_${ulid()}`
 
   db.insert(schema.apiKeys)
@@ -183,7 +178,7 @@ export function ensureSystemKey(): void {
       id,
       name: 'Playground (system)',
       keyHash,
-      keyPrefix: rawKey.slice(0, 10),
+      keyPrefix,
       createdAt: new Date(),
       disabledAt: null,
       modelAccessMode: 'all',
@@ -212,17 +207,19 @@ export function getSystemKeyRaw(): string | null {
   if (!row) return null
 
   // Can't reverse hash — if key existed before this boot, we need to regenerate
-  const rawKey = `sk-sys-${randomBytes(32).toString('hex')}`
-  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+  const { rawKey, keyHash, keyPrefix } = generateKey('sk-sys-', 10)
 
-  db.update(schema.apiKeys)
-    .set({ keyHash, keyPrefix: rawKey.slice(0, 10) })
-    .where(eq(schema.apiKeys.system, true))
-    .run()
+  db.update(schema.apiKeys).set({ keyHash, keyPrefix }).where(eq(schema.apiKeys.system, true)).run()
 
   invalidateKeyCache()
   _systemRawKey = rawKey
   return _systemRawKey
+}
+
+function generateKey(prefix: string, visiblePrefixLength: number) {
+  const rawKey = `${prefix}${randomBytes(32).toString('hex')}`
+  const keyHash = createHash('sha256').update(rawKey).digest('hex')
+  return { rawKey, keyHash, keyPrefix: rawKey.slice(0, visiblePrefixLength) }
 }
 
 function toApiShape(row: schema.ApiKey): ApiKeyItem {

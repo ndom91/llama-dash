@@ -14,7 +14,7 @@ import type Database from 'better-sqlite3'
  * throwaway database in tests.
  */
 
-const DAY_MS = 24 * 60 * 60 * 1000
+export const DAY_MS = 24 * 60 * 60 * 1000
 const PRUNED_BEFORE_KEY = 'usage_rollup_pruned_before'
 const BACKFILL_CURSOR_KEY = 'usage_rollup_backfill_cursor'
 
@@ -208,15 +208,11 @@ export function refreshDailyStats(sqlite: Database.Database, options: RefreshOpt
   const now = options.now ?? Date.now()
   const prunedBefore = getPrunedBefore(sqlite, now, options.retentionDays)
   const today = utcDay(now)
-  const candidates = new Set([addDays(today, -1), today])
 
   const rolledUp = new Set(
     (sqlite.prepare('select distinct day from request_daily_stats').all() as Array<{ day: string }>).map((r) => r.day),
   )
-  const days = [...candidates]
-    .filter((day) => day <= today)
-    .filter((day) => !rolledUp.has(day) || dayToMs(day) >= prunedBefore)
-    .sort()
+  const days = [addDays(today, -1), today].filter((day) => !rolledUp.has(day) || dayToMs(day) >= prunedBefore)
   rebuildDailyStats(sqlite, days)
   return days
 }
@@ -273,17 +269,10 @@ export type SessionUsageRow = Omit<
 }
 
 /**
- * Usage per session id for `[fromDay, toDay]`, from the raw request log only:
+ * Usage per session id for `[fromMs, toMs)`, from the raw request log only:
  * session ids are near-unique per conversation, so they are not rolled up and
  * disappear with request-log retention.
  */
-export function loadSessionRows(
-  sqlite: Database.Database,
-  options: { fromDay: string; toDay: string },
-): SessionUsageRow[] {
-  return loadSessionRowsBetween(sqlite, dayToMs(options.fromDay), dayToMs(options.toDay) + DAY_MS)
-}
-
 export function loadSessionRowsBetween(sqlite: Database.Database, fromMs: number, toMs: number): SessionUsageRow[] {
   return sqlite
     .prepare(

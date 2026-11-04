@@ -7,8 +7,10 @@ import { getRequestLogQueueStats } from '../../proxy/log.ts'
 import { compactDatabase, pruneRequestLogs } from '../../request-log-maintenance.ts'
 import { getUpdateCheck } from '../../update-check.ts'
 import { error, json, type Route } from './types.ts'
+import { errorMessage } from '../../error-message.ts'
 
 const DIRECT_TARGETS = ['https://api.openai.com/v1', 'https://api.anthropic.com/v1']
+const GIT_COMMIT = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
 
 export const systemRoutes: Route[] = [
   {
@@ -28,7 +30,7 @@ export const systemRoutes: Route[] = [
       try {
         return json(200, pruneRequestLogs())
       } catch (err) {
-        return error(503, err instanceof Error ? err.message : String(err))
+        return error(503, errorMessage(err))
       }
     },
   },
@@ -39,7 +41,7 @@ export const systemRoutes: Route[] = [
       try {
         return json(200, compactDatabase())
       } catch (err) {
-        return error(500, err instanceof Error ? err.message : String(err))
+        return error(500, errorMessage(err))
       }
     },
   },
@@ -50,16 +52,15 @@ export const systemRoutes: Route[] = [
       const backend = inferenceBackend.info
       const gpu = getGpuSnapshot()
       const now = Date.now()
-      const gitCommit = typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'
       const [update, inferenceHardware] = await Promise.all([
-        getUpdateCheck(gitCommit),
+        getUpdateCheck(GIT_COMMIT),
         inferenceBackend.hardware?.().catch(() => null) ?? Promise.resolve(null),
       ])
       return json(200, {
         runtime: {
           uptimeSec: Math.round(process.uptime()),
           nodeVersion: process.version,
-          gitCommit,
+          gitCommit: GIT_COMMIT,
           update,
         },
         database: {
@@ -99,7 +100,7 @@ export const systemRoutes: Route[] = [
       return json(200, {
         instanceLabel: publicUrl.host || 'local instance',
         uptimeLabel: formatLoginUptime(Math.round(process.uptime())),
-        commitLabel: formatLoginCommit(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unknown'),
+        commitLabel: formatLoginCommit(GIT_COMMIT),
         tlsLabel: publicUrl.protocol === 'https:' ? 'https · tls' : 'http · no tls',
         signupAllowed: !hasDashboardUsers(),
       })

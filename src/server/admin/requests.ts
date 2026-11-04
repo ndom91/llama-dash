@@ -1,4 +1,5 @@
-import { and, asc, desc, eq, gt, gte, lt, or, getTableColumns } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, gte, lt, or, getTableColumns, type SQL } from 'drizzle-orm'
+import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestDetail, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
@@ -76,6 +77,65 @@ export function toRequestRow(row: RequestSummarySource, keyName: string | null):
     routingTargetCredentialId: row.routingTargetCredentialId,
     routingRoutedModel: row.routingRoutedModel,
     credentialInjectionJson: row.credentialInjectionJson,
+  }
+}
+
+// Last-30-minute totals and per-minute sparklines for the requests matching `where`.
+export function summarizeRecentRequests(where: SQL | undefined): ApiKeyStats {
+  const now = Date.now()
+  const thirtyMinAgo = new Date(now - 30 * 60_000)
+
+  const recent = db
+    .select({
+      startedAt: schema.requests.startedAt,
+      durationMs: schema.requests.durationMs,
+      statusCode: schema.requests.statusCode,
+      totalTokens: schema.requests.totalTokens,
+      completionTokens: schema.requests.completionTokens,
+    })
+    .from(schema.requests)
+    .where(and(where, gte(schema.requests.startedAt, thirtyMinAgo)))
+    .orderBy(asc(schema.requests.startedAt))
+    .all()
+
+  const totalRequests = recent.length
+  const errorCount = recent.filter((r) => r.statusCode >= 400).length
+  const errorRate = totalRequests > 0 ? (errorCount / totalRequests) * 100 : 0
+
+  const durations = recent.map((r) => r.durationMs)
+  const avgDurationMs = durations.length > 0 ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length) : 0
+
+  const tokRates = recent
+    .filter((r) => r.completionTokens != null && r.durationMs > 0)
+    .map((r) => (r.completionTokens! / r.durationMs) * 1000)
+  const avgTokPerSec = tokRates.length > 0 ? Math.round(tokRates.reduce((s, t) => s + t, 0) / tokRates.length) : 0
+
+  const totalPromptTokens = recent.reduce((s, r) => s + (r.totalTokens ?? 0) - (r.completionTokens ?? 0), 0)
+  const totalCompletionTokens = recent.reduce((s, r) => s + (r.completionTokens ?? 0), 0)
+
+  const startBucket = Math.floor(thirtyMinAgo.getTime() / 60_000)
+  const endBucket = Math.floor(now / 60_000)
+  const count = endBucket - startBucket + 1
+  const reqs = new Array<number>(count).fill(0)
+  const toks = new Array<number>(count).fill(0)
+
+  for (const r of recent) {
+    const idx = Math.floor(r.startedAt.getTime() / 60_000) - startBucket
+    if (idx >= 0 && idx < count) {
+      reqs[idx]++
+      toks[idx] += r.totalTokens ?? 0
+    }
+  }
+
+  return {
+    totalRequests,
+    errorCount,
+    errorRate,
+    avgDurationMs,
+    avgTokPerSec,
+    totalPromptTokens,
+    totalCompletionTokens,
+    sparklines: { reqs, toks },
   }
 }
 

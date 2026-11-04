@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import { countTokens } from 'gpt-tokenizer'
 import { CreateApiKeyBodySchema, UpdateApiKeyBodySchema } from '../../../lib/schemas/api-key.ts'
 import {
@@ -12,7 +11,7 @@ import {
   updateApiKey,
 } from '../api-keys.ts'
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from '../key-detail.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, readJsonBody, type Route } from './types.ts'
 
 export const keyRoutes: Route[] = [
   {
@@ -24,12 +23,10 @@ export const keyRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/keys$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(CreateApiKeyBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Body must have "name" (non-empty string)')
-      const expiresAt = result.output.expiresAt ? new Date(result.output.expiresAt) : null
-      return json(201, createApiKey({ ...result.output, expiresAt }))
+      const result = await parseBody(request, CreateApiKeyBodySchema, 'Body must have "name" (non-empty string)')
+      if (!result.ok) return result.response
+      const expiresAt = result.value.expiresAt ? new Date(result.value.expiresAt) : null
+      return json(201, createApiKey({ ...result.value, expiresAt }))
     },
   },
   {
@@ -39,23 +36,25 @@ export const keyRoutes: Route[] = [
       const id = match[1]
       const key = getApiKeyById(id)
       if (!key) return error(404, `Key ${id} not found`)
-      const [stats, requests, modelBreakdown] = await Promise.all([
-        getKeyStats(id),
-        getKeyRequests(id, 20),
-        getKeyModelBreakdown(id),
-      ])
-      return json(200, { key, stats, requests, modelBreakdown })
+      return json(200, {
+        key,
+        stats: getKeyStats(id),
+        requests: getKeyRequests(id, 20),
+        modelBreakdown: getKeyModelBreakdown(id),
+      })
     },
   },
   {
     method: 'PATCH',
     pattern: /^\/api\/keys\/([a-zA-Z0-9_]+)$/,
     handler: async (request, match) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateApiKeyBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Body must have "name" (string) and/or "allowedModels" (string[])')
-      const body = result.output
+      const result = await parseBody(
+        request,
+        UpdateApiKeyBodySchema,
+        'Body must have "name" (string) and/or "allowedModels" (string[])',
+      )
+      if (!result.ok) return result.response
+      const body = result.value
       if (
         !body.name &&
         !body.modelAccessMode &&

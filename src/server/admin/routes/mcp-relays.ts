@@ -1,7 +1,7 @@
-import * as v from 'valibot'
 import { CreateMcpRelayBodySchema } from '../../../lib/schemas/mcp-relay.ts'
 import { createMcpRelay, deleteMcpRelay, listMcpRelays } from '../mcp-relays.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route } from './types.ts'
+import { errorMessage } from '../../error-message.ts'
 
 export const mcpRelayRoutes: Route[] = [
   {
@@ -13,14 +13,12 @@ export const mcpRelayRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/mcp-relays$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(CreateMcpRelayBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid MCP relay body')
+      const result = await parseBody(request, CreateMcpRelayBodySchema, 'Invalid MCP relay body')
+      if (!result.ok) return result.response
       try {
-        return json(201, createMcpRelay(result.output))
+        return json(201, createMcpRelay(result.value))
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },

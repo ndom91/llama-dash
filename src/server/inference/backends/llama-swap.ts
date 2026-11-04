@@ -9,11 +9,13 @@ import type {
   InferenceBackendInfo,
 } from '../backend.ts'
 import {
+  extractCtxSize,
   getLlamaSwapConfigContextLengths,
   getLlamaSwapModelConfigSnippet,
   getLlamaSwapModelLogNames,
   getLlamaSwapPeerHosts,
 } from '../llama-swap-config.ts'
+import { errorMessage } from '../../error-message.ts'
 
 function pickLlamaSwapModelContextLength(model: OpenAiModel): number | null {
   return (
@@ -44,12 +46,6 @@ function pickLlamaSwapModelCapabilities(model: OpenAiModel): BackendModelCapabil
     flags,
     supportedParameters: model.supported_parameters ?? [],
   }
-}
-
-function extractCtxSize(value: unknown): number | null {
-  if (typeof value !== 'string') return null
-  const match = value.match(/--ctx-size(?:\s+|=)(\d+)/)
-  return match ? Number(match[1]) : null
 }
 
 function mapLlamaSwapModel(model: OpenAiModel): BackendModel {
@@ -124,7 +120,7 @@ export function createLlamaSwapBackend(): InferenceBackend {
       } catch (err) {
         return {
           reachable: false,
-          error: err instanceof Error ? err.message : String(err),
+          error: errorMessage(err),
         }
       }
     },

@@ -101,43 +101,43 @@ async function fetchArticleHtml(startUrl: SafeArticleUrl) {
 
   for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect += 1) {
     const dispatcher = createPinnedDispatcher(currentUrl)
-    const res = await fetch(currentUrl.url, {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      dispatcher,
-      headers: {
-        accept: 'text/html,application/xhtml+xml',
-        'user-agent': 'llama-dash article extractor',
-      },
-    }).catch(async (err) => {
-      await dispatcher.close()
-      throw new ArticleExtractError(err instanceof Error ? err.message : 'Could not fetch article URL')
-    })
+    try {
+      const res = await fetch(currentUrl.url, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        dispatcher,
+        headers: {
+          accept: 'text/html,application/xhtml+xml',
+          'user-agent': 'llama-dash article extractor',
+        },
+      }).catch((err) => {
+        throw new ArticleExtractError(err instanceof Error ? err.message : 'Could not fetch article URL')
+      })
 
-    if (res.status >= 300 && res.status < 400) {
-      const location = res.headers.get('location')
-      await res.body?.cancel()
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get('location')
+        await res.body?.cancel()
+        if (!location) throw new ArticleExtractError('Article URL redirected without a location header')
+        currentUrl = await assertSafeArticleUrl(new URL(location, currentUrl.url).href)
+        continue
+      }
+
+      if (!res.ok) {
+        await res.body?.cancel()
+        throw new ArticleExtractError(`Article URL returned HTTP ${res.status}`)
+      }
+
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!isHtmlContentType(contentType)) {
+        await res.body?.cancel()
+        throw new ArticleExtractError('Article URL did not return HTML', 422)
+      }
+
+      const html = await readLimitedText(res, MAX_HTML_BYTES)
+      return { html, finalUrl: currentUrl }
+    } finally {
       await dispatcher.close()
-      if (!location) throw new ArticleExtractError('Article URL redirected without a location header')
-      currentUrl = await assertSafeArticleUrl(new URL(location, currentUrl.url).href)
-      continue
     }
-
-    if (!res.ok) {
-      await res.body?.cancel()
-      await dispatcher.close()
-      throw new ArticleExtractError(`Article URL returned HTTP ${res.status}`)
-    }
-
-    const contentType = res.headers.get('content-type') ?? ''
-    if (!isHtmlContentType(contentType)) {
-      await res.body?.cancel()
-      await dispatcher.close()
-      throw new ArticleExtractError('Article URL did not return HTML', 422)
-    }
-
-    const html = await readLimitedText(res, MAX_HTML_BYTES).finally(() => dispatcher.close())
-    return { html, finalUrl: currentUrl }
   }
 
   throw new ArticleExtractError('Article URL redirected too many times')

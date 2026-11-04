@@ -14,6 +14,7 @@ import {
 import { basename, dirname, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { config } from '../config.ts'
+import { errorMessage } from '../error-message.ts'
 
 let cachedValidator: ValidateFunction | null = null
 const SCHEMA_URL = 'https://raw.githubusercontent.com/mostlygeek/llama-swap/refs/heads/main/config-schema.json'
@@ -54,7 +55,7 @@ export async function validateAgainstSchema(content: string): Promise<Validation
   try {
     parsed = parseYaml(content)
   } catch (err) {
-    return { valid: false, errors: [err instanceof Error ? err.message : String(err)] }
+    return { valid: false, errors: [errorMessage(err)] }
   }
 
   try {
@@ -67,7 +68,7 @@ export async function validateAgainstSchema(content: string): Promise<Validation
     })
     return { valid: false, errors }
   } catch (err) {
-    return { valid: false, errors: [`Schema validation failed: ${err instanceof Error ? err.message : String(err)}`] }
+    return { valid: false, errors: [`Schema validation failed: ${errorMessage(err)}`] }
   }
 }
 

@@ -1,17 +1,17 @@
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import * as v from 'valibot'
-import type { CreateRoutingRuleBody, RoutingRule, UpdateRoutingRuleBody } from '../../lib/schemas/routing-rule.ts'
 import {
+  type CreateRoutingRuleBody,
   CredentialBindingSchema,
-  RoutingActionSchema,
-  RoutingMatchSchema,
-  RoutingTargetSchema,
-} from '../../lib/schemas/routing-rule.ts'
-import {
   hasAnyRoutingMatcher,
   isAllowedDirectUpstream,
   ROUTING_MATCH_FIELD_METADATA,
+  RoutingActionSchema,
+  type RoutingRule,
+  RoutingMatchSchema,
+  RoutingTargetSchema,
+  type UpdateRoutingRuleBody,
 } from '../../lib/schemas/routing-rule.ts'
 import { db, schema } from '../db/index.ts'
 

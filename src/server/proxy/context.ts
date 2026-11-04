@@ -1,7 +1,7 @@
 import type { ApiKey } from '../db/schema.ts'
 import { inferenceBackend } from '../inference/backend.ts'
 import { getAttributionSettings, getPrivacySettings } from '../admin/settings.ts'
-import { extractAttribution } from './attribution.ts'
+import { extractAttribution, type RequestAttribution } from './attribution.ts'
 import {
   applyProxyBodyHeaders,
   applyProxyBodyTransform,
@@ -28,11 +28,7 @@ export type ProxyContext = {
   defaultUpstream: string
   upstream: string
   reqHeaders: Record<string, string>
-  attribution: {
-    clientName: string | null
-    endUserId: string | null
-    sessionId: string | null
-  }
+  attribution: RequestAttribution
   routingOutcome: RoutingOutcome
   credentialInjectionJson: string | null
   redactedInjectedHeaderNames: Set<string>

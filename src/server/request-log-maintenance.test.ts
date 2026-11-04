@@ -42,6 +42,7 @@ const rollupMock = vi.hoisted(() => ({
 
 vi.mock('./usage-rollup.ts', () => ({
   ...rollupMock,
+  DAY_MS: 24 * 60 * 60 * 1000,
 }))
 
 vi.mock('./admin/settings.ts', () => ({

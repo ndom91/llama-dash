@@ -46,12 +46,10 @@ export const modelRoutes: Route[] = [
       const runInfo = runningRes.find((r) => r.model === id)
       const model = buildApiModel(modelData, runInfo, configContextLengths, getPeerHosts())
 
-      const [events, stats, requests, keyBreakdown] = await Promise.all([
-        getModelEvents(id),
-        getModelRequestStats(id),
-        getModelRequests(id, 20),
-        getModelKeyBreakdown(id),
-      ])
+      const events = getModelEvents(id)
+      const stats = getModelRequestStats(id)
+      const requests = getModelRequests(id, 20)
+      const keyBreakdown = getModelKeyBreakdown(id)
       const configSnippet = extractModelConfig(id)
 
       return json(200, { model, events, stats, requests, configSnippet, keyBreakdown })
@@ -136,14 +134,7 @@ export const modelRoutes: Route[] = [
       request.signal.addEventListener('abort', () => {
         unsubscribe?.()
       })
-      return new Response(body, {
-        status: 200,
-        headers: {
-          'content-type': 'text/event-stream',
-          'cache-control': 'no-cache',
-          connection: 'keep-alive',
-        },
-      })
+      return sseResponse(body)
     },
   },
   {
@@ -169,17 +160,21 @@ export const modelRoutes: Route[] = [
       request.signal.addEventListener('abort', () => {
         upstreamReader.cancel().catch(() => {})
       })
-      return new Response(body, {
-        status: 200,
-        headers: {
-          'content-type': 'text/event-stream',
-          'cache-control': 'no-cache',
-          connection: 'keep-alive',
-        },
-      })
+      return sseResponse(body)
     },
   },
 ]
+
+function sseResponse(body: ReadableStream<Uint8Array>): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+    },
+  })
+}
 
 async function pumpUpstreamEvents(
   reader: ReadableStreamDefaultReader<Uint8Array>,

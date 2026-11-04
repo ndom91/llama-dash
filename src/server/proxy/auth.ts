@@ -30,7 +30,10 @@ export type KeyResolution =
 export function resolveApiKey(request: Request): KeyResolution {
   const token = gatewayAuthToken(request.headers) ?? bearerToken(request.headers.get('authorization'))
   if (!token) return { status: 'absent' }
+  return resolveToken(token)
+}
 
+function resolveToken(token: string): Exclude<KeyResolution, { status: 'absent' }> {
   const hash = createHash('sha256').update(token).digest('hex')
   const keyRow = findKeyByHash(hash)
   if (!keyRow) return { status: 'invalid', reason: 'Invalid API key' }
@@ -98,46 +101,15 @@ export function authenticateGatewayRequest(request: Request): AuthResult {
     }
   }
 
-  return authenticateApiKeyToken(token, false)
-}
-
-function authenticateApiKeyToken(token: string, checkTokenRateLimit: boolean): AuthResult {
-  const hash = createHash('sha256').update(token).digest('hex')
-  const keyRow = findKeyByHash(hash)
-
-  if (!keyRow) {
+  const resolution = resolveToken(token)
+  if (resolution.status === 'invalid') {
     return {
       ok: false,
       status: 401,
-      body: { error: { message: 'Invalid API key', type: 'invalid_api_key' } },
+      body: { error: { message: resolution.reason, type: 'invalid_api_key' } },
     }
   }
-
-  if (!timingSafeEqual(Buffer.from(hash), Buffer.from(keyRow.keyHash))) {
-    return {
-      ok: false,
-      status: 401,
-      body: { error: { message: 'Invalid API key', type: 'invalid_api_key' } },
-    }
-  }
-
-  if (keyRow.disabledAt != null) {
-    return {
-      ok: false,
-      status: 401,
-      body: { error: { message: 'API key has been revoked', type: 'invalid_api_key' } },
-    }
-  }
-
-  if (keyRow.expiresAt != null && keyRow.expiresAt.getTime() < Date.now()) {
-    return {
-      ok: false,
-      status: 401,
-      body: { error: { message: 'API key has expired', type: 'invalid_api_key' } },
-    }
-  }
-
-  return applyRateLimits(keyRow, checkTokenRateLimit)
+  return applyRateLimits(resolution.keyRow, false)
 }
 
 function applyRateLimits(keyRow: ApiKey, checkTokenRateLimit: boolean): AuthResult {

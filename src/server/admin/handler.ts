@@ -12,6 +12,7 @@ import { error, type Route } from './routes/types.ts'
 import { upstreamCredentialRoutes } from './routes/upstream-credentials.ts'
 import { withConditionalGet } from './conditional-json.ts'
 import { usageRoutes } from './routes/usage.ts'
+import { errorMessage } from '../error-message.ts'
 
 const routes: Route[] = [
   ...articleRoutes,
@@ -39,7 +40,7 @@ export async function handleAdminRequest(request: Request): Promise<Response> {
     try {
       return withConditionalGet(request, await route.handler(request, match))
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      const message = errorMessage(err)
       return error(502, message)
     }
   }

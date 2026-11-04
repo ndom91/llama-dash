@@ -30,19 +30,15 @@ export function isCredentialVaultKeyEnabled(key: string): boolean {
   return key.length >= 32
 }
 
-function getCredentialEncryptionKey(): string {
-  return config.credentialEncryptionKey
-}
-
 export function getCredentialVaultStatus(
-  key = getCredentialEncryptionKey(),
+  key = config.credentialEncryptionKey,
 ): 'ready' | 'missing_key' | 'key_too_short' {
   if (!key) return 'missing_key'
   if (!isCredentialVaultKeyEnabled(key)) return 'key_too_short'
   return 'ready'
 }
 
-function requireVaultKey(key = getCredentialEncryptionKey()): Buffer {
+function requireVaultKey(key = config.credentialEncryptionKey): Buffer {
   if (!isCredentialVaultKeyEnabled(key)) {
     const detail = getCredentialVaultStatus(key) === 'missing_key' ? 'is not set' : 'must be at least 32 characters'
     throw new Error(`CREDENTIAL_ENCRYPTION_KEY ${detail} before using upstream credentials`)

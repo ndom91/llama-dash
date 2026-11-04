@@ -12,19 +12,18 @@ import {
 } from '../../lib/schemas/usage'
 import {
   addDays,
+  DAY_MS,
   dayToMs,
   type DailyUsageRow,
   getPrunedBefore,
   loadDailyRows,
   loadRawUsageRows,
-  loadSessionRows,
   loadSessionRowsBetween,
   type SessionUsageRow,
   utcDay,
   utcDayStartMs,
 } from '../usage-rollup.ts'
 
-const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
 
 export function parseUsageDays(value: string | null): UsagePeriodDays {
@@ -117,7 +116,7 @@ export function getUsageReport(sqlite: Database.Database, options: ReportOptions
           groupBy(
             rolling
               ? loadSessionRowsBetween(sqlite, now - DAY_MS, now)
-              : loadSessionRows(sqlite, { fromDay: from, toDay: to }),
+              : loadSessionRowsBetween(sqlite, dayToMs(from), dayToMs(to) + DAY_MS),
             (row: SessionUsageRow) => row.sessionId,
           ),
           () => null,

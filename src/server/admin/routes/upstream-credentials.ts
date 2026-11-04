@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import {
   CreateUpstreamCredentialBodySchema,
   UpdateUpstreamCredentialBodySchema,
@@ -12,7 +11,8 @@ import {
   updateUpstreamCredential,
 } from '../upstream-credentials.ts'
 import { config } from '../../config.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route } from './types.ts'
+import { errorMessage } from '../../error-message.ts'
 
 export const upstreamCredentialRoutes: Route[] = [
   {
@@ -31,14 +31,12 @@ export const upstreamCredentialRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/upstream-credentials$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(CreateUpstreamCredentialBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid upstream credential body')
+      const result = await parseBody(request, CreateUpstreamCredentialBodySchema, 'Invalid upstream credential body')
+      if (!result.ok) return result.response
       try {
-        return json(201, createUpstreamCredential(result.output, config.credentialEncryptionKey))
+        return json(201, createUpstreamCredential(result.value))
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },
@@ -46,19 +44,17 @@ export const upstreamCredentialRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/upstream-credentials\/([a-zA-Z0-9_]+)$/,
     handler: async (request, match) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateUpstreamCredentialBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid upstream credential body')
-      if (result.output.name === undefined && result.output.slug === undefined && result.output.value === undefined) {
+      const result = await parseBody(request, UpdateUpstreamCredentialBodySchema, 'Invalid upstream credential body')
+      if (!result.ok) return result.response
+      if (result.value.name === undefined && result.value.slug === undefined && result.value.value === undefined) {
         return error(400, 'At least one field to update is required')
       }
       try {
-        const updated = updateUpstreamCredential(match[1], result.output, config.credentialEncryptionKey)
+        const updated = updateUpstreamCredential(match[1], result.value)
         if (!updated) return error(404, `Upstream credential ${match[1]} not found`)
         return json(200, updated)
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },

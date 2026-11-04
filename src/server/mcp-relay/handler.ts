@@ -2,14 +2,19 @@ import { config } from '../config.ts'
 import { getMcpRelayBySlug } from '../admin/mcp-relays.ts'
 import { getAttributionSettings, getPrivacySettings } from '../admin/settings.ts'
 import { MCP_RELAY_ENDPOINT_PREFIX } from '../../lib/mcp-relays.ts'
-import { extractAttribution } from '../proxy/attribution.ts'
+import { extractAttribution, type RequestAttribution } from '../proxy/attribution.ts'
 import { authenticateGatewayRequest } from '../proxy/auth.ts'
 import {
   applyCredentialInjection,
   auditToJson,
   REDACTED_INJECTED_CREDENTIAL,
 } from '../proxy/credential-placeholders.ts'
-import { MAX_PROXY_BODY_BYTES, type ProxyForwardBody } from '../proxy/body.ts'
+import {
+  assertContentLengthWithinLimit,
+  MAX_PROXY_BODY_BYTES,
+  type ProxyForwardBody,
+  readLimitedBytes,
+} from '../proxy/body.ts'
 import { toErrorBody } from '../proxy/errors.ts'
 import { forwardUpstreamAndLog, nullUsage, writeProxyLog } from '../proxy/forward.ts'
 import {
@@ -20,6 +25,7 @@ import {
 } from '../proxy/headers.ts'
 import { emptyRoutingOutcome, type RoutingOutcome } from '../proxy/transforms.ts'
 import type { ApiKey } from '../db/schema.ts'
+import { errorMessage } from '../error-message.ts'
 
 export async function handleMcpRelayRequest(request: Request): Promise<Response> {
   const startedAt = Date.now()
@@ -32,15 +38,17 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   deleteGatewayAuthHeaders(headers)
 
   if (!slug) {
-    return relayError({
+    return relayFailure({
       startedAt,
       status: 404,
       method,
       endpoint,
       message: 'MCP relay not found',
       type: 'mcp_relay_not_found',
-      headers,
+      reqHeadersJson: JSON.stringify(redactSensitiveHeaders(headers)),
+      keyId: null,
       attribution,
+      routing: emptyRoutingOutcome(),
     })
   }
 
@@ -48,27 +56,31 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   try {
     relay = getMcpRelayBySlug(slug)
   } catch (err) {
-    return relayError({
+    return relayFailure({
       startedAt,
       status: 500,
       method,
       endpoint,
-      message: err instanceof Error ? err.message : String(err),
+      message: errorMessage(err),
       type: 'mcp_relay_invalid_config',
-      headers,
+      reqHeadersJson: JSON.stringify(redactSensitiveHeaders(headers)),
+      keyId: null,
       attribution,
+      routing: emptyRoutingOutcome(),
     })
   }
   if (!relay?.enabled) {
-    return relayError({
+    return relayFailure({
       startedAt,
       status: 404,
       method,
       endpoint,
       message: `MCP relay ${slug} not found`,
       type: 'mcp_relay_not_found',
-      headers,
+      reqHeadersJson: JSON.stringify(redactSensitiveHeaders(headers)),
+      keyId: null,
       attribution,
+      routing: emptyRoutingOutcome(),
     })
   }
 
@@ -133,7 +145,7 @@ export async function handleMcpRelayRequest(request: Request): Promise<Response>
   try {
     body = await relayBody(request, method)
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = errorMessage(err)
     return relayFailure({
       startedAt,
       status: 413,
@@ -209,51 +221,17 @@ async function relayBody(
   if (!request.body || method === 'GET' || method === 'HEAD') {
     return { forwardBody: undefined, hasBody: false, loggedBody: null }
   }
-  assertRelayContentLengthWithinLimit(request)
+  assertContentLengthWithinLimit(request.headers)
   if (!getPrivacySettings().captureRequestBodies) {
     return { forwardBody: request.body, hasBody: true, loggedBody: null }
   }
-  const bytes = await readLimitedBody(request)
+  const bytes = await readLimitedBytes(request, MAX_PROXY_BODY_BYTES)
   const contentType = request.headers.get('content-type') ?? ''
   const canDecode = contentType.includes('application/json') || contentType.startsWith('text/')
   return {
-    forwardBody: bytes,
+    forwardBody: bytes.buffer,
     hasBody: true,
     loggedBody: canDecode ? new TextDecoder().decode(bytes) : null,
-  }
-}
-
-async function readLimitedBody(request: Request): Promise<ArrayBuffer> {
-  assertRelayContentLengthWithinLimit(request)
-  const reader = request.body?.getReader()
-  if (!reader) return new ArrayBuffer(0)
-  const chunks: Uint8Array[] = []
-  let total = 0
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    total += value.byteLength
-    if (total > MAX_PROXY_BODY_BYTES) {
-      await reader.cancel().catch(() => {})
-      throw new Error(`Request body exceeds ${MAX_PROXY_BODY_BYTES} bytes`)
-    }
-    chunks.push(value)
-  }
-
-  const combined = new Uint8Array(total)
-  let offset = 0
-  for (const chunk of chunks) {
-    combined.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return combined.buffer
-}
-
-function assertRelayContentLengthWithinLimit(request: Request) {
-  const rawContentLength = request.headers.get('content-length')
-  const contentLength = rawContentLength ? Number(rawContentLength) : null
-  if (contentLength != null && Number.isFinite(contentLength) && contentLength > MAX_PROXY_BODY_BYTES) {
-    throw new Error(`Request body exceeds ${MAX_PROXY_BODY_BYTES} bytes`)
   }
 }
 
@@ -287,38 +265,6 @@ function loggedHeaders(headers: Record<string, string>, redactedInjectedHeaderNa
   return JSON.stringify(redactInjectedHeaders(headers, redactedInjectedHeaderNames, REDACTED_INJECTED_CREDENTIAL))
 }
 
-function relayError(input: {
-  startedAt: number
-  status: number
-  method: string
-  endpoint: string
-  message: string
-  type: string
-  headers: Record<string, string>
-  attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
-}): Response {
-  const body = { error: { message: input.message, type: input.type } }
-  writeProxyLog({
-    startedAt: input.startedAt,
-    status: input.status,
-    requestClass: 'mcp_relay',
-    method: input.method,
-    endpoint: input.endpoint,
-    usage: nullUsage(),
-    streamed: false,
-    error: input.message,
-    reqHeaders: JSON.stringify(redactSensitiveHeaders(input.headers)),
-    reqBody: null,
-    resHeaders: null,
-    resBody: JSON.stringify(toErrorBody(input.endpoint, body)),
-    keyId: null,
-    reqModel: null,
-    attribution: input.attribution,
-    routing: emptyRoutingOutcome(),
-  })
-  return Response.json(toErrorBody(input.endpoint, body), { status: input.status })
-}
-
 function relayFailure(input: {
   startedAt: number
   status: number
@@ -329,7 +275,7 @@ function relayFailure(input: {
   reqHeadersJson: string
   reqBody?: string | null
   keyId: string | null
-  attribution: { clientName: string | null; endUserId: string | null; sessionId: string | null }
+  attribution: RequestAttribution
   routing: RoutingOutcome
   credentialInjectionJson?: string | null
 }): Response {

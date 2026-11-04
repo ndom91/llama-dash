@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import { isSensitiveAttributionHeaderName, normalizeAttributionHeaderName } from '../../../lib/schemas/attribution.ts'
 import {
   UpdateAttributionSettingsBodySchema,
@@ -16,7 +15,7 @@ import {
   setRequestLimits,
   setUsagePanelSettings,
 } from '../settings.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route } from './types.ts'
 
 export const settingRoutes: Route[] = [
   {
@@ -28,22 +27,16 @@ export const settingRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/settings\/attribution$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateAttributionSettingsBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid attribution settings body')
-      for (const value of [
-        result.output.clientNameHeader,
-        result.output.endUserIdHeader,
-        result.output.sessionIdHeader,
-      ]) {
+      const result = await parseBody(request, UpdateAttributionSettingsBodySchema, 'Invalid attribution settings body')
+      if (!result.ok) return result.response
+      for (const value of [result.value.clientNameHeader, result.value.endUserIdHeader, result.value.sessionIdHeader]) {
         if (value == null) continue
         if (!normalizeAttributionHeaderName(value)) return error(400, `Invalid attribution header name: ${value}`)
         if (isSensitiveAttributionHeaderName(value)) {
           return error(400, `Sensitive headers cannot be used for attribution: ${value}`)
         }
       }
-      setAttributionSettings(result.output)
+      setAttributionSettings(result.value)
       return json(200, getAttributionSettings())
     },
   },
@@ -56,11 +49,9 @@ export const settingRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/settings\/request-limits$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateRequestLimitsBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid request limits body')
-      setRequestLimits(result.output)
+      const result = await parseBody(request, UpdateRequestLimitsBodySchema, 'Invalid request limits body')
+      if (!result.ok) return result.response
+      setRequestLimits(result.value)
       return json(200, getRequestLimits())
     },
   },
@@ -73,11 +64,9 @@ export const settingRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/settings\/privacy$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdatePrivacySettingsBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid privacy settings body')
-      setPrivacySettings(result.output)
+      const result = await parseBody(request, UpdatePrivacySettingsBodySchema, 'Invalid privacy settings body')
+      if (!result.ok) return result.response
+      setPrivacySettings(result.value)
       return json(200, getPrivacySettings())
     },
   },
@@ -90,11 +79,9 @@ export const settingRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/settings\/usage$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateUsagePanelSettingsBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid usage panel settings body')
-      setUsagePanelSettings(result.output)
+      const result = await parseBody(request, UpdateUsagePanelSettingsBodySchema, 'Invalid usage panel settings body')
+      if (!result.ok) return result.response
+      setUsagePanelSettings(result.value)
       return json(200, getUsagePanelSettings())
     },
   },

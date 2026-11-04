@@ -12,6 +12,6 @@ export function getPromptTokenEstimateParts(body: Record<string, unknown>): unkn
   return parts
 }
 
-export function estimateTokensFromJson(value: unknown): number {
+function estimateTokensFromJson(value: unknown): number {
   return Math.ceil(JSON.stringify(value).length / 4)
 }

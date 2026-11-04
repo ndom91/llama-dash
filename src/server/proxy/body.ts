@@ -120,8 +120,13 @@ function extractModel(parsedBody: Record<string, unknown> | null): string | null
 
 async function readBody(request: Request, maxBytes: number): Promise<{ text: string; prefix: string }> {
   assertContentLengthWithinLimit(request.headers)
+  const text = new TextDecoder().decode(await readLimitedBytes(request, maxBytes))
+  return { text, prefix: text.slice(0, PRE_AUTH_PREFIX_BYTES) }
+}
+
+export async function readLimitedBytes(request: Request, maxBytes: number): Promise<Uint8Array<ArrayBuffer>> {
   const reader = request.body?.getReader()
-  if (!reader) return { text: '', prefix: '' }
+  if (!reader) return new Uint8Array(0)
 
   const chunks: Uint8Array[] = []
   let total = 0
@@ -142,12 +147,10 @@ async function readBody(request: Request, maxBytes: number): Promise<{ text: str
     combined.set(chunk, offset)
     offset += chunk.byteLength
   }
-  const decoder = new TextDecoder()
-  const text = decoder.decode(combined)
-  return { text, prefix: text.slice(0, PRE_AUTH_PREFIX_BYTES) }
+  return combined
 }
 
-function assertContentLengthWithinLimit(headers: Headers) {
+export function assertContentLengthWithinLimit(headers: Headers) {
   const raw = headers.get('content-length')
   if (!raw) return
   const size = Number(raw)

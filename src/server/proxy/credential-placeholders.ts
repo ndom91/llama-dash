@@ -6,6 +6,7 @@ import {
   type CredentialInjectionSecret,
 } from '../admin/upstream-credentials.ts'
 import type { RoutingOutcome } from './transforms.ts'
+import { errorMessage } from '../error-message.ts'
 
 const PLACEHOLDER_RE = /\{\{llama-dash:credential:([a-z0-9][a-z0-9_-]{1,80})\}\}/g
 export const REDACTED_INJECTED_CREDENTIAL = '[redacted injected credential]'
@@ -178,10 +179,6 @@ function injectionError(
     audit: { ...audit, error: message },
     redactedHeaderNames,
   }
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
 }
 
 function findHeaderKey(headers: Record<string, string>, name: string): string | null {

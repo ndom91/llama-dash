@@ -38,14 +38,12 @@ const DEFAULT_MCP_RELAY_ERROR_RETENTION_DAYS = 30
 const DEFAULT_BODY_RETENTION_DAYS = 3
 
 let _limitsCache: RequestLimits | null = null
-let _bodyLimitsCache: BodyLogLimits | null = null
 let _privacyCache: PrivacySettings | null = null
 let _attributionCache: AttributionSettings | null = null
 let _usagePanelsCache: UsagePanelSettings | null = null
 
 function invalidateCache() {
   _limitsCache = null
-  _bodyLimitsCache = null
   _privacyCache = null
   _attributionCache = null
   _usagePanelsCache = null
@@ -91,12 +89,7 @@ export function getRequestLimits(): RequestLimits {
 }
 
 export function getBodyLogLimits(): BodyLogLimits {
-  if (_bodyLimitsCache) return _bodyLimitsCache
-  const { maxStoredBodyBytes } = getPrivacySettings()
-  _bodyLimitsCache = {
-    maxBytes: maxStoredBodyBytes,
-  }
-  return _bodyLimitsCache
+  return { maxBytes: getPrivacySettings().maxStoredBodyBytes }
 }
 
 export function getPrivacySettings(): PrivacySettings {
@@ -148,55 +141,34 @@ export function setRequestLimits(limits: { maxMessages?: number | null; maxEstim
   }
 }
 
-export function setAttributionSettings(settings: {
-  clientNameHeader?: string | null
-  endUserIdHeader?: string | null
-  sessionIdHeader?: string | null
-}) {
-  if (settings.clientNameHeader !== undefined) {
-    setSetting('attribution_client_name_header', settings.clientNameHeader)
-  }
-  if (settings.endUserIdHeader !== undefined) {
-    setSetting('attribution_end_user_id_header', settings.endUserIdHeader)
-  }
-  if (settings.sessionIdHeader !== undefined) {
-    setSetting('attribution_session_id_header', settings.sessionIdHeader)
+const ATTRIBUTION_SETTING_KEYS = {
+  clientNameHeader: 'attribution_client_name_header',
+  endUserIdHeader: 'attribution_end_user_id_header',
+  sessionIdHeader: 'attribution_session_id_header',
+} as const satisfies Record<keyof AttributionSettings, string>
+
+export function setAttributionSettings(settings: Partial<AttributionSettings>) {
+  for (const [field, key] of Object.entries(ATTRIBUTION_SETTING_KEYS) as Array<[keyof AttributionSettings, string]>) {
+    const value = settings[field]
+    if (value !== undefined) setSetting(key, value)
   }
 }
 
-export function setPrivacySettings(settings: {
-  captureRequestBodies?: boolean
-  captureResponseBodies?: boolean
-  maxStoredBodyBytes?: number
-  mcpRelayPersistSuccessBodies?: boolean
-  requestLogRetentionDays?: number
-  mcpRelaySuccessRetentionDays?: number
-  mcpRelayErrorRetentionDays?: number
-  bodyRetentionDays?: number
-}) {
-  if (settings.captureRequestBodies !== undefined) {
-    setSetting('capture_request_bodies', String(settings.captureRequestBodies))
-  }
-  if (settings.captureResponseBodies !== undefined) {
-    setSetting('capture_response_bodies', String(settings.captureResponseBodies))
-  }
-  if (settings.maxStoredBodyBytes !== undefined) {
-    setSetting('max_logged_body_bytes', String(settings.maxStoredBodyBytes))
-  }
-  if (settings.mcpRelayPersistSuccessBodies !== undefined) {
-    setSetting('mcp_relay_persist_success_bodies', String(settings.mcpRelayPersistSuccessBodies))
-  }
-  if (settings.requestLogRetentionDays !== undefined) {
-    setSetting('request_log_retention_days', String(settings.requestLogRetentionDays))
-  }
-  if (settings.mcpRelaySuccessRetentionDays !== undefined) {
-    setSetting('mcp_relay_success_retention_days', String(settings.mcpRelaySuccessRetentionDays))
-  }
-  if (settings.mcpRelayErrorRetentionDays !== undefined) {
-    setSetting('mcp_relay_error_retention_days', String(settings.mcpRelayErrorRetentionDays))
-  }
-  if (settings.bodyRetentionDays !== undefined) {
-    setSetting('body_retention_days', String(settings.bodyRetentionDays))
+const PRIVACY_SETTING_KEYS = {
+  captureRequestBodies: 'capture_request_bodies',
+  captureResponseBodies: 'capture_response_bodies',
+  maxStoredBodyBytes: 'max_logged_body_bytes',
+  mcpRelayPersistSuccessBodies: 'mcp_relay_persist_success_bodies',
+  requestLogRetentionDays: 'request_log_retention_days',
+  mcpRelaySuccessRetentionDays: 'mcp_relay_success_retention_days',
+  mcpRelayErrorRetentionDays: 'mcp_relay_error_retention_days',
+  bodyRetentionDays: 'body_retention_days',
+} as const satisfies Record<keyof PrivacySettings, string>
+
+export function setPrivacySettings(settings: Partial<PrivacySettings>) {
+  for (const [field, key] of Object.entries(PRIVACY_SETTING_KEYS) as Array<[keyof PrivacySettings, string]>) {
+    const value = settings[field]
+    if (value !== undefined) setSetting(key, String(value))
   }
 }
 

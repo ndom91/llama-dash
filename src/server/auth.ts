@@ -45,10 +45,6 @@ export const auth = betterAuth({
   ],
 })
 
-export async function getDashboardSession(request: Request) {
-  return getDashboardSessionForHeaders(request.headers)
-}
-
 export function getDashboardSessionForHeaders(headers: Headers) {
   return getScopedDashboardSession(() => auth.api.getSession({ headers }))
 }

@@ -12,7 +12,7 @@ if (config.inferenceInsecure) {
 const { runMigrations } = await import('./server/db/migrate.ts')
 runMigrations()
 
-const { auth, getDashboardSession } = await import('./server/auth.ts')
+const { auth, getDashboardSessionForHeaders } = await import('./server/auth.ts')
 
 const { ensureSystemKey } = await import('./server/admin/api-keys.ts')
 ensureSystemKey()
@@ -56,7 +56,7 @@ export default createServerEntry({
       }
 
       if (url.pathname.startsWith('/api/')) {
-        const session = await getDashboardSession(request)
+        const session = await getDashboardSessionForHeaders(request.headers)
         if (!session) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401,
@@ -81,7 +81,7 @@ export default createServerEntry({
       }
 
       if (url.pathname !== '/login') {
-        const session = await getDashboardSession(request)
+        const session = await getDashboardSessionForHeaders(request.headers)
         if (!session) {
           const redirectTo = new URL('/login', url)
           redirectTo.searchParams.set('redirect', `${url.pathname}${url.search}`)

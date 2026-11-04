@@ -1,4 +1,3 @@
-import * as v from 'valibot'
 import {
   CreateRoutingRuleBodySchema,
   ReorderRoutingRulesBodySchema,
@@ -11,7 +10,8 @@ import {
   reorderRoutingRules,
   updateRoutingRule,
 } from '../routing-rules.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route } from './types.ts'
+import { errorMessage } from '../../error-message.ts'
 
 export const routingRoutes: Route[] = [
   {
@@ -23,14 +23,12 @@ export const routingRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/routing-rules$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(CreateRoutingRuleBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid routing rule body')
+      const result = await parseBody(request, CreateRoutingRuleBodySchema, 'Invalid routing rule body')
+      if (!result.ok) return result.response
       try {
-        return json(201, createRoutingRule(result.output))
+        return json(201, createRoutingRule(result.value))
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },
@@ -38,28 +36,26 @@ export const routingRoutes: Route[] = [
     method: 'PATCH',
     pattern: /^\/api\/routing-rules\/([a-zA-Z0-9_]+)$/,
     handler: async (request, match) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(UpdateRoutingRuleBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid routing rule body')
+      const result = await parseBody(request, UpdateRoutingRuleBodySchema, 'Invalid routing rule body')
+      if (!result.ok) return result.response
       if (
-        result.output.name === undefined &&
-        result.output.enabled === undefined &&
-        result.output.match === undefined &&
-        result.output.action === undefined &&
-        result.output.target === undefined &&
-        result.output.authMode === undefined &&
-        result.output.preserveAuthorization === undefined &&
-        result.output.credentialBindings === undefined
+        result.value.name === undefined &&
+        result.value.enabled === undefined &&
+        result.value.match === undefined &&
+        result.value.action === undefined &&
+        result.value.target === undefined &&
+        result.value.authMode === undefined &&
+        result.value.preserveAuthorization === undefined &&
+        result.value.credentialBindings === undefined
       ) {
         return error(400, 'At least one field to update is required')
       }
       try {
-        const updated = updateRoutingRule(match[1], result.output)
+        const updated = updateRoutingRule(match[1], result.value)
         if (!updated) return error(404, `Routing rule ${match[1]} not found`)
         return json(200, updated)
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },
@@ -76,14 +72,12 @@ export const routingRoutes: Route[] = [
     method: 'POST',
     pattern: /^\/api\/routing-rules\/reorder$/,
     handler: async (request) => {
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(ReorderRoutingRulesBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Invalid reorder body')
+      const result = await parseBody(request, ReorderRoutingRulesBodySchema, 'Invalid reorder body')
+      if (!result.ok) return result.response
       try {
-        return json(200, { rules: reorderRoutingRules(result.output.ids) })
+        return json(200, { rules: reorderRoutingRules(result.value.ids) })
       } catch (err) {
-        return error(400, err instanceof Error ? err.message : String(err))
+        return error(400, errorMessage(err))
       }
     },
   },

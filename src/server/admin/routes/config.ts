@@ -1,9 +1,9 @@
-import * as v from 'valibot'
 import { ConfigSaveBodySchema, ConfigValidateBodySchema } from '../../../lib/schemas/config'
 import { config } from '../../config.ts'
 import { inferenceBackend } from '../../inference/backend.ts'
 import { readConfig, validateAgainstSchema, writeConfig } from '../config.ts'
-import { error, json, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route } from './types.ts'
+import { errorMessage } from '../../error-message.ts'
 
 function ensureConfigSupported() {
   if (!inferenceBackend.info.capabilities.config) return error(501, 'Inference backend does not support config editing')
@@ -21,7 +21,7 @@ export const configRoutes: Route[] = [
       try {
         return json(200, readConfig())
       } catch (err) {
-        return error(500, err instanceof Error ? err.message : String(err))
+        return error(500, errorMessage(err))
       }
     },
   },
@@ -31,11 +31,13 @@ export const configRoutes: Route[] = [
     handler: async (request) => {
       const unsupported = ensureConfigSupported()
       if (unsupported) return unsupported
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(ConfigSaveBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Body must have "content" (string) and "modifiedAt" (number)')
-      const writeResult = await writeConfig(result.output.content, result.output.modifiedAt)
+      const result = await parseBody(
+        request,
+        ConfigSaveBodySchema,
+        'Body must have "content" (string) and "modifiedAt" (number)',
+      )
+      if (!result.ok) return result.response
+      const writeResult = await writeConfig(result.value.content, result.value.modifiedAt)
       if ('errors' in writeResult) return json(200, { saved: false, errors: writeResult.errors })
       if (writeResult.conflict) {
         return json(409, { saved: false, conflict: true, message: 'File was modified externally' })
@@ -49,11 +51,9 @@ export const configRoutes: Route[] = [
     handler: async (request) => {
       const unsupported = ensureConfigSupported()
       if (unsupported) return unsupported
-      const parsed = await readJsonBody(request)
-      if (!parsed.ok) return error(400, 'Invalid JSON body')
-      const result = v.safeParse(ConfigValidateBodySchema, parsed.value)
-      if (!result.success) return error(400, 'Body must have "content" (string)')
-      return json(200, await validateAgainstSchema(result.output.content))
+      const result = await parseBody(request, ConfigValidateBodySchema, 'Body must have "content" (string)')
+      if (!result.ok) return result.response
+      return json(200, await validateAgainstSchema(result.value.content))
     },
   },
 ]
