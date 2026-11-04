@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { availableParallelism, freemem, totalmem } from 'node:os'
 import type { SystemTelemetryLatest } from '../lib/schemas/system.ts'
+import { CPU_THRESHOLD_WINDOW_MS, percentOf } from '../lib/schemas/system-thresholds.ts'
 import { publishAdminEvent } from './admin/events.ts'
 import { getGpuSnapshot } from './gpu-poller.ts'
 import { getRequestLogQueueStats } from './proxy/log.ts'
@@ -27,8 +28,6 @@ export function getTelemetryRing() {
 export function getLatestTelemetry() {
   return latest
 }
-
-const CPU_THRESHOLD_WINDOW_MS = 5 * 60_000
 
 export function startSystemTelemetry(commit: string) {
   if (started) return
@@ -118,19 +117,13 @@ async function tick() {
 }
 
 function evaluateEvents(now: number, values: TelemetryValues) {
-  const cpuWindow = ring.read(now - CPU_THRESHOLD_WINDOW_MS, 1).cpu[0] ?? null
   evaluateThresholdEvents({
     gpuTempC: values.gpuTemp,
-    gpuMemPercent: percent(values.gpuMemUsedMiB, values.gpuMemTotalMiB),
-    ramPercent: percent(values.memUsedMiB, values.memTotalMiB),
-    cpuPercent: cpuWindow,
-    queueDropped: getRequestLogQueueStats().dropped,
+    gpuMemPercent: percentOf(values.gpuMemUsedMiB, values.gpuMemTotalMiB),
+    ramPercent: percentOf(values.memUsedMiB, values.memTotalMiB),
+    cpuPercent: ring.read(now - CPU_THRESHOLD_WINDOW_MS, 1).cpu[0] ?? null,
   })
   evaluateQueueDrops(getRequestLogQueueStats().dropped)
-}
-
-function percent(used: number | null | undefined, total: number | null | undefined): number | null {
-  return used == null || total == null || total <= 0 ? null : (used / total) * 100
 }
 
 /** Fallback when the backend has no performance API: this machine's own counters. */

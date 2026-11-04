@@ -17,9 +17,7 @@ describe('TelemetryRing', () => {
   it('overwrites the oldest slot once full', () => {
     const ring = new TelemetryRing(3)
     for (let t = 1; t <= 5; t++) ring.push(t, { cpu: t })
-    expect(ring.length).toBe(3)
     expect(ring.read(0, 100).t).toEqual([3, 4, 5])
-    expect(ring.lastTimestamp).toBe(5)
   })
 
   it('filters by timestamp', () => {

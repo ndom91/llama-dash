@@ -54,7 +54,6 @@ export const ApiSystemStatusSchema = v.object({
     }),
   }),
   inferenceHardware: v.nullable(InferenceHardwareSchema),
-  /** Last observed accelerator-memory growth per model, measured on lone loads. */
   modelFootprints: v.array(v.object({ modelId: v.string(), footprintMiB: v.number() })),
   logging: v.object({
     queued: v.number(),
@@ -105,8 +104,6 @@ export const SystemTelemetryPointSchema = v.object({
   swapUsedMiB: v.optional(v.nullable(v.number())),
   load1: v.optional(v.nullable(v.number())),
 })
-
-export type SystemTelemetryPoint = v.InferOutput<typeof SystemTelemetryPointSchema>
 
 export const SystemTelemetrySeriesSchema = v.object({
   t: v.array(v.number()),

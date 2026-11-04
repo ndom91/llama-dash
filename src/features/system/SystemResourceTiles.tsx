@@ -1,16 +1,7 @@
 import type { ApiSystemStatus, ApiSystemTelemetry } from '../../lib/schemas/system'
 import type { SystemThresholds, ThresholdMetric } from '../../lib/schemas/system-thresholds'
 import { SystemResourceTile } from './SystemResourceTile'
-import {
-  breachTone,
-  formatClock,
-  formatGiB,
-  lastValue,
-  mibToBytes,
-  peak,
-  percentOf,
-  type SystemReadings,
-} from './systemMetrics'
+import { breachTone, formatClock, formatGiB, lastValue, mibToBytes, peak, type SystemReadings } from './systemMetrics'
 
 function gpuMemoryKind(driver: ApiSystemStatus['gpu']['driver']): string {
   switch (driver) {
@@ -121,7 +112,7 @@ export function SystemResourceTiles({
                 .join(' · ')
             : null
         }
-        percent={latest ? percentOf(latest.memUsedBytes, latest.memTotalBytes) : null}
+        percent={ramPercent}
         thresholdPercent={thresholds?.ramPercent}
         tone={latest ? breachTone('ramPercent', breached) : 'idle'}
         values={series.memUsedMiB}

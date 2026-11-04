@@ -1,19 +1,8 @@
 import type { ReactNode } from 'react'
-import { cn } from '../../lib/cn'
 
-export function SystemPanel({
-  title,
-  aside,
-  children,
-  className,
-}: {
-  title: string
-  aside?: ReactNode
-  children: ReactNode
-  className?: string
-}) {
+export function SystemPanel({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
-    <section className={cn('flex min-w-0 flex-col border-t border-border', className)}>
+    <section className="flex min-w-0 flex-col border-t border-border">
       <div className="flex h-10 items-center gap-3 border-b border-border px-5 max-md:px-4">
         <h2 className="panel-title">{title}</h2>
         {aside ? <span className="ml-auto font-mono text-[10px] text-fg-faint">{aside}</span> : null}

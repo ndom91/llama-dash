@@ -1,5 +1,4 @@
 import type { ApiSystemTelemetry } from '../../lib/schemas/system'
-import { cn } from '../../lib/cn'
 import { rangeXLabels } from './systemChartAxis'
 import { SystemChartPanel } from './SystemChartPanel'
 import { TimeSeriesChart } from './TimeSeriesChart'
@@ -32,7 +31,7 @@ export function SystemThermalsChart({
     <SystemChartPanel
       title="Thermals & Power"
       aside={telemetry.range}
-      className={cn(className)}
+      className={className}
       legend={[
         { label: 'temp °C', color: TEMP_COLOR },
         { label: 'power W', color: POWER_COLOR },

@@ -18,7 +18,6 @@ const TONE_COLOR: Record<Tone, string> = {
   idle: 'var(--fg-faint)',
 }
 
-/** Big-number resource tile: value, a 0–100% meter with a threshold tick, and a range sparkline. */
 export function SystemResourceTile({
   label,
   aside,

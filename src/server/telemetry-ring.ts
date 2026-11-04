@@ -34,14 +34,6 @@ export class TelemetryRing {
     ) as Record<TelemetryField, Float32Array>
   }
 
-  get length() {
-    return this.size
-  }
-
-  get lastTimestamp(): number | null {
-    return this.size === 0 ? null : this.timestamps[(this.head - 1 + this.capacity) % this.capacity]
-  }
-
   push(timestamp: number, values: TelemetryValues) {
     const slot = this.head
     this.timestamps[slot] = timestamp

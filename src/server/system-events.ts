@@ -4,16 +4,17 @@ import { getSystemThresholds } from './admin/settings.ts'
 
 const MAX_EVENTS = 200
 
+type EventMetric = Exclude<ThresholdMetric, 'queueDropped'>
+
 const events: Array<SystemEvent> = []
-let activeBreaches = new Set<ThresholdMetric>()
+let activeBreaches = new Set<EventMetric>()
 let lastDropped = 0
 
-const METRIC_LABELS: Record<ThresholdMetric, { label: string; unit: string }> = {
+const METRIC_LABELS: Record<EventMetric, { label: string; unit: string }> = {
   gpuTempC: { label: 'gpu temp', unit: '°C' },
   gpuMemPercent: { label: 'gpu memory', unit: '%' },
   ramPercent: { label: 'system ram', unit: '%' },
   cpuPercent: { label: 'cpu (5m avg)', unit: '%' },
-  queueDropped: { label: 'log queue dropped', unit: '' },
 }
 
 export function recordSystemEvent(event: Omit<SystemEvent, 't'> & { t?: number }) {
@@ -25,10 +26,13 @@ export function getSystemEvents(sinceMs: number): Array<SystemEvent> {
   return events.filter((event) => event.t >= sinceMs)
 }
 
-/** Logs a warning when a metric starts breaching its threshold and an ok event when it recovers. */
-export function evaluateThresholdEvents(readings: ThresholdReadings) {
+/**
+ * Logs a warning when a metric starts breaching its threshold and an ok event when it recovers.
+ * Queue drops are excluded: the counter is cumulative, so `evaluateQueueDrops` logs each increase instead.
+ */
+export function evaluateThresholdEvents(readings: Omit<ThresholdReadings, 'queueDropped'>) {
   const thresholds = getSystemThresholds()
-  const breached = breachedThresholds(readings, thresholds)
+  const breached = breachedThresholds(readings, thresholds) as Set<EventMetric>
   for (const metric of breached) {
     if (activeBreaches.has(metric)) continue
     const { label, unit } = METRIC_LABELS[metric]

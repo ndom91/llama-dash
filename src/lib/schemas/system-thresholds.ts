@@ -37,6 +37,13 @@ export function parseSystemThresholdsSetting(raw: string | null): SystemThreshol
   }
 }
 
+/** Window for the `cpuPercent` reading. */
+export const CPU_THRESHOLD_WINDOW_MS = 5 * 60_000
+
+export function percentOf(used: number | null | undefined, total: number | null | undefined): number | null {
+  return used == null || total == null || total <= 0 ? null : (used / total) * 100
+}
+
 export type ThresholdMetric = keyof SystemThresholds
 
 export type ThresholdReadings = Partial<Record<ThresholdMetric, number | null>>

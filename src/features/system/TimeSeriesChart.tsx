@@ -4,10 +4,7 @@ export type ChartSeries = {
   id: string
   values: Array<number | null>
   color: string
-  /** Fill the area under the line with a faint gradient. */
   area?: boolean
-  /** Plot against the right-hand domain instead of the left. */
-  secondary?: boolean
 }
 
 export type ChartBand = { start: number; end: number }
@@ -57,7 +54,6 @@ export function TimeSeriesChart({
   fromMs,
   toMs,
   domain,
-  secondaryDomain,
   height,
   bands = [],
   thresholdLine,
@@ -69,10 +65,8 @@ export function TimeSeriesChart({
   fromMs: number
   toMs: number
   domain: [number, number]
-  secondaryDomain?: [number, number]
   height: number
   bands?: Array<ChartBand>
-  /** Dashed horizontal line on the primary domain. */
   thresholdLine?: number | null
   yTicks?: Array<number>
   xLabels?: Array<string>
@@ -80,14 +74,11 @@ export function TimeSeriesChart({
   const gradientId = `ts-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const span = Math.max(1, toMs - fromMs)
   const x = (time: number) => ((time - fromMs) / span) * VIEW_W
-  const yFor =
-    ([min, max]: [number, number]) =>
-    (value: number) => {
-      const clamped = Math.min(max, Math.max(min, value))
-      return height - ((clamped - min) / Math.max(1e-9, max - min)) * (height - 2) - 1
-    }
-  const yPrimary = yFor(domain)
-  const ySecondary = yFor(secondaryDomain ?? domain)
+  const [min, max] = domain
+  const y = (value: number) => {
+    const clamped = Math.min(max, Math.max(min, value))
+    return height - ((clamped - min) / Math.max(1e-9, max - min)) * (height - 2) - 1
+  }
 
   return (
     <div className="relative min-w-0">
@@ -97,7 +88,7 @@ export function TimeSeriesChart({
             <span
               key={tick}
               className="absolute right-1 -translate-y-1/2 font-mono text-[9px] tabular-nums text-fg-faint"
-              style={{ top: yPrimary(tick) }}
+              style={{ top: y(tick) }}
             >
               {tick}
             </span>
@@ -124,8 +115,8 @@ export function TimeSeriesChart({
             key={tick}
             x1={0}
             x2={VIEW_W}
-            y1={yPrimary(tick)}
-            y2={yPrimary(tick)}
+            y1={y(tick)}
+            y2={y(tick)}
             stroke="var(--border)"
             strokeOpacity={0.5}
             vectorEffect="non-scaling-stroke"
@@ -146,8 +137,8 @@ export function TimeSeriesChart({
           <line
             x1={0}
             x2={VIEW_W}
-            y1={yPrimary(thresholdLine)}
-            y2={yPrimary(thresholdLine)}
+            y1={y(thresholdLine)}
+            y2={y(thresholdLine)}
             stroke="var(--fg-dim)"
             strokeDasharray="4 4"
             strokeOpacity={0.7}
@@ -155,7 +146,7 @@ export function TimeSeriesChart({
           />
         ) : null}
         {series.map((s) => {
-          const { line, area } = buildPaths(t, s.values, x, s.secondary ? ySecondary : yPrimary, height)
+          const { line, area } = buildPaths(t, s.values, x, y, height)
           return (
             <g key={s.id}>
               {s.area ? <path d={area} fill={`url(#${gradientId}-${s.id})`} /> : null}
