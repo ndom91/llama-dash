@@ -55,18 +55,21 @@ export function SystemThresholdsPanel({ thresholds }: { thresholds: SystemThresh
             <dt className="text-fg-muted">{row.label}</dt>
             <dd className="m-0 ml-auto tabular-nums text-fg">
               {editing ? (
-                <NumberInput
-                  inputSize="s"
-                  className="w-20"
-                  prefix={row.prefix}
-                  suffix={row.unit || undefined}
-                  value={draft[row.metric]}
-                  min={0}
-                  onChange={(event) => {
-                    const value = Number(event.target.value)
-                    if (Number.isFinite(value)) setDraft({ ...draft, [row.metric]: value })
-                  }}
-                />
+                <span className="flex items-center gap-1.5 text-fg-dim">
+                  {row.prefix}
+                  <NumberInput
+                    inputSize="s"
+                    className="w-16"
+                    aria-label={row.label}
+                    value={draft[row.metric]}
+                    min={0}
+                    onChange={(event) => {
+                      const value = Number(event.target.value)
+                      if (Number.isFinite(value)) setDraft({ ...draft, [row.metric]: value })
+                    }}
+                  />
+                  <span className="w-4">{row.unit}</span>
+                </span>
               ) : thresholds ? (
                 `${row.prefix} ${thresholds[row.metric]}${row.unit}`
               ) : (
