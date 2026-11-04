@@ -10,6 +10,7 @@ import { Sidebar } from '../components/Sidebar'
 import { TooltipProvider } from '../components/Tooltip'
 import { TopBar } from '../components/TopBar'
 import { NavigationOutlet } from '../components/NavigationOutlet'
+import { cn } from '../lib/cn'
 import { createQueryClient } from '../lib/query-client'
 import { getShellContext } from '../lib/auth-functions'
 import { readShellContext, rememberShellContext } from '../lib/shell-context-cache'
@@ -114,29 +115,19 @@ function RootDocument() {
 }
 
 function AppShell() {
-  const [open, setOpen] = useState(false)
-  const toggle = useCallback(() => setOpen((v) => !v), [])
-  const close = useCallback(() => setOpen(false), [])
   const matches = useMatches()
   const leaf = matches[matches.length - 1]?.pathname ?? '/'
   const rootContext = matches[0]?.context as RootShellContext | undefined
 
   if (leaf === '/login') return <Outlet />
 
-  return <AuthenticatedShell open={open} toggle={toggle} close={close} rootContext={rootContext} />
+  return <AuthenticatedShell rootContext={rootContext} />
 }
 
-function AuthenticatedShell({
-  open,
-  toggle,
-  close,
-  rootContext,
-}: {
-  open: boolean
-  toggle: () => void
-  close: () => void
-  rootContext: RootShellContext | undefined
-}) {
+function AuthenticatedShell({ rootContext }: { rootContext: RootShellContext | undefined }) {
+  const [open, setOpen] = useState(false)
+  const toggle = useCallback(() => setOpen((v) => !v), [])
+  const close = useCallback(() => setOpen(false), [])
   useAdminEvents()
   useLeaderPendingTracker()
   const [collapsed, setCollapsed] = useState(rootContext?.sidebarCollapsed ?? false)
@@ -159,10 +150,10 @@ function AuthenticatedShell({
 
   return (
     <MobileMenuContext value={{ open, toggle, close }}>
-      <div className={`app-shell${collapsed ? ' app-shell-collapsed' : ''}`}>
+      <div className={cn('app-shell', collapsed && 'app-shell-collapsed')}>
         <button
           type="button"
-          className={`sidebar-backdrop${open ? ' sidebar-backdrop-visible' : ''}`}
+          className={cn('sidebar-backdrop', open && 'sidebar-backdrop-visible')}
           aria-label="Close menu"
           onClick={close}
           tabIndex={-1}

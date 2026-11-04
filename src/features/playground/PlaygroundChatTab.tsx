@@ -18,17 +18,7 @@ export function PlaygroundChatTab({ chat }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const userScrolledUp = useRef(false)
-  const apiKeyRef = useRef<string | null>(null)
   const [draft, setDraft] = useState('')
-
-  useEffect(() => {
-    fetch('/api/playground-key', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.key) apiKeyRef.current = d.key
-      })
-      .catch(() => {})
-  }, [])
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'instant') => {
     const el = scrollRef.current
@@ -222,7 +212,7 @@ export function PlaygroundChatTab({ chat }: Props) {
         </div>
       </section>
 
-      <PlaygroundInspector model={chat.model} inspector={chat.inspector} apiKey={apiKeyRef.current} />
+      <PlaygroundInspector model={chat.model} inspector={chat.inspector} apiKey={chat.apiKey} />
     </div>
   )
 }

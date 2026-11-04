@@ -8,6 +8,28 @@ import type { ApiRequest } from '../../lib/api'
 import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
 import { cn } from '../../lib/cn'
 
+const RECENT_REQUESTS_HEAD = (
+  <thead>
+    <tr>
+      <th className="mono" style={{ width: 80 }}>
+        t
+      </th>
+      <th className="mono">endpoint</th>
+      <th>model</th>
+      <th style={{ width: 80 }}>status</th>
+      <th className="num" style={{ width: 80 }}>
+        tok-in
+      </th>
+      <th className="num" style={{ width: 80, whiteSpace: 'nowrap' }}>
+        tok-out
+      </th>
+      <th className="num" style={{ width: 90 }}>
+        duration
+      </th>
+    </tr>
+  </thead>
+)
+
 type Props = {
   requests: Array<ApiRequest> | null
 }
@@ -32,25 +54,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
       {requests == null ? (
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="dtable">
-            <thead>
-              <tr>
-                <th className="mono" style={{ width: 80 }}>
-                  t
-                </th>
-                <th className="mono">endpoint</th>
-                <th>model</th>
-                <th style={{ width: 80 }}>status</th>
-                <th className="num" style={{ width: 80 }}>
-                  tok-in
-                </th>
-                <th className="num" style={{ width: 80, whiteSpace: 'nowrap' }}>
-                  tok-out
-                </th>
-                <th className="num" style={{ width: 90 }}>
-                  duration
-                </th>
-              </tr>
-            </thead>
+            {RECENT_REQUESTS_HEAD}
             <tbody>
               {Array.from({ length: 6 }, (_, index) => `req-skel-${index}`).map((row) => (
                 <tr key={row}>
@@ -90,25 +94,7 @@ export function DashboardRecentRequestsPanel({ requests }: Props) {
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="dtable">
-            <thead>
-              <tr>
-                <th className="mono" style={{ width: 80 }}>
-                  t
-                </th>
-                <th className="mono">endpoint</th>
-                <th>model</th>
-                <th style={{ width: 80 }}>status</th>
-                <th className="num" style={{ width: 80 }}>
-                  tok-in
-                </th>
-                <th className="num" style={{ width: 80, whiteSpace: 'nowrap' }}>
-                  tok-out
-                </th>
-                <th className="num" style={{ width: 90 }}>
-                  duration
-                </th>
-              </tr>
-            </thead>
+            {RECENT_REQUESTS_HEAD}
             <tbody>
               {requests.map((r) => (
                 <tr

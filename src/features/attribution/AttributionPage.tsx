@@ -5,7 +5,6 @@ import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
 
-type HighlightLanguage = 'bash' | 'json' | 'jsonc' | 'python' | 'yaml'
 type ExampleTab = (typeof EXAMPLE_TABS)[number]['id']
 
 export function AttributionPage() {
@@ -139,11 +138,7 @@ export function AttributionPage() {
                   ariaLabel="Attribution setup examples"
                 />
                 <div className="px-6 py-4 max-md:px-3">
-                  <ExampleCard
-                    title={activeExample.title}
-                    code={activeExample.code}
-                    language={activeExample.language}
-                  />
+                  <CodeBlock text={activeExample.code} title={activeExample.title} lang={activeExample.language} />
                 </div>
               </div>
             </section>
@@ -283,8 +278,4 @@ function HeaderConvention({ name, description }: { name: string; description: st
       <div className="mt-2 text-fg-dim">{description}</div>
     </div>
   )
-}
-
-function ExampleCard({ title, code, language }: { title: string; code: string; language: HighlightLanguage }) {
-  return <CodeBlock text={code} title={title} lang={language} />
 }

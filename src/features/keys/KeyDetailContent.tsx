@@ -1,11 +1,10 @@
-import { Check, Copy, PenLine, Power, RotateCw, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Check, PenLine, Power, RotateCw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
-import { Tooltip } from '../../components/Tooltip'
 import type { ApiKeyDetail } from '../../lib/api'
-import { cn } from '../../lib/cn'
 import { useModels, useRenameApiKey, useRevokeApiKey, useRotateApiKey } from '../../lib/queries'
+import { KeyCreatedBanner } from './KeyCreatedBanner'
 import { KeyModelAccessPanel } from './KeyModelAccessPanel'
 import { KeyMcpRelayAccessPanel } from './KeyMcpRelayAccessPanel'
 import { KeyRequestsPanel } from './KeyRequestsPanel'
@@ -32,7 +31,6 @@ export function KeyDetailContent({ data }: Props) {
   const nameInputRef = useRef<HTMLInputElement>(null)
   const [confirmRotate, setConfirmRotate] = useState(false)
   const [rotatedRawKey, setRotatedRawKey] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const lastUsedAt = requests.rows[0]?.startedAt ?? null
   const availableAllowedModels = models
     ? key.allowedModels.filter((modelId) => models.some((model) => model.id === modelId)).length
@@ -68,13 +66,6 @@ export function KeyDetailContent({ data }: Props) {
       },
     )
   }
-
-  const copyRotatedKey = useCallback(() => {
-    if (!rotatedRawKey) return
-    navigator.clipboard.writeText(rotatedRawKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [rotatedRawKey])
 
   const rotate = () => {
     rotateKey.mutate(key.id, {
@@ -114,36 +105,16 @@ export function KeyDetailContent({ data }: Props) {
               {new Date(key.createdAt).toLocaleDateString()}
             </span>
             {rotatedRawKey ? (
-              <div className="mt-4 mb-1 rounded border border-ok bg-ok-bg px-4 py-3 font-sans text-fg">
-                <div className="mb-2 flex items-center gap-2 text-[13px]">
-                  <Check size={16} strokeWidth={2} className="text-ok" />
-                  <strong>Key rotated — copy the new secret now, it won't be shown again</strong>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-icon ml-auto"
-                    onClick={() => setRotatedRawKey(null)}
-                    aria-label="Dismiss rotated API key secret"
-                  >
-                    <X size={14} strokeWidth={2} />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 rounded-sm border border-border bg-surface-1 px-3 py-2">
-                  <code className="mono flex-1 break-all text-xs">{rotatedRawKey}</code>
-                  <Tooltip label={copied ? 'Copied' : 'Copy'}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-icon"
-                      onClick={copyRotatedKey}
-                      aria-label={copied ? 'Copied rotated API key' : 'Copy rotated API key'}
-                    >
-                      <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
-                        <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
-                        <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />
-                      </span>
-                    </button>
-                  </Tooltip>
-                </div>
-              </div>
+              <KeyCreatedBanner
+                rawKey={rotatedRawKey}
+                message="Key rotated — copy the new secret now, it won't be shown again"
+                icon={<Check size={16} strokeWidth={2} className="text-ok" />}
+                className="mt-4 mb-1 font-sans text-fg"
+                onDismiss={() => setRotatedRawKey(null)}
+                dismissLabel="Dismiss rotated API key secret"
+                copyLabel="Copy rotated API key"
+                copiedLabel="Copied rotated API key"
+              />
             ) : null}
           </>
         }

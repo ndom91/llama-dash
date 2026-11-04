@@ -47,6 +47,7 @@ import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
 import type { UpdateAttributionSettingsBody, UpdatePrivacySettingsBody } from './schemas/settings'
+import type { CreateUpstreamCredentialBody, UpstreamCredentialListResponse } from './schemas/upstream-credential'
 
 export const POLL_MS = 5_000
 export const FALLBACK_POLL_MS = 60_000
@@ -184,7 +185,7 @@ export function useRequestsList(
 ): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
     queryKey:
-      minutes.length || status !== 'all' ? ['requests', 'filtered-list', minutes.join(','), status] : qk.requestsList,
+      minutes.length || status !== 'all' ? [...qk.requestsFilteredList, minutes.join(','), status] : qk.requestsList,
     queryFn: ({ pageParam, signal }) =>
       api.listRequests(
         {
@@ -259,11 +260,7 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
   })
 }
 
-export function useUpstreamCredentials(): UseQueryResult<{
-  credentials: Array<UpstreamCredential>
-  vaultEnabled: boolean
-  vaultStatus: 'ready' | 'missing_key' | 'key_too_short'
-}> {
+export function useUpstreamCredentials(): UseQueryResult<UpstreamCredentialListResponse> {
   return useQuery({
     queryKey: qk.upstreamCredentials,
     queryFn: () => api.listUpstreamCredentials(),
@@ -539,7 +536,7 @@ export function useCreateRoutingRule(): UseMutationResult<RoutingRule, Error, Cr
 export function useCreateUpstreamCredential(): UseMutationResult<
   UpstreamCredential,
   Error,
-  { name: string; slug?: string; type: 'bearer'; value: string }
+  CreateUpstreamCredentialBody
 > {
   const qc = useQueryClient()
   return useMutation({

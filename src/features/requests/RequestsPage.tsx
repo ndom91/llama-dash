@@ -103,24 +103,12 @@ export function RequestsPage() {
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
-  const models = useMemo(() => {
-    const set = new Set<string>()
-    for (const r of allRows) if (r.model) set.add(r.model)
-    return Array.from(set).sort()
-  }, [allRows])
+  const models = useMemo(() => uniqueSorted(allRows, (r) => r.model), [allRows])
 
-  const keyNames = useMemo(() => {
-    const set = new Set<string>()
-    for (const r of allRows) if (r.keyName) set.add(r.keyName)
-    return Array.from(set).sort()
-  }, [allRows])
+  const keyNames = useMemo(() => uniqueSorted(allRows, (r) => r.keyName), [allRows])
   const hasProxyRequests = useMemo(() => allRows.some(isProxyRequestKey), [allRows])
 
-  const hosts = useMemo(() => {
-    const set = new Set<string>()
-    for (const r of allRows) if (r.clientHost) set.add(r.clientHost)
-    return Array.from(set).sort()
-  }, [allRows])
+  const hosts = useMemo(() => uniqueSorted(allRows, (r) => r.clientHost), [allRows])
 
   // Selected values stay listed even when the loaded page no longer contains them.
   const modelOptions = useMemo(() => withSelected(models.map(toOption), modelFilter), [models, modelFilter])
@@ -799,6 +787,15 @@ const ROUTING_OPTIONS: readonly SelectOption[] = [
 
 function toOption(value: string): SelectOption {
   return { value, label: value }
+}
+
+function uniqueSorted<T>(rows: ReadonlyArray<T>, pick: (row: T) => string | null | undefined): Array<string> {
+  const set = new Set<string>()
+  for (const row of rows) {
+    const value = pick(row)
+    if (value) set.add(value)
+  }
+  return Array.from(set).sort()
 }
 
 function withSelected(options: SelectOption[], selected: readonly string[]): SelectOption[] {

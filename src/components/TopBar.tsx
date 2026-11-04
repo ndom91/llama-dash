@@ -1,7 +1,7 @@
 import { useMatches } from '@tanstack/react-router'
 import { Menu } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { formatVersionLabel } from '../lib/format'
+import { formatRate, formatVersionLabel } from '../lib/format'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
 import { StatusDot } from './StatusDot'
@@ -122,12 +122,6 @@ function TopBarClock() {
       {mounted ? formatDatetime(now) : '—'}
     </span>
   )
-}
-
-function formatRate(v: number): string {
-  if (v === 0) return '0.0'
-  if (v < 0.1) return v.toFixed(2)
-  return v.toFixed(1)
 }
 
 function formatDatetime(d: Date): string {

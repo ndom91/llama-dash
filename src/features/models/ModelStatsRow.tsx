@@ -1,6 +1,6 @@
 import { Sparkline } from '../../components/Sparkline'
 import type { ApiModelStats } from '../../lib/api'
-import { formatDuration } from './modelUtils'
+import { formatDuration } from '../../lib/format'
 
 type Props = {
   stats: ApiModelStats

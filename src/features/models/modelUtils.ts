@@ -1,12 +1,3 @@
-export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  const s = ms / 1000
-  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)}s`
-  const m = Math.floor(s / 60)
-  const rem = Math.floor(s % 60)
-  return `${m}m ${rem}s`
-}
-
 export function formatTtl(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
   const m = Math.floor(seconds / 60)

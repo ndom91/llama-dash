@@ -5,7 +5,8 @@ import { DashboardModelsPanel } from './DashboardModelsPanel'
 import { DashboardStatCard } from './DashboardStatCard'
 import { DashboardTelemetryPanel } from './DashboardTelemetryPanel'
 import { DashboardUsageCard } from './DashboardUsageCard'
-import { formatLatency, formatRate } from './dashboardUtils'
+import { formatRate } from '../../lib/format'
+import { formatLatency } from './dashboardUtils'
 
 export function DashboardPage() {
   const { data: models } = useModels()

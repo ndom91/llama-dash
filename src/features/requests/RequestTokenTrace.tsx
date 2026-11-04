@@ -1,5 +1,6 @@
 import { Tooltip } from '../../components/Tooltip'
-import { formatDuration } from './requestDetailUtils'
+import { formatDuration } from '../../lib/format'
+import { cn } from '../../lib/cn'
 
 type Props = {
   durationMs: number
@@ -77,9 +78,10 @@ export function RequestTokenTrace({
           </div>
         ) : null}
         <div
-          className={`flex flex-wrap justify-between gap-x-4 gap-y-1 font-mono tabular-nums text-[11px] text-fg-dim${
-            hasPhases || hasObserved ? ' mt-2' : ''
-          }`}
+          className={cn(
+            'flex flex-wrap justify-between gap-x-4 gap-y-1 font-mono tabular-nums text-[11px] text-fg-dim',
+            (hasPhases || hasObserved) && 'mt-2',
+          )}
         >
           {hasPhases ? (
             <>

@@ -6,6 +6,7 @@ import type { ApiKeyCreated } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CreateKeyForm } from './CreateKeyForm'
+import { SuccessCheck } from '../../components/SuccessCheck'
 import { KeyCreatedBanner } from './KeyCreatedBanner'
 import { KeysEmptyState } from './KeysEmptyState'
 import { KeysPageSkeleton } from './KeysPageSkeleton'
@@ -58,7 +59,15 @@ export function KeysPage() {
           }
         />
 
-        {created ? <KeyCreatedBanner created={created} onDismiss={() => setCreated(null)} /> : null}
+        {created ? (
+          <KeyCreatedBanner
+            rawKey={created.rawKey}
+            message="Key created — copy it now, it won't be shown again"
+            icon={<SuccessCheck className="text-ok" />}
+            className="mx-6 mt-3 max-md:mx-3"
+            onDismiss={() => setCreated(null)}
+          />
+        ) : null}
         {renderCreate ? (
           <CreateKeyForm
             key={createFormKey}

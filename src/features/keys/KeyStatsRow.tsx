@@ -1,6 +1,6 @@
 import { Sparkline } from '../../components/Sparkline'
 import type { ApiKeyStats } from '../../lib/api'
-import { formatDuration } from './keyUtils'
+import { formatDuration } from '../../lib/format'
 
 type Props = {
   stats: ApiKeyStats

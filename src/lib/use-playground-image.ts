@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { loadString } from './playground-storage'
+import { usePlaygroundApiKey } from './use-playground-api-key'
 
 const LS_MODEL = 'playground-image-model'
 const LS_SIZE = 'playground-image-size'
@@ -9,11 +11,6 @@ export type ImageEntry = {
   images: Array<{ url: string; revisedPrompt?: string }>
 }
 
-function loadString(key: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback
-  return localStorage.getItem(key) ?? fallback
-}
-
 export function usePlaygroundImage() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [size, setSizeState] = useState(() => loadString(LS_SIZE, '512x512'))
@@ -22,16 +19,7 @@ export function usePlaygroundImage() {
   const [entries, setEntries] = useState<Array<ImageEntry>>([])
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const apiKeyRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    fetch('/api/playground-key')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.key) apiKeyRef.current = d.key
-      })
-      .catch(() => {})
-  }, [])
+  const { loadApiKey } = usePlaygroundApiKey()
 
   const setModel = useCallback((v: string) => {
     setModelState(v)
@@ -52,8 +40,9 @@ export function usePlaygroundImage() {
     const abort = new AbortController()
     abortRef.current = abort
 
+    const apiKey = await loadApiKey()
     const headers: Record<string, string> = { 'content-type': 'application/json' }
-    if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
+    if (apiKey) headers.authorization = `Bearer ${apiKey}`
 
     try {
       const res = await fetch('/v1/images/generations', {
@@ -88,7 +77,7 @@ export function usePlaygroundImage() {
       setLoading(false)
       abortRef.current = null
     }
-  }, [model, prompt, size])
+  }, [loadApiKey, model, prompt, size])
 
   const stop = useCallback(() => {
     abortRef.current?.abort()

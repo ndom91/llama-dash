@@ -1,34 +1,4 @@
-export type ChatMessage = {
-  id: string
-  role: 'system' | 'user' | 'assistant'
-  content: string
-  reasoningContent?: string
-  reasoningTimeMs?: number
-  metrics?: MessageMetrics
-}
-
-export type MessageMetrics = {
-  ttftMs?: number
-  totalMs?: number
-  tokIn?: number
-  tokOut?: number
-  tokPerSec?: number
-}
-
-export type SamplingParams = {
-  temperature: number
-  topP: number
-  topK: number
-  maxTokens: number
-  frequencyPenalty: number
-  presencePenalty: number
-  stopSequences: Array<string>
-  seed: number | null
-  n: number
-  stream: boolean
-  responseFormat: 'text' | 'json'
-  logprobs: boolean
-}
+import type { SamplingParams } from './schemas/playground'
 
 export type StreamEvent =
   | { kind: 'request-sent'; body: Record<string, unknown>; url: string; at: number }

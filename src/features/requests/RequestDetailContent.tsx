@@ -22,8 +22,8 @@ import {
   deriveClientLabel,
   deriveRewriteLabel,
   formatCostUsd,
-  formatDuration,
 } from './requestDetailUtils'
+import { formatDuration } from '../../lib/format'
 import { RequestPayloadsPanel } from './RequestPayloadsPanel'
 import { RequestTokenTrace } from './RequestTokenTrace'
 import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
@@ -485,9 +485,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
           {req.error ? (
             <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
               <div className="panel-head bg-surface-1 px-4">
-                <span className="panel-title" style={{ color: 'var(--err)' }}>
-                  Error
-                </span>
+                <span className="panel-title text-err">Error</span>
               </div>
               <pre className="m-0 whitespace-pre-wrap break-all px-3.5 py-3.5 font-mono text-xs leading-[1.5] text-err border-b-1 border-border">
                 {req.error}
@@ -536,7 +534,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             <div className="mono wrap-anywhere text-xs text-fg">{req.id}</div>
           </section>
 
-          <section className={`${railSectionDivider} grid gap-2`}>
+          <section className={cn(railSectionDivider, 'grid gap-2')}>
             <div className="mb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint">Actions</div>
             <CopyButton
               text={getRequestDetailUrl()}

@@ -38,7 +38,6 @@ export function themeStyleVars(theme: ThemeDef): Record<string, string> {
     '--warn-bg': hexToAlpha(theme.status.warn, 0.12),
     '--err-bg': hexToAlpha(theme.status.error, 0.12),
     '--info-bg': hexToAlpha(theme.status.info, 0.12),
-    '--shadow-focus': '0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)',
     '--accent-shifted': `oklch(${Math.min(l + 12, 95)}% ${(c * 0.4).toFixed(3)} ${h})`,
     // Series ramp inputs. Only hue and base chroma are theme-dependent; the
     // lightness/chroma band lives in styles.css so it can differ per color mode.

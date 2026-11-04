@@ -5,6 +5,7 @@ import { Tabs } from '../../components/Tabs'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CodeExample } from './CodeExample'
 import { ENDPOINT_TABS, type EndpointTab } from './snippets'
+import { cn } from '../../lib/cn'
 
 export function EndpointsPage() {
   const { data: keys } = useApiKeys()
@@ -28,7 +29,7 @@ export function EndpointsPage() {
           variant="integrated"
         />
 
-        <div className={`grid gap-0 ${hasKeys ? 'grid-cols-1 md:grid-cols-2' : ''}`}>
+        <div className={cn('grid gap-0', hasKeys && 'grid-cols-1 md:grid-cols-2')}>
           <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1">
             <div className="panel-head bg-transparent px-6 max-md:px-3">
               <span className="panel-title">Base URL</span>

@@ -22,12 +22,11 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
 import { LEADER_KEY } from '../lib/nav-leader'
 import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
 import type { ApiSystemStatus } from '../lib/schemas/system'
-import { useColorTheme } from '../lib/use-color-theme'
+import { type SidebarSession, signOutToLogin, useSidebarAccount } from '../lib/use-sidebar-account'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { CollapsedSidebarAccountMenu } from './CollapsedSidebarAccountMenu'
 import { CollapsedSidebarMetrics } from './CollapsedSidebarMetrics'
@@ -119,8 +118,6 @@ function LeaderNavBinding({ to, leader }: { to: NavTarget; leader: string }) {
 const NAV_LINK =
   'flex items-center gap-2 py-1.5 px-2.5 text-[13px] font-medium -tracking-[0.005em] text-fg-muted transition-[background-color,color,box-shadow] duration-120 hover:bg-surface-3 hover:text-fg'
 const NAV_LINK_ACTIVE = `${NAV_LINK} !bg-surface-3 !text-fg shadow-[inset_2px_0_0_var(--accent)]`
-
-type SidebarSession = ReturnType<typeof authClient.useSession>['data']
 
 type SidebarProps = {
   /** Desktop only: an icon rail. Phones keep the slide-in menu at full width. */
@@ -320,17 +317,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   const { data: allModels } = useModels()
   const { data: gpu } = useGpu()
   const { data: system } = useSystemStatus()
-  const { data: clientSession } = authClient.useSession()
-  const session = clientSession ?? initialSession
-  const colorTheme = useColorTheme()
-  const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
-  const avatarColors = [
-    activeTheme.accent['300'],
-    activeTheme.accent['500'],
-    activeTheme.accent['700'],
-    activeTheme.status.info,
-    activeTheme.status.warn,
-  ]
+  const { session, avatarColors } = useSidebarAccount(initialSession)
 
   const runningCount = running.length
   const totalCount = allModels?.length ?? 0
@@ -369,69 +356,38 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
   const gpuUtilizationPercent = gpuCard?.utilizationPercent
   const hasVram = gpuCard?.memoryTotalMiB != null && gpuCard.memoryUsedMiB != null
   const fmtGiB = (mib: number) => (mib / 1024).toFixed(1)
-  const meterWidth = (percent: number | null | undefined) => `${Math.min(Math.max(percent ?? 0, 0), 100)}%`
-
-  async function signOut() {
-    await authClient.signOut()
-    window.location.href = '/login'
-  }
 
   return (
     <div className="p-2.5 border-t border-border flex flex-col gap-2">
       <div className="py-2.5 px-3 border border-border rounded bg-surface-2 flex flex-col gap-2 overflow-x-clip">
         <div className="flex flex-col gap-2">
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-              <span>{hasVram ? 'vram' : 'models'}</span>
-              <span className="text-fg-muted">
-                {hasVram
-                  ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
-                  : resident
-                    ? `${runningCount} of ${totalCount}`
-                    : 'idle'}
-              </span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
-              <div
-                className="h-full rounded-pill bg-accent transition-[width] duration-300"
-                style={{
-                  width: meterWidth(
-                    hasVram ? gpuCard.memoryPercent : totalCount > 0 ? (runningCount / totalCount) * 100 : 0,
-                  ),
-                }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-              <span>cpu</span>
-              <span className="text-fg-muted">{cpuUtilizationPercent != null ? `${cpuUtilizationPercent}%` : '—'}</span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
-              <div
-                className="h-full rounded-pill bg-accent transition-[width] duration-300"
-                style={{ width: meterWidth(cpuUtilizationPercent) }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
-              <span>gpu</span>
-              <span className="text-fg-muted">{gpuUtilizationPercent != null ? `${gpuUtilizationPercent}%` : '—'}</span>
-            </div>
-            <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
-              <div
-                className="h-full rounded-pill bg-accent transition-[width] duration-300"
-                style={{ width: meterWidth(gpuUtilizationPercent) }}
-              />
-            </div>
-          </div>
+          <Meter
+            label={hasVram ? 'vram' : 'models'}
+            value={
+              hasVram
+                ? `${fmtGiB(gpuCard.memoryUsedMiB!)} / ${fmtGiB(gpuCard.memoryTotalMiB!)} GiB`
+                : resident
+                  ? `${runningCount} of ${totalCount}`
+                  : 'idle'
+            }
+            percent={hasVram ? gpuCard.memoryPercent : totalCount > 0 ? (runningCount / totalCount) * 100 : 0}
+          />
+          <Meter
+            label="cpu"
+            value={cpuUtilizationPercent != null ? `${cpuUtilizationPercent}%` : '—'}
+            percent={cpuUtilizationPercent}
+          />
+          <Meter
+            label="gpu"
+            value={gpuUtilizationPercent != null ? `${gpuUtilizationPercent}%` : '—'}
+            percent={gpuUtilizationPercent}
+          />
         </div>
         {resident ? (
           <div className={cn(slide === 'out' && 'ticker-out', slide === 'in' && 'ticker-in')}>
             <div className="font-mono text-xs text-fg break-all leading-[1.3] overflow-visible">
               <StatusDot tone={stateTone(resident.state, true)} live />{' '}
-              <span style={{ marginLeft: 6 }} translate="no">
+              <span className="ml-1.5" translate="no">
                 {resident.id}
               </span>
             </div>
@@ -441,7 +397,7 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
           <>
             <div className="font-mono text-xs text-fg-dim break-all leading-[1.3]">
               <StatusDot tone="idle" />
-              <span style={{ marginLeft: 6 }}>idle</span>
+              <span className="ml-1.5">idle</span>
             </div>
             <div
               className="truncate font-mono text-[10px] text-fg-dim"
@@ -471,10 +427,27 @@ function SidebarLiveStatus({ initialSession }: SidebarProps) {
           </Tooltip>
         </div>
         <Tooltip label="Signout">
-          <button type="button" className="btn btn-ghost btn-icon" onClick={signOut} aria-label="Signout">
+          <button type="button" className="btn btn-ghost btn-icon" onClick={signOutToLogin} aria-label="Signout">
             <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </Tooltip>
+      </div>
+    </div>
+  )
+}
+
+function Meter({ label, value, percent }: { label: string; value: string; percent: number | null | undefined }) {
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-fg-faint">
+        <span>{label}</span>
+        <span className="text-fg-muted">{value}</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-pill bg-surface-4">
+        <div
+          className="h-full rounded-pill bg-accent transition-[width] duration-300"
+          style={{ width: `${Math.min(Math.max(percent ?? 0, 0), 100)}%` }}
+        />
       </div>
     </div>
   )

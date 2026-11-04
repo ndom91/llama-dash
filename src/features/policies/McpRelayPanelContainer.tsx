@@ -1,5 +1,5 @@
 import { useCreateMcpRelay, useDeleteMcpRelay, useMcpRelays, useUpstreamCredentials } from '../../lib/queries'
-import { PolicyPanel } from './CredentialVaultPanelContainer'
+import { PolicyPanel } from './PolicyPanel'
 import { McpRelayPanel } from './McpRelayPanel'
 
 export function McpRelayPanelContainer() {

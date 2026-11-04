@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RouteSkeleton } from '../components/RouteSkeleton'
+import { RouteLogsSkeleton } from '../components/skeleton/RouteLogsSkeleton'
 import { LogsPage } from '../features/logs/LogsPage'
 
 type LogsSearch = { q?: string }
@@ -10,5 +10,5 @@ export const Route = createFileRoute('/logs')({
     q: typeof search.q === 'string' && search.q ? search.q : undefined,
   }),
   component: LogsPage,
-  pendingComponent: () => <RouteSkeleton variant="logs" />,
+  pendingComponent: RouteLogsSkeleton,
 })

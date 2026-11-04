@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RouteSkeleton } from '../components/RouteSkeleton'
+import { RouteRequestsSkeleton } from '../components/skeleton/RouteRequestsSkeleton'
 import { RequestsPage } from '../features/requests/RequestsPage'
 import type { RoutingFilter, SortDir, SortKey, StatusFilter } from '../features/requests/requestsListUtils'
 
@@ -44,7 +44,7 @@ function asTrue(v: unknown): true | undefined {
 export const Route = createFileRoute('/requests/')({
   ssr: false,
   component: RequestsRoute,
-  pendingComponent: () => <RouteSkeleton variant="requests" />,
+  pendingComponent: RouteRequestsSkeleton,
   validateSearch: (search: Record<string, unknown>): RequestsSearch => ({
     q: asString(search.q),
     status: asEnum(search.status, STATUS_VALUES),

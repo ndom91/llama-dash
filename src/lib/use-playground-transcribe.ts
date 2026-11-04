@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { loadString } from './playground-storage'
+import { usePlaygroundApiKey } from './use-playground-api-key'
 
 const LS_MODEL = 'playground-transcribe-model'
 const DEFAULT_LANGUAGE = 'auto-detect'
@@ -18,11 +20,6 @@ const ACCEPTED_TYPES = new Set([
   'audio/webm',
 ])
 
-function loadString(key: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback
-  return localStorage.getItem(key) ?? fallback
-}
-
 export function usePlaygroundTranscribe() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [language, setLanguage] = useState(DEFAULT_LANGUAGE)
@@ -34,18 +31,10 @@ export function usePlaygroundTranscribe() {
   const [error, setError] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
-  const apiKeyRef = useRef<string | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Array<Blob>>([])
 
-  useEffect(() => {
-    fetch('/api/playground-key')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d?.key) apiKeyRef.current = d.key
-      })
-      .catch(() => {})
-  }, [])
+  const { loadApiKey } = usePlaygroundApiKey()
 
   const setModel = useCallback((v: string) => {
     setModelState(v)
@@ -89,8 +78,9 @@ export function usePlaygroundTranscribe() {
       formData.append('language', requestedLanguage)
     }
 
+    const apiKey = await loadApiKey()
     const headers: Record<string, string> = {}
-    if (apiKeyRef.current) headers.authorization = `Bearer ${apiKeyRef.current}`
+    if (apiKey) headers.authorization = `Bearer ${apiKey}`
 
     try {
       const res = await fetch('/v1/audio/transcriptions', {
@@ -122,7 +112,7 @@ export function usePlaygroundTranscribe() {
       setLoading(false)
       abortRef.current = null
     }
-  }, [model, file, language, responseFormat])
+  }, [loadApiKey, model, file, language, responseFormat])
 
   const startRecording = useCallback(async () => {
     setError(null)

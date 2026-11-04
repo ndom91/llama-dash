@@ -4,15 +4,6 @@ export function isInactiveKey(key: Pick<ApiKeyItem, 'disabledAt' | 'expiresAt'>)
   return key.disabledAt != null || (key.expiresAt != null && new Date(key.expiresAt).getTime() <= Date.now())
 }
 
-export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  const s = ms / 1000
-  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)}s`
-  const m = Math.floor(s / 60)
-  const rem = Math.floor(s % 60)
-  return `${m}m ${rem}s`
-}
-
 export function formatRelative(timestamp: string) {
   const diff = Date.now() - new Date(timestamp).getTime()
   const mins = Math.max(1, Math.round(diff / 60_000))

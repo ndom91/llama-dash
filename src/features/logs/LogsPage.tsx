@@ -189,9 +189,10 @@ function LlamaSwapLogsPage() {
                 <button
                   key={s}
                   type="button"
-                  className={`inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors ${
-                    filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg'
-                  }`}
+                  className={cn(
+                    'inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors',
+                    filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg',
+                  )}
                   onClick={() => setFilter(s)}
                 >
                   {s}

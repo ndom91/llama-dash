@@ -1,8 +1,9 @@
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot } from '../../components/StatusDot'
-import { cn } from '../../lib/cn'
 import { useSystemStatus } from '../../lib/queries'
 import { InferenceHostPanel } from './InferenceHostPanel'
+import { MetaRow } from './MetaRow'
+import { SystemPanel } from './SystemPanel'
 
 type Tone = 'ok' | 'warn' | 'err' | 'idle'
 
@@ -52,37 +53,6 @@ function formatUpdateStatus(update: {
   if (update.status === 'current') return update.latest ? `current · ${update.latest}` : 'current'
   if (update.status === 'error') return 'check failed'
   return 'unknown'
-}
-
-function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="grid items-center gap-4 border-b border-dashed border-border/55 py-1.5 last:border-b-0 [grid-template-columns:130px_minmax(0,1fr)]">
-      <dt className="font-mono text-[11px] lowercase tracking-[0.02em] text-fg-muted">{label}</dt>
-      <dd className="m-0 min-w-0 justify-self-end text-right font-mono tabular-nums text-xs text-fg">{value}</dd>
-    </div>
-  )
-}
-
-function SystemPanel({
-  title,
-  aside,
-  children,
-  className,
-}: {
-  title: string
-  aside?: React.ReactNode
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <section className={cn('panel border-t border-border !rounded-none border-x-0 !bg-surface-1', className)}>
-      <div className="panel-head bg-transparent px-6 max-md:px-4">
-        <h2 className="panel-title">{title}</h2>
-        {aside ? <span className="panel-sub ml-auto">· {aside}</span> : null}
-      </div>
-      <dl className="m-0 px-6 py-4 max-md:px-4">{children}</dl>
-    </section>
-  )
 }
 
 function StatTile({ label, value, meta, tone }: { label: string; value: React.ReactNode; meta?: string; tone: Tone }) {
@@ -245,7 +215,7 @@ export function SystemPage() {
               </SystemPanel>
 
               <div className="grid xl:grid-cols-2">
-                <SystemPanel title="Loading Queue" aside={data.logging.dropped > 0 ? 'dropping' : 'ready'}>
+                <SystemPanel title="Loading Queue" aside={`· ${data.logging.dropped > 0 ? 'dropping' : 'ready'}`}>
                   <MetaRow
                     label="state"
                     value={
@@ -258,7 +228,7 @@ export function SystemPage() {
                   <MetaRow label="dropped" value={data.logging.dropped} />
                 </SystemPanel>
 
-                <SystemPanel title="GPU Telemetry" aside={`${data.gpu.gpuCount} device`} className="xl:border-l">
+                <SystemPanel title="GPU Telemetry" aside={`· ${data.gpu.gpuCount} device`} className="xl:border-l">
                   <MetaRow
                     label="state"
                     value={

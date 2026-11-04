@@ -1,7 +1,7 @@
 import { Plus, RotateCcw, Square } from 'lucide-react'
 import { NumberInput } from '../../components/NumberInput'
 import { Tooltip } from '../../components/Tooltip'
-import type { SamplingParams } from '../../lib/stream-chat'
+import type { SamplingParams } from '../../lib/schemas/playground'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'

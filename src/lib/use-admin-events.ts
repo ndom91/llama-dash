@@ -63,13 +63,12 @@ export function useAdminEvents() {
 
     const updateRequests = (event: MessageEvent) => {
       const data = parseEventData(RequestCompletedEventSchema, event)
+      scheduleRequestStatsInvalidation()
       if (!data) {
-        scheduleRequestStatsInvalidation()
         invalidateRequestLists(queryClient)
         return
       }
 
-      scheduleRequestStatsInvalidation()
       updateRecentRequestCaches(queryClient, data.request)
       updateRequestsListCache(queryClient, data.request)
     }

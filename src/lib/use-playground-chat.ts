@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { type ChatMessage, type MessageMetrics, type StreamEvent, streamChatCompletion } from './stream-chat'
+import type { ChatMessage, MessageMetrics } from './schemas/playground'
+import { type StreamEvent, streamChatCompletion } from './stream-chat'
 import { usePlaygroundStorage } from './playground-storage'
 import { useModels } from './queries'
 import { usePlaygroundApiKey } from './use-playground-api-key'
@@ -69,7 +70,7 @@ export function usePlaygroundChat() {
 
   const abortRef = useRef<AbortController | null>(null)
   const runSeqRef = useRef(0)
-  const { loadApiKey } = usePlaygroundApiKey()
+  const { apiKey, loadApiKey } = usePlaygroundApiKey()
 
   const buildApiMessages = useCallback(
     (msgs: Array<ChatMessage>) => {
@@ -157,7 +158,7 @@ export function usePlaygroundChat() {
         estimatedPromptTokens = await estimatePromptTokens(apiMsgs)
         const activeModel = models?.find((item) => item.id === model)
         const includeTimings = activeModel?.kind !== 'peer'
-        const apiKey = await loadApiKey()
+        const requestApiKey = await loadApiKey()
 
         const stream = streamChatCompletion({
           messages: apiMsgs,
@@ -165,7 +166,7 @@ export function usePlaygroundChat() {
           sampling,
           includeTimings,
           signal: abort.signal,
-          apiKey: apiKey ?? undefined,
+          apiKey: requestApiKey ?? undefined,
           onEvent: (ev: StreamEvent) => {
             switch (ev.kind) {
               case 'request-sent':
@@ -338,6 +339,7 @@ export function usePlaygroundChat() {
     isStreaming,
     isReasoning,
     inspector,
+    apiKey,
     sendMessage,
     regenerate,
     editMessage,

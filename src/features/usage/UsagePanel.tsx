@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { cn } from '../../lib/cn'
 
 type Props = {
   title: string
@@ -11,9 +12,7 @@ type Props = {
 /** Flush section used by every usage panel, matching the dashboard's integrated panels. */
 export function UsagePanel({ title, sub, aside, children, className }: Props) {
   return (
-    <section
-      className={`panel !rounded-none !border-x-0 !border-t-0 border-b !bg-surface-1 min-w-0 ${className ?? ''}`}
-    >
+    <section className={cn('panel !rounded-none !border-x-0 !border-t-0 border-b !bg-surface-1 min-w-0', className)}>
       <div className="panel-head bg-transparent px-4">
         <span className="panel-title">{title}</span>
         {sub ? <span className="panel-sub truncate">{sub}</span> : null}

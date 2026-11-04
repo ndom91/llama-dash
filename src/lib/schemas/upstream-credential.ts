@@ -24,6 +24,7 @@ export const UpstreamCredentialListResponseSchema = v.object({
   vaultEnabled: v.boolean(),
   vaultStatus: v.picklist(['ready', 'missing_key', 'key_too_short']),
 })
+export type UpstreamCredentialListResponse = v.InferOutput<typeof UpstreamCredentialListResponseSchema>
 
 export const CreateUpstreamCredentialBodySchema = v.object({
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),

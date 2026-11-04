@@ -412,15 +412,6 @@ export function formatCostUsd(usd: number): string {
   return '—'
 }
 
-export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  const s = ms / 1000
-  if (s < 60) return `${s.toFixed(s < 10 ? 2 : 1)}s`
-  const m = Math.floor(s / 60)
-  const rem = Math.floor(s % 60)
-  return `${m}m ${rem}s`
-}
-
 export function byteSize(str: string): string {
   const bytes = new Blob([str]).size
   if (bytes < 1024) return `${bytes}B`

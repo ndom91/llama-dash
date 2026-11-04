@@ -3,12 +3,31 @@ import { clearShellContext } from './shell-context-cache'
 import { JsonValidatorCache } from './json-validator-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
 import { ArticleExtractResponseSchema } from './schemas/article'
-import { ApiKeyCreatedSchema, ApiKeyListResponseSchema, KeyDetailResponseSchema } from './schemas/api-key'
+import {
+  ApiKeyCreatedSchema,
+  ApiKeyListResponseSchema,
+  type CreateApiKeyBodySchema,
+  KeyDetailResponseSchema,
+} from './schemas/api-key'
 import type { ModelAccessMode } from './schemas/api-key'
-import { McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
-import { RoutingRuleListResponseSchema, RoutingRuleSchema } from './schemas/routing-rule'
-import { UpstreamCredentialListResponseSchema, UpstreamCredentialSchema } from './schemas/upstream-credential'
-import { AttributionSettingsSchema, PrivacySettingsSchema } from './schemas/settings'
+import { type CreateMcpRelayBody, McpRelayListResponseSchema, McpRelaySchema } from './schemas/mcp-relay'
+import {
+  type CreateRoutingRuleBody,
+  RoutingRuleListResponseSchema,
+  RoutingRuleSchema,
+  type UpdateRoutingRuleBody,
+} from './schemas/routing-rule'
+import {
+  type CreateUpstreamCredentialBody,
+  UpstreamCredentialListResponseSchema,
+  UpstreamCredentialSchema,
+} from './schemas/upstream-credential'
+import {
+  AttributionSettingsSchema,
+  PrivacySettingsSchema,
+  type UpdateAttributionSettingsBody,
+  type UpdatePrivacySettingsBody,
+} from './schemas/settings'
 import { ApiSystemStatusSchema, LoginMetaSchema } from './schemas/system'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
@@ -204,17 +223,8 @@ export const api = {
   },
   getKeyDetail: (id: string) => getJson(`/api/keys/${id}`, KeyDetailResponseSchema),
   listKeys: () => getJson('/api/keys', ApiKeyListResponseSchema),
-  createKey: (body: {
-    name: string
-    modelAccessMode?: ModelAccessMode
-    allowedModels?: Array<string>
-    allowedMcpRelays?: Array<string>
-    rateLimitRpm?: number | null
-    rateLimitTpm?: number | null
-    monthlyTokenQuota?: number | null
-    systemPrompt?: string | null
-    expiresAt?: string | null
-  }) => sendJson('/api/keys', ApiKeyCreatedSchema, { method: 'POST', body }),
+  createKey: (body: v.InferInput<typeof CreateApiKeyBodySchema>) =>
+    sendJson('/api/keys', ApiKeyCreatedSchema, { method: 'POST', body }),
   renameKey: (id: string, name: string) => sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { name } }),
   updateKeyModels: (id: string, modelAccessMode: ModelAccessMode, allowedModels: Array<string>) =>
     sendJson(`/api/keys/${id}`, OkSchema, { method: 'PATCH', body: { modelAccessMode, allowedModels } }),
@@ -228,61 +238,24 @@ export const api = {
   listRoutingRules: () => getJson('/api/routing-rules', RoutingRuleListResponseSchema),
   listUpstreamCredentials: () => getJson('/api/upstream-credentials', UpstreamCredentialListResponseSchema),
   listMcpRelays: () => getJson('/api/mcp-relays', McpRelayListResponseSchema),
-  createMcpRelay: (body: {
-    name: string
-    slug?: string
-    targetUrl: string
-    credentialId: string
-    headerName?: string
-    headerValueTemplate?: string
-  }) => sendJson('/api/mcp-relays', McpRelaySchema, { method: 'POST', body }),
+  createMcpRelay: (body: CreateMcpRelayBody) => sendJson('/api/mcp-relays', McpRelaySchema, { method: 'POST', body }),
   deleteMcpRelay: (id: string) => sendEmpty(`/api/mcp-relays/${id}`, OkSchema, 'DELETE'),
-  createUpstreamCredential: (body: { name: string; slug?: string; type: 'bearer'; value: string }) =>
+  createUpstreamCredential: (body: CreateUpstreamCredentialBody) =>
     sendJson('/api/upstream-credentials', UpstreamCredentialSchema, { method: 'POST', body }),
   deleteUpstreamCredential: (id: string) => sendEmpty(`/api/upstream-credentials/${id}`, OkSchema, 'DELETE'),
-  createRoutingRule: (body: {
-    name: string
-    enabled: boolean
-    match: object
-    action: object
-    target?: object
-    authMode?: string
-    preserveAuthorization?: boolean
-    credentialBindings?: object[]
-  }) => sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
-  updateRoutingRule: (
-    id: string,
-    body: {
-      name?: string
-      enabled?: boolean
-      match?: object
-      action?: object
-      target?: object
-      authMode?: string
-      preserveAuthorization?: boolean
-      credentialBindings?: object[]
-    },
-  ) => sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
+  createRoutingRule: (body: CreateRoutingRuleBody) =>
+    sendJson('/api/routing-rules', RoutingRuleSchema, { method: 'POST', body }),
+  updateRoutingRule: (id: string, body: UpdateRoutingRuleBody) =>
+    sendJson(`/api/routing-rules/${id}`, RoutingRuleSchema, { method: 'PATCH', body }),
   deleteRoutingRule: (id: string) => sendEmpty(`/api/routing-rules/${id}`, OkSchema, 'DELETE'),
   reorderRoutingRules: (ids: string[]) =>
     sendJson('/api/routing-rules/reorder', RoutingRuleListResponseSchema, { method: 'POST', body: { ids } }),
   getAttributionSettings: () => getJson('/api/settings/attribution', AttributionSettingsSchema),
-  updateAttributionSettings: (body: {
-    clientNameHeader?: string | null
-    endUserIdHeader?: string | null
-    sessionIdHeader?: string | null
-  }) => sendJson('/api/settings/attribution', AttributionSettingsSchema, { method: 'PATCH', body }),
+  updateAttributionSettings: (body: UpdateAttributionSettingsBody) =>
+    sendJson('/api/settings/attribution', AttributionSettingsSchema, { method: 'PATCH', body }),
   getPrivacySettings: () => getJson('/api/settings/privacy', PrivacySettingsSchema),
-  updatePrivacySettings: (body: {
-    captureRequestBodies?: boolean
-    captureResponseBodies?: boolean
-    maxStoredBodyBytes?: number
-    mcpRelayPersistSuccessBodies?: boolean
-    requestLogRetentionDays?: number
-    mcpRelaySuccessRetentionDays?: number
-    mcpRelayErrorRetentionDays?: number
-    bodyRetentionDays?: number
-  }) => sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
+  updatePrivacySettings: (body: UpdatePrivacySettingsBody) =>
+    sendJson('/api/settings/privacy', PrivacySettingsSchema, { method: 'PATCH', body }),
   pruneRequestLogs: () => sendJson('/api/system/request-logs/prune', v.any(), { method: 'POST', body: {} }),
   compactDatabase: () => sendJson('/api/system/database/compact', OkSchema, { method: 'POST', body: {} }),
   extractArticle: (url: string) =>

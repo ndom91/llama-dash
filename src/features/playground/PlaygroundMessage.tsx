@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm'
 import { CopyButton } from '../../components/CopyButton'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
-import type { ChatMessage } from '../../lib/stream-chat'
+import type { ChatMessage } from '../../lib/schemas/playground'
 
 type Props = {
   message: ChatMessage

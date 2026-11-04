@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { splitSpeechIntoSegments } from './playground-speech-segments'
+import { loadString } from './playground-storage'
+import { usePlaygroundApiKey } from './use-playground-api-key'
 
 const LS_MODEL = 'playground-speech-model'
 const LS_VOICE = 'playground-speech-voice'
@@ -9,11 +11,6 @@ const SPEECH_REQUEST_TIMEOUT_MS = 180_000
 const AUDIO_METADATA_TIMEOUT_MS = 3_000
 const ESTIMATED_SPEECH_WORDS_PER_MINUTE = 145
 const SPEECH_WORD_PATTERN = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
-
-function loadString(key: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback
-  return localStorage.getItem(key) ?? fallback
-}
 
 // Voices differ per model, so each model remembers its own selected voice.
 function voiceStorageKey(model: string): string {
@@ -42,35 +39,24 @@ export function usePlaygroundSpeech() {
   const [error, setError] = useState<string | null>(null)
   const [voices, setVoices] = useState<Array<string> | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const apiKeyRef = useRef<string | null>(null)
-
-  // The system key rotates on every server restart, so a cached key goes stale
-  // if the page sits idle across one. refreshApiKey re-fetches it; speech/voices
-  // calls retry once through it on a 401 to self-heal instead of erroring.
-  const refreshApiKey = useCallback(async () => {
-    const key = await fetchSystemKey()
-    apiKeyRef.current = key
-    return key
-  }, [])
-
-  useEffect(() => {
-    void refreshApiKey()
-  }, [refreshApiKey])
+  const { loadApiKey, refreshApiKey } = usePlaygroundApiKey()
 
   // Proxies such as llama-swap route /v1/audio/voices by model, so ask for the
   // selected model's voices and reload them when the model changes.
   useEffect(() => {
     let cancelled = false
     const timer = setTimeout(() => {
-      void loadVoices(model, apiKeyRef.current, refreshApiKey).then((names) => {
-        if (!cancelled) setVoices(names)
-      })
+      void loadApiKey()
+        .then((apiKey) => loadVoices(model, apiKey, refreshApiKey))
+        .then((names) => {
+          if (!cancelled) setVoices(names)
+        })
     }, 500)
     return () => {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [model, refreshApiKey])
+  }, [model, loadApiKey, refreshApiKey])
 
   useEffect(() => {
     try {
@@ -116,7 +102,7 @@ export function usePlaygroundSpeech() {
           speechApi,
           voice,
           input,
-          apiKey: apiKeyRef.current,
+          apiKey: await loadApiKey(),
           refreshKey: refreshApiKey,
           signal: abort.signal,
         })
@@ -146,7 +132,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [model, refreshApiKey, speechApi, text, voice],
+    [loadApiKey, model, refreshApiKey, speechApi, text, voice],
   )
 
   const generateSegments = useCallback(
@@ -191,7 +177,7 @@ export function usePlaygroundSpeech() {
             speechApi,
             voice,
             input: chunk,
-            apiKey: apiKeyRef.current,
+            apiKey: await loadApiKey(),
             refreshKey: refreshApiKey,
             signal: abort.signal,
           })
@@ -245,7 +231,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [generate, model, refreshApiKey, speechApi, text, voice],
+    [generate, loadApiKey, model, refreshApiKey, speechApi, text, voice],
   )
 
   const stop = useCallback(() => {
@@ -316,17 +302,6 @@ export type SpeechSegment = {
 }
 
 type SpeechEntryStatus = 'generating' | 'complete' | 'cancelled' | 'error'
-
-async function fetchSystemKey(): Promise<string | null> {
-  try {
-    const r = await fetch('/api/playground-key')
-    if (!r.ok) return null
-    const d = await r.json()
-    return typeof d?.key === 'string' ? d.key : null
-  } catch {
-    return null
-  }
-}
 
 function bearerHeaders(apiKey: string | null, base: Record<string, string> = {}): Record<string, string> {
   const headers = { ...base }

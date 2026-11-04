@@ -1,6 +1,6 @@
 import * as v from 'valibot'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatMessage, SamplingParams } from './stream-chat'
+import { type ChatMessage, ChatMessageSchema, type SamplingParams, SamplingParamsSchema } from './schemas/playground'
 
 const LS_MESSAGES = 'playground-messages'
 const LS_MODEL = 'playground-model'
@@ -22,38 +22,6 @@ export const DEFAULT_SAMPLING: SamplingParams = {
   logprobs: false,
 }
 
-const MessageMetricsSchema = v.object({
-  ttftMs: v.optional(v.number()),
-  totalMs: v.optional(v.number()),
-  tokIn: v.optional(v.number()),
-  tokOut: v.optional(v.number()),
-  tokPerSec: v.optional(v.number()),
-})
-
-const ChatMessageSchema = v.object({
-  id: v.string(),
-  role: v.picklist(['system', 'user', 'assistant']),
-  content: v.string(),
-  reasoningContent: v.optional(v.string()),
-  reasoningTimeMs: v.optional(v.number()),
-  metrics: v.optional(MessageMetricsSchema),
-})
-
-const SamplingParamsSchema = v.object({
-  temperature: v.number(),
-  topP: v.number(),
-  topK: v.number(),
-  maxTokens: v.number(),
-  frequencyPenalty: v.number(),
-  presencePenalty: v.number(),
-  stopSequences: v.array(v.string()),
-  seed: v.nullable(v.number()),
-  n: v.number(),
-  stream: v.boolean(),
-  responseFormat: v.picklist(['text', 'json']),
-  logprobs: v.boolean(),
-})
-
 const PartialSamplingParamsSchema = v.partial(SamplingParamsSchema)
 
 function loadJson<T>(key: string, schema: v.GenericSchema<T>, fallback: T): T {
@@ -67,7 +35,7 @@ function loadJson<T>(key: string, schema: v.GenericSchema<T>, fallback: T): T {
   }
 }
 
-function loadString(key: string, fallback: string): string {
+export function loadString(key: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback
   return localStorage.getItem(key) ?? fallback
 }

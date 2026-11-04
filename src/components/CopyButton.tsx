@@ -1,6 +1,6 @@
 import { Check, Copy, Link } from 'lucide-react'
-import { useState } from 'react'
 import { cn } from '../lib/cn'
+import { useCopyToClipboard } from '../lib/use-copy-to-clipboard'
 
 type CopyButtonVariant = 'text' | 'icon' | 'button'
 type CopyButtonIcon = 'copy' | 'link'
@@ -32,15 +32,12 @@ export function CopyButton({
   iconStrokeWidth = 2,
   stopPropagation = false,
 }: Props) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy: copyText } = useCopyToClipboard(1500)
   const Icon = icon === 'link' ? Link : Copy
 
   const copy = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (stopPropagation) event.stopPropagation()
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    })
+    void copyText(text)
   }
 
   return (

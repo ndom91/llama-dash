@@ -5,8 +5,9 @@ import python from 'highlight.js/lib/languages/python'
 import typescript from 'highlight.js/lib/languages/typescript'
 import yaml from 'highlight.js/lib/languages/yaml'
 import { Check, Copy, FileCode2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { cn } from '../lib/cn'
+import { useCopyToClipboard } from '../lib/use-copy-to-clipboard'
 import { Tooltip } from './Tooltip'
 
 hljs.registerLanguage('bash', bash)
@@ -25,7 +26,7 @@ type Props = {
 }
 
 export function CodeBlock({ text, title, filename, lang, className }: Props) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy: copyText } = useCopyToClipboard(1500)
   const highlighted = useMemo(() => {
     if (!lang) return null
     try {
@@ -36,13 +37,7 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
   }, [text, lang])
 
   const copy = () => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      },
-      () => {},
-    )
+    void copyText(text)
   }
 
   const heading = title ?? filename
@@ -53,7 +48,7 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
         <div className="flex items-center gap-1.5 border-b border-border bg-surface-3 px-4 py-2 font-mono text-xs text-fg-muted">
           {filename ? <FileCode2 size={13} strokeWidth={2} className="shrink-0 text-fg-dim" /> : null}
           <span>{heading}</span>
-          <CopyButton
+          <CodeBlockCopyButton
             className="ml-auto opacity-0 transition-opacity group-hover:opacity-100"
             copied={copied}
             onClick={copy}
@@ -73,7 +68,7 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
         )}
       </pre>
       {heading ? null : (
-        <CopyButton
+        <CodeBlockCopyButton
           className="absolute right-2.5 top-2.5 border bg-surface-3 opacity-0 transition-opacity group-hover:opacity-100"
           copied={copied}
           onClick={copy}
@@ -83,7 +78,15 @@ export function CodeBlock({ text, title, filename, lang, className }: Props) {
   )
 }
 
-function CopyButton({ copied, className, onClick }: { copied: boolean; className?: string; onClick: () => void }) {
+function CodeBlockCopyButton({
+  copied,
+  className,
+  onClick,
+}: {
+  copied: boolean
+  className?: string
+  onClick: () => void
+}) {
   return (
     <Tooltip label={copied ? 'Copied' : 'Copy to clipboard'} side="left">
       <button

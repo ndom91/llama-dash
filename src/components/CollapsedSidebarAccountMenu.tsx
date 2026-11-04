@@ -1,27 +1,14 @@
 import Avatar from 'boring-avatars'
 import { LogOut } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { authClient } from '../lib/auth-client'
 import { cn } from '../lib/cn'
-import { useColorTheme } from '../lib/use-color-theme'
+import { type SidebarSession, signOutToLogin, useSidebarAccount } from '../lib/use-sidebar-account'
 import { Tooltip } from './Tooltip'
 
-type Session = ReturnType<typeof authClient.useSession>['data']
-
-export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession?: Session | null }) {
+export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession?: SidebarSession | null }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const { data: clientSession } = authClient.useSession()
-  const session = clientSession ?? initialSession
-  const colorTheme = useColorTheme()
-  const activeTheme = colorTheme.themes.find((theme) => theme.id === colorTheme.themeId) ?? colorTheme.themes[0]
-  const avatarColors = [
-    activeTheme.accent['300'],
-    activeTheme.accent['500'],
-    activeTheme.accent['700'],
-    activeTheme.status.info,
-    activeTheme.status.warn,
-  ]
+  const { session, avatarColors } = useSidebarAccount(initialSession)
   const username = session?.user.email ?? session?.user.name ?? 'dashboard user'
 
   useEffect(() => {
@@ -39,11 +26,6 @@ export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession
       window.removeEventListener('keydown', closeOnEscape)
     }
   }, [open])
-
-  async function signOut() {
-    await authClient.signOut()
-    window.location.href = '/login'
-  }
 
   return (
     <div ref={containerRef} className="relative hidden shrink-0 md:block">
@@ -74,7 +56,7 @@ export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession
               'mt-1 flex w-full items-center gap-2 rounded px-2.5 py-2 text-left font-mono text-xs text-fg-muted',
               'transition-[background-color,color] duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
             )}
-            onClick={signOut}
+            onClick={signOutToLogin}
           >
             <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
             Logout

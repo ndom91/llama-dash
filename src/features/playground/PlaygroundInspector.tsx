@@ -1,10 +1,10 @@
+import { CopyButton } from '../../components/CopyButton'
 import { useMemo, useState } from 'react'
 import { Tabs } from '../../components/Tabs'
 import { cn } from '../../lib/cn'
 import { useGpu, useModels } from '../../lib/queries'
 import type { InspectorState } from '../../lib/use-playground-chat'
 import { PlaygroundActiveModelCell } from './PlaygroundActiveModelCell'
-import { PlaygroundCopyButton } from './PlaygroundCopyButton'
 import { PlaygroundInspectorSection } from './PlaygroundInspectorSection'
 import { PlaygroundTimingBars } from './PlaygroundTimingBars'
 import { formatContextLength } from '../models/modelUtils'
@@ -99,7 +99,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         {tab === 'request' ? (
           <PlaygroundInspectorSection
             label={`POST ${inspector.lastRequestUrl ?? '/v1/chat/completions'}`}
-            action={requestJson ? <PlaygroundCopyButton text={requestJson} /> : null}
+            action={requestJson ? <CopyButton text={requestJson} /> : null}
           >
             {inspector.lastRequestUrl ? (
               <div className="flex items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2">
@@ -123,7 +123,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         {tab === 'response' ? (
           <PlaygroundInspectorSection
             label="response"
-            action={inspector.lastResponseText ? <PlaygroundCopyButton text={inspector.lastResponseText} /> : null}
+            action={inspector.lastResponseText ? <CopyButton text={inspector.lastResponseText} /> : null}
           >
             {inspector.lastResponseText ? (
               <pre className={inspectorPreClass}>{inspector.lastResponseText}</pre>
@@ -181,7 +181,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         {tab === 'curl' ? (
           <PlaygroundInspectorSection
             label="curl"
-            action={curlCommand ? <PlaygroundCopyButton text={curlCommand} /> : null}
+            action={curlCommand ? <CopyButton text={curlCommand} /> : null}
           >
             {curlCommand ? (
               <pre className={inspectorPreClass}>{curlCommand}</pre>

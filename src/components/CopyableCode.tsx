@@ -1,6 +1,6 @@
 import { Check, Copy } from 'lucide-react'
-import { useState } from 'react'
 import { cn } from '../lib/cn'
+import { useCopyToClipboard } from '../lib/use-copy-to-clipboard'
 import { Tooltip } from './Tooltip'
 
 type CopyableCodeSize = 's' | 'm' | 'l'
@@ -17,17 +17,11 @@ const sizeClasses: Record<CopyableCodeSize, string> = {
 }
 
 export function CopyableCode({ text, size = 's' }: Props) {
-  const [copied, setCopied] = useState(false)
+  const { copied, copy: copyText } = useCopyToClipboard(1500)
 
   const copy = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-      },
-      () => {},
-    )
+    void copyText(text)
   }
 
   return (

@@ -1,3 +1,4 @@
+import { cn } from '../lib/cn'
 import { StatusDot } from './StatusDot'
 import { Tooltip } from './Tooltip'
 
@@ -7,9 +8,7 @@ export function StatusCell({ code, streamed }: { code: number; streamed: boolean
   return (
     <span className="inline-flex items-baseline gap-1.5 leading-none">
       <StatusDot tone={ok ? 'ok' : 'err'} />
-      <span className="mono tabular-nums" style={{ color: ok ? 'var(--ok)' : 'var(--err)' }}>
-        {code}
-      </span>
+      <span className={cn('mono tabular-nums', ok ? 'text-ok' : 'text-err')}>{code}</span>
       {streamed ? (
         <Tooltip label="Server-sent events" side="top">
           <abbr className="mono tabular-nums text-[10px] text-fg-dim no-underline">SSE</abbr>

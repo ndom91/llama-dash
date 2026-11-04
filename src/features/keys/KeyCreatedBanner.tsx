@@ -1,37 +1,50 @@
 import { Check, Copy, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
-import { SuccessCheck } from '../../components/SuccessCheck'
+import type { ReactNode } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
-import type { ApiKeyCreated } from '../../lib/api'
+import { useCopyToClipboard } from '../../lib/use-copy-to-clipboard'
 
 type Props = {
-  created: ApiKeyCreated
+  rawKey: string
+  message: string
+  icon: ReactNode
+  className: string
   onDismiss: () => void
+  dismissLabel?: string
+  copyLabel?: string
+  copiedLabel?: string
 }
 
-export function KeyCreatedBanner({ created, onDismiss }: Props) {
-  const [copied, setCopied] = useState(false)
-
-  const copy = useCallback(() => {
-    navigator.clipboard.writeText(created.rawKey)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }, [created.rawKey])
+export function KeyCreatedBanner({
+  rawKey,
+  message,
+  icon,
+  className,
+  onDismiss,
+  dismissLabel,
+  copyLabel,
+  copiedLabel,
+}: Props) {
+  const { copied, copy } = useCopyToClipboard(2000)
 
   return (
-    <div className="mx-6 mt-3 rounded border border-ok bg-ok-bg px-4 py-3 max-md:mx-3">
+    <div className={cn('rounded border border-ok bg-ok-bg px-4 py-3', className)}>
       <div className="mb-2 flex items-center gap-2 text-[13px]">
-        <SuccessCheck className="text-ok" />
-        <strong>Key created — copy it now, it won't be shown again</strong>
-        <button type="button" className="btn btn-ghost btn-icon" onClick={onDismiss} style={{ marginLeft: 'auto' }}>
+        {icon}
+        <strong>{message}</strong>
+        <button type="button" className="btn btn-ghost btn-icon ml-auto" onClick={onDismiss} aria-label={dismissLabel}>
           <X size={14} strokeWidth={2} />
         </button>
       </div>
       <div className="flex items-center gap-2 rounded-sm border border-border bg-surface-1 px-3 py-2">
-        <code className="mono flex-1 break-all text-xs">{created.rawKey}</code>
+        <code className="mono flex-1 break-all text-xs">{rawKey}</code>
         <Tooltip label={copied ? 'Copied' : 'Copy'}>
-          <button type="button" className="btn btn-ghost btn-icon" onClick={copy}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon"
+            onClick={() => void copy(rawKey)}
+            aria-label={copied ? copiedLabel : copyLabel}
+          >
             <span className={cn('copy-icon-swap', copied && 'copy-icon-swap-done')}>
               <Copy className="copy-icon-swap-from" size={14} strokeWidth={2} />
               <Check className="copy-icon-swap-to text-ok" size={14} strokeWidth={2} />

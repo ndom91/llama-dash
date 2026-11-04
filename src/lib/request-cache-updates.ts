@@ -32,7 +32,7 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
     qk.requestsList,
     ...client
       .getQueryCache()
-      .findAll({ queryKey: ['requests', 'filtered-list'] })
+      .findAll({ queryKey: qk.requestsFilteredList })
       .filter((query) => {
         const minutes = query.queryKey[2]
         const status = query.queryKey[3]
@@ -62,7 +62,7 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
 
 export function invalidateRequestLists(client: QueryClient) {
   void client.invalidateQueries({ queryKey: qk.requestsList })
-  void client.invalidateQueries({ queryKey: ['requests', 'filtered-list'] })
+  void client.invalidateQueries({ queryKey: qk.requestsFilteredList })
   void client.invalidateQueries({ queryKey: qk.requestsRecentRoot })
 }
 

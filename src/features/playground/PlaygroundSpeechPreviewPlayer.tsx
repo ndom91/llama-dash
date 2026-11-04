@@ -132,12 +132,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
     }
   }, [isPlaying])
 
-  const barCount = useMemo(() => {
-    const usableWidth = Math.max(waveformWidth - WAVEFORM_SIDE_PADDING, 0)
-    const barSpan = WAVEFORM_BAR_WIDTH + WAVEFORM_BAR_GAP
-    if (usableWidth <= 0) return 48
-    return Math.max(1, Math.floor((usableWidth + WAVEFORM_BAR_GAP) / barSpan))
-  }, [waveformWidth])
+  const barCount = waveformBarCount(waveformWidth)
 
   const peaks = useMemo(() => {
     if (!buffer) return []
@@ -145,7 +140,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
   }, [buffer, barCount])
 
   const progress = duration > 0 ? Math.min(currentTime / duration, 1) : 0
-  const activeBars = useMemo(() => Math.round(progress * peaks.length), [progress, peaks.length])
+  const activeBars = Math.round(progress * peaks.length)
 
   const seekToClientX = useCallback(
     (clientX: number) => {
@@ -264,4 +259,11 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
       </div>
     </div>
   )
+}
+
+function waveformBarCount(waveformWidth: number): number {
+  const usableWidth = Math.max(waveformWidth - WAVEFORM_SIDE_PADDING, 0)
+  const barSpan = WAVEFORM_BAR_WIDTH + WAVEFORM_BAR_GAP
+  if (usableWidth <= 0) return 48
+  return Math.max(1, Math.floor((usableWidth + WAVEFORM_BAR_GAP) / barSpan))
 }
