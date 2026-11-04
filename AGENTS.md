@@ -67,9 +67,10 @@ src/
     playground/            · playground tabs, rails, and media tools
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
-    requests/              · request list/detail pages and payload helpers
+    requests/              · request list/detail pages, payload helpers, `RequestsFilterSidebar`, and `requestsSearch.ts` (/requests search-param type + validator)
     usage/                 · usage page: period switch, input/output chart, breakdown panels, and route/data loading skeletons
-    policies/              · routing, credentials, and MCP relays
+    policies/              · routing, credentials, and MCP relays (shared `PolicyPanel` shell)
+    system/                · system runtime/host panels (shared `SystemPanel` + `MetaRow`)
     config/, logs/         · config editor + log viewer feature-local pieces
   components/             — shared UI components reused across features
     Sidebar.tsx             · nav + `g`-leader shortcuts + VRAM-resident readout in footer
@@ -79,7 +80,8 @@ src/
     StatusCell.tsx          · status code + stream badge
     PageHeader.tsx          · reusable kicker + title + subtitle + actions
     Select.tsx              · base-ui select; single by default, `multiple` for multi-value filters
-    TopBar.tsx, Tooltip.tsx, ThemeToggle.tsx, CopyableCode.tsx
+    ThemeToggle.tsx         · segmented light/dark/system theme control
+    TopBar.tsx, Tooltip.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*
     queries.ts            — TanStack Query hooks (SSE refresh + slow polling fallback, infinite scroll)
@@ -90,7 +92,9 @@ src/
     series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
     nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
     is-typing-target.ts   — shared "is the user typing" guard for global key handlers
-    schemas/              — valibot schemas (single source of truth for API types)
+    format.ts             — shared compact-number, version, duration, and rate formatters
+    use-copy-to-clipboard.ts — shared copy hook; "copied" feedback only on successful writes
+    schemas/              — valibot schemas (single source of truth for API types; import per file, no barrel), incl. `playground.ts`
   server/                 — everything that runs in Node, never shipped to client
     auth.ts               — Better Auth dashboard session config + first-user signup guard + passkeys
     config.ts             — env-var loader (INFERENCE_BASE_URL, DATABASE_PATH, …)
@@ -194,8 +198,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/requests` — cursor-paginated list
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
-   - `/api/requests/:id` — detail with adjacent navigation
-   - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata and captured headers/bodies; metadata excludes payload columns at the SQL level
+   - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata (with adjacent navigation) and captured headers/bodies; metadata excludes payload columns at the SQL level. There is no bare `/api/requests/:id` route.
    - `/api/usage?days=1|7|30|90` — rolling 24-hour usage or the last N UTC days vs the preceding window, with totals, per-day series, and configured breakdowns
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series
    - `/api/health` — upstream reachability, version, latency
@@ -204,7 +207,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     - `/api/events` — lightweight llama-dash dashboard invalidation/data events
     - `/api/log-events` — llama-swap log SSE stream used only by the Logs page
     - `/api/gpu` — cached container CPU and GPU stats (VRAM, utilization, temp, power)
-   - `/api/system` — runtime, update status, DB, proxy, log queue, and poller status with GPU device details
+   - `/api/system` — runtime, update status, `models.dev` pricing catalog status, DB, proxy, log queue, and poller status with GPU device details
    - `/api/system/request-logs/prune`, `/api/system/database/compact` — manual request-log retention and SQLite compaction actions
    - `/api/playground/article-extract` — fetch and Readability-parse an article URL into clean text for Speech playground TTS
    - `/api/config` — read/save llama-swap config with schema validation enforced before writes
@@ -231,7 +234,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, a merged Models panel with a local group and one combined peer group, 15m/1h/6h/24h residency tracks, per-request ticks, traffic-derived peer health, and hover unload/logs actions, upstream+GPU,
     recent requests), Models (list + load/unload + capability badges + llama-swap selector routing + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (runtime,
-    update status, DB, proxy, queue, and GPU poller/device status), Playground
+    update status, pricing catalog, DB, proxy, queue, and GPU poller/device status), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
     with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
     image and transcription testing; timing sidebar shows TTFT, prefill,
@@ -345,7 +348,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     subscribed while the Logs page is mounted.
     JSON serialization and native SHA-256 validators are created together;
     conditional dispatch never rereads/rebuilds the response body. Captured payloads
-    and legacy full request detail use `no-store` and skip ETags.
+    use `no-store` and skip ETags.
     Request list/detail fetches use high browser fetch priority; speculative
     metadata and telemetry use low priority. Query abort signals reach fetch.
     The parsed validator LRU is capped at 128 entries / 4 MiB serialized text /

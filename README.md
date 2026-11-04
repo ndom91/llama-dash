@@ -30,7 +30,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 - Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
 - Route or reject requests, rewrite models, inject credentials and system prompts, and set request size limits.
 - Test chat, image, speech, and transcription models in the playground.
-- View logs, manage retention, and export Prometheus metrics at `/metrics`.
+- View logs and system status (including `models.dev` pricing catalog status), manage retention, and export Prometheus metrics at `/metrics`.
 - Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
 
 <table>

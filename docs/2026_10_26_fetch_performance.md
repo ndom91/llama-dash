@@ -21,7 +21,7 @@ columns in SQL and includes adjacent IDs. Payloads retain the existing recent-bo
 fallback and privacy behavior. Payload errors retain the metadata view and expose
 a local retry. Hover and adjacent prefetches fetch metadata only, avoiding
 speculative downloads of large prompt/response bodies. The legacy full-detail
-endpoint remains compatible. Payload Query cache entries expire after one minute
+endpoint has since been removed (see `2026_11_04_codebase_simplification.md`). Payload Query cache entries expire after one minute
 inactive and revalidate after 30 seconds so retention cleanup can take effect.
 
 ## SSE rendering
@@ -59,7 +59,7 @@ SHA-256 rather than a JavaScript character loop. The dispatcher compares the
 existing header without reading, decoding, re-encoding, or reconstructing the
 response. Matching GETs return bodyless 304s. Validators still require route data
 generation; this is not a cross-request response cache. Cache control is private.
-Sensitive captured-payload and legacy full-detail responses use `no-store` and
+Sensitive captured-payload responses use `no-store` and
 skip hashing entirely. Weak/strong/list/wildcard matching is tested.
 
 ## Interactive fetch priority
