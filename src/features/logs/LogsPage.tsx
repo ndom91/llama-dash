@@ -9,7 +9,7 @@ import { cn } from '../../lib/cn'
 import { useSystemStatus } from '../../lib/queries'
 import { useLlamaSwapLogs } from '../../lib/use-llama-swap-logs'
 import { HighlightedText } from './HighlightedText'
-import { LEVEL_CLASS, SOURCE_LABEL, formatLogTime, parseLogLevel } from './logsUtils'
+import { formatLogTime, LEVEL_CLASS, parseLogLevel, SOURCE_LABEL } from './logsUtils'
 
 type SourceFilter = 'all' | 'upstream' | 'proxy'
 
@@ -183,8 +183,8 @@ function LlamaSwapLogsPage() {
         />
 
         <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-wrap max-md:px-3">
-            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border">
+          <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-col max-md:items-stretch max-md:px-3">
+            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border max-md:h-10 max-md:border-x-0">
               {(['all', 'upstream', 'proxy'] as const).map((s) => (
                 <button
                   key={s}
@@ -193,33 +193,39 @@ function LlamaSwapLogsPage() {
                     'inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors',
                     filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg',
                   )}
+                  aria-pressed={filter === s}
                   onClick={() => setFilter(s)}
                 >
                   {s}
                 </button>
               ))}
+              <span className="ml-auto hidden items-center pl-3 font-mono text-[11px] text-fg-dim max-md:inline-flex">
+                {filtered.length} lines
+              </span>
             </div>
-            <div className="flex items-center gap-2 max-md:w-full max-md:flex-wrap">
-              <span className="mono text-[11px] text-fg-dim">{filtered.length} lines</span>
+            <div className="flex min-w-0 items-center gap-2 max-md:w-full max-md:py-2">
+              <span className="mono text-[11px] text-fg-dim max-md:hidden">{filtered.length} lines</span>
               <button
                 type="button"
                 className={
                   wrap
-                    ? 'btn btn-ghost btn-xs min-w-[64px] justify-center btn-active'
-                    : 'btn btn-ghost btn-xs min-w-[64px] justify-center'
+                    ? 'btn btn-ghost btn-xs min-w-[64px] justify-center btn-active max-md:order-2 max-md:min-h-10'
+                    : 'btn btn-ghost btn-xs min-w-[64px] justify-center max-md:order-2 max-md:min-h-10'
                 }
+                aria-pressed={wrap}
                 onClick={() => setWrap(!wrap)}
                 title={wrap ? 'Disable line wrap' : 'Enable line wrap'}
               >
                 <WrapText className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
                 wrap
               </button>
-              <div className="flex h-7 items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 focus-within:border-accent">
+              <div className="flex h-7 min-w-0 items-center gap-1 rounded-sm border border-border bg-surface-2 px-1.5 focus-within:border-accent max-md:h-10 max-md:flex-1">
                 <Search className="h-3 w-3 shrink-0 text-fg-dim" strokeWidth={2} aria-hidden="true" />
                 <input
                   id="log-filter"
                   type="text"
-                  className="w-[180px] border-none bg-transparent p-0 font-mono text-[11px] text-fg outline-none focus:outline-none focus-visible:outline-none"
+                  aria-label="Filter logs"
+                  className="w-[180px] max-md:w-full max-md:min-w-0 border-none bg-transparent p-0 font-mono text-[11px] text-fg outline-none focus:outline-none focus-visible:outline-none"
                   placeholder="filter…"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -234,6 +240,8 @@ function LlamaSwapLogsPage() {
                         ? 'rounded-sm bg-surface-4 px-1.5 py-px font-mono text-[10px] font-semibold text-accent'
                         : 'rounded-sm bg-transparent px-1.5 py-px font-mono text-[10px] font-semibold text-fg-dim hover:bg-surface-4 hover:text-fg-muted'
                     }
+                    aria-label="Use regular expression"
+                    aria-pressed={useRegex}
                     onClick={() => setUseRegex(!useRegex)}
                   >
                     .*
@@ -266,7 +274,7 @@ function LlamaSwapLogsPage() {
                   return (
                     <div
                       key={vi.key}
-                      className="flex items-start px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted hover:bg-surface-3 max-md:px-3"
+                      className="flex items-start px-3.5 font-mono text-[11.5px] leading-5 text-fg-muted hover:bg-surface-3 max-md:grid max-md:grid-cols-[auto_auto_1fr] max-md:gap-x-3 max-md:border-b max-md:border-border max-md:px-3 max-md:py-2"
                       data-index={vi.index}
                       ref={measureRow}
                       style={{
@@ -278,15 +286,15 @@ function LlamaSwapLogsPage() {
                         transform: `translateY(${vi.start}px)`,
                       }}
                     >
-                      <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim">
+                      <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim max-md:mr-0 max-md:w-auto">
                         {formatLogTime(line.ts)}
                       </span>
-                      <span className="mr-3 inline-block w-[78px] shrink-0 select-none text-fg-dim">
+                      <span className="mr-3 inline-block w-[78px] shrink-0 select-none text-fg-dim max-md:mr-0 max-md:w-auto">
                         {SOURCE_LABEL[line.source]}
                       </span>
                       <span
                         className={cn(
-                          'mr-3 inline-block w-[44px] shrink-0 select-none font-semibold uppercase tracking-[0.06em]',
+                          'mr-3 inline-block w-[44px] shrink-0 select-none font-semibold uppercase tracking-[0.06em] max-md:mr-0 max-md:w-auto',
                           level ? LEVEL_CLASS[level] : undefined,
                         )}
                       >
@@ -294,7 +302,7 @@ function LlamaSwapLogsPage() {
                       </span>
                       <span
                         className={cn(
-                          'block',
+                          'block max-md:col-span-3 max-md:mt-0.5',
                           wrap
                             ? 'min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]'
                             : 'min-w-max flex-none whitespace-pre',
