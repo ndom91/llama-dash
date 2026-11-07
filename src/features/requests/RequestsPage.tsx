@@ -203,9 +203,15 @@ export function RequestsPage() {
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
   const dropTokens = useMediaQuery('(max-width: 1100px)')
   const dropApiKey = useMediaQuery('(max-width: 900px)')
+  const mobile = useMediaQuery('(max-width: 600px)')
   const visibleCols = useMemo(() => {
     const set = new Set<RequestsColKey>(REQUESTS_ALL_COLS)
-    if (dropApiKey) set.delete('apiKey')
+    if (dropApiKey && !mobile) set.delete('apiKey')
+    if (mobile) {
+      set.delete('endpoint')
+      set.delete('status')
+      set.delete('duration')
+    }
     if (dropCacheCost) {
       set.delete('cache')
       set.delete('cost')
@@ -215,8 +221,11 @@ export function RequestsPage() {
       set.delete('tokOut')
     }
     return set
-  }, [dropApiKey, dropCacheCost, dropTokens])
-  const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
+  }, [dropApiKey, dropCacheCost, dropTokens, mobile])
+  const colWidths = useMemo(() => (mobile ? [86, '30%', 'auto'] : colWidthsFor(visibleCols)), [mobile, visibleCols])
+  const showEndpoint = visibleCols.has('endpoint')
+  const showStatus = visibleCols.has('status')
+  const showDuration = visibleCols.has('duration')
   const showApiKey = visibleCols.has('apiKey')
   const showCache = visibleCols.has('cache')
   const showCost = visibleCols.has('cost')
@@ -411,7 +420,9 @@ export function RequestsPage() {
                   <span className="panel-sub">
                     {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
                   </span>
-                  <span className="ml-auto font-mono text-[11px] text-fg-dim">↑↓ navigate · ⏎ open · / search</span>
+                  <span className="ml-auto font-mono text-[11px] text-fg-dim max-[600px]:hidden">
+                    ↑↓ navigate · ⏎ open · / search
+                  </span>
                 </div>
                 {isLoading ? (
                   <div className="empty-state">Loading requests…</div>
@@ -452,12 +463,19 @@ export function RequestsPage() {
                           >
                             t
                           </RequestsSortHeader>
-                          <th className="mono">endpoint</th>
+                          {showEndpoint ? <th className="mono">endpoint</th> : null}
                           {showApiKey ? <th>api key</th> : null}
                           <th>model</th>
-                          <RequestsSortHeader field="statusCode" current={sortKey} dir={sortDir} onToggle={toggleSort}>
-                            status
-                          </RequestsSortHeader>
+                          {showStatus ? (
+                            <RequestsSortHeader
+                              field="statusCode"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                            >
+                              status
+                            </RequestsSortHeader>
+                          ) : null}
                           {showTokIn ? (
                             <RequestsSortHeader
                               field="totalTokens"
@@ -472,15 +490,17 @@ export function RequestsPage() {
                           {showTokOut ? <th className="num">tok-out</th> : null}
                           {showCache ? <th className="num">cache</th> : null}
                           {showCost ? <th className="num">cost</th> : null}
-                          <RequestsSortHeader
-                            field="durationMs"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="num"
-                          >
-                            duration
-                          </RequestsSortHeader>
+                          {showDuration ? (
+                            <RequestsSortHeader
+                              field="durationMs"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="num"
+                            >
+                              duration
+                            </RequestsSortHeader>
+                          ) : null}
                         </tr>
                       </thead>
                     </table>
@@ -521,14 +541,16 @@ export function RequestsPage() {
                                         {formatWhen(r.startedAt)}
                                       </span>
                                     </td>
-                                    <td className="mono" translate="no">
-                                      <span
-                                        className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                                        title={r.endpoint}
-                                      >
-                                        {r.endpoint}
-                                      </span>
-                                    </td>
+                                    {showEndpoint ? (
+                                      <td className="mono" translate="no">
+                                        <span
+                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                                          title={r.endpoint}
+                                        >
+                                          {r.endpoint}
+                                        </span>
+                                      </td>
+                                    ) : null}
                                     {showApiKey ? (
                                       <td className="dim" translate="no">
                                         <span
@@ -561,9 +583,11 @@ export function RequestsPage() {
                                         ) : null}
                                       </div>
                                     </td>
-                                    <td>
-                                      <StatusCell code={r.statusCode} streamed={r.streamed} />
-                                    </td>
+                                    {showStatus ? (
+                                      <td>
+                                        <StatusCell code={r.statusCode} streamed={r.streamed} />
+                                      </td>
+                                    ) : null}
                                     {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
                                     {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
                                     {showCache ? (
@@ -576,9 +600,15 @@ export function RequestsPage() {
                                         {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
                                       </td>
                                     ) : null}
-                                    <td>
-                                      <DurationBar ms={r.durationMs} maxMs={maxDuration} isErr={r.statusCode >= 400} />
-                                    </td>
+                                    {showDuration ? (
+                                      <td>
+                                        <DurationBar
+                                          ms={r.durationMs}
+                                          maxMs={maxDuration}
+                                          isErr={r.statusCode >= 400}
+                                        />
+                                      </td>
+                                    ) : null}
                                   </tr>
                                 </tbody>
                               </table>

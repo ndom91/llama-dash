@@ -141,7 +141,7 @@ export function SystemPage() {
 
   return (
     <div className="content">
-      <div className="page min-h-full px-0">
+      <div className="page min-h-full min-w-0 px-0">
         <PageHeader {...HEADER_COPY} action={controls} variant="integrated" />
         <div className="flex min-h-0 min-w-0 flex-1">
           <SystemComponentsRail components={componentRows(status, telemetry, thresholds, health?.upstream.reachable)}>

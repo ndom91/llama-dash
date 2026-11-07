@@ -64,7 +64,7 @@ export function SystemResourceTiles({
     .join(' · ')
 
   return (
-    <div className="grid gap-3 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
+    <div className="grid min-w-0 grid-cols-1 gap-3 px-6 py-5 md:grid-cols-2 xl:grid-cols-4 max-md:px-4">
       <SystemResourceTile
         {...shared}
         label="cpu"

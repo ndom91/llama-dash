@@ -1175,7 +1175,6 @@
   }
 
   .page-header {
-    margin-inline: -12px;
     padding-inline: 12px;
   }
 }
@@ -1251,6 +1250,13 @@
   .page-header-integrated .page-header-action {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .page-header-integrated:has(.requests-live-badge) .page-header-action {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    width: auto;
   }
 }
 
