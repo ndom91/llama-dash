@@ -184,7 +184,7 @@ function LlamaSwapLogsPage() {
 
         <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-col max-md:items-stretch max-md:px-3">
-            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border max-md:h-10 max-md:border-x-0">
+            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border max-md:-mx-3 max-md:h-10 max-md:border-x-0 max-md:border-b max-md:px-3">
               {(['all', 'upstream', 'proxy'] as const).map((s) => (
                 <button
                   key={s}
