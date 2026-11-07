@@ -14,7 +14,7 @@ export function SystemRangeControls({
   intervalMs: number
 }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-fg-dim">
         <StatusDot tone="ok" live />
         live · {intervalMs / 1000}s

@@ -52,7 +52,16 @@ export function Sparkline({
         style={{ height }}
         aria-hidden="true"
       >
-        <line x1="0" y1={height - 2} x2={vw} y2={height - 2} stroke="var(--fg-faint)" strokeWidth={1} opacity={0.45} />
+        <line
+          x1="0"
+          y1={height - 2}
+          x2={vw}
+          y2={height - 2}
+          stroke="var(--fg-faint)"
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+          opacity={0.45}
+        />
       </svg>
     )
   }
@@ -83,7 +92,15 @@ export function Sparkline({
         </linearGradient>
       </defs>
       <path d={glowPath} fill={`url(#${id}-glow)`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

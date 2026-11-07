@@ -1,6 +1,6 @@
-import { useVirtualizer } from '@tanstack/react-virtual'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DurationBar } from '../../components/DurationBar'
@@ -13,32 +13,32 @@ import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
 import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
-import { formatCostUsd } from './requestDetailUtils'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
+import { formatCostUsd } from './requestDetailUtils'
 import {
   applyRequestFilters,
   colWidthsFor,
+  formatWhen,
   isMcpRelayRequest,
+  isProxyRequestKey,
   REQUEST_HOST_FILTER_NONE,
-  REQUESTS_ALL_COLS,
   REQUEST_KEY_FILTER_NONE,
   REQUEST_KEY_FILTER_PROXY,
+  REQUESTS_ALL_COLS,
   REQUESTS_ROW_HEIGHT,
+  type RequestListFilters,
   type RequestsColKey,
-  formatWhen,
-  isProxyRequestKey,
+  type RoutingFilter,
   requestKeyLabel,
   requestKeyNameFilterValue,
-  type RequestListFilters,
-  type RoutingFilter,
-  sortVal,
   type SortDir,
   type SortKey,
   type StatusFilter,
+  sortVal,
   toOption,
   uniqueSorted,
   withSelected,
@@ -72,6 +72,7 @@ export function RequestsPage() {
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
   const [searchDraft, setSearchDraft] = useState(search)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
@@ -259,7 +260,8 @@ export function RequestsPage() {
 
       if (e.key === '/' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault()
-        searchRef.current?.focus()
+        setFiltersOpen(true)
+        requestAnimationFrame(() => searchRef.current?.focus())
         return
       }
 
@@ -353,8 +355,10 @@ export function RequestsPage() {
         {isLoading && selectedMinutes.length === 0 ? (
           <RequestsPageSkeleton />
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1">
+          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[auto_minmax(400px,1fr)]">
             <RequestsFilterSidebar
+              open={filtersOpen}
+              onToggle={() => setFiltersOpen((open) => !open)}
               searchRef={searchRef}
               searchDraft={searchDraft}
               onSearchDraftChange={setSearchDraft}

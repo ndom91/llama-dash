@@ -77,7 +77,7 @@ export function SystemUnifiedMemoryPanel({
 
   return (
     <section className="border-t border-border">
-      <div className="flex h-10 items-center gap-3 border-b border-border px-6 max-md:px-4">
+      <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 border-b py-2 border-border px-6 max-md:px-4">
         <h2 className="panel-title">{unified ? 'Unified Memory' : 'GPU Memory'}</h2>
         <span className="font-mono text-[10px] text-fg-faint">
           {formatGiB(poolTotal)} GiB {unified ? 'shared between CPU and GPU' : 'dedicated'}

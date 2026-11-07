@@ -143,11 +143,11 @@ export function SystemPage() {
     <div className="content">
       <div className="page min-h-full px-0">
         <PageHeader {...HEADER_COPY} action={controls} variant="integrated" />
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1">
           <SystemComponentsRail components={componentRows(status, telemetry, thresholds, health?.upstream.reachable)}>
             <SystemThresholdsPanel thresholds={thresholds} />
           </SystemComponentsRail>
-          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
             {telemetry ? (
               <>
                 <SystemResourceTiles
@@ -160,7 +160,7 @@ export function SystemPage() {
                   fromMs={fromMs}
                   toMs={toMs}
                 />
-                <div className="grid border-t border-border xl:grid-cols-2">
+                <div className="grid min-w-0 grid-cols-1 border-t border-border xl:grid-cols-2">
                   <SystemUtilizationChart telemetry={telemetry} fromMs={fromMs} toMs={toMs} />
                   <SystemThermalsChart
                     telemetry={telemetry}
@@ -175,7 +175,7 @@ export function SystemPage() {
               <div className="h-80 animate-pulse border-b border-border bg-surface-1" />
             )}
             <SystemUnifiedMemoryPanel status={status} latest={telemetry?.latest ?? null} models={models} />
-            <div className="grid flex-1 md:grid-cols-2 xl:grid-cols-3 [&>*]:border-border md:[&>*:nth-child(even)]:border-l xl:[&>*:not(:nth-child(3n+1))]:border-l xl:[&>*:nth-child(even):nth-child(3n+1)]:border-l-0">
+            <div className="grid min-w-0 flex-1 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 [&>*]:border-border md:[&>*:nth-child(even)]:border-l xl:[&>*:not(:nth-child(3n+1))]:border-l xl:[&>*:nth-child(even):nth-child(3n+1)]:border-l-0">
               <SystemControlBusPanel status={status} />
               <SystemBackendPanel
                 status={status}

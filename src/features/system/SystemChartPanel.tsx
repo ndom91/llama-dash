@@ -14,11 +14,11 @@ export function SystemChartPanel({
   className?: string
 }) {
   return (
-    <section className={className}>
-      <div className="flex h-10 items-center gap-3 border-b border-border px-6 max-md:px-4">
+    <section className={`min-w-0 ${className ?? ''}`}>
+      <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 border-b py-2 border-border px-6 max-md:px-4">
         <h2 className="panel-title">{title}</h2>
         {aside ? <span className="font-mono text-[10px] text-fg-faint">{aside}</span> : null}
-        <div className="ml-auto flex items-center gap-3 font-mono text-[10px] text-fg-faint">
+        <div className="ml-auto flex flex-wrap items-center gap-3 font-mono text-[10px] text-fg-faint">
           {legend.map((item) => (
             <span key={item.label} className="inline-flex items-center gap-1.5">
               <span
