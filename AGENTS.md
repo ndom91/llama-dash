@@ -195,7 +195,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    structured `501` and UI routes should hide links or show direct-navigation
    fallbacks. See [`docs/2026_05_03_inference_backends.md`](./docs/2026_05_03_inference_backends.md).
 5. Admin API:
-   Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`.
+   Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`, `/api/login-meta`, and `/api/gpu` (public so Home Assistant can poll it).
    `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)

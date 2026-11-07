@@ -53,7 +53,8 @@ export default createServerEntry({
         return handleMcpRelayRequest(request)
       }
 
-      if (url.pathname === '/api/login-meta') {
+      // /api/gpu is public so Home Assistant can poll it without a session. It only exposes cached hardware stats.
+      if (url.pathname === '/api/login-meta' || url.pathname === '/api/gpu') {
         const { handleAdminRequest } = await import('./server/admin/handler.ts')
         return handleAdminRequest(request)
       }
