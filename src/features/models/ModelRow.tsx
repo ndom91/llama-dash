@@ -46,7 +46,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
             </span>
           </Tooltip>
           {capabilityBadges.length > 0 ? (
-            <span className="contents">
+            <span className="contents max-[768px]:hidden">
               <span className="sr-only">Capabilities: </span>
               {capabilityBadges.map((capability) => (
                 <span
@@ -60,7 +60,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
           ) : null}
         </div>
       </td>
-      <td className="model-row-name">{model.name}</td>
+      <td className={cn('model-row-name', model.name === model.id && 'max-[768px]:hidden')}>{model.name}</td>
       <td className="hide-mobile">
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
           {model.kind}
@@ -117,7 +117,7 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
             </Tooltip>
           )
         ) : (
-          <span className="mono dim" style={{ fontSize: 11 }}>
+          <span className="mono dim max-[768px]:hidden" style={{ fontSize: 11 }}>
             —
           </span>
         )}
