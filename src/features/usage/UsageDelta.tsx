@@ -10,10 +10,6 @@ type Props = {
   className?: string
 }
 
-/**
- * Period-over-period change. Deliberately neutral ink: more or fewer tokens is
- * not a good or bad *state*, so it never borrows the status colours.
- */
 export function UsageDelta({ current, previous, against, className }: Props) {
   const delta = usageDelta(current, previous)
   return (
@@ -24,7 +20,7 @@ export function UsageDelta({ current, previous, against, className }: Props) {
       )}
     >
       {delta.kind === 'change' && delta.direction !== 'flat' ? (
-        <span className="inline-flex items-center gap-0.5 text-fg-muted">
+        <span className={cn('inline-flex items-center gap-0.5', delta.direction === 'up' ? 'text-ok' : 'text-err')}>
           {delta.direction === 'up' ? (
             <ArrowUp className="size-3" strokeWidth={2} aria-label="up" />
           ) : (
