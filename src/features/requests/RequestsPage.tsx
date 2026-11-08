@@ -203,31 +203,22 @@ export function RequestsPage() {
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')
   const dropTokens = useMediaQuery('(max-width: 1100px)')
   const dropApiKey = useMediaQuery('(max-width: 900px)')
-  const mobile = useMediaQuery('(max-width: 600px)')
+  const mobile = useMediaQuery('(max-width: 768px)')
   const visibleCols = useMemo(() => {
     const set = new Set<RequestsColKey>(REQUESTS_ALL_COLS)
-    if (dropApiKey && !mobile) set.delete('apiKey')
-    if (mobile) {
-      set.delete('endpoint')
-      set.delete('duration')
-    }
+    if (mobile) return set
+    if (dropApiKey) set.delete('apiKey')
     if (dropCacheCost) {
       set.delete('cache')
       set.delete('cost')
     }
     if (dropTokens) {
       set.delete('tokIn')
-      if (!mobile) set.delete('tokOut')
+      set.delete('tokOut')
     }
     return set
   }, [dropApiKey, dropCacheCost, dropTokens, mobile])
-  const colWidths = useMemo(
-    () => (mobile ? [74, 'auto', 'auto', 54, 58] : colWidthsFor(visibleCols)),
-    [mobile, visibleCols],
-  )
-  const showEndpoint = visibleCols.has('endpoint')
-  const showStatus = visibleCols.has('status')
-  const showDuration = visibleCols.has('duration')
+  const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
   const showApiKey = visibleCols.has('apiKey')
   const showCache = visibleCols.has('cache')
   const showCost = visibleCols.has('cost')
@@ -451,24 +442,28 @@ export function RequestsPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
-                    <table className="dtable dtable-virtual max-[600px]:[&_th]:px-1 max-[600px]:[&_td]:px-1">
-                      <RequestsVirtualColgroup widths={colWidths} />
-                      <thead>
-                        <tr>
-                          <RequestsSortHeader
-                            field="startedAt"
-                            current={sortKey}
-                            dir={sortDir}
-                            onToggle={toggleSort}
-                            className="mono"
-                          >
-                            t
-                          </RequestsSortHeader>
-                          {showEndpoint ? <th className="mono">endpoint</th> : null}
-                          {showApiKey ? <th>api key</th> : null}
-                          <th>model</th>
-                          {showStatus ? (
+                  <section
+                    className="dtable-virtual-wrap min-w-0 max-h-none max-[768px]:overflow-x-auto"
+                    aria-label="Request log table"
+                    tabIndex={mobile ? 0 : undefined}
+                  >
+                    <div className="flex min-h-0 flex-1 flex-col max-[768px]:min-w-[1280px]">
+                      <table className="dtable dtable-virtual">
+                        <RequestsVirtualColgroup widths={colWidths} />
+                        <thead>
+                          <tr>
+                            <RequestsSortHeader
+                              field="startedAt"
+                              current={sortKey}
+                              dir={sortDir}
+                              onToggle={toggleSort}
+                              className="mono"
+                            >
+                              t
+                            </RequestsSortHeader>
+                            <th className="mono">endpoint</th>
+                            {showApiKey ? <th>api key</th> : null}
+                            <th>model</th>
                             <RequestsSortHeader
                               field="statusCode"
                               current={sortKey}
@@ -477,22 +472,20 @@ export function RequestsPage() {
                             >
                               status
                             </RequestsSortHeader>
-                          ) : null}
-                          {showTokIn ? (
-                            <RequestsSortHeader
-                              field="totalTokens"
-                              current={sortKey}
-                              dir={sortDir}
-                              onToggle={toggleSort}
-                              className="num"
-                            >
-                              tok-in
-                            </RequestsSortHeader>
-                          ) : null}
-                          {showTokOut ? <th className="num">tok-out</th> : null}
-                          {showCache ? <th className="num">cache</th> : null}
-                          {showCost ? <th className="num">cost</th> : null}
-                          {showDuration ? (
+                            {showTokIn ? (
+                              <RequestsSortHeader
+                                field="totalTokens"
+                                current={sortKey}
+                                dir={sortDir}
+                                onToggle={toggleSort}
+                                className="num"
+                              >
+                                tok-in
+                              </RequestsSortHeader>
+                            ) : null}
+                            {showTokOut ? <th className="num">tok-out</th> : null}
+                            {showCache ? <th className="num">cache</th> : null}
+                            {showCost ? <th className="num">cost</th> : null}
                             <RequestsSortHeader
                               field="durationMs"
                               current={sortKey}
@@ -502,48 +495,46 @@ export function RequestsPage() {
                             >
                               duration
                             </RequestsSortHeader>
-                          ) : null}
-                        </tr>
-                      </thead>
-                    </table>
-                    <div ref={scrollRef} className="dtable-virtual-body">
-                      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-                        {virtualizer.getVirtualItems().map((vRow) => {
-                          const r = rows[vRow.index]
-                          const keyLabel = requestKeyLabel(r)
-                          return (
-                            // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
-                            <div
-                              key={r.id}
-                              tabIndex={-1}
-                              className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
-                              style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: REQUESTS_ROW_HEIGHT,
-                                transform: `translateY(${vRow.start}px)`,
-                              }}
-                              onPointerEnter={(e) => {
-                                if (e.pointerType !== 'touch') setHoveredRequestId(r.id)
-                              }}
-                              onPointerLeave={() => setHoveredRequestId(null)}
-                              onClick={() => openRequest(r.id)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') openRequest(r.id)
-                              }}
-                            >
-                              <table className="dtable dtable-virtual max-[600px]:[&_th]:px-1 max-[600px]:[&_td]:px-1">
-                                <RequestsVirtualColgroup widths={colWidths} />
-                                <tbody>
-                                  <tr>
-                                    <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
-                                      <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
-                                        {formatWhen(r.startedAt)}
-                                      </span>
-                                    </td>
-                                    {showEndpoint ? (
+                          </tr>
+                        </thead>
+                      </table>
+                      <div ref={scrollRef} className="dtable-virtual-body">
+                        <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+                          {virtualizer.getVirtualItems().map((vRow) => {
+                            const r = rows[vRow.index]
+                            const keyLabel = requestKeyLabel(r)
+                            return (
+                              // biome-ignore lint/a11y/noStaticElementInteractions: virtual row wrapper, keyboard nav handled in page-level listeners
+                              <div
+                                key={r.id}
+                                tabIndex={-1}
+                                className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: 0,
+                                  width: '100%',
+                                  height: REQUESTS_ROW_HEIGHT,
+                                  transform: `translateY(${vRow.start}px)`,
+                                }}
+                                onPointerEnter={(e) => {
+                                  if (e.pointerType !== 'touch') setHoveredRequestId(r.id)
+                                }}
+                                onPointerLeave={() => setHoveredRequestId(null)}
+                                onClick={() => openRequest(r.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') openRequest(r.id)
+                                }}
+                              >
+                                <table className="dtable dtable-virtual">
+                                  <RequestsVirtualColgroup widths={colWidths} />
+                                  <tbody>
+                                    <tr>
+                                      <td className="mono dim" style={{ whiteSpace: 'nowrap' }}>
+                                        <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                                          {formatWhen(r.startedAt)}
+                                        </span>
+                                      </td>
                                       <td className="mono" translate="no">
                                         <span
                                           className="block overflow-hidden text-ellipsis whitespace-nowrap"
@@ -552,57 +543,53 @@ export function RequestsPage() {
                                           {r.endpoint}
                                         </span>
                                       </td>
-                                    ) : null}
-                                    {showApiKey ? (
-                                      <td className="dim" translate="no">
-                                        <span
-                                          className="block overflow-hidden text-ellipsis whitespace-nowrap"
-                                          title={keyLabel}
-                                        >
-                                          {keyLabel}
-                                        </span>
-                                      </td>
-                                    ) : null}
-                                    <td className="dim" translate="no">
-                                      <div className="flex min-w-0 items-center gap-2">
-                                        <span
-                                          className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-                                          title={r.model ?? '—'}
-                                        >
-                                          {r.model ?? '—'}
-                                        </span>
-                                        {r.routingActionType ? (
+                                      {showApiKey ? (
+                                        <td className="dim" translate="no">
                                           <span
-                                            className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info max-[1400px]:hidden"
-                                            title={`${r.routingRuleName ?? 'routing rule'} · ${r.routingActionType}${r.routingRoutedModel ? ` · ${r.routingRoutedModel}` : ''}`}
+                                            className="block overflow-hidden text-ellipsis whitespace-nowrap"
+                                            title={keyLabel}
                                           >
-                                            {r.routingActionType === 'rewrite_model'
-                                              ? 'rewrite'
-                                              : r.routingActionType === 'continue' || r.routingActionType === 'noop'
-                                                ? 'continue'
-                                                : 'reject'}
+                                            {keyLabel}
                                           </span>
-                                        ) : null}
-                                      </div>
-                                    </td>
-                                    {showStatus ? (
-                                      <td className="max-[600px]:[&_abbr]:sr-only">
+                                        </td>
+                                      ) : null}
+                                      <td className="dim" translate="no">
+                                        <div className="flex min-w-0 items-center gap-2">
+                                          <span
+                                            className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+                                            title={r.model ?? '—'}
+                                          >
+                                            {r.model ?? '—'}
+                                          </span>
+                                          {r.routingActionType ? (
+                                            <span
+                                              className="shrink-0 border border-info/30 bg-info/10 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-info max-[1400px]:hidden"
+                                              title={`${r.routingRuleName ?? 'routing rule'} · ${r.routingActionType}${r.routingRoutedModel ? ` · ${r.routingRoutedModel}` : ''}`}
+                                            >
+                                              {r.routingActionType === 'rewrite_model'
+                                                ? 'rewrite'
+                                                : r.routingActionType === 'continue' || r.routingActionType === 'noop'
+                                                  ? 'continue'
+                                                  : 'reject'}
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                      </td>
+                                      <td>
                                         <StatusCell code={r.statusCode} streamed={r.streamed} />
                                       </td>
-                                    ) : null}
-                                    {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
-                                    {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
-                                    {showCache ? (
-                                      <td className="num dim">
-                                        {'cacheReadTokens' in r ? (r.cacheReadTokens?.toLocaleString() ?? '—') : '—'}
-                                      </td>
-                                    ) : null}
-                                    {showCost ? (
-                                      <td className="num">
-                                        {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
-                                      </td>
-                                    ) : null}
-                                    {showDuration ? (
+                                      {showTokIn ? <td className="num dim">{r.promptTokens ?? '—'}</td> : null}
+                                      {showTokOut ? <td className="num">{r.completionTokens ?? '—'}</td> : null}
+                                      {showCache ? (
+                                        <td className="num dim">
+                                          {'cacheReadTokens' in r ? (r.cacheReadTokens?.toLocaleString() ?? '—') : '—'}
+                                        </td>
+                                      ) : null}
+                                      {showCost ? (
+                                        <td className="num">
+                                          {'costUsd' in r && r.costUsd != null ? formatCostUsd(r.costUsd) : '—'}
+                                        </td>
+                                      ) : null}
                                       <td>
                                         <DurationBar
                                           ms={r.durationMs}
@@ -610,21 +597,21 @@ export function RequestsPage() {
                                           isErr={r.statusCode >= 400}
                                         />
                                       </td>
-                                    ) : null}
-                                  </tr>
-                                </tbody>
-                              </table>
-                            </div>
-                          )
-                        })}
-                      </div>
-                      {isFetchingNextPage ? (
-                        <div className="empty-state" style={{ paddingBlock: 8 }}>
-                          loading more…
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            )
+                          })}
                         </div>
-                      ) : null}
+                        {isFetchingNextPage ? (
+                          <div className="empty-state" style={{ paddingBlock: 8 }}>
+                            loading more…
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
+                  </section>
                 )}
               </section>
             </div>
