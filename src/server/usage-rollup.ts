@@ -17,6 +17,10 @@ import type Database from 'better-sqlite3'
 export const DAY_MS = 24 * 60 * 60 * 1000
 const PRUNED_BEFORE_KEY = 'usage_rollup_pruned_before'
 const BACKFILL_CURSOR_KEY = 'usage_rollup_backfill_cursor'
+// Increment when rollup dimensions or aggregation semantics change.
+const BACKFILL_VERSION_KEY = 'usage_rollup_backfill_version'
+const BACKFILL_RUN_VERSION_KEY = 'usage_rollup_backfill_run_version'
+const BACKFILL_VERSION = '1'
 
 export function getPrunedBefore(sqlite: Database.Database, now: number, retentionDays: number): number {
   const row = sqlite.prepare('select value from settings where key = ?').get(PRUNED_BEFORE_KEY) as
@@ -46,24 +50,44 @@ export function backfillDays(sqlite: Database.Database, now: number, retentionDa
   const cursorRow = sqlite.prepare('select value from settings where key = ?').get(BACKFILL_CURSOR_KEY) as
     | { value: string }
     | undefined
-  const cursor = cursorRow?.value === 'complete' ? '' : (cursorRow?.value ?? '')
-  if (!cursorRow || cursorRow.value === 'complete') {
-    sqlite
-      .prepare(`insert into settings (key, value, updated_at) values (?, ?, ?)
-      on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at`)
-      .run(BACKFILL_CURSOR_KEY, '', now)
+  const runVersion = sqlite.prepare('select value from settings where key = ?').get(BACKFILL_RUN_VERSION_KEY) as
+    | { value: string }
+    | undefined
+  const cursor =
+    runVersion?.value === BACKFILL_VERSION && cursorRow?.value !== 'complete' ? (cursorRow?.value ?? '') : ''
+  const version = sqlite.prepare('select value from settings where key = ?').get(BACKFILL_VERSION_KEY) as
+    | { value: string }
+    | undefined
+  const needsUpgrade = version?.value !== BACKFILL_VERSION
+  if (!cursorRow || cursorRow.value === 'complete' || runVersion?.value !== BACKFILL_VERSION) {
+    sqlite.transaction(() => {
+      const set = sqlite.prepare(`insert into settings (key, value, updated_at) values (?, ?, ?)
+        on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at`)
+      set.run(BACKFILL_CURSOR_KEY, '', now)
+      set.run(BACKFILL_RUN_VERSION_KEY, BACKFILL_VERSION, now)
+    })()
   }
   const rawDays = sqlite
-    .prepare(`select distinct date(started_at / 1000, 'unixepoch') as day
-    from requests where request_class = 'inference'`)
-    .all() as Array<{ day: string }>
-  const rolledUp = new Set(
-    (sqlite.prepare('select distinct day from request_daily_stats').all() as Array<{ day: string }>).map((r) => r.day),
+    .prepare(`select date(started_at / 1000, 'unixepoch') as day, count(*) as requests
+    from requests where request_class = 'inference' group by day`)
+    .all() as Array<{ day: string; requests: number }>
+  const rolledUp = new Map(
+    (
+      sqlite.prepare('select day, sum(requests) as requests from request_daily_stats group by day').all() as Array<{
+        day: string
+        requests: number
+      }>
+    ).map((row) => [row.day, row.requests]),
   )
   const today = utcDay(now)
   return rawDays
+    .filter(
+      ({ day, requests }) =>
+        day > cursor &&
+        day <= today &&
+        (!rolledUp.has(day) || (dayToMs(day) >= prunedBefore && (needsUpgrade || rolledUp.get(day) !== requests))),
+    )
     .map((row) => row.day)
-    .filter((day) => day > cursor && day <= today && (!rolledUp.has(day) || dayToMs(day) >= prunedBefore))
     .sort()
 }
 
@@ -190,9 +214,15 @@ export function backfillDay(sqlite: Database.Database, day: string, now: number)
 }
 
 export function finishBackfill(sqlite: Database.Database, now: number): void {
-  sqlite
-    .prepare('update settings set value = ?, updated_at = ? where key = ?')
-    .run('complete', now, BACKFILL_CURSOR_KEY)
+  sqlite.transaction(() => {
+    sqlite
+      .prepare('update settings set value = ?, updated_at = ? where key = ?')
+      .run('complete', now, BACKFILL_CURSOR_KEY)
+    sqlite
+      .prepare(`insert into settings (key, value, updated_at) values (?, ?, ?)
+        on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at`)
+      .run(BACKFILL_VERSION_KEY, BACKFILL_VERSION, now)
+  })()
 }
 
 type RefreshOptions = {

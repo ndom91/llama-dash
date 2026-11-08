@@ -259,6 +259,25 @@ describe('request daily stats rollup', () => {
     expect(backfillDays(sqlite, NOW, 30)).toEqual([pending[1]])
   })
 
+  it('skips unchanged retained days after a completed backfill and repairs a changed count', () => {
+    const day = TODAY - 3 * DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: day + HOUR_MS }])
+    backfillTestUsage(sqlite, NOW, 30)
+    expect(backfillDays(sqlite, NOW, 30)).toEqual([])
+    insertTestRequests(sqlite, [{ id: 'second', startedAt: day + 2 * HOUR_MS }])
+    expect(backfillDays(sqlite, NOW, 30)).toEqual([utcDay(day)])
+  })
+
+  it('restarts an interrupted backfill when its aggregation version changes', () => {
+    const day = TODAY - 3 * DAY_MS
+    insertTestRequests(sqlite, [{ id: 'first', startedAt: day + HOUR_MS }])
+    backfillTestUsage(sqlite, NOW, 30)
+    sqlite.prepare('update settings set value = ? where key = ?').run('old', 'usage_rollup_backfill_version')
+    sqlite.prepare('update settings set value = ? where key = ?').run('old', 'usage_rollup_backfill_run_version')
+    sqlite.prepare('update settings set value = ? where key = ?').run(utcDay(TODAY), 'usage_rollup_backfill_cursor')
+    expect(backfillDays(sqlite, NOW, 30)).toEqual([utcDay(day)])
+  })
+
   it('keeps a processed day current when a request completes before backfill resumes', () => {
     const day = TODAY - 3 * DAY_MS
     insertTestRequests(sqlite, [{ id: 'first', startedAt: day + HOUR_MS, completionTokens: 100 }])
