@@ -23,3 +23,13 @@ trustPolicy: no-downgrade
 trustPolicyExclude:
   - semver@6.3.1
   - undici-types@6.21.0
+skills:
+  dirs:
+    - .agents/skills
+permissions:
+  '@tanstack/devtools-vite':
+    skills: true
+  '@tanstack/react-start':
+    skills: true
+  '@tanstack/router-plugin':
+    skills: true
