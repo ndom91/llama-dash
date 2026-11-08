@@ -86,8 +86,11 @@ export function PlaygroundMessage({
             <span className="t-acc-chevron">
               <ChevronDown className="size-3 shrink-0" strokeWidth={2} />
             </span>
-            <span>reasoning</span>
-            {isReasoning && isLast ? <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pg-pulse" /> : null}
+            {isReasoning && isLast ? (
+              <span className="t-shimmer" data-text="reasoning">reasoning</span>
+            ) : (
+              <span>reasoning</span>
+            )}
             {message.reasoningTimeMs ? (
               <span className="dim">{(message.reasoningTimeMs / 1000).toFixed(1)}s</span>
             ) : null}
@@ -128,9 +131,13 @@ export function PlaygroundMessage({
             isAssistant && 'pg-msg-markdown',
           )}
         >
-          {isAssistant ? (
+          {isAssistant && !message.content && isStreaming && isLast ? (
+            <span role="status" className="t-shimmer" data-text={isReasoning ? 'Reasoning…' : 'Waiting for response…'}>
+              {isReasoning ? 'Reasoning…' : 'Waiting for response…'}
+            </span>
+          ) : isAssistant ? (
             <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-              {message.content || (isStreaming && isLast ? '…' : '')}
+              {message.content}
             </Markdown>
           ) : (
             <p className="m-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
@@ -181,10 +188,11 @@ export function PlaygroundMessage({
       ) : null}
 
       {!isAssistant && showActions ? (
-        <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+        <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
           <Tooltip label="Edit">
             <button
               type="button"
+              aria-label="Edit message"
               className="flex h-6 w-6 items-center justify-center rounded-sm bg-transparent text-fg-dim transition-[background-color,color,transform] duration-100 hover:bg-surface-1 hover:text-fg active:scale-[0.96]"
               onClick={startEdit}
             >
