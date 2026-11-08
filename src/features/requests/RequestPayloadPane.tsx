@@ -67,7 +67,12 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
             hasBody ? 'min-h-[25%] max-h-[50%] max-md:min-h-0' : 'min-h-0 flex-1 max-h-none',
           )}
         >
-          <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
+          <div
+            className={cn(
+              'headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim',
+              !showHeaders && 'max-md:border-b-0',
+            )}
+          >
             <span className="max-md:hidden">Headers</span>
             <button
               type="button"

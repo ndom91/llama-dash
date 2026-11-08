@@ -63,7 +63,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
   const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5 max-md:mt-0 max-md:pt-0'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
-  const statMetricCell = 'border-r border-b border-border px-4 py-3.5 min-[1500px]:border-b-0'
+  const statMetricCell = 'border-r border-b border-border px-4 py-3.5 min-[1500px]:border-b-0 max-md:border-b-0'
   const navButtonClass =
     'inline-flex h-8 w-8 max-md:h-11 max-md:w-11 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
@@ -268,7 +268,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             </DetailSection>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 max-md:overflow-visible max-md:py-0 [&>div:first-child]:mt-0 [&>div:first-child]:border-t-0 [&>div:first-child]:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 max-md:overflow-visible max-md:py-0 [&>section:first-child]:mt-0 [&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
             {hasAttribution ? (
               <DetailSection title="Attribution" className={railSectionDivider}>
                 <dl className="detail-meta-list">
@@ -474,7 +474,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         </aside>
 
         <div className="flex min-h-0 min-w-0 flex-col gap-0 max-md:order-1">
-          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
+          <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border max-md:border-t-0">
             <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2 max-md:grid-cols-3">
               <div className={cn(statMetricCell, 'max-md:hidden')}>
                 <div className={endpointMetricLabel}>status</div>
