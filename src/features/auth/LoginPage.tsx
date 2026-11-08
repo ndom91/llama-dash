@@ -327,7 +327,7 @@ function SignInForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
-      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
+      <h1 className="m-0 font-display text-2xl font-semibold tracking-[-0.03em] text-fg">Sign in</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">to continue to llama-dash</p>
       <Field label="username or email" value={username} onChange={setUsername} autoComplete="username webauthn" />
       <PasswordField
@@ -388,7 +388,7 @@ function SignUpForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="mx-auto my-auto w-full max-w-[272px] max-lg:max-w-[320px]">
-      <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
+      <h1 className="m-0 font-display text-2xl font-semibold tracking-[-0.03em] text-fg">Create operator</h1>
       <p className="mt-1 font-mono text-xs text-fg-dim">first account on this instance · will be granted admin</p>
       <Field label="username" value={username} onChange={setUsername} autoComplete="username" />
       <Field label="email" value={email} onChange={setEmail} autoComplete="email" type="email" />

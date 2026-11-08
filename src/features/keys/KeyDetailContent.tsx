@@ -84,7 +84,7 @@ export function KeyDetailContent({ data }: Props) {
         titleNode={
           editingName ? (
             <input
-              className="h-8 w-[min(360px,60vw)] rounded border border-border bg-surface-3 px-2.5 text-xl font-semibold -tracking-[0.015em] text-fg outline-none transition-[border-color,box-shadow] focus:border-accent focus:shadow-focus"
+              className="h-8 w-[min(360px,60vw)] rounded border border-border bg-surface-3 px-2.5 font-display text-xl font-semibold -tracking-[0.015em] text-fg outline-none transition-[border-color,box-shadow] focus:border-accent focus:shadow-focus"
               value={nameDraft}
               ref={nameInputRef}
               disabled={renameKey.isPending}
