@@ -6,21 +6,21 @@ export function RequestDetailSkeleton() {
     <>
       <PageHeaderSkeleton titleWidth={220} />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0">
-        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b">
+      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-md:flex max-md:flex-col">
+        <aside className="min-w-0 border-r border-border bg-surface-1 px-3.5 py-4 max-[1200px]:px-3 max-[1024px]:border-r-0 max-[1024px]:border-b max-md:order-2 max-md:hidden">
           <DetailRailSection title="Summary" rows={7} />
           <DetailRailSection title="Model" rows={3} divider />
           <DetailRailSection title="Routing" rows={3} divider />
           <DetailRailSection title="Timing" rows={4} divider />
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-col gap-0">
+        <div className="flex min-h-0 min-w-0 flex-col gap-0 max-md:order-1">
           <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
-            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
+            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2 max-md:grid-cols-3">
               {['status', 'tok-in', 'tok-out', 'total', 'duration', 'tok/s'].map((label, index) => (
                 <div
                   key={label}
-                  className={`border-border px-4 py-4 ${index % 3 !== 2 ? 'border-r' : ''} ${index < 5 ? 'max-[1500px]:border-b' : ''} ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r'} max-[1024px]:border-b`}
+                  className={`border-border px-4 py-4 ${['status', 'total', 'tok/s'].includes(label) ? 'max-md:hidden' : ''} ${index % 3 !== 2 ? 'border-r' : ''} ${index < 5 ? 'max-[1500px]:border-b' : ''} ${index % 2 === 1 ? 'max-[1024px]:border-r-0' : 'max-[1024px]:border-r'} max-[1024px]:border-b`}
                 >
                   <span className="block font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">{label}</span>
                   <span className="mt-2 block skel skel-text" style={{ width: 48, height: 22 }} />
@@ -29,7 +29,7 @@ export function RequestDetailSkeleton() {
             </div>
           </div>
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
+          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 max-md:order-2">
             <div className="panel-head bg-surface-1 px-4">
               <span className="panel-title">Stream</span>
               <span className="panel-sub">· token trace</span>
@@ -41,7 +41,7 @@ export function RequestDetailSkeleton() {
             </div>
           </section>
 
-          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+          <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 flex min-h-0 flex-1 flex-col max-md:order-1">
             <div className="panel-head bg-surface-1 px-4">
               <span className="panel-title">Payloads</span>
               <span className="panel-sub">request • response</span>

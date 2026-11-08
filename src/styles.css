@@ -2010,3 +2010,21 @@ a {
   transform: translateY(0);
   filter: blur(0);
 }
+
+@media (max-width: 767px) {
+  .page-header:has(.request-detail-title) .page-header-kicker > span:not(:first-child) {
+    display: none;
+  }
+  .page-header:has(.request-detail-title) .page-header-action {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    width: auto;
+  }
+  .page-header:has(.request-detail-title) .page-header-kicker {
+    padding-right: 100px;
+  }
+  .request-detail-grid .detail-meta-list dd {
+    overflow-wrap: anywhere;
+  }
+}

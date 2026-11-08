@@ -1,21 +1,22 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
-import type { ApiRequestMetadata } from '../../lib/schemas/request'
-import type { RequestPayloadState } from './requestPayloadState'
-import { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 import { cn } from '../../lib/cn'
+import { formatDuration } from '../../lib/format'
 import { isLeaderPending } from '../../lib/nav-leader'
 import {
-  StoredCredentialInjectionAuditSchema,
   type StoredCredentialInjectionAudit,
+  StoredCredentialInjectionAuditSchema,
 } from '../../lib/schemas/credential-injection'
+import type { ApiRequestMetadata } from '../../lib/schemas/request'
+import { RequestPayloadsPanel } from './RequestPayloadsPanel'
+import { RequestTokenTrace } from './RequestTokenTrace'
 import {
   buildCurlCommand,
   calculateTokPerSec,
@@ -23,10 +24,9 @@ import {
   deriveRewriteLabel,
   formatCostUsd,
 } from './requestDetailUtils'
-import { formatDuration } from '../../lib/format'
-import { RequestPayloadsPanel } from './RequestPayloadsPanel'
-import { RequestTokenTrace } from './RequestTokenTrace'
+import type { RequestPayloadState } from './requestPayloadState'
 import { formatWhen, isProxyRequestKey, requestKeyLabel } from './requestsListUtils'
+import { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 
 type Props = {
   req: ApiRequestMetadata
@@ -60,12 +60,12 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
   })
   const railSectionTitle = 'mb-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint'
   const missingDetailValue = isMetadataLoading || payloads.status === 'loading' ? 'loading…' : '—'
-  const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5'
+  const railSectionDivider = 'mt-3.5 border-t border-border pt-3.5 max-md:mt-0 max-md:pt-0'
   const endpointMetricLabel = 'font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim'
   const endpointMetricValue = 'mt-1 font-mono text-[17px] font-semibold tracking-[-0.03em] text-fg'
   const statMetricCell = 'border-r border-b border-border px-4 py-3.5 min-[1500px]:border-b-0'
   const navButtonClass =
-    'inline-flex h-8 w-8 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
+    'inline-flex h-8 w-8 max-md:h-11 max-md:w-11 items-center justify-center rounded border outline-none focus-visible:border-fg-dim focus-visible:shadow-none active:scale-95'
 
   useHotkey('H', (e) => {
     if (isNavigating || !prevId) return
@@ -129,6 +129,17 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
       <PageHeader
         kicker={kickerParts.join(' · ')}
         title={`${req.method} ${req.endpoint}`}
+        titleNode={
+          <div className="request-detail-title flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="page-header-title m-0 min-w-0 break-all text-xl font-semibold -tracking-[0.015em] text-fg">
+              {req.method} {req.endpoint}
+            </h1>
+            <span className={cn('hidden font-mono text-xs font-semibold max-md:inline', statusColor)}>
+              {req.statusCode}
+              {ok ? ' OK' : ''}
+            </span>
+          </div>
+        }
         subtitle={
           <span translate="no">
             <span>{modelLabel ?? 'request detail'}</span>
@@ -138,7 +149,14 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         variant="integrated"
         action={
           <div className="flex items-center gap-2">
-            {hasCompleteDetail ? <CopyButton text={curlCommand} label="copy curl" variant="button" /> : null}
+            {hasCompleteDetail ? (
+              <CopyButton
+                text={curlCommand}
+                label="copy curl"
+                variant="button"
+                className="btn btn-ghost btn-sm max-md:hidden"
+              />
+            ) : null}
             <div className="flex shrink-0 items-center gap-1.5">
               <Tooltip
                 label={
@@ -152,6 +170,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   <Link
                     to="/requests/$id"
                     params={{ id: prevId }}
+                    aria-label="Newer request"
                     className={cn(
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
@@ -182,6 +201,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   <Link
                     to="/requests/$id"
                     params={{ id: nextId }}
+                    aria-label="Older request"
                     className={cn(
                       navButtonClass,
                       'border-border-strong text-fg-muted transition-[background-color,color,border-color,transform] duration-100 hover:border-fg-dim hover:bg-surface-3 hover:text-fg',
@@ -205,52 +225,52 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         }
       />
 
-      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-[1024px]:flex-none">
-        <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b">
-          <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3">
-            <div className={railSectionTitle}>Summary</div>
-            <dl className="detail-meta-list">
-              <div>
-                <dt>method</dt>
-                <dd>{req.method}</dd>
-              </div>
-              <div>
-                <dt>endpoint</dt>
-                <dd className="mono">{req.endpoint}</dd>
-              </div>
-              <div>
-                <dt>status</dt>
-                <dd className={statusColor}>
-                  {req.statusCode} {ok ? 'OK' : ''}
-                </dd>
-              </div>
-              <div>
-                <dt>stream</dt>
-                <dd>{req.streamed ? 'yes • SSE' : 'no'}</dd>
-              </div>
-              <div>
-                <dt>key</dt>
-                <dd>{keyLabel}</dd>
-              </div>
-              <div>
-                {/* Labeled `host`, not `client`: this is the origin hostname
+      <div className="request-detail-grid grid min-h-0 flex-1 items-stretch gap-0 max-[1024px]:flex-none max-md:flex max-md:flex-col">
+        <aside className="flex min-h-0 min-w-0 flex-col border-r border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-b max-md:order-2">
+          <div className="border-b border-border px-3.5 py-4 max-[1200px]:px-3 max-md:py-0">
+            <DetailSection title="Summary">
+              <dl className="detail-meta-list">
+                <div>
+                  <dt>method</dt>
+                  <dd>{req.method}</dd>
+                </div>
+                <div>
+                  <dt>endpoint</dt>
+                  <dd className="mono">{req.endpoint}</dd>
+                </div>
+                <div>
+                  <dt>status</dt>
+                  <dd className={statusColor}>
+                    {req.statusCode} {ok ? 'OK' : ''}
+                  </dd>
+                </div>
+                <div>
+                  <dt>stream</dt>
+                  <dd>{req.streamed ? 'yes • SSE' : 'no'}</dd>
+                </div>
+                <div>
+                  <dt>key</dt>
+                  <dd>{keyLabel}</dd>
+                </div>
+                <div>
+                  {/* Labeled `host`, not `client`: this is the origin hostname
                     derived from request headers. The Attribution section below
                     has its own `client` (req.clientName), and two rows in the
                     same rail sharing one label meant different things. */}
-                <dt>host</dt>
-                <dd>{clientLabel ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>date</dt>
-                <dd className="mono">{formatWhen(req.startedAt)}</dd>
-              </div>
-            </dl>
+                  <dt>host</dt>
+                  <dd>{clientLabel ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>date</dt>
+                  <dd className="mono">{formatWhen(req.startedAt)}</dd>
+                </div>
+              </dl>
+            </DetailSection>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 [&>div:first-child]:mt-0 [&>div:first-child]:border-t-0 [&>div:first-child]:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 max-md:overflow-visible max-md:py-0 [&>div:first-child]:mt-0 [&>div:first-child]:border-t-0 [&>div:first-child]:pt-0">
             {hasAttribution ? (
-              <div className={railSectionDivider}>
-                <div className={railSectionTitle}>Attribution</div>
+              <DetailSection title="Attribution" className={railSectionDivider}>
                 <dl className="detail-meta-list">
                   <div>
                     <dt>client</dt>
@@ -293,11 +313,10 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                     </dd>
                   </div>
                 </dl>
-              </div>
+              </DetailSection>
             ) : null}
 
-            <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Model</div>
+            <DetailSection title="Model" className={railSectionDivider}>
               <dl className="detail-meta-list">
                 <div>
                   <dt>requested</dt>
@@ -320,10 +339,9 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   </dd>
                 </div>
               </dl>
-            </div>
+            </DetailSection>
 
-            <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Routing</div>
+            <DetailSection title="Routing" className={railSectionDivider} hint={req.routingRuleName ?? undefined}>
               {isRouted ? (
                 <dl className="detail-meta-list">
                   {req.routingRuleName ? (
@@ -393,10 +411,9 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   {isMetadataLoading ? 'loading routing detail…' : 'no routing rule matched'}
                 </div>
               )}
-            </div>
+            </DetailSection>
 
-            <div className={railSectionDivider}>
-              <div className={railSectionTitle}>Timing</div>
+            <DetailSection title="Timing" className={railSectionDivider}>
               <dl className="detail-meta-list">
                 {/* prefill is llama.cpp `prompt_ms`; real TTFT needs queue/network time we don't capture. */}
                 <div>
@@ -415,15 +432,51 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   <dt>close</dt>
                   <dd>{timing.streamCloseMs != null ? formatDuration(timing.streamCloseMs) : missingDetailValue}</dd>
                 </div>
+                <div className="md:hidden">
+                  <dt>total tokens</dt>
+                  <dd>{req.totalTokens?.toLocaleString() ?? '—'}</dd>
+                </div>
+                <div className="md:hidden">
+                  <dt>tok/s</dt>
+                  <dd>{tokPerSec?.toLocaleString() ?? '—'}</dd>
+                </div>
               </dl>
+            </DetailSection>
+          </div>
+          {hasCostInfo ? (
+            <div className="border-t border-border px-3 md:hidden">
+              <DetailSection title="Cost">
+                <dl className="detail-meta-list">
+                  <div>
+                    <dt>cache write</dt>
+                    <dd>{req.cacheCreationTokens?.toLocaleString() ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>cache read</dt>
+                    <dd>{req.cacheReadTokens?.toLocaleString() ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>cost</dt>
+                    <dd>{req.costUsd != null ? formatCostUsd(req.costUsd) : '—'}</dd>
+                  </div>
+                </dl>
+              </DetailSection>
             </div>
+          ) : null}
+          <div className="border-t border-border px-3 md:hidden">
+            <DetailSection title="Request ID">
+              <div className="flex items-center gap-2">
+                <span className="mono min-w-0 break-all text-xs">{req.id}</span>
+                <CopyButton text={req.id} label="copy" ariaLabel="Copy request ID" />
+              </div>
+            </DetailSection>
           </div>
         </aside>
 
-        <div className="flex min-h-0 min-w-0 flex-col gap-0">
+        <div className="flex min-h-0 min-w-0 flex-col gap-0 max-md:order-1">
           <div className="border-r border-b border-border bg-surface-1 max-[1024px]:border-r-0 max-[1024px]:border-t max-[1024px]:border-t-border">
-            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2">
-              <div className={statMetricCell}>
+            <div className="grid min-h-[72px] grid-cols-6 max-[1500px]:grid-cols-3 max-[1024px]:grid-cols-2 max-md:grid-cols-3">
+              <div className={cn(statMetricCell, 'max-md:hidden')}>
                 <div className={endpointMetricLabel}>status</div>
                 <div className={cn(endpointMetricValue, statusColor)}>{req.statusCode}</div>
               </div>
@@ -435,7 +488,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                 <div className={endpointMetricLabel}>tok-out</div>
                 <div className={endpointMetricValue}>{req.completionTokens?.toLocaleString() ?? '—'}</div>
               </div>
-              <div className={statMetricCell}>
+              <div className={cn(statMetricCell, 'max-md:hidden')}>
                 <div className={endpointMetricLabel}>total</div>
                 <div className={endpointMetricValue}>{req.totalTokens?.toLocaleString() ?? '—'}</div>
               </div>
@@ -443,7 +496,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                 <div className={endpointMetricLabel}>duration</div>
                 <div className={endpointMetricValue}>{formatDuration(req.durationMs)}</div>
               </div>
-              <div className={cn(statMetricCell, 'border-r-0')}>
+              <div className={cn(statMetricCell, 'border-r-0 max-md:hidden')}>
                 <div className={endpointMetricLabel}>tok/s</div>
                 <div className={endpointMetricValue}>{tokPerSec?.toLocaleString() ?? '—'}</div>
               </div>
@@ -454,20 +507,22 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
           req.firstOutputMs != null ||
           timing.prefillMs != null ||
           timing.decodeMs != null ? (
-            <RequestTokenTrace
-              durationMs={req.durationMs}
-              completionTokens={req.completionTokens}
-              streamed={req.streamed}
-              tokPerSec={tokPerSec}
-              prefillMs={timing.prefillMs}
-              decodeMs={timing.decodeMs}
-              firstOutputMs={req.firstOutputMs}
-              outputSpanMs={req.outputSpanMs}
-            />
+            <div className="max-md:order-3">
+              <RequestTokenTrace
+                durationMs={req.durationMs}
+                completionTokens={req.completionTokens}
+                streamed={req.streamed}
+                tokPerSec={tokPerSec}
+                prefillMs={timing.prefillMs}
+                decodeMs={timing.decodeMs}
+                firstOutputMs={req.firstOutputMs}
+                outputSpanMs={req.outputSpanMs}
+              />
+            </div>
           ) : null}
 
           {req.error ? (
-            <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1">
+            <section className="panel !rounded-none !border-l-0 !border-r border-r-border !border-b-0 !bg-surface-1 max-md:order-1">
               <div className="panel-head bg-surface-1 px-4">
                 <span className="panel-title text-err">Error</span>
               </div>
@@ -477,7 +532,9 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             </section>
           ) : null}
 
-          <RequestPayloadsPanel request={req} state={payloads} analysis={payloadAnalysis} onRetry={onRetryPayloads} />
+          <div className="flex min-h-0 flex-1 flex-col max-md:order-2">
+            <RequestPayloadsPanel request={req} state={payloads} analysis={payloadAnalysis} onRetry={onRetryPayloads} />
+          </div>
         </div>
 
         {/* The sidecar carries only what appears nowhere else on the page. */}
@@ -537,6 +594,40 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         </aside>
       </div>
     </>
+  )
+}
+
+function DetailSection({
+  title,
+  hint,
+  className,
+  children,
+}: {
+  title: string
+  hint?: string
+  className?: string
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <section className={className}>
+      <div className="mb-2.5 hidden font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint md:block">
+        {title}
+      </div>
+      <button
+        type="button"
+        className="flex min-h-11 w-full items-center gap-2 text-left font-mono text-xs text-fg md:hidden"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <span>{title}</span>
+        {hint ? <span className="min-w-0 truncate text-fg-dim">· {hint}</span> : null}
+        <span className="ml-auto" aria-hidden="true">
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      <div className={cn('max-md:pb-3', !open && 'max-md:hidden')}>{children}</div>
+    </section>
   )
 }
 

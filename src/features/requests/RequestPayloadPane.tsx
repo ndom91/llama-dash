@@ -2,10 +2,10 @@ import { ChevronDown } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { cn } from '../../lib/cn'
+import { RequestSseEvents } from './RequestSseEvents'
+import { RequestTextView } from './RequestTextView'
 import type { ParsedSseStream } from './requestDetailUtils'
 import { groupHeaders, maskSensitive, prettyPrintJsonLenient, tryPrettyJson } from './requestDetailUtils'
-import { RequestTextView } from './RequestTextView'
-import { RequestSseEvents } from './RequestSseEvents'
 
 type Props = {
   title: string
@@ -37,6 +37,7 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
   const headerEntries = useMemo(() => (deferredHeaders ? Object.entries(deferredHeaders) : []), [deferredHeaders])
   const groupedHeaders = useMemo(() => groupHeaders(headerEntries), [headerEntries])
   const [showBoilerplate, setShowBoilerplate] = useState(false)
+  const [showHeaders, setShowHeaders] = useState(false)
 
   return (
     <section className="request-payload-pane flex h-full min-h-0 min-w-0 flex-col border-r border-border last:border-r-0 max-[1024px]:h-96">
@@ -63,55 +64,65 @@ export function RequestPayloadPane({ title, subtitle, body, headers, mode, sseSt
         <div
           className={cn(
             'headers-scroll overflow-auto border-t border-border',
-            hasBody ? 'min-h-[25%] max-h-[50%]' : 'min-h-0 flex-1 max-h-none',
+            hasBody ? 'min-h-[25%] max-h-[50%] max-md:min-h-0' : 'min-h-0 flex-1 max-h-none',
           )}
         >
           <div className="headers-scroll-head sticky top-0 z-[1] border-b border-border bg-surface-0 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-fg-dim">
-            Headers
+            <span className="max-md:hidden">Headers</span>
+            <button
+              type="button"
+              className="hidden w-full items-center justify-between text-left max-md:flex"
+              aria-expanded={showHeaders}
+              onClick={() => setShowHeaders(!showHeaders)}
+            >
+              Headers <span aria-hidden="true">{showHeaders ? '−' : '+'}</span>
+            </button>
           </div>
-          <table className="dtable headers-table">
-            <tbody>
-              {groupedHeaders.primary.map(([k, v]) => (
-                <tr key={k}>
-                  <td className="mono header-key">{k}</td>
-                  <td className="mono header-value">{maskSensitive(k, v)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {groupedHeaders.boilerplate.length > 0 ? (
-            <div className="t-acc border-t border-border" data-open={showBoilerplate}>
-              <button
-                type="button"
-                className="t-acc-head flex w-full items-center gap-1.5 bg-surface-0 px-3.5 py-1.5 text-left"
-                onClick={() => setShowBoilerplate((prev) => !prev)}
-                aria-expanded={showBoilerplate}
-                aria-controls={`request-${title}-browser-headers`}
-              >
-                <span className="t-acc-chevron">
-                  <ChevronDown className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-                </span>
-                <span className="font-mono text-[11px] text-fg-dim">
-                  {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
-                  {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
-                </span>
-              </button>
-              <div id={`request-${title}-browser-headers`} className="t-acc-panel" aria-hidden={!showBoilerplate}>
-                <div className="t-acc-panel-inner">
-                  <table className="dtable headers-table">
-                    <tbody>
-                      {groupedHeaders.boilerplate.map(([k, v]) => (
-                        <tr key={k}>
-                          <td className="mono header-key header-key-muted">{k}</td>
-                          <td className="mono header-value">{maskSensitive(k, v)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          <div className={showHeaders ? '' : 'max-md:hidden'}>
+            <table className="dtable headers-table">
+              <tbody>
+                {groupedHeaders.primary.map(([k, v]) => (
+                  <tr key={k}>
+                    <td className="mono header-key">{k}</td>
+                    <td className="mono header-value">{maskSensitive(k, v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {groupedHeaders.boilerplate.length > 0 ? (
+              <div className="t-acc border-t border-border" data-open={showBoilerplate}>
+                <button
+                  type="button"
+                  className="t-acc-head flex w-full items-center gap-1.5 bg-surface-0 px-3.5 py-1.5 text-left"
+                  onClick={() => setShowBoilerplate((prev) => !prev)}
+                  aria-expanded={showBoilerplate}
+                  aria-controls={`request-${title}-browser-headers`}
+                >
+                  <span className="t-acc-chevron">
+                    <ChevronDown className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                  </span>
+                  <span className="font-mono text-[11px] text-fg-dim">
+                    {showBoilerplate ? 'hide' : 'show'} {groupedHeaders.boilerplate.length} browser{' '}
+                    {groupedHeaders.boilerplate.length === 1 ? 'header' : 'headers'}
+                  </span>
+                </button>
+                <div id={`request-${title}-browser-headers`} className="t-acc-panel" aria-hidden={!showBoilerplate}>
+                  <div className="t-acc-panel-inner">
+                    <table className="dtable headers-table">
+                      <tbody>
+                        {groupedHeaders.boilerplate.map(([k, v]) => (
+                          <tr key={k}>
+                            <td className="mono header-key header-key-muted">{k}</td>
+                            <td className="mono header-value">{maskSensitive(k, v)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       ) : null}
     </section>
