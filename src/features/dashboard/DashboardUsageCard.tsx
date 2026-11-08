@@ -17,18 +17,20 @@ export function DashboardUsageCard({ label, window, against, days }: Props) {
     <Link
       to="/usage"
       search={{ days }}
-      className="stat-card min-h-[68px] no-underline transition-[background-color] duration-120 hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      className="stat-card relative min-h-[68px] no-underline transition-[background-color] duration-120 hover:bg-surface-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       aria-label={`${label}: open usage for ${days === 1 ? 'the last 24 hours' : `the last ${days} days`}`}
     >
-      <div className="stat-card-label">{label}</div>
+      <div className="stat-card-label min-[769px]:pr-[145px]">{label}</div>
       <div className="stat-card-row flex-wrap">
         <span className="stat-card-value">{window ? formatTokens(window.completionTokens) : '—'}</span>
         <span className="stat-card-unit">tokens</span>
         {window?.comparisonIncomplete ? (
-          <span className="ml-auto font-mono text-[11px] text-fg-dim">history incomplete</span>
+          <span className="ml-auto font-mono text-[11px] text-fg-dim min-[769px]:absolute min-[769px]:top-3.5 min-[769px]:right-4">
+            history incomplete
+          </span>
         ) : window ? (
           <UsageDelta
-            className="ml-auto"
+            className="ml-auto min-[769px]:absolute min-[769px]:top-3.5 min-[769px]:right-4"
             current={window.completionTokens}
             previous={window.previous}
             against={against}
