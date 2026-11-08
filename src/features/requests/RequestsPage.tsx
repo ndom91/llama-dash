@@ -51,7 +51,7 @@ import {
 import type { RequestsSearch } from './requestsSearch'
 
 const requestsRouteApi = getRouteApi('/requests/')
-const MOBILE_COL_WIDTHS = [92, 160, 120, 160, 96, 70, 70, 70, 75, 110]
+const MOBILE_COL_WIDTHS = [92, 144, 120, 160, 96, 70, 70, 70, 75, 110]
 const MOBILE_TABLE_WIDTH = MOBILE_COL_WIDTHS.reduce((sum, width) => sum + width, 0)
 
 export function RequestsPage() {
