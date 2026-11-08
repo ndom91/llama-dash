@@ -1,6 +1,6 @@
+import { SegmentedControl } from '../../components/SegmentedControl'
 import type { RoutingRule } from '../../lib/api'
 import { setDirectTargetBaseUrl, setDirectTargetCredential, setTargetType } from './routing-draft'
-import { SegmentedControl } from './routing-ui'
 
 export function RoutingRuleTargetSection({
   draft,
@@ -18,6 +18,8 @@ export function RoutingRuleTargetSection({
         <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">· upstream destination</span>
       </div>
       <SegmentedControl
+        legend="Routing target"
+        variant="routing"
         options={[
           { value: 'llama_swap', label: 'llama-swap' },
           { value: 'direct', label: 'direct upstream' },

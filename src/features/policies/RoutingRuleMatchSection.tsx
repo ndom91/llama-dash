@@ -1,7 +1,8 @@
 import { NumberInput } from '../../components/NumberInput'
+import { SegmentedControl } from '../../components/SegmentedControl'
 import type { RoutingRule } from '../../lib/api'
 import { addMatchValue, asStreamMode, removeMatchValue, setMatchField } from './routing-draft'
-import { SegmentedControl, TokenInput } from './routing-ui'
+import { TokenInput } from './routing-ui'
 
 export function RoutingRuleMatchSection({
   draft,
@@ -61,6 +62,8 @@ export function RoutingRuleMatchSection({
         <div className="space-y-1.5">
           <div className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">Stream</div>
           <SegmentedControl
+            legend="Stream match"
+            variant="routing"
             options={[
               { value: 'any', label: 'any' },
               { value: 'stream', label: 'stream only' },

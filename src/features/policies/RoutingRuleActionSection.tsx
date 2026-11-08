@@ -1,6 +1,7 @@
+import { SegmentedControl } from '../../components/SegmentedControl'
 import type { RoutingRule } from '../../lib/api'
 import { setActionType, setRejectReason, setRewriteModel } from './routing-draft'
-import { SegmentedControl, type RoutingActionType } from './routing-ui'
+import type { RoutingActionType } from './routing-ui'
 
 export function RoutingRuleActionSection({
   draft,
@@ -19,6 +20,8 @@ export function RoutingRuleActionSection({
           <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-fg-faint">· one action</span>
         </div>
         <SegmentedControl
+          legend="Routing action"
+          variant="routing"
           options={[
             { value: 'rewrite_model', label: 'rewrite model' },
             { value: 'reject', label: 'reject' },

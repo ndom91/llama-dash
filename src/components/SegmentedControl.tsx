@@ -1,21 +1,29 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { cn } from '../lib/cn'
 
 type Props<T extends string | number> = {
   legend: string
-  options: ReadonlyArray<{ value: T; label: string }>
+  options: ReadonlyArray<{ value: T; label: ReactNode }>
   value: T
   onChange: (value: T) => void
+  variant?: 'accent' | 'theme' | 'routing' | 'strip'
 }
 
-export function SegmentedControl<T extends string | number>({ legend, options, value, onChange }: Props<T>) {
+export function SegmentedControl<T extends string | number>({
+  legend,
+  options,
+  value,
+  onChange,
+  variant = 'accent',
+}: Props<T>) {
   const barRef = useRef<HTMLFieldSetElement>(null)
   const pillRef = useRef<HTMLSpanElement>(null)
   const buttonsRef = useRef(new Map<T, HTMLButtonElement>())
   const positioned = useRef(false)
   const [ready, setReady] = useState(false)
+  const optionKey = JSON.stringify(options.map((option) => option.value))
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: remeasure when the option set changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: optionKey tracks changes to the option set
   useEffect(() => {
     const bar = barRef.current
     const pill = pillRef.current
@@ -43,12 +51,15 @@ export function SegmentedControl<T extends string | number>({ legend, options, v
     observer.observe(bar)
     for (const button of buttonsRef.current.values()) observer.observe(button)
     return () => observer.disconnect()
-  }, [value, options])
+  }, [value, optionKey])
 
   return (
     <fieldset
       ref={barRef}
-      className="t-tabs segmented-control m-0 flex min-w-0 shrink-0 overflow-hidden rounded border border-border bg-surface-2 p-0.5"
+      className={cn(
+        't-tabs segmented-control m-0 flex min-w-0 shrink-0 overflow-hidden rounded border border-border bg-surface-2 p-0.5',
+        `segmented-control--${variant}`,
+      )}
     >
       <legend className="sr-only">{legend}</legend>
       <span ref={pillRef} className="t-tabs-pill segmented-control-pill" data-ready={ready} aria-hidden="true" />

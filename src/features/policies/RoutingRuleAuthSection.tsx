@@ -1,7 +1,7 @@
+import { SegmentedControl } from '../../components/SegmentedControl'
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { setAuthMode, togglePreserveAuthorization } from './routing-draft'
-import { SegmentedControl } from './routing-ui'
 
 export function RoutingRuleAuthSection({
   draft,
@@ -19,6 +19,8 @@ export function RoutingRuleAuthSection({
         </span>
       </div>
       <SegmentedControl
+        legend="Routing authentication"
+        variant="routing"
         options={[
           { value: 'require_key', label: 'require llama-dash key' },
           { value: 'passthrough', label: 'passthrough auth' },

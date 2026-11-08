@@ -3,6 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { Eraser, Search, WrapText } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
+import { SegmentedControl } from '../../components/SegmentedControl'
 import { StatusDot } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
@@ -12,6 +13,12 @@ import { HighlightedText } from './HighlightedText'
 import { formatLogTime, LEVEL_CLASS, parseLogLevel, SOURCE_LABEL } from './logsUtils'
 
 type SourceFilter = 'all' | 'upstream' | 'proxy'
+
+const SOURCE_OPTIONS: ReadonlyArray<{ value: SourceFilter; label: string }> = [
+  { value: 'all', label: 'all' },
+  { value: 'upstream', label: 'upstream' },
+  { value: 'proxy', label: 'proxy' },
+]
 
 function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -184,21 +191,14 @@ function LlamaSwapLogsPage() {
 
         <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 items-center justify-between border-b border-border bg-surface-1 px-[18px] max-md:flex-col max-md:items-stretch max-md:px-3">
-            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border divide-x divide-border max-md:-mx-3 max-md:h-10 max-md:border-x-0 max-md:border-b max-md:px-3">
-              {(['all', 'upstream', 'proxy'] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className={cn(
-                    'inline-flex h-full items-center justify-center px-2.5 font-mono text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors',
-                    filter === s ? 'bg-surface-4 text-accent' : 'text-fg-dim hover:bg-surface-3 hover:text-fg',
-                  )}
-                  aria-pressed={filter === s}
-                  onClick={() => setFilter(s)}
-                >
-                  {s}
-                </button>
-              ))}
+            <div className="inline-flex h-12 items-stretch overflow-hidden border-x border-border max-md:-mx-3 max-md:h-10 max-md:border-x-0 max-md:border-b max-md:px-3">
+              <SegmentedControl
+                legend="Log source"
+                options={SOURCE_OPTIONS}
+                value={filter}
+                onChange={setFilter}
+                variant="strip"
+              />
               <span className="ml-auto hidden items-center pl-3 font-mono text-[11px] text-fg-dim max-md:inline-flex">
                 {filtered.length} lines
               </span>

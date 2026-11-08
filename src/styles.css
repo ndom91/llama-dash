@@ -2156,3 +2156,85 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .t-tabs-pill, .t-tab, .t-dropdown, .t-text-swap { transition: none !important; }
 }
+
+/* Shared segmented controls retain the visual treatment of their context. */
+.segmented-control .segmented-control-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.segmented-control.segmented-control--theme {
+  background: var(--bg-0);
+}
+.segmented-control--theme .segmented-control-pill {
+  background: var(--bg-3);
+}
+.segmented-control--theme .segmented-control-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  color: var(--fg-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.segmented-control--theme .segmented-control-tab[aria-pressed='true'] {
+  color: var(--fg);
+}
+.segmented-control--theme:has(.segmented-control-pill[data-ready='false']) .segmented-control-tab[aria-pressed='true'] {
+  background: var(--bg-3);
+}
+.segmented-control.segmented-control--routing {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-3);
+}
+.segmented-control--routing .segmented-control-pill {
+  border: 1px solid color-mix(in srgb, var(--accent) 75%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.segmented-control--routing .segmented-control-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 12px;
+  color: var(--fg);
+  font-size: 12px;
+}
+.segmented-control--routing .segmented-control-tab[aria-pressed='true'] {
+  color: var(--fg);
+}
+.segmented-control--routing:has(.segmented-control-pill[data-ready='false']) .segmented-control-tab[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.segmented-control.segmented-control--strip {
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.segmented-control--strip .segmented-control-pill {
+  top: 0;
+  bottom: 0;
+  border-radius: 0;
+  background: var(--bg-4);
+}
+.segmented-control--strip .segmented-control-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.segmented-control--strip .segmented-control-tab[aria-pressed='true'] {
+  color: var(--accent);
+}
+.segmented-control--strip:has(.segmented-control-pill[data-ready='false']) .segmented-control-tab[aria-pressed='true'] {
+  background: var(--bg-4);
+}
