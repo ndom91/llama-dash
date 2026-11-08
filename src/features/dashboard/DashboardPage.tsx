@@ -1,11 +1,11 @@
 import { PageHeader } from '../../components/PageHeader'
+import { formatRate } from '../../lib/format'
 import { useGpu, useHealth, useModels, useRecentRequests, useRequestStats, useUsageSummary } from '../../lib/queries'
-import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
 import { DashboardModelsPanel } from './DashboardModelsPanel'
+import { DashboardRecentRequestsPanel } from './DashboardRecentRequestsPanel'
 import { DashboardStatCard } from './DashboardStatCard'
 import { DashboardTelemetryPanel } from './DashboardTelemetryPanel'
 import { DashboardUsageCard } from './DashboardUsageCard'
-import { formatRate } from '../../lib/format'
 import { formatLatency } from './dashboardUtils'
 
 export function DashboardPage() {
@@ -26,9 +26,9 @@ export function DashboardPage() {
           variant="integrated"
         />
 
-        <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:grid-cols-1 max-[900px]:[grid-template-areas:'telemetry''main']">
+        <div className="grid min-h-0 flex-1 grid-cols-[250px_minmax(0,1fr)] gap-0 [grid-template-areas:'telemetry_main'] max-[900px]:flex max-[900px]:flex-none max-[900px]:flex-col">
           <DashboardTelemetryPanel health={health} gpu={gpu} />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border max-[900px]:border-l-0">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border max-[900px]:flex-none max-[900px]:border-l-0">
             <div className="dashboard-stats-row grid grid-cols-4 gap-0 border-b border-border max-[1100px]:grid-cols-2 max-[700px]:grid-cols-1">
               <DashboardStatCard
                 label="req/s · 1m"
