@@ -26,8 +26,8 @@ import { cn } from '../lib/cn'
 import { LEADER_KEY } from '../lib/nav-leader'
 import { useGpu, useModels, useRunningModels, useSystemStatus } from '../lib/queries'
 import type { ApiSystemStatus } from '../lib/schemas/system'
-import { type SidebarSession, signOutToLogin, useSidebarAccount } from '../lib/use-sidebar-account'
 import { useMobileMenu } from '../lib/use-mobile-menu'
+import { type SidebarSession, signOutToLogin, useSidebarAccount } from '../lib/use-sidebar-account'
 import { CollapsedSidebarAccountMenu } from './CollapsedSidebarAccountMenu'
 import { CollapsedSidebarMetrics } from './CollapsedSidebarMetrics'
 import { Logo } from './Logo'
@@ -131,7 +131,7 @@ export function Sidebar({ collapsed = false, onToggleCollapsed, initialSession, 
     <aside
       className={cn(
         'bg-surface-0 border-r border-border flex flex-col overflow-hidden',
-        'max-md:fixed max-md:top-0 max-md:left-0 max-md:bottom-0 max-md:w-[260px] max-md:z-[100] max-md:-translate-x-full max-md:transition-transform max-md:duration-200',
+        'max-md:fixed max-md:top-0 max-md:left-0 max-md:bottom-0 max-md:h-dvh max-md:w-[260px] max-md:z-[100] max-md:-translate-x-full max-md:transition-transform max-md:duration-200',
         open && 'max-md:translate-x-0',
       )}
     >

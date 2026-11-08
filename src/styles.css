@@ -523,7 +523,8 @@
   display: grid;
   grid-template-columns: 232px 1fr;
   height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   background: var(--bg-0);
 }
 /* Collapsed (desktop): the sidebar is an icon rail; links center their icon. */
@@ -927,7 +928,12 @@
 
 @media (max-width: 900px) {
   .detail-sidecar-shell {
-    grid-template-columns: 1fr;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-sidecar-shell > .detail-sidecar {
+    min-height: 0;
   }
 
   .detail-meta-rail {
