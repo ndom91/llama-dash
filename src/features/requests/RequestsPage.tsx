@@ -61,10 +61,8 @@ export function RequestsPage() {
   const showMcpRelays = routeSearch.mcp === true
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useRequestsList(
-    selectedMinutes,
-    statusFilter,
-  )
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
+    useRequestsList(selectedMinutes, statusFilter)
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -232,8 +230,15 @@ export function RequestsPage() {
   const showTokIn = visibleCols.has('tokIn')
   const showTokOut = visibleCols.has('tokOut')
 
-  const fetchNextRef = useRef({ hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length })
-  fetchNextRef.current = { hasNextPage, isFetchingNextPage, fetchNextPage, rowCount: rows.length }
+  const fetchNextRef = useRef({ hasNextPage, isFetching, fetchNextPage, rowCount: rows.length })
+  fetchNextRef.current = { hasNextPage, isFetching, fetchNextPage, rowCount: rows.length }
+
+  const loadNextIfNearEnd = useCallback((lastIndex: number | undefined) => {
+    const next = fetchNextRef.current
+    if (lastIndex !== undefined && lastIndex >= next.rowCount - 20 && next.hasNextPage && !next.isFetching) {
+      void next.fetchNextPage({ cancelRefetch: false })
+    }
+  }, [])
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -241,14 +246,13 @@ export function RequestsPage() {
     estimateSize: () => REQUESTS_ROW_HEIGHT,
     overscan: 20,
     onChange: (v) => {
-      const last = v.getVirtualItems().at(-1)
-      if (!last) return
-      const next = fetchNextRef.current
-      if (last.index >= next.rowCount - 20 && next.hasNextPage && !next.isFetchingNextPage) {
-        next.fetchNextPage()
-      }
+      loadNextIfNearEnd(v.getVirtualItems().at(-1)?.index)
     },
   })
+
+  useEffect(() => {
+    if (!isFetching && !isFetchNextPageError) loadNextIfNearEnd(virtualizer.getVirtualItems().at(-1)?.index)
+  }, [isFetching, isFetchNextPageError, virtualizer, loadNextIfNearEnd])
 
   useEffect(() => {
     if (selectedIdx >= 0) virtualizer.scrollToIndex(selectedIdx, { align: 'auto' })
@@ -452,9 +456,9 @@ export function RequestsPage() {
                       <button
                         type="button"
                         className="btn btn-ghost btn-sm mx-auto mt-3 block"
-                        disabled={isFetchingNextPage}
+                        disabled={isFetching}
                         onClick={() => {
-                          void fetchNextPage()
+                          void fetchNextPage({ cancelRefetch: false })
                         }}
                       >
                         {isFetchingNextPage ? 'Loading older requests…' : 'Load older requests'}
