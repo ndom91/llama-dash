@@ -29,6 +29,10 @@ export function getRecentBodies(id: string): BodyPair | null {
   return recent.get(id) ?? null
 }
 
+export function recentBodyIds(): string[] {
+  return [...recent.keys()]
+}
+
 export function deleteRecentBodies(id: string) {
   const existing = recent.get(id)
   if (!existing) return

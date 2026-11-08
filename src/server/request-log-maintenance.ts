@@ -1,6 +1,6 @@
 import { getPrivacySettings } from './admin/settings.ts'
 import { sqliteDb } from './db/index.ts'
-import { deleteRecentBodies } from './proxy/recent-bodies.ts'
+import { deleteRecentBodies, recentBodyIds } from './proxy/recent-bodies.ts'
 import {
   backfillDay,
   backfillDays,
@@ -91,18 +91,16 @@ function runRequestLogPrune(now: number, allowInference: boolean) {
   const bodyCutoff = now - settings.bodyRetentionDays * DAY_MS
 
   const selectionStarted = performance.now()
-  const evictRows = sqliteDb
-    .prepare(
-      `select id
-       from requests
-       where ${allowInference ? `(${INFERENCE_EXPIRED_SQL})` : '0'}
+  const candidate = sqliteDb.prepare(
+    `select id from requests
+       where id = ? and (${allowInference ? `(${INFERENCE_EXPIRED_SQL})` : '0'}
           or (${MCP_SUCCESS_EXPIRED_SQL})
           or (${MCP_ERROR_EXPIRED_SQL})
-          or (${BODY_EXPIRED_SQL})`,
-    )
-    .all(...(allowInference ? [inferenceCutoff] : []), mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff) as Array<{
-    id: string
-  }>
+          or (${BODY_EXPIRED_SQL}))`,
+  )
+  const evictIds = recentBodyIds().filter((id) =>
+    candidate.get(id, ...(allowInference ? [inferenceCutoff] : []), mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff),
+  )
   const selectionMs = performance.now() - selectionStarted
   const inferenceDeleted = allowInference
     ? sqliteDb.transaction(() => {
@@ -127,11 +125,11 @@ function runRequestLogPrune(now: number, allowInference: boolean) {
     )
     .run(bodyCutoff).changes
 
-  for (const row of evictRows) deleteRecentBodies(row.id)
+  for (const id of evictIds) deleteRecentBodies(id)
 
   return {
     result: { inferenceDeleted, mcpRelaySuccessDeleted, mcpRelayErrorDeleted, bodiesCleared },
-    candidateRows: evictRows.length,
+    candidateRows: evictIds.length,
     selectionMs,
   }
 }

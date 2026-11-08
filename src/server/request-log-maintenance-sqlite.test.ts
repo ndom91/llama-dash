@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3'
 import { readFileSync } from 'node:fs'
+import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { afterAll, beforeAll, expect, it, vi } from 'vitest'
@@ -38,7 +38,16 @@ beforeAll(async () => {
       bodyRetentionDays: 3,
     }),
   }))
-  vi.doMock('./proxy/recent-bodies.ts', () => ({ deleteRecentBodies: evict }))
+  vi.doMock('./proxy/recent-bodies.ts', () => ({
+    deleteRecentBodies: evict,
+    recentBodyIds: () => [
+      'inference-deleted',
+      'mcp-success-deleted',
+      'mcp-error-deleted',
+      'body-cleared',
+      'recent-kept',
+    ],
+  }))
 })
 
 afterAll(() => {
@@ -91,11 +100,11 @@ it('uses the migrated partial index and preserves retention and cache eviction',
   expect(sqlite.prepare('select request_headers from requests where id = ?').get('cutoff-kept')).toEqual({
     request_headers: 'x',
   })
-  const selection = queries.find((query) => query.sql.includes('select id\n'))
+  const selection = queries.find((query) => query.sql.includes('select id from requests'))
   const clearing = queries.find((query) => query.sql.includes('set request_headers = null'))
   expect(selection).toBeDefined()
   expect(clearing).toBeDefined()
-  for (const query of [selection!, clearing!]) {
+  for (const query of [clearing!]) {
     const plan = sqlite.prepare(`explain query plan ${query.sql}`).all(...query.params) as { detail: string }[]
     expect(plan.map((row) => row.detail).join(' ')).toContain('idx_requests_payload_started_at')
   }

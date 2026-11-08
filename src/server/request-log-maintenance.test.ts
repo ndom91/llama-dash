@@ -51,13 +51,14 @@ vi.mock('./admin/settings.ts', () => ({
 
 vi.mock('./proxy/recent-bodies.ts', () => ({
   deleteRecentBodies: recentBodiesMock.deleteRecentBodies,
+  recentBodyIds: () => dbMock.rows.map((row) => row.id),
 }))
 
 vi.mock('./db/index.ts', () => ({
   sqliteDb: {
     transaction: (fn: () => unknown) => fn,
     prepare: (sql: string) => ({
-      all: (...params: number[]) => {
+      get: (id: string, ...params: number[]) => {
         const inferenceAllowed = params.length === 4
         const [inferenceCutoff, mcpSuccessCutoff, mcpErrorCutoff, bodyCutoff] = inferenceAllowed
           ? params
@@ -65,7 +66,8 @@ vi.mock('./db/index.ts', () => ({
         if (dbMock.error) throw dbMock.error
         if (!sql.includes('select id')) return []
         return dbMock.rows
-          .filter(
+          .filter((row) => row.id === id)
+          .find(
             (row) =>
               (row.request_class === 'inference' && row.started_at < inferenceCutoff) ||
               (row.request_class === 'mcp_relay' &&
@@ -77,7 +79,6 @@ vi.mock('./db/index.ts', () => ({
                 row.started_at < mcpErrorCutoff) ||
               (row.started_at < bodyCutoff && hasBodyText(row)),
           )
-          .map((row) => ({ id: row.id }))
       },
       run: (cutoff: number) => {
         if (sql.includes("request_class = 'inference'")) {
