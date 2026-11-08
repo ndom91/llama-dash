@@ -32,12 +32,12 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
       className={cn('clickable-row h-10 last:border-b last:border-border', clickableRowFocusClass)}
       {...clickableRowProps(() => navigate({ to: '/models/$id', params: { id: model.id } }))}
     >
-      <td>
+      <td className="model-row-dot">
         <StatusDot tone={tone} live={loading || model.running} />
       </td>
-      <td>
+      <td className="model-row-id">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="mono" translate="no">
+          <span className="mono max-md:break-all" translate="no">
             {model.id}
           </span>
           <Tooltip label="Copy model slug" side="top">
@@ -60,18 +60,18 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
           ) : null}
         </div>
       </td>
-      <td>{model.name}</td>
+      <td className="model-row-name">{model.name}</td>
       <td className="hide-mobile">
         <span className="mono" style={{ fontSize: 11, color: 'var(--fg-dim)' }}>
           {model.kind}
         </span>
       </td>
-      <td className="hide-mobile">
+      <td className="hide-mobile model-row-state">
         <span className={`state-label state-label-${tone}`}>
           {loading ? 'loading' : unloading ? 'stopping' : model.kind === 'peer' ? 'peer' : model.state}
         </span>
       </td>
-      <td className="num hide-mobile">
+      <td className="num hide-mobile model-row-action">
         {model.kind === 'local' ? (
           loading ? (
             <Tooltip label={`Loading ${model.id}`} side="left">

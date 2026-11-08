@@ -20,15 +20,15 @@ export function SelectorRow({ model }: Props) {
       className={cn('clickable-row h-10 last:border-b last:border-border', clickableRowFocusClass)}
       {...clickableRowProps(() => navigate({ to: '/models/$id', params: { id: model.id } }))}
     >
-      <td>
+      <td className="model-row-dot">
         <StatusDot tone={tone} live={model.running} />
       </td>
-      <td>
-        <span className="mono" translate="no">
+      <td className="model-row-id">
+        <span className="mono max-md:break-all" translate="no">
           {model.id}
         </span>
       </td>
-      <td>
+      <td className="model-row-name">
         <span className="mono text-[11px] text-fg-dim">{selector.strategy}</span>
       </td>
       <td className="hide-mobile">
@@ -37,7 +37,7 @@ export function SelectorRow({ model }: Props) {
       <td className="hide-mobile">
         <span className="mono text-[11px] text-fg-dim">{selector.spillover ?? '—'}</span>
       </td>
-      <td className="hide-mobile">
+      <td className="hide-mobile model-row-state">
         <span className={`state-label state-label-${tone}`}>{model.state}</span>
       </td>
     </tr>

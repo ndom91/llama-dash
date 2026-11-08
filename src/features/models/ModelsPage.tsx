@@ -1,4 +1,4 @@
-import { RefreshCw, PowerOff } from 'lucide-react'
+import { PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
@@ -78,7 +78,7 @@ export function ModelsPage() {
                     </h2>
                     <span className="text-xs text-fg-dim">llama-swap routing targets</span>
                   </div>
-                  <table className="dtable">
+                  <table className="dtable model-selectors-table">
                     <thead>
                       <tr>
                         <th style={{ width: 18 }} aria-label="state" />
@@ -102,7 +102,7 @@ export function ModelsPage() {
                 </section>
               ) : null}
               {listedModels.length > 0 ? (
-                <table className="dtable">
+                <table className="dtable models-list-table">
                   <thead>
                     <tr>
                       <th style={{ width: 18 }} aria-label="state" />

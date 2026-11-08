@@ -2028,3 +2028,63 @@ a {
     overflow-wrap: anywhere;
   }
 }
+
+/* Model rows stack their details and keep lifecycle actions reachable on phones. */
+@media (max-width: 768px) {
+  .models-list-table, .model-selectors-table,
+  .models-list-table tbody, .model-selectors-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .models-list-table thead, .model-selectors-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .models-list-table tbody tr, .model-selectors-table tbody tr {
+    display: grid;
+    grid-template-columns: 12px minmax(0, 1fr) auto;
+    gap: 3px 10px;
+    height: auto;
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .models-list-table tbody td, .model-selectors-table tbody td {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+  .models-list-table .model-row-dot, .model-selectors-table .model-row-dot {
+    grid-column: 1;
+    grid-row: 1;
+    padding-top: 4px;
+  }
+  .models-list-table .model-row-id, .model-selectors-table .model-row-id {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .models-list-table .model-row-name, .model-selectors-table .model-row-name {
+    grid-column: 2;
+    grid-row: 2;
+    overflow-wrap: anywhere;
+    color: var(--fg-dim);
+    font-size: 11px;
+  }
+  .models-list-table .model-row-state, .model-selectors-table .model-row-state {
+    display: block;
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .models-list-table .model-row-action {
+    display: block;
+    grid-column: 3;
+    grid-row: 1 / 4;
+    align-self: center;
+  }
+  .models-list-table .model-row-action button {
+    min-height: 40px;
+  }
+}
