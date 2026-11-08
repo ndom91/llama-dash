@@ -1,8 +1,8 @@
 import { desc } from 'drizzle-orm'
 import { ulid } from 'ulidx'
+import { publishAdminEvent } from './admin/events.ts'
 import { db, schema } from './db/index.ts'
 import { inferenceBackend } from './inference/backend.ts'
-import { publishAdminEvent } from './admin/events.ts'
 import { scheduleFootprintMeasurement } from './model-footprints.ts'
 
 const POLL_INTERVAL_MS = 15_000
@@ -10,6 +10,7 @@ const POLL_INTERVAL_MS = 15_000
 let knownRunning = new Set<string>()
 let started = false
 let lastPollAt: number | null = null
+let polling = false
 
 function seedFromDb() {
   const rows = db
@@ -26,7 +27,8 @@ function seedFromDb() {
 }
 
 async function diffRunning() {
-  if (!inferenceBackend.listRunning) return
+  if (!inferenceBackend.listRunning || polling) return
+  polling = true
 
   try {
     const running = await inferenceBackend.listRunning()
@@ -61,6 +63,8 @@ async function diffRunning() {
     lastPollAt = now.getTime()
   } catch {
     // upstream unreachable — keep last known state
+  } finally {
+    polling = false
   }
 }
 

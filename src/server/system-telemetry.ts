@@ -4,9 +4,9 @@ import type { SystemTelemetryLatest } from '../lib/schemas/system.ts'
 import { CPU_THRESHOLD_WINDOW_MS, percentOf } from '../lib/schemas/system-thresholds.ts'
 import { publishAdminEvent } from './admin/events.ts'
 import { getGpuSnapshot } from './gpu-poller.ts'
+import { type HostPerformanceSample, inferenceBackend } from './inference/backend.ts'
 import { getRequestLogQueueStats } from './proxy/log.ts'
 import { evaluateQueueDrops, evaluateThresholdEvents, recordSystemEvent } from './system-events.ts'
-import { type HostPerformanceSample, inferenceBackend } from './inference/backend.ts'
 import { TelemetryRing, type TelemetryValues } from './telemetry-ring.ts'
 
 export const TELEMETRY_INTERVAL_MS = 10_000
@@ -20,6 +20,7 @@ let lastHostSampleAt: number | null = null
 let lastProcessCpu = process.cpuUsage()
 let lastProcessCpuAt = performance.now()
 let started = false
+let ticking = false
 
 export function getTelemetryRing() {
   return ring
@@ -34,9 +35,21 @@ export function startSystemTelemetry(commit: string) {
   started = true
   recordSystemEvent({ kind: 'startup', tone: 'ok', message: `llama-dash started · ${commit.slice(0, 7)}` })
   void backfill().finally(() => {
-    void tick()
-    setInterval(() => void tick(), TELEMETRY_INTERVAL_MS)
+    void tickSafely()
+    setInterval(() => void tickSafely(), TELEMETRY_INTERVAL_MS)
   })
+}
+
+async function tickSafely() {
+  if (ticking) return
+  ticking = true
+  try {
+    await tick()
+  } catch (err) {
+    console.warn('Failed to collect system telemetry', err)
+  } finally {
+    ticking = false
+  }
 }
 
 /** Seed CPU/RAM history from llama-swap's own 1 h buffer so charts are not empty after a restart. */

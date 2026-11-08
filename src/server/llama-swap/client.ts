@@ -3,14 +3,16 @@ import { InferenceHardwareSchema } from '../../lib/schemas/inference-hardware.ts
 import { config } from '../config.ts'
 import {
   ModelsListResponseSchema,
+  type OpenAiModel,
   PerformanceResponseSchema,
+  type RunningModel,
   RunningResponseSchema,
   VersionResponseSchema,
-  type OpenAiModel,
-  type RunningModel,
 } from './schemas.ts'
 
 export type { OpenAiModel, RunningModel }
+
+const POLL_TIMEOUT_MS = 5_000
 
 const callRaw = async (path: string, init?: RequestInit): Promise<Response> => {
   const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)
@@ -31,7 +33,7 @@ const callJson = async <T>(
 
 export const llamaSwap = {
   listModels: () => callJson('/v1/models', ModelsListResponseSchema),
-  listRunning: () => callJson('/running', RunningResponseSchema),
+  listRunning: () => callJson('/running', RunningResponseSchema, { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) }),
   unloadModel: (id: string) => callText(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
   loadModel: (id: string) => callText(`/upstream/${encodeURIComponent(id)}/`),
   unloadAll: () => callJson('/api/models/unload', v.object({ msg: v.string() }), { method: 'POST' }),
@@ -39,5 +41,7 @@ export const llamaSwap = {
   version: () => callJson('/api/version', VersionResponseSchema),
   hardware: () => callJson('/api/hardware', InferenceHardwareSchema),
   performance: (after?: string) =>
-    callJson(`/api/performance${after ? `?after=${encodeURIComponent(after)}` : ''}`, PerformanceResponseSchema),
+    callJson(`/api/performance${after ? `?after=${encodeURIComponent(after)}` : ''}`, PerformanceResponseSchema, {
+      signal: AbortSignal.timeout(POLL_TIMEOUT_MS),
+    }),
 }
