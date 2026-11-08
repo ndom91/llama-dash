@@ -19,7 +19,7 @@ it('retains two days of inference rows even when an existing setting was one day
   vi.useFakeTimers()
   vi.setSystemTime(now)
   vi.doMock('./db/index.ts', () => ({ db, sqliteDb: sqlite, schema }))
-  vi.doMock('./proxy/recent-bodies.ts', () => ({ deleteRecentBodies: vi.fn() }))
+  vi.doMock('./proxy/recent-bodies.ts', () => ({ deleteRecentBodies: vi.fn(), recentBodyIds: () => [] }))
   const { pruneRequestLogs, startRequestLogMaintenance } = await import('./request-log-maintenance')
   startRequestLogMaintenance()
   vi.advanceTimersByTime(100)

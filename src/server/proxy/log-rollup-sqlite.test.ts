@@ -34,8 +34,16 @@ it('persists late inference and its frozen-day rollup together', async () => {
   vi.doMock('../admin/events.ts', () => ({ publishAdminEvent: vi.fn() }))
   vi.doMock('../admin/requests.ts', () => ({ toRequestRow: () => ({}) }))
   vi.doMock('../pricing.ts', () => ({ computeCostUsd: () => null }))
-  vi.doMock('./recent-bodies.ts', () => ({ storeRecentBodies: vi.fn(), deleteRecentBodies: vi.fn() }))
-  vi.doMock('../proxy/recent-bodies.ts', () => ({ storeRecentBodies: vi.fn(), deleteRecentBodies: vi.fn() }))
+  vi.doMock('./recent-bodies.ts', () => ({
+    storeRecentBodies: vi.fn(),
+    deleteRecentBodies: vi.fn(),
+    recentBodyIds: () => [],
+  }))
+  vi.doMock('../proxy/recent-bodies.ts', () => ({
+    storeRecentBodies: vi.fn(),
+    deleteRecentBodies: vi.fn(),
+    recentBodyIds: () => [],
+  }))
   const { writeRequestLogNow } = await import('./log')
   const row: RequestLogInput = {
     startedAt: yesterday + 14 * 3_600_000,
