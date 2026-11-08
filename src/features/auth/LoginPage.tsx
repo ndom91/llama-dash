@@ -196,7 +196,7 @@ function InstanceRail({ mode, dashHost }: { mode: AuthMode; dashHost: string }) 
 
       <div className="mt-auto mb-[32vh] max-lg:hidden">
         <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-fg-dim">- llama-dash</div>
-        <div className="break-all font-mono text-2xl text-fg">{dashHost}</div>
+        <div className="break-all font-display text-2xl font-semibold text-fg">{dashHost}</div>
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-fg-muted">
           <span className={cn('size-1.5 rounded-full', mode === 'sign-up' ? 'bg-warn' : 'bg-accent')} />
           <span className="size-1.5 rounded-full bg-fg-dim" />
