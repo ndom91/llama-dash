@@ -13,8 +13,8 @@ import {
 import {
   addDays,
   DAY_MS,
-  dayToMs,
   type DailyUsageRow,
+  dayToMs,
   getPrunedBefore,
   loadDailyRows,
   loadRawUsageRows,
@@ -95,6 +95,7 @@ export function getUsageReport(sqlite: Database.Database, options: ReportOptions
     .prepare("select min(started_at) as startedAt from requests where request_class = 'inference'")
     .get() as { startedAt: number | null }
   const oldestDay = minDay(oldest.day, oldestRaw.startedAt != null ? utcDay(oldestRaw.startedAt) : null)
+  let sessionGroups: Array<[string | null, SessionUsageRow[]]> | undefined
 
   return {
     days: options.days,
@@ -111,17 +112,13 @@ export function getUsageReport(sqlite: Database.Database, options: ReportOptions
     retentionDays: options.retentionDays,
     panels: options.panels.map((dimension) => {
       if (dimension === 'session') {
-        return buildPanel(
-          dimension,
-          groupBy(
-            rolling
-              ? loadSessionRowsBetween(sqlite, now - DAY_MS, now)
-              : loadSessionRowsBetween(sqlite, dayToMs(from), dayToMs(to) + DAY_MS),
-            (row: SessionUsageRow) => row.sessionId,
-          ),
-          () => null,
-          !rolling && options.days > options.retentionDays,
+        sessionGroups ??= groupBy(
+          rolling
+            ? loadSessionRowsBetween(sqlite, now - DAY_MS, now)
+            : loadSessionRowsBetween(sqlite, dayToMs(from), dayToMs(to) + DAY_MS),
+          (row: SessionUsageRow) => row.sessionId,
         )
+        return buildPanel(dimension, sessionGroups, () => null, !rolling && options.days > options.retentionDays)
       }
       const labelFor =
         dimension === 'key'

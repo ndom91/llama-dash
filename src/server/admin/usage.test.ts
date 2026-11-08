@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UsageDimension } from '../../lib/schemas/usage'
 import { backfillTestUsage, createMigratedTestDb, insertTestRequests } from '../db/test-db'
 import { extractAttribution } from '../proxy/attribution'
@@ -40,6 +40,15 @@ describe('usage report', () => {
 
   beforeEach(() => {
     sqlite = createMigratedTestDb()
+  })
+
+  it('shares one session query between session panels', () => {
+    insertTestRequests(sqlite, [{ id: 'a', startedAt: TODAY, sessionId: 'session-a' }])
+    const prepare = vi.spyOn(sqlite, 'prepare')
+    const result = report(sqlite, 7, ['session', 'model', 'session'])
+    expect(result.panels[0]).toEqual(result.panels[2])
+    expect(prepare.mock.calls.filter(([sql]) => sql.includes('group by session_id'))).toHaveLength(1)
+    prepare.mockRestore()
   })
 
   it('reports exact rolling 24-hour windows and excludes the end boundary', () => {
