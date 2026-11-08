@@ -54,7 +54,7 @@ export function RequestsFilterSidebar({
       desktopMinWidth={901}
       open={open}
       onOpenChange={onToggle}
-      className="border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b"
+      className="border-border bg-surface-1 px-4 py-4 font-mono text-[11px] text-fg max-[900px]:border-r-0 max-[900px]:border-b max-[768px]:py-2"
     >
       <ResponsiveDisclosureTrigger className="btn w-full justify-between min-[901px]:hidden">
         <span>Filters{hasFilters ? ' · active' : ''}</span>

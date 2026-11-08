@@ -1267,6 +1267,23 @@
   }
 }
 
+@media (max-width: 768px) {
+  .page-header-integrated:has(.requests-live-badge) {
+    padding-block: 12px;
+  }
+  .page-header-integrated:has(.requests-live-badge) .page-header-kicker,
+  .page-header-integrated:has(.requests-live-badge) .page-header-subtitle {
+    display: none;
+  }
+  .page-header-integrated:has(.requests-live-badge) .page-header-action {
+    top: 12px;
+  }
+  .request-table-inner .dtable thead th,
+  .request-table-inner .dtable tbody td {
+    padding-inline: 8px;
+  }
+}
+
 /* ---- list toolbar ---- */
 
 .sortable-th {

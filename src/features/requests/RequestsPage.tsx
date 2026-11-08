@@ -1,10 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { X } from 'lucide-react'
+import { ChevronDown, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DurationBar } from '../../components/DurationBar'
 import { PageHeader } from '../../components/PageHeader'
+import {
+  ResponsiveDisclosure,
+  ResponsiveDisclosurePanel,
+  ResponsiveDisclosureTrigger,
+} from '../../components/ResponsiveDisclosure'
 import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
@@ -46,6 +51,8 @@ import {
 import type { RequestsSearch } from './requestsSearch'
 
 const requestsRouteApi = getRouteApi('/requests/')
+const MOBILE_COL_WIDTHS = [92, 160, 120, 160, 96, 70, 70, 70, 75, 110]
+const MOBILE_TABLE_WIDTH = MOBILE_COL_WIDTHS.reduce((sum, width) => sum + width, 0)
 
 export function RequestsPage() {
   const navigate = useNavigate()
@@ -218,7 +225,7 @@ export function RequestsPage() {
     }
     return set
   }, [dropApiKey, dropCacheCost, dropTokens, mobile])
-  const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
+  const colWidths = useMemo(() => (mobile ? MOBILE_COL_WIDTHS : colWidthsFor(visibleCols)), [mobile, visibleCols])
   const showApiKey = visibleCols.has('apiKey')
   const showCache = visibleCols.has('cache')
   const showCost = visibleCols.has('cost')
@@ -378,9 +385,20 @@ export function RequestsPage() {
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
               {histogram && histogram.length > 0 ? (
-                <section className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!">
+                <ResponsiveDisclosure
+                  render={<section />}
+                  desktopMinWidth={768}
+                  className="panel rounded-none! border-t-0! border-x-0! bg-surface-1!"
+                >
                   <div className="histogram-header panel-head bg-transparent px-4">
-                    <div>
+                    <ResponsiveDisclosureTrigger className="responsive-disclosure-trigger flex items-center gap-2 min-[768px]:hidden">
+                      <span className="panel-title">Traffic · last 60m</span>
+                      {selectedMinutes.length > 0 ? (
+                        <span className="panel-sub">{selectedMinutes.length} selected</span>
+                      ) : null}
+                      <ChevronDown className="responsive-disclosure-chevron size-4 text-fg-dim" aria-hidden="true" />
+                    </ResponsiveDisclosureTrigger>
+                    <div className="max-[767px]:hidden">
                       <span className="panel-title">req/s</span>
                       <span className="panel-sub" style={{ marginLeft: 8 }}>
                         last 60m · bucket 1m
@@ -397,14 +415,16 @@ export function RequestsPage() {
                       </button>
                     ) : null}
                   </div>
-                  <RequestsHistogram buckets={histogram} selected={selectedMinutes} onSelect={setSelectedMinutes} />
-                  <div className="histogram-labels px-4 pb-3">
-                    <span>-60m</span>
-                    <span>-40m</span>
-                    <span>-20m</span>
-                    <span>now</span>
-                  </div>
-                </section>
+                  <ResponsiveDisclosurePanel>
+                    <RequestsHistogram buckets={histogram} selected={selectedMinutes} onSelect={setSelectedMinutes} />
+                    <div className="histogram-labels px-4 pb-3">
+                      <span>-60m</span>
+                      <span>-40m</span>
+                      <span>-20m</span>
+                      <span>now</span>
+                    </div>
+                  </ResponsiveDisclosurePanel>
+                </ResponsiveDisclosure>
               ) : null}
 
               <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
@@ -447,7 +467,10 @@ export function RequestsPage() {
                     aria-label="Request log table"
                     tabIndex={mobile ? 0 : undefined}
                   >
-                    <div className="flex min-h-0 flex-1 flex-col max-[768px]:min-w-[1280px]">
+                    <div
+                      className="request-table-inner flex min-h-0 flex-1 flex-col"
+                      style={mobile ? { minWidth: MOBILE_TABLE_WIDTH } : undefined}
+                    >
                       <table className="dtable dtable-virtual">
                         <RequestsVirtualColgroup widths={colWidths} />
                         <thead>
