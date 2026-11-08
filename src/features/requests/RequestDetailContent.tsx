@@ -144,7 +144,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         }
         variant="integrated"
         action={
-          <div className="flex items-center gap-2 max-md:flex-col max-md:items-end max-md:gap-1">
+          <div className="flex items-center gap-2 max-md:flex-col max-md:items-end">
             {hasCompleteDetail ? (
               <CopyButton
                 text={curlCommand}
