@@ -209,7 +209,6 @@ export function RequestsPage() {
     if (dropApiKey && !mobile) set.delete('apiKey')
     if (mobile) {
       set.delete('endpoint')
-      set.delete('status')
       set.delete('duration')
     }
     if (dropCacheCost) {
@@ -218,11 +217,14 @@ export function RequestsPage() {
     }
     if (dropTokens) {
       set.delete('tokIn')
-      set.delete('tokOut')
+      if (!mobile) set.delete('tokOut')
     }
     return set
   }, [dropApiKey, dropCacheCost, dropTokens, mobile])
-  const colWidths = useMemo(() => (mobile ? [86, '30%', 'auto'] : colWidthsFor(visibleCols)), [mobile, visibleCols])
+  const colWidths = useMemo(
+    () => (mobile ? [74, 'auto', 'auto', 54, 58] : colWidthsFor(visibleCols)),
+    [mobile, visibleCols],
+  )
   const showEndpoint = visibleCols.has('endpoint')
   const showStatus = visibleCols.has('status')
   const showDuration = visibleCols.has('duration')
@@ -450,7 +452,7 @@ export function RequestsPage() {
                   </div>
                 ) : (
                   <div className="dtable-virtual-wrap flex min-h-0 flex-1 max-h-none flex-col">
-                    <table className="dtable dtable-virtual">
+                    <table className="dtable dtable-virtual max-[600px]:[&_th]:px-1 max-[600px]:[&_td]:px-1">
                       <RequestsVirtualColgroup widths={colWidths} />
                       <thead>
                         <tr>
@@ -532,7 +534,7 @@ export function RequestsPage() {
                                 if (e.key === 'Enter') openRequest(r.id)
                               }}
                             >
-                              <table className="dtable dtable-virtual">
+                              <table className="dtable dtable-virtual max-[600px]:[&_th]:px-1 max-[600px]:[&_td]:px-1">
                                 <RequestsVirtualColgroup widths={colWidths} />
                                 <tbody>
                                   <tr>
@@ -584,7 +586,7 @@ export function RequestsPage() {
                                       </div>
                                     </td>
                                     {showStatus ? (
-                                      <td>
+                                      <td className="max-[600px]:[&_abbr]:sr-only">
                                         <StatusCell code={r.statusCode} streamed={r.streamed} />
                                       </td>
                                     ) : null}
