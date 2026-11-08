@@ -50,3 +50,24 @@ it('replaces virtualized content cleanly when the body changes to a short value'
   expect(view.container.querySelector('[data-virtualized="false"]')).not.toBeNull()
   expect(view.queryByRole('region')).toBeNull()
 })
+
+it('keeps the nested browser headers disclosure independent of the mobile headers disclosure', () => {
+  const view = render(
+    createElement(RequestPayloadPane, {
+      title: 'Request',
+      subtitle: 'JSON',
+      body: '{}',
+      headers: { 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' },
+      mode: 'pretty',
+    }),
+  )
+  const headers = view.getByRole('button', { name: /^Headers/ })
+  const browserHeaders = view.getByRole('button', { name: /show 1 browser header/i })
+  fireEvent.click(headers)
+  expect(headers.getAttribute('aria-expanded')).toBe('true')
+  expect(browserHeaders.getAttribute('aria-expanded')).toBe('false')
+  fireEvent.click(browserHeaders)
+  expect(browserHeaders.getAttribute('aria-expanded')).toBe('true')
+  fireEvent.click(headers)
+  expect(headers.getAttribute('aria-expanded')).toBe('false')
+})

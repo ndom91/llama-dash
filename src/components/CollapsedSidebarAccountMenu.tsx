@@ -7,7 +7,24 @@ import { Tooltip } from './Tooltip'
 
 export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession?: SidebarSession | null }) {
   const [open, setOpen] = useState(false)
+  const [motion, setMotion] = useState<'closed' | 'open' | 'closing'>('closed')
+  const hasOpened = useRef(false)
+
+  useEffect(() => {
+    if (open) {
+      hasOpened.current = true
+      const frame = requestAnimationFrame(() => setMotion('open'))
+      return () => cancelAnimationFrame(frame)
+    }
+    if (!hasOpened.current) return
+    setMotion('closing')
+    const duration =
+      Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--dropdown-close-dur')) || 150
+    const timer = window.setTimeout(() => setMotion('closed'), duration)
+    return () => window.clearTimeout(timer)
+  }, [open])
   const containerRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const { session, avatarColors } = useSidebarAccount(initialSession)
   const username = session?.user.email ?? session?.user.name ?? 'dashboard user'
 
@@ -17,7 +34,10 @@ export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false)
     }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') {
+        setOpen(false)
+        triggerRef.current?.focus()
+      }
     }
     window.addEventListener('pointerdown', closeOnOutsidePress)
     window.addEventListener('keydown', closeOnEscape)
@@ -32,6 +52,7 @@ export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession
       <Tooltip label="Account" side="right">
         <button
           type="button"
+          ref={triggerRef}
           className="mx-auto mb-3 flex size-8 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-3 transition-[border-color,box-shadow] duration-150 hover:border-border-strong focus-visible:outline-none focus-visible:shadow-focus"
           aria-label="Account menu"
           aria-expanded={open}
@@ -41,28 +62,34 @@ export function CollapsedSidebarAccountMenu({ initialSession }: { initialSession
           <Avatar name={username} variant="marble" size={32} colors={avatarColors} title={false} aria-hidden="true" />
         </button>
       </Tooltip>
-      {open ? (
-        <div
-          id="collapsed-sidebar-account-menu"
-          className="fixed bottom-3 left-15 z-[101] w-56 rounded border border-border-strong bg-surface-1 p-1.5 shadow-[0_12px_30px_color-mix(in_srgb,var(--bg-0)_78%,transparent)]"
-        >
-          <div className="border-b border-border px-2.5 py-2">
-            <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">signed in</div>
-            <div className="mt-0.5 truncate font-mono text-xs text-fg">{username}</div>
-          </div>
-          <button
-            type="button"
-            className={cn(
-              'mt-1 flex w-full items-center gap-2 rounded px-2.5 py-2 text-left font-mono text-xs text-fg-muted',
-              'transition-[background-color,color] duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
-            )}
-            onClick={signOutToLogin}
-          >
-            <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
-            Logout
-          </button>
+      <div
+        id="collapsed-sidebar-account-menu"
+        aria-hidden={!open}
+        inert={!open}
+        data-origin="bottom-left"
+        className={cn(
+          't-dropdown',
+          motion === 'open' && 'is-open',
+          motion === 'closing' && 'is-closing',
+          'fixed bottom-3 left-15 z-[101] w-56 rounded border border-border-strong bg-surface-1 p-1.5 shadow-[0_12px_30px_color-mix(in_srgb,var(--bg-0)_78%,transparent)]',
+        )}
+      >
+        <div className="border-b border-border px-2.5 py-2">
+          <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-fg-faint">signed in</div>
+          <div className="mt-0.5 truncate font-mono text-xs text-fg">{username}</div>
         </div>
-      ) : null}
+        <button
+          type="button"
+          className={cn(
+            'mt-1 flex w-full items-center gap-2 rounded px-2.5 py-2 text-left font-mono text-xs text-fg-muted',
+            'transition-[background-color,color] duration-150 hover:bg-surface-3 hover:text-fg focus-visible:outline-none focus-visible:shadow-focus',
+          )}
+          onClick={signOutToLogin}
+        >
+          <LogOut className="size-3.5" strokeWidth={1.75} aria-hidden="true" />
+          Logout
+        </button>
+      </div>
     </div>
   )
 }

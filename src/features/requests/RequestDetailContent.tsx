@@ -1,6 +1,6 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight, Download } from 'lucide-react'
 import { type ReactNode, useMemo, useState } from 'react'
 import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
@@ -610,7 +610,7 @@ function DetailSection({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <section className={className}>
+    <section className={cn('t-acc mobile-detail-acc', className)} data-open={open}>
       <div className="mb-2.5 hidden font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint md:block">
         {title}
       </div>
@@ -622,11 +622,15 @@ function DetailSection({
       >
         <span>{title}</span>
         {hint ? <span className="min-w-0 truncate text-fg-dim">· {hint}</span> : null}
-        <span className="ml-auto" aria-hidden="true">
-          {open ? '−' : '+'}
+        <span className="t-acc-chevron ml-auto" aria-hidden="true">
+          <ChevronDown size={16} />
         </span>
       </button>
-      <div className={cn('max-md:pb-3', !open && 'max-md:hidden')}>{children}</div>
+      <div className="t-acc-panel mobile-detail-acc-panel">
+        <div className="t-acc-panel-inner">
+          <div className="max-md:pb-3">{children}</div>
+        </div>
+      </div>
     </section>
   )
 }
