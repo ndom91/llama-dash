@@ -22,6 +22,7 @@ export function RoutingRuleActionSection({
         <SegmentedControl
           legend="Routing action"
           variant="routing"
+          fullWidth
           options={[
             { value: 'rewrite_model', label: 'rewrite model' },
             { value: 'reject', label: 'reject' },

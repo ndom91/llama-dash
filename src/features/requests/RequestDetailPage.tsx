@@ -1,10 +1,12 @@
-import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { RouteError } from '../../components/RouteError'
 import { requestQueryOptions, useRequest, useRequestPayloads } from '../../lib/queries'
 import { RequestDetailContent } from './RequestDetailContent'
 import { RequestDetailPending } from './RequestDetailPending'
 import { requestPayloadState } from './requestPayloadState'
+import { useRequestSwipe } from './useRequestSwipe'
 
 type Props = {
   id: string
@@ -12,11 +14,19 @@ type Props = {
 
 export function RequestDetailPage({ id }: Props) {
   const qc = useQueryClient()
+  const navigate = useNavigate()
+  const isNavigating = useRouterState({
+    select: (state) => state.isLoading && state.location.pathname !== state.resolvedLocation?.pathname,
+  })
   const { data, error, isFetching, isPlaceholderData } = useRequest(id)
   const payloads = useRequestPayloads(id)
   const req = data?.request
   const prevId = data?.prevId ?? null
   const nextId = data?.nextId ?? null
+  const swipe = useRequestSwipe((direction) => {
+    const target = direction === 'newer' ? prevId : nextId
+    if (target) void navigate({ to: '/requests/$id', params: { id: target } })
+  }, !isPlaceholderData && !isNavigating)
 
   useEffect(() => {
     if (!data || isPlaceholderData) return
@@ -37,7 +47,7 @@ export function RequestDetailPage({ id }: Props) {
   if (!req) return <RequestDetailPending />
 
   return (
-    <div className="content">
+    <div className="content" {...swipe}>
       <div className="page min-h-full">
         <RequestDetailContent
           req={req}

@@ -64,6 +64,7 @@ export function RoutingRuleMatchSection({
           <SegmentedControl
             legend="Stream match"
             variant="routing"
+            fullWidth
             options={[
               { value: 'any', label: 'any' },
               { value: 'stream', label: 'stream only' },

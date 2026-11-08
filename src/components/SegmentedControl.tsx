@@ -7,6 +7,7 @@ type Props<T extends string | number> = {
   value: T
   onChange: (value: T) => void
   variant?: 'accent' | 'theme' | 'routing' | 'strip'
+  fullWidth?: boolean
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -15,6 +16,7 @@ export function SegmentedControl<T extends string | number>({
   value,
   onChange,
   variant = 'accent',
+  fullWidth = false,
 }: Props<T>) {
   const barRef = useRef<HTMLFieldSetElement>(null)
   const pillRef = useRef<HTMLSpanElement>(null)
@@ -59,6 +61,7 @@ export function SegmentedControl<T extends string | number>({
       className={cn(
         't-tabs segmented-control m-0 flex min-w-0 shrink-0 overflow-hidden rounded border border-border bg-surface-2 p-0.5',
         `segmented-control--${variant}`,
+        fullWidth && 'segmented-control--full-width',
       )}
     >
       <legend className="sr-only">{legend}</legend>

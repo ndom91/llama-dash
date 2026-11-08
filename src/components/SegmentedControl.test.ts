@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import { createElement, useState } from 'react'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { SegmentedControl } from './SegmentedControl'
 
 const OPTIONS = [
@@ -29,4 +29,20 @@ it('keeps the selected value and indicator in sync when an option is changed', (
   fireEvent.click(second)
   expect(first.getAttribute('aria-pressed')).toBe('false')
   expect(second.getAttribute('aria-pressed')).toBe('true')
+})
+
+it('supports full-width controls without changing selection semantics', () => {
+  const onChange = vi.fn()
+  const view = render(
+    createElement(SegmentedControl<'a' | 'b'>, {
+      legend: 'Example',
+      options: OPTIONS,
+      value: 'a',
+      onChange,
+      fullWidth: true,
+    }),
+  )
+  expect(view.getByRole('group', { name: 'Example' }).classList.contains('segmented-control--full-width')).toBe(true)
+  fireEvent.click(view.getByRole('button', { name: 'Second' }))
+  expect(onChange).toHaveBeenCalledWith('b')
 })

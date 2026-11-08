@@ -20,6 +20,7 @@ export function RoutingRuleTargetSection({
       <SegmentedControl
         legend="Routing target"
         variant="routing"
+        fullWidth
         options={[
           { value: 'llama_swap', label: 'llama-swap' },
           { value: 'direct', label: 'direct upstream' },

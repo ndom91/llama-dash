@@ -58,6 +58,13 @@ export function ThemeToggle() {
   }
 
   return (
-    <SegmentedControl legend="Theme mode" options={modeOptions} value={mode} onChange={selectMode} variant="theme" />
+    <SegmentedControl
+      legend="Theme mode"
+      options={modeOptions}
+      value={mode}
+      onChange={selectMode}
+      variant="theme"
+      fullWidth
+    />
   )
 }

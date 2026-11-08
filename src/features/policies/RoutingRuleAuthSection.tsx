@@ -21,6 +21,7 @@ export function RoutingRuleAuthSection({
       <SegmentedControl
         legend="Routing authentication"
         variant="routing"
+        fullWidth
         options={[
           { value: 'require_key', label: 'require llama-dash key' },
           { value: 'passthrough', label: 'passthrough auth' },
