@@ -131,7 +131,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
         title={`${req.method} ${req.endpoint}`}
         titleNode={
           <div className="request-detail-title flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="page-header-title m-0 min-w-0 break-all text-xl font-semibold -tracking-[0.015em] text-fg">
+            <h1 className="page-header-title m-0 min-w-0 text-balance text-xl font-semibold max-md:break-all -tracking-[0.015em] text-fg">
               {req.method} {req.endpoint}
             </h1>
             <span className={cn('hidden font-mono text-xs font-semibold max-md:inline', statusColor)}>

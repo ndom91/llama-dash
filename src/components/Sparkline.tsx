@@ -59,7 +59,7 @@ export function Sparkline({
           y2={height - 2}
           stroke="var(--fg-faint)"
           strokeWidth={1}
-          vectorEffect="non-scaling-stroke"
+          className="max-md:[vector-effect:non-scaling-stroke]"
           opacity={0.45}
         />
       </svg>
@@ -97,7 +97,7 @@ export function Sparkline({
         fill="none"
         stroke={color}
         strokeWidth={1.5}
-        vectorEffect="non-scaling-stroke"
+        className="max-md:[vector-effect:non-scaling-stroke]"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

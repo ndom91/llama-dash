@@ -32,7 +32,7 @@ export function SystemEventsPanel({ events }: { events: Array<SystemEvent> }) {
               <span className="pt-1">
                 <StatusDot tone={event.tone} />
               </span>
-              <span className="min-w-0 break-words text-fg-muted">
+              <span className="min-w-0 max-[1024px]:break-words text-fg-muted">
                 {event.modelId ? <span className="text-fg">{event.modelId} </span> : null}
                 {event.message}
               </span>
