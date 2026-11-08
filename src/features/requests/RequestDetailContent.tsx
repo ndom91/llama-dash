@@ -268,7 +268,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
             </DetailSection>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 max-md:overflow-visible max-md:py-0 [&>section:first-child]:mt-0 [&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4 max-[1200px]:px-3 max-md:overflow-visible max-md:px-0 max-md:py-0 max-md:[&>section]:px-3 [&>section:first-child]:mt-0 [&>section:first-child]:border-t-0 [&>section:first-child]:pt-0">
             {hasAttribution ? (
               <DetailSection title="Attribution" className={railSectionDivider}>
                 <dl className="detail-meta-list">
