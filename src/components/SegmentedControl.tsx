@@ -1,5 +1,6 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { cn } from '../lib/cn'
+import { useSlidingIndicator } from '../lib/use-sliding-indicator'
 
 type Props<T extends string | number> = {
   legend: string
@@ -18,46 +19,12 @@ export function SegmentedControl<T extends string | number>({
   variant = 'accent',
   fullWidth = false,
 }: Props<T>) {
-  const barRef = useRef<HTMLFieldSetElement>(null)
-  const pillRef = useRef<HTMLSpanElement>(null)
-  const buttonsRef = useRef(new Map<T, HTMLButtonElement>())
-  const positioned = useRef(false)
-  const [ready, setReady] = useState(false)
   const optionKey = JSON.stringify(options.map((option) => option.value))
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: optionKey tracks changes to the option set
-  useEffect(() => {
-    const bar = barRef.current
-    const pill = pillRef.current
-    const active = buttonsRef.current.get(value)
-    if (!bar || !pill || !active) return
-
-    const position = (animate: boolean) => {
-      if (!animate) pill.style.transition = 'none'
-      pill.style.transform = `translateX(${active.offsetLeft}px)`
-      pill.style.width = `${active.offsetWidth}px`
-      if (!animate) {
-        void pill.offsetWidth
-        pill.style.removeProperty('transition')
-      }
-    }
-    position(positioned.current)
-    positioned.current = true
-    setReady(true)
-    const onResize = () => position(false)
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', onResize)
-      return () => window.removeEventListener('resize', onResize)
-    }
-    const observer = new ResizeObserver(onResize)
-    observer.observe(bar)
-    for (const button of buttonsRef.current.values()) observer.observe(button)
-    return () => observer.disconnect()
-  }, [value, optionKey])
+  const { containerRef, indicatorRef, itemRefs, ready } = useSlidingIndicator<T, HTMLFieldSetElement>(value, optionKey)
 
   return (
     <fieldset
-      ref={barRef}
+      ref={containerRef}
       className={cn(
         't-tabs segmented-control m-0 flex min-w-0 shrink-0 overflow-hidden rounded border border-border bg-surface-2 p-0.5',
         `segmented-control--${variant}`,
@@ -65,13 +32,13 @@ export function SegmentedControl<T extends string | number>({
       )}
     >
       <legend className="sr-only">{legend}</legend>
-      <span ref={pillRef} className="t-tabs-pill segmented-control-pill" data-ready={ready} aria-hidden="true" />
+      <span ref={indicatorRef} className="t-tabs-pill segmented-control-pill" data-ready={ready} aria-hidden="true" />
       {options.map((option) => (
         <button
           key={option.value}
           ref={(element) => {
-            if (element) buttonsRef.current.set(option.value, element)
-            else buttonsRef.current.delete(option.value)
+            if (element) itemRefs.current.set(option.value, element)
+            else itemRefs.current.delete(option.value)
           }}
           type="button"
           className={cn(

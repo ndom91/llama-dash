@@ -62,9 +62,9 @@ it('keeps the nested browser headers disclosure independent of the mobile header
     }),
   )
   const headers = view.getByRole('button', { name: /^Headers/ })
-  const browserHeaders = view.getByRole('button', { name: /show 1 browser header/i })
   fireEvent.click(headers)
   expect(headers.getAttribute('aria-expanded')).toBe('true')
+  const browserHeaders = view.getByRole('button', { name: /show 1 browser header/i })
   expect(browserHeaders.getAttribute('aria-expanded')).toBe('false')
   fireEvent.click(browserHeaders)
   expect(browserHeaders.getAttribute('aria-expanded')).toBe('true')

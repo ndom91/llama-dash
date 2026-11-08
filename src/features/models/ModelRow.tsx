@@ -1,6 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
 import { Play, Power } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import { Tooltip } from '../../components/Tooltip'
@@ -28,7 +27,6 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
         : stateTone(model.state, model.running)
   const capabilityBadges = getModelCapabilityBadges(model)
   const pending = loading || unloading
-  const actionLabel = loading ? 'loading…' : unloading ? 'unloading…' : model.running ? 'unload' : 'load'
   const actionDescription = loading ? 'Loading' : unloading ? 'Unloading' : model.running ? 'Unload' : 'Load'
   const ActionIcon = unloading || (!loading && model.running) ? Power : Play
 
@@ -91,7 +89,10 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
               }}
             >
               <ActionIcon className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-              <AnimatedActionLabel label={actionLabel} />
+              <span className={cn('copy-text-swap', pending && 'copy-text-swap-done')} aria-hidden="true">
+                <span className="copy-text-swap-from">{model.running ? 'unload' : 'load'}</span>
+                <span className="copy-text-swap-to">{unloading ? 'unloading…' : 'loading…'}</span>
+              </span>
             </button>
           </Tooltip>
         ) : (
@@ -101,48 +102,5 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
         )}
       </td>
     </tr>
-  )
-}
-
-function AnimatedActionLabel({ label }: { label: string }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const [displayed, setDisplayed] = useState(label)
-  const displayedRef = useRef(label)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    if (displayedRef.current === label) {
-      el.classList.remove('is-exit', 'is-enter-start')
-      return
-    }
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      displayedRef.current = label
-      setDisplayed(label)
-      return
-    }
-    const duration =
-      Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--text-swap-dur')) || 150
-    el.classList.remove('is-enter-start')
-    el.classList.add('is-exit')
-    let frame = 0
-    const timer = window.setTimeout(() => {
-      displayedRef.current = label
-      setDisplayed(label)
-      el.classList.remove('is-exit')
-      el.classList.add('is-enter-start')
-      frame = requestAnimationFrame(() => {
-        void el.offsetHeight
-        el.classList.remove('is-enter-start')
-      })
-    }, duration)
-    return () => {
-      window.clearTimeout(timer)
-      cancelAnimationFrame(frame)
-    }
-  }, [label])
-  return (
-    <span ref={ref} className="t-text-swap" aria-hidden="true">
-      {displayed}
-    </span>
   )
 }

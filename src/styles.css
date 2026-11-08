@@ -572,8 +572,7 @@
 }
 .t-acc-chevron path { vector-effect: non-scaling-stroke; }
 .t-acc[data-open='true'] > .t-acc-head .t-acc-chevron,
-.t-acc[data-open='true'] > div:not(.t-acc-panel) .t-acc-chevron,
-.t-acc[data-open='true'] > button .t-acc-chevron {
+.t-acc[data-open='true'] > div:not(.t-acc-panel) .t-acc-chevron {
   transform: scaleY(-1);
 }
 
@@ -2040,7 +2039,6 @@ a {
   }
 }
 
-/* Model rows stack their details and keep lifecycle actions reachable on phones. */
 @media (max-width: 768px) {
   .models-list-table, .model-selectors-table,
   .models-list-table tbody, .model-selectors-table tbody {
@@ -2100,20 +2098,31 @@ a {
   }
 }
 
-/* These disclosures collapse only at the breakpoint where their triggers appear. */
-@media (min-width: 768px) {
-  .mobile-detail-acc > .mobile-detail-acc-panel { grid-template-rows: 1fr; }
-  .mobile-detail-acc > .mobile-detail-acc-panel > .t-acc-panel-inner { opacity: 1; filter: none; overflow: visible; }
+.responsive-disclosure-panel {
+  height: var(--collapsible-panel-height);
+  overflow: hidden;
+  transition: height var(--acc-expand) var(--acc-ease);
 }
-@media (max-width: 767px) {
-  .mobile-detail-acc[data-open='false'] > .mobile-detail-acc-panel { visibility: hidden; }
+.responsive-disclosure-panel[data-starting-style],
+.responsive-disclosure-panel[data-ending-style] { height: 0; }
+.responsive-disclosure-panel[hidden]:not([hidden='until-found']) { display: none; }
+.responsive-disclosure-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.responsive-disclosure-chevron {
+  display: inline-flex;
+  transition: transform var(--acc-chevron) var(--acc-ease);
+}
+.responsive-disclosure-trigger[data-panel-open] .responsive-disclosure-chevron { transform: scaleY(-1); }
+@media (min-width: 768px) {
+  .responsive-disclosure--768 > .responsive-disclosure-panel { height: auto; overflow: visible; transition: none; }
 }
 @media (min-width: 901px) {
-  .mobile-filter-acc > .mobile-filter-acc-panel { grid-template-rows: 1fr; }
-  .mobile-filter-acc > .mobile-filter-acc-panel > .t-acc-panel-inner { opacity: 1; filter: none; overflow: visible; }
+  .responsive-disclosure--901 > .responsive-disclosure-panel { height: auto; overflow: visible; transition: none; }
 }
-@media (max-width: 900px) {
-  .mobile-filter-acc[data-open='false'] > .mobile-filter-acc-panel { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .responsive-disclosure-panel, .responsive-disclosure-chevron { transition: none; }
 }
 
 :root {
@@ -2128,10 +2137,6 @@ a {
   --dropdown-pre-scale: var(--motion-scale-medium);
   --dropdown-closing-scale: var(--motion-scale-tiny);
   --dropdown-ease: var(--motion-ease-smooth-out);
-  --text-swap-dur: var(--motion-duration-quick);
-  --text-swap-translate-y: var(--motion-distance-micro);
-  --text-swap-blur: var(--motion-blur-small);
-  --text-swap-ease: var(--motion-ease-in-out);
 }
 .t-tabs { position: relative; display: inline-flex; align-items: center; gap: 3px; padding: 3px; border-radius: 48px; background: var(--tabs-bar-bg); }
 .t-tab { position: relative; appearance: none; border: 0; background: transparent; height: 30px; padding: 4px 12px; color: var(--tabs-text-muted); cursor: pointer; border-radius: 48px; z-index: 1; transition: color var(--tabs-dur) var(--tabs-ease); }
@@ -2153,14 +2158,10 @@ a {
 .t-dropdown[data-origin='bottom-right'] { transform-origin: bottom right; }
 .t-dropdown.is-open { transform: scale(1); opacity: 1; pointer-events: auto; }
 .t-dropdown.is-closing { transform: scale(var(--dropdown-closing-scale)); opacity: 0; pointer-events: none; transition: transform var(--dropdown-close-dur) var(--dropdown-ease), opacity var(--dropdown-close-dur) var(--dropdown-ease); }
-.t-text-swap { display: inline-block; transform: translateY(0); filter: blur(0); opacity: 1; transition: transform var(--text-swap-dur) var(--text-swap-ease), filter var(--text-swap-dur) var(--text-swap-ease), opacity var(--text-swap-dur) var(--text-swap-ease); will-change: transform, filter, opacity; }
-.t-text-swap.is-exit { transform: translateY(calc(var(--text-swap-translate-y) * -1)); filter: blur(var(--text-swap-blur)); opacity: 0; }
-.t-text-swap.is-enter-start { transform: translateY(var(--text-swap-translate-y)); filter: blur(var(--text-swap-blur)); opacity: 0; transition: none; }
 @media (prefers-reduced-motion: reduce) {
-  .t-tabs-pill, .t-tab, .t-dropdown, .t-text-swap { transition: none !important; }
+  .t-tabs-pill, .t-tab, .t-dropdown { transition: none !important; }
 }
 
-/* Shared segmented controls retain the visual treatment of their context. */
 .segmented-control .segmented-control-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;

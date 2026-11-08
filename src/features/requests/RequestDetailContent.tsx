@@ -1,10 +1,15 @@
 import { useHotkey } from '@tanstack/react-hotkeys'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, ChevronLeft, ChevronRight, Download } from 'lucide-react'
-import { type ReactNode, useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import * as v from 'valibot'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
+import {
+  ResponsiveDisclosure,
+  ResponsiveDisclosurePanel,
+  ResponsiveDisclosureTrigger,
+} from '../../components/ResponsiveDisclosure'
 import { Tooltip } from '../../components/Tooltip'
 import type { ApiRequestDetail } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -608,30 +613,22 @@ function DetailSection({
   className?: string
   children: ReactNode
 }) {
-  const [open, setOpen] = useState(false)
   return (
-    <section className={cn('t-acc mobile-detail-acc', className)} data-open={open}>
+    <ResponsiveDisclosure desktopMinWidth={768} render={<section />} className={className}>
       <div className="mb-2.5 hidden font-mono text-[10px] uppercase tracking-[0.14em] text-fg-faint md:block">
         {title}
       </div>
-      <button
-        type="button"
-        className="flex min-h-11 w-full items-center gap-2 text-left font-mono text-xs text-fg md:hidden"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
+      <ResponsiveDisclosureTrigger className="responsive-disclosure-trigger flex min-h-11 w-full items-center gap-2 text-left font-mono text-xs text-fg md:hidden">
         <span>{title}</span>
         {hint ? <span className="min-w-0 truncate text-fg-dim">· {hint}</span> : null}
-        <span className="t-acc-chevron ml-auto" aria-hidden="true">
+        <span className="responsive-disclosure-chevron ml-auto" aria-hidden="true">
           <ChevronDown size={16} />
         </span>
-      </button>
-      <div className="t-acc-panel mobile-detail-acc-panel">
-        <div className="t-acc-panel-inner">
-          <div className="max-md:pb-3">{children}</div>
-        </div>
-      </div>
-    </section>
+      </ResponsiveDisclosureTrigger>
+      <ResponsiveDisclosurePanel>
+        <div className="max-md:pb-3">{children}</div>
+      </ResponsiveDisclosurePanel>
+    </ResponsiveDisclosure>
   )
 }
 

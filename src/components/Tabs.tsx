@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from 'react'
-import { useEffect, useRef } from 'react'
 import { cn } from '../lib/cn'
+import { useSlidingIndicator } from '../lib/use-sliding-indicator'
 
 type TabIcon = ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: boolean }>
 
@@ -31,42 +31,16 @@ export function Tabs<T extends string>({
   className,
   ariaLabel,
 }: TabsProps<T>) {
-  const listRef = useRef<HTMLDivElement>(null)
-  const indicatorRef = useRef<HTMLSpanElement>(null)
-  const tabRefs = useRef(new Map<T, HTMLButtonElement>())
-  const hasPositionedIndicator = useRef(false)
-
-  useEffect(() => {
-    if (variant !== 'accent') return
-
-    const list = listRef.current
-    const indicator = indicatorRef.current
-    const activeTab = tabRefs.current.get(value)
-    if (!list || !indicator || !activeTab) return
-
-    const positionIndicator = (animate: boolean) => {
-      if (!animate) indicator.style.transition = 'none'
-      indicator.style.transform = `translateX(${activeTab.offsetLeft}px)`
-      indicator.style.width = `${activeTab.offsetWidth}px`
-
-      if (!animate) {
-        void indicator.offsetWidth
-        indicator.style.removeProperty('transition')
-      }
-      indicator.dataset.ready = 'true'
-    }
-
-    positionIndicator(hasPositionedIndicator.current)
-    hasPositionedIndicator.current = true
-
-    const resizeObserver = new ResizeObserver(() => positionIndicator(false))
-    resizeObserver.observe(list)
-    return () => resizeObserver.disconnect()
-  }, [value, variant])
+  const itemKey = JSON.stringify(items.map((item) => item.id))
+  const { containerRef, indicatorRef, itemRefs, ready } = useSlidingIndicator<T, HTMLDivElement>(
+    value,
+    itemKey,
+    variant === 'accent',
+  )
 
   return (
     <div
-      ref={listRef}
+      ref={containerRef}
       className={cn('flex overflow-x-auto border-b border-border', variant === 'accent' && 'relative gap-0', className)}
       role="tablist"
       aria-label={ariaLabel}
@@ -75,6 +49,7 @@ export function Tabs<T extends string>({
         <span
           ref={indicatorRef}
           className="pointer-events-none absolute top-0 bottom-0 left-0 z-0 bg-accent/15 opacity-0 transition-[transform,width,opacity] duration-[var(--motion-duration-fast)] [transition-timing-function:var(--motion-ease-smooth-out)] data-[ready=true]:opacity-100 motion-reduce:transition-none"
+          data-ready={ready}
           aria-hidden="true"
         />
       ) : null}
@@ -99,8 +74,8 @@ export function Tabs<T extends string>({
               variant === 'accent' && density === 'compact' && 'px-3 py-2.5 text-[10px] tracking-[0.1em]',
             )}
             ref={(element) => {
-              if (element) tabRefs.current.set(item.id, element)
-              else tabRefs.current.delete(item.id)
+              if (element) itemRefs.current.set(item.id, element)
+              else itemRefs.current.delete(item.id)
             }}
             onClick={() => onChange(item.id)}
           >

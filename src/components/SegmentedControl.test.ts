@@ -46,3 +46,38 @@ it('supports full-width controls without changing selection semantics', () => {
   fireEvent.click(view.getByRole('button', { name: 'Second' }))
   expect(onChange).toHaveBeenCalledWith('b')
 })
+
+it('repositions the indicator after the selected button is resized', () => {
+  let resize: (() => void) | undefined
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(callback: () => void) {
+        resize = callback
+      }
+      observe() {}
+      disconnect() {}
+    },
+  )
+  try {
+    const view = render(
+      createElement(SegmentedControl<'a' | 'b'>, {
+        legend: 'Example',
+        options: OPTIONS,
+        value: 'a',
+        onChange: () => {},
+      }),
+    )
+    const first = view.getByRole('button', { name: 'First' })
+    Object.defineProperties(first, {
+      offsetLeft: { configurable: true, value: 24 },
+      offsetWidth: { configurable: true, value: 88 },
+    })
+    resize?.()
+    const indicator = view.container.querySelector<HTMLElement>('.t-tabs-pill')!
+    expect(indicator.style.transform).toBe('translateX(24px)')
+    expect(indicator.style.width).toBe('88px')
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})
