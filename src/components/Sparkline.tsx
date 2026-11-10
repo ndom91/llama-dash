@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useState } from 'react'
 
 function smoothPath(pts: Array<{ x: number; y: number }>, tension = 0.6): string {
   if (pts.length < 2) return ''
@@ -33,9 +33,26 @@ export function Sparkline({
   // React's generated ids contain punctuation that is unsafe inside a
   // url(#...) fragment reference.
   const id = `spark-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
+  // Callback ref: the <svg> element changes when switching between the
+  // no-activity hairline and the line, so the observer must follow it.
+  const [svg, setSvg] = useState<SVGSVGElement | null>(null)
+  // The viewBox tracks the rendered pixel width so the chart draws at 1:1 scale.
+  // A fixed viewBox with preserveAspectRatio="none" stretches strokes and curves
+  // differently at every card width. 200 is only the pre-measure SSR fallback.
+  const [vw, setVw] = useState(200)
+  useEffect(() => {
+    if (!svg) return
+    const update = () => {
+      const w = Math.round(svg.getBoundingClientRect().width)
+      if (w > 0) setVw(w)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(svg)
+    return () => ro.disconnect()
+  }, [svg])
   if (data.length < 2) return null
 
-  const vw = 200
   const max = Math.max(...data)
   const step = vw / (data.length - 1)
 
@@ -46,6 +63,7 @@ export function Sparkline({
   if (max <= 0) {
     return (
       <svg
+        ref={setSvg}
         viewBox={`0 0 ${vw} ${height}`}
         preserveAspectRatio="none"
         className="block w-full mt-auto"
@@ -59,7 +77,7 @@ export function Sparkline({
           y2={height - 2}
           stroke="var(--fg-faint)"
           strokeWidth={1}
-          className="max-md:[vector-effect:non-scaling-stroke]"
+          vectorEffect="non-scaling-stroke"
           opacity={0.45}
         />
       </svg>
@@ -77,6 +95,7 @@ export function Sparkline({
 
   return (
     <svg
+      ref={setSvg}
       viewBox={`0 0 ${vw} ${height}`}
       preserveAspectRatio="none"
       className="block w-full mt-auto"
@@ -97,7 +116,7 @@ export function Sparkline({
         fill="none"
         stroke={color}
         strokeWidth={1.5}
-        className="max-md:[vector-effect:non-scaling-stroke]"
+        vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
