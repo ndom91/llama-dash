@@ -120,4 +120,12 @@ export const RequestSessionSchema = v.object({
     v.object({ ...ApiRequestSchema.entries, payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']) }),
   ),
   nextCursor: v.nullable(v.string()),
+  olderContext: v.optional(
+    v.nullable(
+      v.object({
+        streamed: v.boolean(),
+        payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']),
+      }),
+    ),
+  ),
 })

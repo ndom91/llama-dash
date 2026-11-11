@@ -15,7 +15,10 @@ export const requestRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/session$/,
     handler: async (request, match) => {
-      const session = listRequestSession(match[1], new URL(request.url).searchParams.get('cursor') ?? undefined)
+      const params = new URL(request.url).searchParams
+      const order = params.get('order') ?? 'asc'
+      if (order !== 'asc' && order !== 'desc') return error(400, 'Invalid session order')
+      const session = listRequestSession(match[1], params.get('cursor') ?? undefined, order)
       if (!session) return error(404, `Request ${match[1]} not found`)
       return json(200, session, { noStore: true })
     },

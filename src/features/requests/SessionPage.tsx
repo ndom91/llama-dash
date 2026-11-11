@@ -5,14 +5,18 @@ import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { api } from '../../lib/api'
 import { formatDuration } from '../../lib/format'
+import { useMediaQuery } from '../../lib/use-media-query'
 import { RequestTextView } from './RequestTextView'
+import { SessionExchangeSkeleton, SessionPagePending } from './SessionPagePending'
 import { requestMessages, responseText, type SessionMessage } from './sessionMessages'
 
 export function SessionPage({ id }: { id: string }) {
+  const mobile = useMediaQuery('(max-width: 768px)')
+  const order = mobile ? 'desc' : 'asc'
   const query = useInfiniteQuery({
-    queryKey: ['request-session', id],
+    queryKey: ['request-session', id, order],
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => api.getRequestSession(id, pageParam, { signal }),
+    queryFn: ({ pageParam, signal }) => api.getRequestSession(id, pageParam, { signal }, order),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     staleTime: 0,
     gcTime: 60_000,
@@ -20,37 +24,42 @@ export function SessionPage({ id }: { id: string }) {
   const requests = useMemo(() => query.data?.pages.flatMap((page) => page.requests) ?? [], [query.data])
   const parsed = useMemo(() => new WeakMap<object, { messages: SessionMessage[]; response: string }>(), [])
   const exchanges = useMemo(() => {
-    let previous: SessionMessage[] = []
-    let previousResponse = ''
-    return requests.map((request) => {
-      let capture = parsed.get(request)
-      if (!capture) {
-        capture = {
+    const capture = (request: {
+      streamed: boolean
+      payloads: { requestBody: string | null; responseBody: string | null }
+    }) => {
+      let result = parsed.get(request)
+      if (!result) {
+        result = {
           messages: requestMessages(request.payloads.requestBody),
           response: responseText(request.payloads.responseBody, request.streamed),
         }
-        parsed.set(request, capture)
+        parsed.set(request, result)
       }
-      const { messages, response } = capture
+      return result
+    }
+    const context = mobile ? query.data?.pages.at(-1)?.olderContext : null
+    return requests.map((request, index) => {
+      const { messages, response } = capture(request)
+      const older = mobile ? (requests[index + 1] ?? context) : requests[index - 1]
+      const previous = older ? capture(older) : { messages: [], response: '' }
       let common = 0
       while (
-        common < previous.length &&
+        common < previous.messages.length &&
         common < messages.length &&
-        previous[common].role === messages[common].role &&
-        previous[common].text === messages[common].text
+        previous.messages[common].role === messages[common].role &&
+        previous.messages[common].text === messages[common].text
       )
         common++
-      // Only suppress an assistant message when it exactly repeats the last captured response.
       const added = messages.slice(common)
-      if (common > 0 && added[0]?.role === 'assistant' && added[0].text === previousResponse) added.shift()
-      previous = messages
-      previousResponse = response
-      return { request, messages: added, response: previousResponse, hasReadableInput: messages.length > 0 }
+      if (common > 0 && added[0]?.role === 'assistant' && added[0].text === previous.response) added.shift()
+      return { request, messages: mobile ? added.reverse() : added, response, hasReadableInput: messages.length > 0 }
     })
-  }, [requests, parsed])
+  }, [requests, parsed, mobile, query.data])
 
   if (query.error && !query.data)
     return <RouteError kicker="dsh · sessions" title="Failed to load session" message={query.error.message} />
+  if (query.isPending) return <SessionPagePending />
   const sessionId = query.data?.pages[0]?.sessionId
   return (
     <div className="content">
@@ -70,9 +79,7 @@ export function SessionPage({ id }: { id: string }) {
           }
         />
         <main className="mx-auto w-full min-w-0 max-w-5xl px-6 pb-12 max-md:px-3">
-          {query.isPending ? (
-            <p className="font-mono text-xs text-fg-dim">Loading session…</p>
-          ) : !sessionId ? (
+          {!sessionId ? (
             <p className="py-8 text-sm text-fg-dim">No session ID was captured for this request.</p>
           ) : (
             <>
@@ -82,6 +89,7 @@ export function SessionPage({ id }: { id: string }) {
               <p className="my-4 text-xs text-fg-dim">
                 Only requests and payloads retained by llama-dash appear here. Missing or truncated captures may leave
                 gaps; repeated context is collapsed when it matches the preceding request.
+                {mobile ? ' Newest requests appear first.' : null}
               </p>
               <div className="space-y-5">
                 {exchanges.map(({ request, messages, response, hasReadableInput }, index) => (
@@ -108,20 +116,17 @@ export function SessionPage({ id }: { id: string }) {
                       {request.id === id ? <span className="text-fg">selected request</span> : null}
                     </div>
                     <div className="min-w-0 space-y-4 px-4 py-4 max-sm:px-3">
+                      {mobile ? (
+                        <SessionResponse response={response} hasBody={Boolean(request.payloads.responseBody)} />
+                      ) : null}
                       {messages.map((message, messageIndex) => (
                         // Messages are immutable within an exchange.
                         // biome-ignore lint/suspicious/noArrayIndexKey: repeated messages need distinct keys.
                         <Message key={messageIndex} label={message.role} text={message.text} />
                       ))}
-                      {response ? (
-                        <Message label="assistant" text={response} />
-                      ) : (
-                        <p className="m-0 font-mono text-xs text-fg-dim">
-                          {request.payloads.responseBody
-                            ? 'No readable response text captured. Open the request to inspect the raw response.'
-                            : 'Response body unavailable.'}
-                        </p>
-                      )}
+                      {!mobile ? (
+                        <SessionResponse response={response} hasBody={Boolean(request.payloads.responseBody)} />
+                      ) : null}
                       {!request.payloads.requestBody ? (
                         <p className="m-0 font-mono text-xs text-fg-dim">Request body unavailable.</p>
                       ) : null}
@@ -149,6 +154,12 @@ export function SessionPage({ id }: { id: string }) {
                   </section>
                 ))}
               </div>
+              {query.isFetchingNextPage ? (
+                <div role="status" aria-label="Loading more session requests" className="mt-5">
+                  <span className="sr-only">Loading more session requests…</span>
+                  <SessionExchangeSkeleton />
+                </div>
+              ) : null}
               {query.hasNextPage ? (
                 <button
                   type="button"
@@ -156,7 +167,7 @@ export function SessionPage({ id }: { id: string }) {
                   disabled={query.isFetchingNextPage}
                   onClick={() => void query.fetchNextPage()}
                 >
-                  {query.isFetchingNextPage ? 'Loading…' : 'Load more requests'}
+                  {query.isFetchingNextPage ? 'Loading…' : mobile ? 'Load older requests' : 'Load more requests'}
                 </button>
               ) : null}
               {query.isFetchNextPageError ? (
@@ -167,6 +178,17 @@ export function SessionPage({ id }: { id: string }) {
         </main>
       </div>
     </div>
+  )
+}
+
+function SessionResponse({ response, hasBody }: { response: string; hasBody: boolean }) {
+  if (response) return <Message label="assistant" text={response} />
+  return (
+    <p className="m-0 font-mono text-xs text-fg-dim">
+      {hasBody
+        ? 'No readable response text captured. Open the request to inspect the raw response.'
+        : 'Response body unavailable.'}
+    </p>
   )
 }
 
