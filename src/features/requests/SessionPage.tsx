@@ -1,10 +1,11 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { api } from '../../lib/api'
 import { formatDuration } from '../../lib/format'
+import { RequestTextView } from './RequestTextView'
 import { requestMessages, responseText, type SessionMessage } from './sessionMessages'
 
 export function SessionPage({ id }: { id: string }) {
@@ -135,6 +136,14 @@ export function SessionPage({ id }: { id: string }) {
                           A captured body was truncated; open the request for the available raw data.
                         </p>
                       ) : null}
+                      {request.payloads.requestBody &&
+                      (!hasReadableInput || request.payloads.requestBody.includes('...[truncated ')) ? (
+                        <CapturedBody label="request" body={request.payloads.requestBody} />
+                      ) : null}
+                      {request.payloads.responseBody &&
+                      (!response || request.payloads.responseBody.includes('...[truncated ')) ? (
+                        <CapturedBody label="response" body={request.payloads.responseBody} />
+                      ) : null}
                       {request.error ? <p className="m-0 break-words text-xs text-err">{request.error}</p> : null}
                     </div>
                   </section>
@@ -169,5 +178,15 @@ function Message({ label, text }: { label: string; text: string }) {
         {text}
       </div>
     </div>
+  )
+}
+
+function CapturedBody({ label, body }: { label: string; body: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <details onToggle={(event) => setOpen(event.currentTarget.open)} className="min-w-0 text-xs text-fg-dim">
+      <summary className="min-h-11 cursor-pointer py-3 font-mono text-info">View captured {label} body</summary>
+      {open ? <RequestTextView text={body} className="max-h-80 rounded border border-border p-3" /> : null}
+    </details>
   )
 }
