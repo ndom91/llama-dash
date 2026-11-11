@@ -1,5 +1,5 @@
-import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
+import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 export const requests = sqliteTable(
   'requests',
@@ -63,6 +63,7 @@ export const requests = sqliteTable(
     index('idx_requests_key_id_id').on(table.keyId, table.id),
     index('idx_requests_key_started_at').on(table.keyId, table.startedAt),
     index('idx_requests_model_id').on(table.model, table.id),
+    index('idx_requests_session_id_id').on(table.sessionId, table.id),
   ],
 )
 

@@ -113,3 +113,11 @@ export type ApiHistogramBucket = v.InferOutput<typeof ApiHistogramBucketSchema>
 export const HistogramResponseSchema = v.object({
   buckets: v.array(ApiHistogramBucketSchema),
 })
+
+export const RequestSessionSchema = v.object({
+  sessionId: v.nullable(v.string()),
+  requests: v.array(
+    v.object({ ...ApiRequestSchema.entries, payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']) }),
+  ),
+  nextCursor: v.nullable(v.string()),
+})

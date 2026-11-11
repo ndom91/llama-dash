@@ -1,15 +1,25 @@
 import {
   countRecentMcpRequests,
   getAdjacentIds,
+  getRequestHistogram,
   getRequestMetadataById,
   getRequestPayloadsById,
-  getRequestHistogram,
   getRequestStats,
   listRecentRequests,
+  listRequestSession,
 } from '../requests.ts'
 import { clamp, error, json, type Route } from './types.ts'
 
 export const requestRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/session$/,
+    handler: async (request, match) => {
+      const session = listRequestSession(match[1], new URL(request.url).searchParams.get('cursor') ?? undefined)
+      if (!session) return error(404, `Request ${match[1]} not found`)
+      return json(200, session, { noStore: true })
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/metadata$/,

@@ -129,3 +129,15 @@ describe('extractAttribution', () => {
     ).toBe('wrapper')
   })
 })
+
+it('captures Claude Code and Codex session headers, preferring the configured mapping', () => {
+  const settings = { clientNameHeader: null, endUserIdHeader: null, sessionIdHeader: null }
+  expect(extractAttribution(new Headers({ 'x-claude-code-session-id': 'claude' }), settings).sessionId).toBe('claude')
+  expect(extractAttribution(new Headers({ 'session-id': 'codex' }), settings).sessionId).toBe('codex')
+  expect(
+    extractAttribution(new Headers({ 'session-id': 'codex', 'x-session-id': 'custom' }), {
+      ...settings,
+      sessionIdHeader: 'x-session-id',
+    }).sessionId,
+  ).toBe('custom')
+})

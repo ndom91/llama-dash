@@ -50,6 +50,7 @@ import {
   RequestMetadataResponseSchema,
   RequestPayloadsSchema,
   RequestsListResponseSchema,
+  RequestSessionSchema,
 } from './schemas/request'
 import {
   ApiUsageReportSchema,
@@ -188,6 +189,8 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
+  getRequestSession: (id: string, cursor?: string, options: ApiFetchOptions = {}) =>
+    getJson(`/api/requests/${encodeURIComponent(id)}/session${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, RequestSessionSchema, { priority: 'high', ...options }),
   getRequestMetadata: (id: string, options: ApiFetchOptions = {}) =>
     getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema, { priority: 'high', ...options }),
   getRequestPayloads: (id: string, options: ApiFetchOptions = {}) =>

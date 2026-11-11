@@ -114,7 +114,8 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
     [req.endpoint, payloadData?.requestBody, reqHeaders],
   )
   const tokPerSec = calculateTokPerSec(req.completionTokens, req.durationMs)
-  const hasAttribution = Boolean(req.clientName || req.endUserId || req.sessionId)
+  const sessionId = req.sessionId ?? reqHeaders?.['x-claude-code-session-id'] ?? reqHeaders?.['session-id'] ?? null
+  const hasAttribution = Boolean(req.clientName || req.endUserId || sessionId)
   const hasCostInfo = req.cacheCreationTokens != null || req.cacheReadTokens != null || req.costUsd != null
   // Model names are deliberately excluded; they live in the Model section.
   const isRouted = Boolean(
@@ -288,13 +289,13 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   <div>
                     <dt>session</dt>
                     <dd>
-                      {req.sessionId ? (
+                      {sessionId ? (
                         <Link
-                          to="/requests"
-                          search={{ session: req.sessionId }}
+                          to="/sessions/$id"
+                          params={{ id: req.id }}
                           className="font-mono text-info no-underline hover:text-fg"
                         >
-                          {req.sessionId}
+                          {sessionId}
                         </Link>
                       ) : (
                         '—'
@@ -304,13 +305,13 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                   <div>
                     <dt>related</dt>
                     <dd>
-                      {req.sessionId ? (
+                      {sessionId ? (
                         <Link
-                          to="/requests"
-                          search={{ session: req.sessionId }}
+                          to="/sessions/$id"
+                          params={{ id: req.id }}
                           className="font-mono text-info no-underline hover:text-fg"
                         >
-                          other requests in this session
+                          view session history
                         </Link>
                       ) : (
                         '—'

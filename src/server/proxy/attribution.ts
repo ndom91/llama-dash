@@ -1,4 +1,4 @@
-import { normalizeAttributionHeaderName, type AttributionSettings } from '../../lib/schemas/attribution'
+import { type AttributionSettings, normalizeAttributionHeaderName } from '../../lib/schemas/attribution'
 
 export type RequestAttribution = {
   clientName: string | null
@@ -45,6 +45,9 @@ export function extractAttribution(headers: Headers, settings: AttributionSettin
   return {
     clientName: explicitClientName ?? inferClientNameFromUserAgent(headers),
     endUserId: normalizeHeaderValue(getSafe(settings.endUserIdHeader)),
-    sessionId: normalizeHeaderValue(getSafe(settings.sessionIdHeader)),
+    sessionId:
+      normalizeHeaderValue(getSafe(settings.sessionIdHeader)) ??
+      normalizeHeaderValue(headers.get('x-claude-code-session-id')) ??
+      normalizeHeaderValue(headers.get('session-id')),
   }
 }

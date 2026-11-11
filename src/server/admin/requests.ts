@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, lt, or, getTableColumns, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, getTableColumns, gt, gte, inArray, lt, or, type SQL } from 'drizzle-orm'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
@@ -257,6 +257,72 @@ export function getRequestPayloadsById(id: string) {
     .get()
   if (!row) return null
   return toRequestPayloads(row, getRecentBodies(id))
+}
+
+// Older rows can still be associated when their captured headers survived retention.
+export function listRequestSession(id: string, cursor?: string) {
+  const anchor = db
+    .select({ sessionId: schema.requests.sessionId, headers: schema.requests.requestHeaders })
+    .from(schema.requests)
+    .where(eq(schema.requests.id, id))
+    .get()
+  if (!anchor) return null
+  let sessionId = anchor.sessionId
+  if (!sessionId && anchor.headers) {
+    try {
+      const headers = JSON.parse(anchor.headers) as Record<string, unknown>
+      const value = headers['x-claude-code-session-id'] ?? headers['session-id']
+      if (typeof value === 'string') sessionId = value.trim() || null
+    } catch {}
+  }
+  if (!sessionId) return { sessionId: null, requests: [], nextCursor: null }
+  // Force the session/id index: SQLite otherwise prefers the class/id index,
+  // scanning unrelated requests in ID order for every page.
+  const cursorClause = cursor ? 'and id > ?' : ''
+  const current = sqliteDb
+    .prepare(`select id from requests indexed by idx_requests_session_id_id
+    where session_id = ? and request_class = 'inference' ${cursorClause} order by id limit 21`)
+    .all(sessionId, ...(cursor ? [cursor] : [])) as Array<{ id: string }>
+  const legacy = sqliteDb
+    .prepare(`select id from requests indexed by idx_requests_session_id_id
+    where session_id is null and request_class = 'inference' ${cursorClause}
+      and case when json_valid(request_headers) then
+        (json_extract(request_headers, '$."x-claude-code-session-id"') = ?
+          or json_extract(request_headers, '$."session-id"') = ?) else 0 end
+    order by id limit 21`)
+    .all(...(cursor ? [cursor] : []), sessionId, sessionId) as Array<{ id: string }>
+  const ids = [...current, ...legacy].map((row) => row.id).sort()
+  const page = ids.slice(0, 20)
+  const rows =
+    page.length === 0
+      ? []
+      : db
+          .select({
+            ...requestSummaryColumns,
+            keyId: schema.requests.keyId,
+            requestBody: schema.requests.requestBody,
+            responseBody: schema.requests.responseBody,
+          })
+          .from(schema.requests)
+          .where(inArray(schema.requests.id, page))
+          .all()
+  const rowMap = new Map(rows.map((row) => [row.id, row]))
+  const keyMap = getApiKeyNameMap()
+  return {
+    sessionId,
+    requests: page.map((id) => {
+      const row = rowMap.get(id)!
+      const recent = getRecentBodies(id)
+      return {
+        ...toRequestRow(row, row.keyId ? (keyMap.get(row.keyId) ?? null) : null),
+        payloads: {
+          requestBody: recent?.requestBody ?? row.requestBody,
+          responseBody: recent?.responseBody ?? row.responseBody,
+        },
+      }
+    }),
+    nextCursor: ids.length > 20 ? page[page.length - 1] : null,
+  }
 }
 
 type StatsCache = { at: number; value: ApiRequestStats }

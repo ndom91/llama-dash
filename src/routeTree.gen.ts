@@ -23,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RequestsIndexRouteImport } from './routes/requests.index'
 import { Route as ModelsIndexRouteImport } from './routes/models.index'
 import { Route as KeysIndexRouteImport } from './routes/keys.index'
+import { Route as SessionsIdRouteImport } from './routes/sessions.$id'
 import { Route as RequestsIdRouteImport } from './routes/requests.$id'
 import { Route as ModelsIdRouteImport } from './routes/models.$id'
 import { Route as KeysIdRouteImport } from './routes/keys.$id'
@@ -97,6 +98,11 @@ const KeysIndexRoute = KeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SessionsIdRoute = SessionsIdRouteImport.update({
+  id: '/sessions/$id',
+  path: '/sessions/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RequestsIdRoute = RequestsIdRouteImport.update({
   id: '/requests/$id',
   path: '/requests/$id',
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/keys/': typeof KeysIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/keys': typeof KeysIndexRoute
   '/models': typeof ModelsIndexRoute
   '/requests': typeof RequestsIndexRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/keys/$id': typeof KeysIdRoute
   '/models/$id': typeof ModelsIdRoute
   '/requests/$id': typeof RequestsIdRoute
+  '/sessions/$id': typeof SessionsIdRoute
   '/keys/': typeof KeysIndexRoute
   '/models/': typeof ModelsIndexRoute
   '/requests/': typeof RequestsIndexRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/sessions/$id'
     | '/keys/'
     | '/models/'
     | '/requests/'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/sessions/$id'
     | '/keys'
     | '/models'
     | '/requests'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/keys/$id'
     | '/models/$id'
     | '/requests/$id'
+    | '/sessions/$id'
     | '/keys/'
     | '/models/'
     | '/requests/'
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   KeysIdRoute: typeof KeysIdRoute
   ModelsIdRoute: typeof ModelsIdRoute
   RequestsIdRoute: typeof RequestsIdRoute
+  SessionsIdRoute: typeof SessionsIdRoute
   KeysIndexRoute: typeof KeysIndexRoute
   ModelsIndexRoute: typeof ModelsIndexRoute
   RequestsIndexRoute: typeof RequestsIndexRoute
@@ -351,6 +364,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KeysIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sessions/$id': {
+      id: '/sessions/$id'
+      path: '/sessions/$id'
+      fullPath: '/sessions/$id'
+      preLoaderRoute: typeof SessionsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/requests/$id': {
       id: '/requests/$id'
       path: '/requests/$id'
@@ -390,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   KeysIdRoute: KeysIdRoute,
   ModelsIdRoute: ModelsIdRoute,
   RequestsIdRoute: RequestsIdRoute,
+  SessionsIdRoute: SessionsIdRoute,
   KeysIndexRoute: KeysIndexRoute,
   ModelsIndexRoute: ModelsIndexRoute,
   RequestsIndexRoute: RequestsIndexRoute,
