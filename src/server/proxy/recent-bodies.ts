@@ -1,7 +1,6 @@
 // In-memory cache of full request/response bodies for recent proxied calls.
-// The DB stores truncated bodies to keep SQLite small and cheap; this cache
-// keeps full payloads available while actively debugging, then evicts by byte
-// budget. Bodies vanish on process restart.
+// When a DB body limit is configured, this cache keeps recent full payloads
+// available for debugging, then evicts by byte budget. It resets on restart.
 
 type BodyPair = { requestBody: string | null; responseBody: string | null }
 

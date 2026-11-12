@@ -1,10 +1,10 @@
 import { eq } from 'drizzle-orm'
-import { parseUsagePanelsSetting, type UsagePanelSettings } from '../../lib/schemas/usage.ts'
 import {
   parseSystemThresholdsSetting,
   type SystemThresholds,
   type UpdateSystemThresholdsBody,
 } from '../../lib/schemas/system-thresholds.ts'
+import { parseUsagePanelsSetting, type UsagePanelSettings } from '../../lib/schemas/usage.ts'
 import { db, schema } from '../db/index.ts'
 
 type RequestLimits = {
@@ -13,13 +13,13 @@ type RequestLimits = {
 }
 
 type BodyLogLimits = {
-  maxBytes: number
+  maxBytes: number | null
 }
 
 type PrivacySettings = {
   captureRequestBodies: boolean
   captureResponseBodies: boolean
-  maxStoredBodyBytes: number
+  maxStoredBodyBytes: number | null
   mcpRelayPersistSuccessBodies: boolean
   requestLogRetentionDays: number
   mcpRelaySuccessRetentionDays: number
@@ -33,10 +33,6 @@ type AttributionSettings = {
   sessionIdHeader: string | null
 }
 
-// Claude Code requests are 50-100KB each — storing every body verbatim makes
-// `data/dash.db` balloon fast. Truncate at this threshold by default; the
-// in-memory ring (recent-bodies.ts) keeps the full payload for live debugging.
-const DEFAULT_MAX_LOGGED_BODY_BYTES = 32 * 1024
 const DEFAULT_REQUEST_LOG_RETENTION_DAYS = 30
 const DEFAULT_MCP_RELAY_SUCCESS_RETENTION_DAYS = 7
 const DEFAULT_MCP_RELAY_ERROR_RETENTION_DAYS = 30
@@ -106,8 +102,7 @@ export function getPrivacySettings(): PrivacySettings {
   _privacyCache = {
     captureRequestBodies: parseBooleanSetting(getSetting('capture_request_bodies'), true),
     captureResponseBodies: parseBooleanSetting(getSetting('capture_response_bodies'), true),
-    maxStoredBodyBytes:
-      Number.isFinite(parsedMaxBytes) && parsedMaxBytes >= 0 ? parsedMaxBytes : DEFAULT_MAX_LOGGED_BODY_BYTES,
+    maxStoredBodyBytes: Number.isFinite(parsedMaxBytes) && parsedMaxBytes >= 0 ? parsedMaxBytes : null,
     mcpRelayPersistSuccessBodies: parseBooleanSetting(getSetting('mcp_relay_persist_success_bodies'), false),
     requestLogRetentionDays: Math.max(
       2,
@@ -175,7 +170,7 @@ const PRIVACY_SETTING_KEYS = {
 export function setPrivacySettings(settings: Partial<PrivacySettings>) {
   for (const [field, key] of Object.entries(PRIVACY_SETTING_KEYS) as Array<[keyof PrivacySettings, string]>) {
     const value = settings[field]
-    if (value !== undefined) setSetting(key, String(value))
+    if (value !== undefined) setSetting(key, value === null ? null : String(value))
   }
 }
 

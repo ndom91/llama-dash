@@ -1,8 +1,8 @@
 import { ulid } from 'ulidx'
 import { getApiKeyName } from '../admin/api-keys.ts'
 import { publishAdminEvent } from '../admin/events.ts'
-import { getBodyLogLimits, getPrivacySettings } from '../admin/settings.ts'
 import { toRequestRow } from '../admin/requests.ts'
+import { getBodyLogLimits, getPrivacySettings } from '../admin/settings.ts'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { computeCostUsd } from '../pricing.ts'
 import { appendLoggedRequest, getPrunedBefore } from '../usage-rollup.ts'
@@ -15,8 +15,9 @@ let queue: RequestLogInput[] = []
 let flushScheduled = false
 let droppedLogs = 0
 
-function truncateBody(body: string | null, maxBytes: number): string | null {
+function truncateBody(body: string | null, maxBytes: number | null): string | null {
   if (body == null) return null
+  if (maxBytes == null) return body
   if (maxBytes <= 0) return null
   const fullBytes = Buffer.byteLength(body, 'utf8')
   if (fullBytes <= maxBytes) return body
@@ -120,8 +121,8 @@ export function writeRequestLogNow(row: RequestLogInput) {
   const privacy = getPrivacySettings()
   const isSuccessfulMcpRelay = row.requestClass === 'mcp_relay' && row.statusCode < 400 && row.error == null
   const persistBodies = !isSuccessfulMcpRelay || privacy.mcpRelayPersistSuccessBodies
-  // Keep full bodies in-memory for recent-debug access; DB keeps truncated.
-  if (persistBodies && maxBytes > 0)
+  // The recent cache can provide full bodies when a storage limit is configured.
+  if (persistBodies && maxBytes != null && maxBytes > 0)
     storeRecentBodies(id, { requestBody: row.requestBody, responseBody: row.responseBody })
   const requestBody = persistBodies ? truncateBody(row.requestBody, maxBytes) : null
   const responseBody = persistBodies ? truncateBody(row.responseBody, maxBytes) : null

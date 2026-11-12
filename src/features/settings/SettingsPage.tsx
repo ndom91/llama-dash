@@ -279,7 +279,7 @@ export function SettingsPage() {
                 />
                 <PrivacyToggle
                   title="MCP success bodies"
-                  description="Persist request and response snippets for successful MCP relay calls. Disabled by default to reduce DB growth."
+                  description="Persist request and response bodies for successful MCP relay calls. Disabled by default to reduce DB growth."
                   enabled={privacy?.mcpRelayPersistSuccessBodies ?? false}
                   disabled={!privacy || isPrivacyMutating}
                   onToggle={() =>
@@ -290,26 +290,39 @@ export function SettingsPage() {
                   }
                 />
                 <div className="flex flex-col gap-2 rounded border border-border bg-surface-2 p-3 xl:col-span-3">
-                  <label className="font-mono text-xs font-semibold text-fg" htmlFor="max-stored-body-bytes">
-                    Max stored body bytes
-                  </label>
+                  <div className="font-mono text-xs font-semibold text-fg">Max stored body bytes</div>
                   <span className="font-mono text-[11px] leading-relaxed text-fg-dim">
-                    Truncates persisted request and response bodies. Set to 0 to store no body text.
+                    Full bodies are stored by default. Set a limit to truncate persisted bodies, or 0 to store no body
+                    text.
                   </span>
-                  <NumberInput
-                    id="max-stored-body-bytes"
-                    min={0}
-                    max={1024 * 1024}
-                    step={1024}
-                    disabled={!privacy || isPrivacyMutating}
-                    className="max-w-48"
-                    value={privacy?.maxStoredBodyBytes ?? ''}
-                    onChange={(event) => {
-                      const value = Number(event.target.value)
-                      if (!Number.isFinite(value) || value < 0) return
-                      updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
-                    }}
-                  />
+                  <label className="flex items-center gap-2 font-mono text-xs text-fg-dim">
+                    <input
+                      type="checkbox"
+                      checked={privacy?.maxStoredBodyBytes == null}
+                      disabled={!privacy || isPrivacyMutating}
+                      onChange={(event) =>
+                        updatePrivacySettings.mutate({ maxStoredBodyBytes: event.target.checked ? null : 32 * 1024 })
+                      }
+                    />
+                    Store full bodies
+                  </label>
+                  {privacy?.maxStoredBodyBytes != null ? (
+                    <NumberInput
+                      id="max-stored-body-bytes"
+                      aria-label="Max stored body bytes"
+                      min={0}
+                      max={1024 * 1024}
+                      step={1024}
+                      disabled={!privacy || isPrivacyMutating}
+                      className="max-w-48"
+                      value={privacy.maxStoredBodyBytes}
+                      onChange={(event) => {
+                        const value = Number(event.target.value)
+                        if (!Number.isFinite(value) || value < 0) return
+                        updatePrivacySettings.mutate({ maxStoredBodyBytes: value })
+                      }}
+                    />
+                  ) : null}
                 </div>
                 <div className="grid gap-3 rounded border border-border bg-surface-2 p-3 xl:col-span-3 sm:grid-cols-2">
                   <div className="sm:col-span-2">

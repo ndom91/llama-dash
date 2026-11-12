@@ -1,15 +1,20 @@
-const MAX_CAPTURED_RESPONSE_BYTES = 256 * 1024
+const MAX_USAGE_SCAN_BYTES = 256 * 1024
 
-export class BoundedTextCapture {
+export class TextCapture {
   private chunks: string[] = []
   private bytes = 0
   private truncatedBytes = 0
 
-  constructor(private readonly maxBytes = MAX_CAPTURED_RESPONSE_BYTES) {}
+  constructor(private readonly maxBytes: number | null = null) {}
 
   append(text: string) {
     if (!text) return
     const incomingBytes = Buffer.byteLength(text, 'utf8')
+    if (this.maxBytes == null) {
+      this.chunks.push(text)
+      this.bytes += incomingBytes
+      return
+    }
     const remaining = this.maxBytes - this.bytes
     if (remaining <= 0) {
       this.truncatedBytes += incomingBytes
@@ -39,6 +44,6 @@ export class BoundedTextCapture {
   }
 
   usageText(): string | null {
-    return this.truncatedBytes === 0 ? this.chunks.join('') || null : null
+    return this.truncatedBytes === 0 && this.bytes <= MAX_USAGE_SCAN_BYTES ? this.chunks.join('') || null : null
   }
 }

@@ -176,7 +176,7 @@ describe('writeProxyLog', () => {
     )
   })
 
-  it('extracts final streaming timings beyond the bounded body capture', async () => {
+  it('captures complete large streams and extracts final streaming timings', async () => {
     const stream = `data: ${JSON.stringify({ choices: [{ delta: { content: 'x'.repeat(270_000) } }] })}\n\ndata: ${JSON.stringify({ timings: { prompt_ms: 101.293, predicted_ms: 4780 }, usage: { completion_tokens: 548 } })}\n\ndata: [DONE]\n\n`
     undiciFetch.mockResolvedValue(new Response(stream, { headers: { 'content-type': 'text/event-stream' } }))
     const response = await forwardUpstreamAndLog({
@@ -203,7 +203,7 @@ describe('writeProxyLog', () => {
         decodeMs: 4780,
         firstOutputMs: expect.any(Number),
         outputSpanMs: 0,
-        responseBody: expect.stringContaining('...[truncated'),
+        responseBody: stream,
       }),
     )
   })

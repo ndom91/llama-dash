@@ -2,15 +2,15 @@ import { Agent, type RequestInit as UndiciRequestInit, fetch as undiciFetch } fr
 import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
+import { errorMessage } from '../error-message.ts'
+import type { RequestAttribution } from './attribution.ts'
 import type { ProxyForwardBody } from './body.ts'
 import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
-import type { RequestAttribution } from './attribution.ts'
 import { type RequestLogInput, writeRequestLog } from './log.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
-import { BoundedTextCapture } from './text-capture.ts'
+import { TextCapture } from './text-capture.ts'
 import type { RoutingOutcome } from './transforms.ts'
 import { SseUsageScanner, type UsageWithClose, usageFromJsonBody } from './usage.ts'
-import { errorMessage } from '../error-message.ts'
 
 export type ProxyLogInput = {
   startedAt: number
@@ -198,7 +198,8 @@ export async function forwardUpstreamAndLog(input: {
   const isSse = contentType.includes('text/event-stream') || (isHeaderlessCodex && isStreamingRequest(input.body))
   const isJson = contentType.includes('application/json') || (isHeaderlessCodex && !isSse)
   const isBinaryResponse = !isSse && !isJson
-  const captureResponseBodies = getPrivacySettings().captureResponseBodies
+  const privacy = getPrivacySettings()
+  const captureResponseBodies = privacy.captureResponseBodies && privacy.maxStoredBodyBytes !== 0
   const log = (usage: UsageWithClose, streamed: boolean, error: string | null, resBody: string | null) =>
     writeProxyLog({
       startedAt: input.startedAt,
@@ -228,7 +229,11 @@ export async function forwardUpstreamAndLog(input: {
   const reader = upstreamResponse.body.getReader()
   const decoder = isBinaryResponse ? null : new TextDecoder()
   const sseScanner = isSse ? new SseUsageScanner(input.startedAt) : null
-  const responseCapture = decoder ? new BoundedTextCapture() : null
+  const captureLimit =
+    captureResponseBodies && privacy.maxStoredBodyBytes == null
+      ? null
+      : Math.max(256 * 1024, privacy.maxStoredBodyBytes ?? 0)
+  const responseCapture = decoder ? new TextCapture(captureLimit) : null
   // A client may hang up while a read is pending (SSE clients often close the
   // socket as soon as they see `data: [DONE]`). cancel() then logs the request;
   // the pending pull must not touch the controller or log a second row --

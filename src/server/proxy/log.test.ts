@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const settingsMock = vi.hoisted(() => ({
-  maxBytes: 32 * 1024,
+  maxBytes: (32 * 1024) as number | null,
   mcpRelayPersistSuccessBodies: false,
 }))
 
@@ -28,15 +28,14 @@ vi.mock('./recent-bodies.ts', () => ({
   storeRecentBodies: vi.fn(),
 }))
 
-import { storeRecentBodies } from './recent-bodies'
-
 import {
   flushRequestLogQueue,
   getRequestLogQueueStats,
-  resetRequestLogQueueForTest,
   type RequestLogInput,
+  resetRequestLogQueueForTest,
   writeRequestLog,
 } from './log'
+import { storeRecentBodies } from './recent-bodies'
 
 function row(overrides: Partial<RequestLogInput> = {}): RequestLogInput {
   return {
@@ -98,6 +97,16 @@ describe('request log queue', () => {
 
     expect(getRequestLogQueueStats()).toEqual({ queued: 0, dropped: 0 })
     expect(inserts.values).toHaveBeenCalledTimes(1)
+  })
+
+  it('persists complete large request and response bodies when no limit is set', () => {
+    settingsMock.maxBytes = null
+    const requestBody = 'a'.repeat(400_000)
+    const responseBody = 'b'.repeat(300_000)
+    writeRequestLog(row({ requestBody, responseBody }))
+    flushRequestLogQueue()
+    expect(inserts.values).toHaveBeenCalledWith(expect.objectContaining({ requestBody, responseBody }))
+    expect(storeRecentBodies).not.toHaveBeenCalled()
   })
 
   it('stores no body text or recent bodies when the body byte limit is zero', () => {

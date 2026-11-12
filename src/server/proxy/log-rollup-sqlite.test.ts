@@ -28,7 +28,7 @@ it('persists late inference and its frozen-day rollup together', async () => {
       bodyRetentionDays: 3,
       mcpRelayPersistSuccessBodies: false,
     }),
-    getBodyLogLimits: () => ({ maxBytes: 0 }),
+    getBodyLogLimits: () => ({ maxBytes: null }),
   }))
   vi.doMock('../admin/api-keys.ts', () => ({ getApiKeyName: () => null }))
   vi.doMock('../admin/events.ts', () => ({ publishAdminEvent: vi.fn() }))
@@ -87,7 +87,20 @@ it('persists late inference and its frozen-day rollup together', async () => {
   startRequestLogMaintenance()
   vi.advanceTimersByTime(1)
   expect(pruneRequestLogs(now).inferenceDeleted).toBe(1)
-  writeRequestLogNow({ ...row, startedAt: yesterday + 23 * 3_600_000, completionTokens: 200, totalTokens: 200 })
+  const requestBody = 'q'.repeat(400_000)
+  const responseBody = 'r'.repeat(300_000)
+  writeRequestLogNow({
+    ...row,
+    requestBody,
+    responseBody,
+    startedAt: yesterday + 23 * 3_600_000,
+    completionTokens: 200,
+    totalTokens: 200,
+  })
+  expect(sqlite.prepare('select request_body, response_body from requests').get()).toEqual({
+    request_body: requestBody,
+    response_body: responseBody,
+  })
   expect(sqlite.prepare('select sum(completion_tokens) as n from request_daily_stats').get()).toEqual({ n: 300 })
   const { loadDailyRows } = await import('../usage-rollup')
   const usage = loadDailyRows(sqlite, { fromDay: '2026-03-09', toDay: '2026-03-09', now, retentionDays: 1 })
