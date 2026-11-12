@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
 import {
@@ -7,6 +7,7 @@ import {
   parseTranscriptInput,
   parseTranscriptResponse,
   sessionInputTokens,
+  sessionTitle,
   type TranscriptContext,
   type TranscriptPart,
 } from './sessionTranscript'
@@ -23,6 +24,8 @@ export type TranscriptExchange = {
   request: CapturedRequest
   number: number
   parts: TranscriptPart[]
+  inputParts: TranscriptPart[]
+  responseParts: TranscriptPart[]
   replaced: number | null
   side: 'title' | 'probe' | 'helper' | 'count' | null
   contexts: TranscriptContext[]
@@ -240,7 +243,7 @@ function Exchange({
                 ? '◌ helper'
                 : '● quota probe'}{' '}
           {side === 'title' && parts.find((part) => part.kind === 'message' && part.role === 'assistant')?.text
-            ? ` → “${parts.find((part) => part.kind === 'message' && part.role === 'assistant')!.text.slice(0, 100)}”`
+            ? ` → “${sessionTitle(parts.find((part) => part.kind === 'message' && part.role === 'assistant')!.text).slice(0, 100)}”`
             : ''}{' '}
           · {request.model ?? 'unknown model'} ·{' '}
           <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>HTTP {request.statusCode}</span> ·{' '}
@@ -292,7 +295,7 @@ function Exchange({
   )
 }
 
-function ContextPills({
+export function ContextPills({
   contexts,
   mobile,
   onOpen,
@@ -350,7 +353,7 @@ function ContextPills({
   )
 }
 
-function primaryArgument(value: string): string {
+export function primaryArgument(value: string): string {
   try {
     const parsed = JSON.parse(value) as unknown
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -363,7 +366,7 @@ function primaryArgument(value: string): string {
   return value.replace(/\s+/g, ' ')
 }
 
-function TranscriptItem({
+export const TranscriptItem = memo(function TranscriptItem({
   part,
   result,
   expanded,
@@ -444,7 +447,7 @@ function TranscriptItem({
       </div>
     </div>
   )
-}
+})
 
 function ResultLines({ text }: { text: string }) {
   return (

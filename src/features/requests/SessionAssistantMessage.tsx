@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
@@ -22,7 +22,15 @@ function nodeText(node: CodeNode): string {
   return node.type === 'text' ? (node.value ?? '') : (node.children ?? []).map(nodeText).join('')
 }
 
-export function SessionAssistantMessage({ text, time, truncated }: { text: string; time: string; truncated: boolean }) {
+export const SessionAssistantMessage = memo(function SessionAssistantMessage({
+  text,
+  time,
+  truncated,
+}: {
+  text: string
+  time: string
+  truncated: boolean
+}) {
   const [raw, setRaw] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [long, setLong] = useState(false)
@@ -114,4 +122,4 @@ export function SessionAssistantMessage({ text, time, truncated }: { text: strin
       </div>
     </div>
   )
-}
+})

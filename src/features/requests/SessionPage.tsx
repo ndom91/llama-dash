@@ -9,6 +9,7 @@ import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { SessionMobileDetail, SessionMobileSheet, SessionScrubber, type SessionSheetTab } from './SessionMobile'
 import { SessionExchangeSkeleton, SessionPagePending } from './SessionPagePending'
+import { SessionSplitTimeline } from './SessionSplitTimeline'
 import { SessionTranscriptView, type TranscriptExchange, type TranscriptFilters } from './SessionTranscriptView'
 import {
   type CapturedRequest,
@@ -16,6 +17,7 @@ import {
   parseTranscriptInput,
   parseTranscriptResponse,
   sessionInputTokens,
+  sessionTitle,
   sideRequest,
 } from './sessionTranscript'
 
@@ -154,6 +156,8 @@ export function SessionPage({ id }: { id: string }) {
         request,
         number: index + 1,
         parts,
+        inputParts: diff.parts,
+        responseParts: response,
         replaced: diff.replaced,
         side,
         contexts: input.contexts.flatMap((item) => {
@@ -226,10 +230,11 @@ export function SessionPage({ id }: { id: string }) {
         )?.text
       : undefined)
   const title =
-    titleText
-      ?.trim()
-      .replace(/^['"]|['"]$/g, '')
-      .slice(0, 160) || 'Session history'
+    (titleText
+      ? sessionTitle(titleText)
+          .replace(/^['"]|['"]$/g, '')
+          .slice(0, 160)
+      : '') || 'Session history'
   const start = requests.length ? Math.min(...requests.map((r) => Date.parse(r.startedAt))) : null
   const end = requests.length ? Math.max(...requests.map((r) => Date.parse(r.startedAt) + r.durationMs)) : null
   const client =
@@ -423,16 +428,25 @@ export function SessionPage({ id }: { id: string }) {
                 Only retained captures are shown.{' '}
                 {mobile ? 'Newest requests appear first.' : 'Oldest requests appear first.'}
               </p>
-              <SessionTranscriptView
-                exchanges={exchanges}
-                filters={filters}
-                mobile={mobile}
-                onOpenDetail={(value) => {
-                  const requestId = value.split('~')[0]
-                  const number = exchanges.find((exchange) => exchange.request.id === requestId)?.number
-                  updateView({ detail: number == null ? value : `${value}~${number}`, sheet: undefined })
-                }}
-              />
+              {mobile ? (
+                <SessionTranscriptView
+                  exchanges={exchanges}
+                  filters={filters}
+                  mobile
+                  onOpenDetail={(value) => {
+                    const requestId = value.split('~')[0]
+                    const number = exchanges.find((exchange) => exchange.request.id === requestId)?.number
+                    updateView({ detail: number == null ? value : `${value}~${number}`, sheet: undefined })
+                  }}
+                />
+              ) : (
+                <SessionSplitTimeline
+                  exchanges={exchanges}
+                  filters={filters}
+                  activeId={activeId}
+                  incomplete={incomplete}
+                />
+              )}
               {query.isFetchingNextPage ? (
                 <div role="status" aria-label="Loading more session requests" className="mx-auto max-w-[820px] px-6">
                   <SessionExchangeSkeleton />
@@ -610,7 +624,9 @@ function SessionRail({
             className="flex justify-between gap-3 border-b border-dashed border-border py-1.5 last:border-0"
           >
             <span>{label}</span>
-            <span className="break-all text-right text-fg">{value}</span>
+            <span className="min-w-0 truncate text-right text-fg" title={value}>
+              {value}
+            </span>
           </div>
         ))}
       </section>

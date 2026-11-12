@@ -1,0 +1,363 @@
+// Captured parts and lines have stable positions and may contain duplicate text.
+// biome-ignore-all lint/suspicious/noArrayIndexKey: Positions distinguish repeated captured blocks.
+// biome-ignore-all lint/a11y/noStaticElementInteractions: Hover only highlights linked blocks; their buttons provide keyboard access.
+import { Link } from '@tanstack/react-router'
+import { memo, useMemo, useState } from 'react'
+import { formatCompactNumber, formatDuration } from '../../lib/format'
+import { ContextPills, type TranscriptExchange, type TranscriptFilters, TranscriptItem } from './SessionTranscriptView'
+import { parseStopReason, sessionInputTokens, sessionTitle, type TranscriptPart } from './sessionTranscript'
+
+type Location = { requestId: string; number: number; index: number; part: TranscriptPart }
+type Pair = { call?: Location; result?: Location }
+
+function partId(location: Location, kind: 'call' | 'result') {
+  return `session-${location.requestId}-${kind}-${location.index}`
+}
+
+function jumpToPart(location: Location, kind: 'call' | 'result') {
+  const target = document.getElementById(partId(location, kind))
+  if (!target) return
+  let parent = target.parentElement
+  while (parent) {
+    if (parent instanceof HTMLDetailsElement) parent.open = true
+    parent = parent.parentElement
+  }
+  target.scrollIntoView({ block: 'center' })
+}
+
+function warnings(exchange: TranscriptExchange) {
+  return (['request', 'response'] as const).flatMap((kind) => {
+    const body = kind === 'request' ? exchange.request.payloads.requestBody : exchange.request.payloads.responseBody
+    const match = body?.match(/\n\.\.\.\[truncated (\d+) bytes\]$/)
+    if (!body || !match) return []
+    const size = new TextEncoder().encode(body.slice(0, match.index)).length
+    const format = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`)
+    return [
+      `▲ ${kind} ${kind === 'response' ? 'cut off at ' : ''}${format(size)} of ${format(size + Number(match[1]))}`,
+    ]
+  })
+}
+
+export function SessionSplitTimeline({
+  exchanges,
+  filters,
+  activeId,
+  incomplete = false,
+}: {
+  exchanges: TranscriptExchange[]
+  filters: TranscriptFilters
+  activeId: string | null
+  incomplete?: boolean
+}) {
+  const [hovered, setHovered] = useState<string | null>(null)
+  const metadata = useMemo(
+    () =>
+      new Map(
+        exchanges.map((exchange) => [
+          exchange.request.id,
+          {
+            reason: parseStopReason(exchange.request.payloads.responseBody),
+            warnings: warnings(exchange),
+          },
+        ]),
+      ),
+    [exchanges],
+  )
+  const pairs = useMemo(() => {
+    const result = new Map<string, Pair>()
+    for (const exchange of exchanges) {
+      if (exchange.side) continue
+      for (const [index, part] of exchange.responseParts.entries()) {
+        if (part.kind !== 'tool' || !part.id) continue
+        const pair = result.get(part.id) ?? {}
+        pair.call ??= { requestId: exchange.request.id, number: exchange.number, index, part }
+        result.set(part.id, pair)
+      }
+      for (const [index, part] of exchange.inputParts.entries()) {
+        if (part.kind !== 'result' || !part.id) continue
+        const pair = result.get(part.id) ?? {}
+        pair.result ??= { requestId: exchange.request.id, number: exchange.number, index, part }
+        result.set(part.id, pair)
+      }
+    }
+    return result
+  }, [exchanges])
+  const maxLatency = Math.max(1, ...exchanges.map(({ request }) => request.durationMs))
+  const groups: TranscriptExchange[][] = []
+  for (const exchange of exchanges) {
+    const previous = groups[groups.length - 1]
+    const toolOnly = (item: TranscriptExchange) =>
+      !item.side &&
+      item.replaced == null &&
+      !item.contexts.length &&
+      item.responseParts.some((part) => part.kind === 'tool') &&
+      !item.parts.some((part) => part.kind === 'message')
+    if (previous && ((exchange.side && previous[0].side) || (toolOnly(exchange) && toolOnly(previous[0]))))
+      previous.push(exchange)
+    else groups.push([exchange])
+  }
+  const renderRow = (exchange: TranscriptExchange) => {
+    const { request, number } = exchange
+    const { reason, warnings: warningLines } = metadata.get(request.id)!
+    const inputTokens = sessionInputTokens(request)
+    const cache =
+      inputTokens && request.cacheReadTokens != null ? Math.round((request.cacheReadTokens / inputTokens) * 100) : null
+    const lastResponseMessage = exchange.responseParts.reduce(
+      (last, part, index) => (part.kind === 'message' ? index : last),
+      -1,
+    )
+    return (
+      <section
+        key={request.id}
+        id={`session-${request.id}`}
+        data-session-request={request.id}
+        aria-label={`Request ${number}`}
+        className={`session-split-row ${activeId === request.id ? 'is-active' : ''} ${reason === 'end_turn' || reason === 'stop' ? 'is-final' : ''}`}
+      >
+        <div className="session-split-meta">
+          <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
+            #{number}
+          </Link>
+          <div>{new Date(request.startedAt).toLocaleTimeString()}</div>
+          <div>
+            <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
+            {formatDuration(request.durationMs)}
+          </div>
+          <div className="my-1 h-1 bg-surface-3">
+            <div
+              className={request.statusCode >= 400 ? 'h-full bg-err' : 'h-full bg-info'}
+              style={{ width: `${Math.max(2, (request.durationMs / maxLatency) * 100)}%` }}
+            />
+          </div>
+          <div>
+            {exchange.inputDelta == null
+              ? '—'
+              : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
+            / {formatCompactNumber(request.completionTokens)}
+          </div>
+          <div>cache {cache == null ? '—' : `${cache}%`}</div>
+          {reason ? (
+            <div className={reason === 'end_turn' || reason === 'stop' ? 'text-ok' : 'text-accent'}>{reason}</div>
+          ) : null}
+        </div>
+        <div className="session-split-input space-y-3">
+          {exchange.replaced != null ? (
+            <div className="font-mono text-[10px] text-warn">context reset · {exchange.replaced} messages replaced</div>
+          ) : null}
+          {filters.context && exchange.contexts.length ? (
+            <ContextPills contexts={exchange.contexts} mobile={false} onOpen={() => {}} />
+          ) : null}
+          {exchange.inputParts.map((part, index) => {
+            if (part.kind === 'message' && !filters.messages) return null
+            if (part.kind === 'result') {
+              const pair = part.id ? pairs.get(part.id) : undefined
+              const location = { requestId: request.id, number, index, part }
+              return (
+                <ResultBlock
+                  key={`${part.kind}-${index}-${filters.results}`}
+                  location={location}
+                  call={filters.tools ? pair?.call : undefined}
+                  expanded={filters.results}
+                  highlighted={Boolean(part.id && hovered === part.id)}
+                  onHover={setHovered}
+                />
+              )
+            }
+            if (part.kind === 'tool' && !filters.tools) return null
+            return (
+              <TranscriptItem
+                key={`${part.kind}-${index}`}
+                part={part}
+                expanded={filters.thinking}
+                time={request.startedAt}
+                truncated={false}
+              />
+            )
+          })}
+        </div>
+        <div className="session-split-output space-y-3">
+          {exchange.responseParts.map((part, index) => {
+            if ((part.kind === 'message' && !filters.messages) || (part.kind === 'tool' && !filters.tools)) return null
+            const location = { requestId: request.id, number, index, part }
+            const result = part.id ? pairs.get(part.id)?.result : undefined
+            return part.kind === 'tool' ? (
+              <div
+                key={`${part.kind}-${index}`}
+                id={partId(location, 'call')}
+                className={`session-linked-tool ${part.id && hovered === part.id ? 'is-linked' : ''}`}
+                onMouseEnter={() => setHovered(part.id ?? null)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <TranscriptItem part={part} expanded={false} time={request.startedAt} truncated={false} />
+                {result ? (
+                  <button type="button" className="session-link-chip" onClick={() => jumpToPart(result, 'result')}>
+                    → #{result.number}
+                  </button>
+                ) : (
+                  <span className="session-link-missing">
+                    {incomplete ? 'result may be in unloaded requests' : 'no result captured'}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <TranscriptItem
+                key={`${part.kind}-${index}`}
+                part={part}
+                expanded={filters.thinking}
+                time={request.startedAt}
+                truncated={index === lastResponseMessage && warningLines.some((line) => line.startsWith('▲ response'))}
+              />
+            )
+          })}
+          {!exchange.responseParts.length ? (
+            <div className="font-mono text-xs text-fg-dim">
+              no readable content ·{' '}
+              <Link to="/requests/$id" params={{ id: request.id }} className="text-info">
+                open raw ›
+              </Link>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] text-warn">
+            {warningLines.map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+            <Link to="/requests/$id" params={{ id: request.id }} className="ml-auto text-info">
+              {warningLines.length ? 'open raw ›' : 'raw · open request ›'}
+            </Link>
+          </div>
+        </div>
+      </section>
+    )
+  }
+  return (
+    <div className="session-split-timeline">
+      <div className="session-split-heading">
+        <span>Request</span>
+        <span>Sent to model · new since previous</span>
+        <span>Model response</span>
+      </div>
+      {groups.map((group) =>
+        group[0].side ? (
+          <div key={group[0].request.id} className="session-split-row session-side-group">
+            <div className="session-split-meta">
+              #{group[0].number}
+              {group.length > 1 ? `–${group[group.length - 1].number}` : ''} · side
+            </div>
+            <div className="session-side-content space-y-2">
+              {group.map((exchange) => (
+                <details
+                  key={exchange.request.id}
+                  id={`session-${exchange.request.id}`}
+                  data-session-request={exchange.request.id}
+                  className={`rounded border border-dashed border-border p-2 font-mono text-[10px] text-fg-dim ${activeId === exchange.request.id ? 'bg-surface-2' : ''}`}
+                  open={filters.side || undefined}
+                >
+                  <summary className="cursor-pointer truncate">
+                    #{exchange.number} ·{' '}
+                    {exchange.side === 'title'
+                      ? 'title generation'
+                      : exchange.side === 'probe'
+                        ? 'quota probe'
+                        : exchange.side === 'count'
+                          ? 'count tokens'
+                          : 'helper'}
+                    {exchange.side === 'title' && exchange.responseParts.find((part) => part.kind === 'message')
+                      ? ` → “${sessionTitle(exchange.responseParts.find((part) => part.kind === 'message')!.text)}”`
+                      : ''}{' '}
+                    · {exchange.request.model} · {exchange.request.statusCode} ·{' '}
+                    {formatDuration(exchange.request.durationMs)} · show
+                  </summary>
+                  <div className="mt-3 space-y-3">
+                    {exchange.parts.map((part, index) =>
+                      (part.kind === 'message' && !filters.messages) ||
+                      (part.kind === 'tool' && !filters.tools) ? null : (
+                        <TranscriptItem
+                          key={`${part.kind}-${index}`}
+                          part={part}
+                          expanded={part.kind === 'thinking' ? filters.thinking : filters.results}
+                          time={exchange.request.startedAt}
+                          truncated={false}
+                        />
+                      ),
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </div>
+        ) : group.length > 8 ? (
+          <details key={group[0].request.id} className="session-collapsed-run">
+            <summary>
+              #{group[0].number} – #{group[group.length - 1].number} · show {group.length} requests
+            </summary>
+            {group.map(renderRow)}
+          </details>
+        ) : (
+          group.map(renderRow)
+        ),
+      )}
+    </div>
+  )
+}
+
+const ResultBlock = memo(
+  function ResultBlock({
+    location,
+    call,
+    expanded,
+    highlighted,
+    onHover,
+  }: {
+    location: Location
+    call?: Location
+    expanded: boolean
+    highlighted: boolean
+    onHover: (id: string | null) => void
+  }) {
+    const [open, setOpen] = useState<boolean | null>(null)
+    const isOpen = open ?? expanded
+    const lines = useMemo(() => location.part.text.split('\n'), [location.part.text])
+    return (
+      <div
+        id={partId(location, 'result')}
+        className={`session-result ${highlighted ? 'is-linked' : ''}`}
+        onMouseEnter={() => onHover(location.part.id ?? null)}
+        onMouseLeave={() => onHover(null)}
+      >
+        <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 font-mono text-[10px] text-fg-dim">
+          <span>
+            ↳ result · {call?.part.name ?? location.part.name ?? 'tool'} · {lines.length}{' '}
+            {lines.length === 1 ? 'line' : 'lines'}
+          </span>
+          {call ? (
+            <button type="button" className="session-link-chip-static" onClick={() => jumpToPart(call, 'call')}>
+              ← #{call.number}
+            </button>
+          ) : null}
+          <button type="button" className="ml-auto text-info" aria-expanded={isOpen} onClick={() => setOpen(!isOpen)}>
+            {isOpen ? 'collapse' : 'expand'}
+          </button>
+        </div>
+        <pre className="m-0 overflow-auto whitespace-pre-wrap break-words p-2 font-mono text-[10px] text-fg-dim">
+          {(isOpen ? lines : lines.slice(0, 4)).map((line, index) => (
+            <span
+              key={`${index}-${line}`}
+              className={`block ${line.startsWith('+') ? 'text-ok' : line.startsWith('-') ? 'text-err' : ''}`}
+            >
+              {line || ' '}
+            </span>
+          ))}
+        </pre>
+      </div>
+    )
+  },
+  (previous, next) =>
+    previous.location.part === next.location.part &&
+    previous.location.requestId === next.location.requestId &&
+    previous.location.number === next.location.number &&
+    previous.location.index === next.location.index &&
+    previous.call === next.call &&
+    previous.expanded === next.expanded &&
+    previous.highlighted === next.highlighted &&
+    previous.onHover === next.onHover,
+)

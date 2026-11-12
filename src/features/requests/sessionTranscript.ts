@@ -30,6 +30,51 @@ export type TranscriptContext = {
   changed?: boolean
 }
 
+export function sessionTitle(value: string): string {
+  const trimmed = value.trim()
+  try {
+    const parsed: unknown = JSON.parse(trimmed)
+    if (typeof parsed === 'string') return parsed
+    if (parsed && typeof parsed === 'object' && 'title' in parsed && typeof parsed.title === 'string')
+      return parsed.title
+  } catch {}
+  return trimmed
+}
+
+export function parseStopReason(body: string | null): string | null {
+  if (!body) return null
+  const record = (value: unknown): Record<string, unknown> | null =>
+    value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+  const reason = (value: unknown): string | null => (typeof value === 'string' ? value : null)
+  const read = (data: Record<string, unknown>): string | null => {
+    const choice = Array.isArray(data.choices) ? record(data.choices[0]) : null
+    return reason(data.stop_reason) ?? reason(choice?.finish_reason)
+  }
+  if (/^(?:event|data):/m.test(body.slice(0, 128))) {
+    for (const event of parseSseStream(body).events) {
+      const data = event.parsedData
+      if (!data) continue
+      if (data.type === 'message_delta') {
+        const value = reason(record(data.delta)?.stop_reason)
+        if (value) return value
+      }
+      if (data.type === 'message_start') {
+        const value = reason(record(data.message)?.stop_reason)
+        if (value) return value
+      }
+      const value = Array.isArray(data.choices) ? read(data) : null
+      if (value) return value
+    }
+    return null
+  }
+  try {
+    const data = record(JSON.parse(body.replace(/\n\.\.\.\[truncated \d+ bytes\]$/, '')))
+    return data ? read(data) : null
+  } catch {
+    return null
+  }
+}
+
 function stripReminders(value: string): string {
   return value.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim()
 }

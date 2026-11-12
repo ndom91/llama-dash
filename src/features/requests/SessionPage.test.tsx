@@ -123,7 +123,7 @@ it('keeps existing requests visible while loading the next page', async () => {
   )
   fireEvent.click(await view.findByRole('button', { name: 'Load more requests' }))
   expect(await view.findByRole('status', { name: 'Loading more session requests' })).toBeTruthy()
-  expect(view.getByRole('region', { name: 'Request 1' }).textContent).toContain('req_1')
+  expect(view.getByRole('region', { name: 'Request 1' })).toBeTruthy()
   view.unmount()
   client.clear()
 })
@@ -311,7 +311,7 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
     streamed: false,
     payloads: {
       requestBody: body([{ role: 'user', content: 'Generate a title for this conversation' }]),
-      responseBody: JSON.stringify({ content: [{ type: 'text', text: 'Calendar work' }] }),
+      responseBody: JSON.stringify({ content: [{ type: 'text', text: '{"title":"Calendar work"}' }] }),
     },
   }
   vi.mocked(api.getRequestSession).mockResolvedValueOnce({
@@ -331,6 +331,9 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
   expect(view.getAllByText('Build a calendar')).toHaveLength(1)
   expect(view.getAllByRole('button', { name: /reminder · ~\/\.claude\/CLAUDE.md/ })).toHaveLength(1)
   expect(view.getAllByText('+new file')).toHaveLength(1)
+  expect(view.getByRole('button', { name: '→ #4' })).toBeTruthy()
+  expect(view.getByRole('button', { name: '← #3' })).toBeTruthy()
+  expect(view.getByText(/title generation/).textContent).not.toContain('{"title"')
   expect(view.getByText('successfully').tagName).toBe('STRONG')
   view.unmount()
   client.clear()

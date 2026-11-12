@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { CapturedRequest } from './sessionTranscript'
 import {
   diffTranscript,
+  parseStopReason,
   parseTranscriptInput,
   parseTranscriptResponse,
   sessionInputTokens,
@@ -10,6 +11,21 @@ import {
 
 const input = (messages: unknown[]) => parseTranscriptInput(JSON.stringify({ messages }))
 const user = (content: string) => ({ role: 'user', content })
+
+it('reads stop reasons only from response metadata in JSON and SSE', () => {
+  expect(
+    parseStopReason(
+      JSON.stringify({ content: [{ type: 'tool_use', input: { stop_reason: 'end_turn' } }], stop_reason: 'tool_use' }),
+    ),
+  ).toBe('tool_use')
+  expect(
+    parseStopReason(JSON.stringify({ content: [{ type: 'tool_use', input: { stop_reason: 'end_turn' } }] })),
+  ).toBeNull()
+  expect(parseStopReason('data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}\n\n')).toBe('end_turn')
+  expect(parseStopReason('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n')).toBe('stop')
+  expect(parseStopReason('{"choices":[{"finish_reason":"length"}]}')).toBe('length')
+  expect(parseStopReason('{"content":"unfinished')).toBeNull()
+})
 
 describe('session transcript', () => {
   it('deduplicates repeated snapshots and preserves new suffixes', () => {

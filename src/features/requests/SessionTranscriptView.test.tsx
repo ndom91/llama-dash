@@ -32,6 +32,8 @@ const exchange = (id: string, number: number): TranscriptExchange => ({
   request: request(id),
   number,
   parts: [],
+  inputParts: [],
+  responseParts: [],
   replaced: null,
   side: null,
   contexts: [],
@@ -74,7 +76,7 @@ it('displays context changes, reset notices and one-line truncation with a raw l
   render(<SessionTranscriptView exchanges={[item]} filters={filters} />)
   expect(screen.getByText(/context reset · 2 messages replaced/)).toBeTruthy()
   expect(screen.getByRole('button', { name: /reminder · CLAUDE.md/ })).toBeTruthy()
-  expect(screen.getByText(/request captured/)).toBeTruthy()
+  expect(screen.getByText(/▲ request/)).toBeTruthy()
   expect(screen.getAllByRole('link', { name: /open raw/ }).length).toBeGreaterThan(0)
 })
 
