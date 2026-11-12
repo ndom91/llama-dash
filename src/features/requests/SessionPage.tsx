@@ -57,6 +57,7 @@ export function SessionPage({ id }: { id: string }) {
     void navigate({ to: '/sessions/$id', params: { id }, search: { ...search, ...patch }, replace })
   }
   const scrollRef = useRef<HTMLDivElement>(null)
+  const transcriptRef = useRef<HTMLElement>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -197,14 +198,14 @@ export function SessionPage({ id }: { id: string }) {
         const first = [...visibility].sort((a, b) => Math.abs(a[1]) - Math.abs(b[1]))[0]
         if (first) setActiveId(first[0])
       },
-      { rootMargin: '-10% 0px -60% 0px', threshold: 0 },
+      { root: mobile ? scrollRef.current : transcriptRef.current, rootMargin: '-10% 0px -60% 0px', threshold: 0 },
     )
     for (const exchange of exchanges) {
       const node = document.getElementById(`session-${exchange.request.id}`)
       if (node) observer.observe(node)
     }
     return () => observer.disconnect()
-  }, [exchanges])
+  }, [exchanges, mobile])
 
   if (query.error && !query.data)
     return <RouteError kicker="dsh · sessions" title="Failed to load session" message={query.error.message} />
@@ -280,8 +281,8 @@ export function SessionPage({ id }: { id: string }) {
     }
   }
   return (
-    <div ref={scrollRef} className="content">
-      <div className="page min-h-full min-w-0 max-md:[&>.page-header]:flex-wrap max-md:[&_.page-header-action]:w-full">
+    <div ref={scrollRef} className="content md:overflow-hidden">
+      <div className="page min-h-full min-w-0 md:h-full md:min-h-0 max-md:[&>.page-header]:flex-wrap max-md:[&_.page-header-action]:w-full">
         {!mobile ? (
           <PageHeader
             kicker="dsh · requests · session"
@@ -411,8 +412,13 @@ export function SessionPage({ id }: { id: string }) {
         {!sessionId ? (
           <p className="p-6 text-sm text-fg-dim">No session ID was captured for this request.</p>
         ) : (
-          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_300px] max-lg:grid-cols-1">
-            <main className="min-w-0 max-md:pb-24">
+          <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_300px] max-lg:grid-cols-1 md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1">
+            <main
+              ref={transcriptRef}
+              tabIndex={mobile ? undefined : 0}
+              aria-label="Session transcript"
+              className="min-w-0 max-md:pb-24 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
+            >
               <p className="sr-only">
                 Only retained captures are shown.{' '}
                 {mobile ? 'Newest requests appear first.' : 'Oldest requests appear first.'}
@@ -666,7 +672,7 @@ function SessionRail({
   )
   if (mobileTab) return body
   return (
-    <aside className="min-w-0 border-l border-border bg-surface-0 max-lg:order-first max-lg:border-b max-lg:border-l-0">
+    <aside className="min-w-0 border-l border-border bg-surface-0 max-lg:order-first max-lg:border-b max-lg:border-l-0 md:min-h-0 md:overflow-y-auto md:overscroll-contain max-lg:md:max-h-[40vh]">
       <div className="max-lg:hidden">{body}</div>
       <details className="hidden max-lg:block">
         <summary className="cursor-pointer px-4 py-3 font-mono text-xs text-fg">Session details & filters</summary>

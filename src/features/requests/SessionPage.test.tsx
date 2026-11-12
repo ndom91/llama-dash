@@ -128,6 +128,31 @@ it('keeps existing requests visible while loading the next page', async () => {
   client.clear()
 })
 
+it('tracks the visible request within the desktop transcript scroller', async () => {
+  const roots: (Element | Document | null | undefined)[] = []
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      constructor(_callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        roots.push(options?.root)
+      }
+      observe() {}
+      disconnect() {}
+    },
+  )
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SessionPage id="req_1" />
+    </QueryClientProvider>,
+  )
+  const transcript = await view.findByRole('main', { name: 'Session transcript' })
+  await waitFor(() => expect(roots).toContain(transcript))
+  view.unmount()
+  client.clear()
+  vi.unstubAllGlobals()
+})
+
 it('loads the newest requests first on mobile and appends older pages without repeating context', async () => {
   viewport.mobile = true
   const first = await api.getRequestSession('req_1')
