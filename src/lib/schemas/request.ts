@@ -117,13 +117,24 @@ export const HistogramResponseSchema = v.object({
 export const RequestSessionSchema = v.object({
   sessionId: v.nullable(v.string()),
   requests: v.array(
-    v.object({ ...ApiRequestSchema.entries, payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']) }),
+    v.object({
+      ...ApiRequestSchema.entries,
+      clientUserAgent: v.optional(v.nullable(v.string())),
+      payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']),
+    }),
   ),
   nextCursor: v.nullable(v.string()),
   olderContext: v.optional(
     v.nullable(
       v.object({
+        id: v.string(),
+        statusCode: v.number(),
+        model: v.nullable(v.string()),
         streamed: v.boolean(),
+        promptTokens: v.optional(v.nullable(v.number())),
+        endpoint: v.string(),
+        cacheReadTokens: v.optional(v.nullable(v.number())),
+        cacheCreationTokens: v.optional(v.nullable(v.number())),
         payloads: v.pick(RequestPayloadsSchema, ['requestBody', 'responseBody']),
       }),
     ),

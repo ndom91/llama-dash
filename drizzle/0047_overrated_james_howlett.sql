@@ -1,0 +1,1 @@
+CREATE INDEX `idx_requests_session_started_id` ON `requests` (`session_id`,`started_at`,`id`);

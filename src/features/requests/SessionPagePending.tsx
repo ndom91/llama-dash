@@ -15,20 +15,33 @@ export function SessionPagePending() {
             <SkeletonLine width={112} height={12} />
           </div>
         </div>
-        <main className="mx-auto w-full min-w-0 max-w-5xl px-6 pb-12 max-md:px-3">
-          <div className="flex min-w-0 items-center gap-2 border-b border-border py-4">
-            <SkeletonLine width={52} height={12} />
-            <SkeletonLine width={280} height={12} className="max-w-[70%]" />
-          </div>
-          <div className="my-4 flex flex-col gap-2">
-            <SkeletonLine width="92%" height={12} />
-            <SkeletonLine width="62%" height={12} />
-          </div>
-          <div className="space-y-5">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_300px] max-lg:grid-cols-1">
+          <main className="mx-auto w-full min-w-0 max-w-[820px] space-y-5 px-6 py-6 max-md:px-3">
+            <div className="flex items-center gap-2">
+              <span className="h-px flex-1 bg-border" />
+              <SkeletonLine width="65%" height={18} className="max-w-full rounded-full" />
+              <span className="h-px flex-1 bg-border" />
+            </div>
             <SessionExchangeSkeleton />
+            <div className="flex items-center gap-2">
+              <span className="h-px flex-1 bg-border" />
+              <SkeletonLine width="45%" height={18} className="max-w-full rounded-full" />
+              <span className="h-px flex-1 bg-border" />
+            </div>
             <SessionExchangeSkeleton />
-          </div>
-        </main>
+          </main>
+          <aside className="space-y-4 border-l border-border bg-surface-0 p-4 max-lg:hidden">
+            <SkeletonLine width={70} height={10} />
+            {['client', 'model', 'requests', 'tokens', 'cache', 'cost'].map((item) => (
+              <div key={item} className="flex justify-between gap-3 border-b border-dashed border-border py-2">
+                <SkeletonLine width={70} height={10} />
+                <SkeletonLine width={100} height={10} />
+              </div>
+            ))}
+            <SkeletonLine width={90} height={10} />
+            <SkeletonLine width="100%" height={50} />
+          </aside>
+        </div>
       </div>
     </div>
   )

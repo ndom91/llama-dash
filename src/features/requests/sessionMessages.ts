@@ -1,33 +1,6 @@
-import { assembleSseText, parseSseStream } from './requestDetailUtils'
-
-export type SessionMessage = { role: string; text: string }
-
-function contentText(value: unknown): string {
-  if (typeof value === 'string') return value
-  if (Array.isArray(value)) return value.map(contentText).filter(Boolean).join('\n')
-  if (!value || typeof value !== 'object') return ''
-  const item = value as Record<string, unknown>
-  if (typeof item.text === 'string') return item.text
-  if (typeof item.output_text === 'string') return item.output_text
-  if (Array.isArray(item.tool_calls)) {
-    const content = contentText(item.content)
-    return [content, JSON.stringify(item.tool_calls, null, 2)].filter(Boolean).join('\n')
-  }
-  if (item.content != null) return contentText(item.content)
-  if (
-    item.type === 'function_call' ||
-    item.type === 'function_call_output' ||
-    item.type === 'tool_use' ||
-    item.type === 'tool_result'
-  ) {
-    return JSON.stringify(item, null, 2)
-  }
-  return ''
-}
-
 // Read only complete top-level input elements from a known truncated JSON prefix.
 // A string-aware scan prevents matches inside instructions or nested tool schemas.
-function capturedInput(body: string): unknown[] {
+export function capturedInput(body: string): unknown[] {
   const marker = body.match(/\r?\n\.\.\.\[truncated \d+ bytes\]$/)
   if (!marker) return []
   const text = body.slice(0, marker.index)
@@ -97,60 +70,4 @@ function capturedInput(body: string): unknown[] {
     }
   }
   return items
-}
-
-function messagesFromInput(input: unknown): SessionMessage[] {
-  if (typeof input === 'string') return [{ role: 'user', text: input }]
-  if (!Array.isArray(input)) return []
-  return input.flatMap((item: unknown) => {
-    if (!item || typeof item !== 'object') return []
-    const message = item as Record<string, unknown>
-    const role =
-      typeof message.role === 'string' ? message.role : typeof message.type === 'string' ? message.type : 'input'
-    const text = contentText(message)
-    return text ? [{ role, text }] : []
-  })
-}
-
-export function requestMessages(body: string | null): SessionMessage[] {
-  if (!body) return []
-  try {
-    const parsed = JSON.parse(body) as Record<string, unknown>
-    return messagesFromInput(parsed.messages ?? parsed.input)
-  } catch {
-    return messagesFromInput(capturedInput(body))
-  }
-}
-
-export function responseText(body: string | null, streamed: boolean): string {
-  if (!body) return ''
-  if (streamed || /^(?:event|data):/m.test(body.slice(0, 128))) {
-    const stream = parseSseStream(body)
-    const text = assembleSseText(stream)
-    const items = stream.events.flatMap(({ parsedData }) => {
-      if (parsedData?.type !== 'response.output_item.done') return []
-      const item = parsedData.item
-      if (!item || typeof item !== 'object') return []
-      const record = item as Record<string, unknown>
-      if (record.type === 'function_call') return [JSON.stringify(record, null, 2)]
-      if (record.type === 'reasoning') {
-        const summary = contentText(record.summary)
-        return summary ? [`Reasoning: ${summary}`] : []
-      }
-      return []
-    })
-    return [...(text ? [text] : []), ...items].join('\n\n')
-  }
-  try {
-    const data = JSON.parse(body) as Record<string, unknown>
-    const choices = data.choices
-    if (Array.isArray(choices))
-      return choices
-        .map((choice) => contentText(choice?.message?.content))
-        .filter(Boolean)
-        .join('\n')
-    return contentText(data.content ?? data.output ?? data.output_text)
-  } catch {
-    return ''
-  }
 }

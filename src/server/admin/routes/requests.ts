@@ -18,7 +18,14 @@ export const requestRoutes: Route[] = [
       const params = new URL(request.url).searchParams
       const order = params.get('order') ?? 'asc'
       if (order !== 'asc' && order !== 'desc') return error(400, 'Invalid session order')
-      const session = listRequestSession(match[1], params.get('cursor') ?? undefined, order)
+      const cursor = params.get('cursor') ?? undefined
+      if (
+        cursor &&
+        (!/^(?:\d{1,16}:)?[a-zA-Z0-9_]+$/.test(cursor) ||
+          (cursor.includes(':') && !Number.isSafeInteger(Number(cursor.split(':', 1)[0]))))
+      )
+        return error(400, 'Invalid session cursor')
+      const session = listRequestSession(match[1], cursor, order)
       if (!session) return error(404, `Request ${match[1]} not found`)
       return json(200, session, { noStore: true })
     },

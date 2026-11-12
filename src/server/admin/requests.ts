@@ -276,24 +276,48 @@ export function listRequestSession(id: string, cursor?: string, order: 'asc' | '
     } catch {}
   }
   if (!sessionId) return { sessionId: null, requests: [], nextCursor: null }
-  // Force the session/id index: SQLite otherwise prefers the class/id index,
-  // scanning unrelated requests in ID order for every page.
-  const cursorClause = cursor ? `and id ${order === 'desc' ? '<' : '>'} ?` : ''
+  // The log ID is assigned on completion, so order by request start time and
+  // use ID only as a tie-breaker. The cursor carries both values so it remains
+  // usable if the boundary request is pruned between pages.
+  let cursorTime: number | undefined
+  let cursorId: string | undefined
+  if (cursor) {
+    const match = /^(\d+):([a-zA-Z0-9_]+)$/.exec(cursor)
+    if (match) {
+      cursorTime = Number(match[1])
+      cursorId = match[2]
+    } else {
+      // Accept cursors issued by the previous version while clients reload.
+      const row = db
+        .select({ startedAt: schema.requests.startedAt })
+        .from(schema.requests)
+        .where(eq(schema.requests.id, cursor))
+        .get()
+      if (!row) return { sessionId, requests: [], nextCursor: null, olderContext: null }
+      cursorTime = row.startedAt.getTime()
+      cursorId = cursor
+    }
+  }
+  const cursorClause = cursorId ? `and (started_at, id) ${order === 'desc' ? '<' : '>'} (?, ?)` : ''
   const direction = order === 'desc' ? 'desc' : 'asc'
+  const cursorArgs = cursorId ? [cursorTime!, cursorId] : []
   const current = sqliteDb
-    .prepare(`select id from requests indexed by idx_requests_session_id_id
-    where session_id = ? and request_class = 'inference' ${cursorClause} order by id ${direction} limit 21`)
-    .all(sessionId, ...(cursor ? [cursor] : [])) as Array<{ id: string }>
+    .prepare(`select id, started_at as startedAt from requests indexed by idx_requests_session_started_id
+    where session_id = ? and request_class = 'inference' ${cursorClause} order by started_at ${direction}, id ${direction} limit 21`)
+    .all(sessionId, ...cursorArgs) as Array<{ id: string; startedAt: number }>
   const legacy = sqliteDb
-    .prepare(`select id from requests indexed by idx_requests_session_id_id
+    .prepare(`select id, started_at as startedAt from requests indexed by idx_requests_session_started_id
     where session_id is null and request_class = 'inference' ${cursorClause}
       and case when json_valid(request_headers) then
         (json_extract(request_headers, '$."x-claude-code-session-id"') = ?
           or json_extract(request_headers, '$."session-id"') = ?) else 0 end
-    order by id ${direction} limit 21`)
-    .all(...(cursor ? [cursor] : []), sessionId, sessionId) as Array<{ id: string }>
-  const ids = [...current, ...legacy].map((row) => row.id).sort()
-  if (order === 'desc') ids.reverse()
+    order by started_at ${direction}, id ${direction} limit 21`)
+    .all(...cursorArgs, sessionId, sessionId) as Array<{ id: string; startedAt: number }>
+  const entries = [...current, ...legacy].sort(
+    (a, b) => a.startedAt - b.startedAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  )
+  if (order === 'desc') entries.reverse()
+  const ids = entries.map((entry) => entry.id)
   const page = ids.slice(0, 20)
   const contextId = order === 'desc' ? ids[20] : undefined
   const fetchedIds = contextId ? [...page, contextId] : page
@@ -306,6 +330,7 @@ export function listRequestSession(id: string, cursor?: string, order: 'asc' | '
             keyId: schema.requests.keyId,
             requestBody: schema.requests.requestBody,
             responseBody: schema.requests.responseBody,
+            requestHeaders: schema.requests.requestHeaders,
           })
           .from(schema.requests)
           .where(inArray(schema.requests.id, fetchedIds))
@@ -317,21 +342,36 @@ export function listRequestSession(id: string, cursor?: string, order: 'asc' | '
     requests: page.map((id) => {
       const row = rowMap.get(id)!
       const recent = getRecentBodies(id)
+      let clientUserAgent: string | null = null
+      if (row.requestHeaders) {
+        try {
+          const headers = JSON.parse(row.requestHeaders) as Record<string, unknown>
+          if (typeof headers['user-agent'] === 'string') clientUserAgent = headers['user-agent'].slice(0, 256)
+        } catch {}
+      }
       return {
         ...toRequestRow(row, row.keyId ? (keyMap.get(row.keyId) ?? null) : null),
+        clientUserAgent,
         payloads: {
           requestBody: recent?.requestBody ?? row.requestBody,
           responseBody: recent?.responseBody ?? row.responseBody,
         },
       }
     }),
-    nextCursor: ids.length > 20 ? page[page.length - 1] : null,
+    nextCursor: ids.length > 20 ? `${entries[19].startedAt}:${entries[19].id}` : null,
     olderContext: contextId
       ? (() => {
           const row = rowMap.get(contextId)!
           const recent = getRecentBodies(contextId)
           return {
+            id: row.id,
+            statusCode: row.statusCode,
+            model: row.model,
             streamed: row.streamed,
+            promptTokens: row.promptTokens,
+            endpoint: row.endpoint,
+            cacheReadTokens: row.cacheReadTokens,
+            cacheCreationTokens: row.cacheCreationTokens,
             payloads: {
               requestBody: recent?.requestBody ?? row.requestBody,
               responseBody: recent?.responseBody ?? row.responseBody,

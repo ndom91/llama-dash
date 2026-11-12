@@ -18,7 +18,7 @@ it('finds retained legacy headers and paginates exact session matches before ret
   ])
   sqlite
     .prepare('update requests set request_headers = ?, request_body = ? where id = ?')
-    .run('{"x-claude-code-session-id":"session-a"}', '{"messages":[]}', 'req_000')
+    .run('{"x-claude-code-session-id":"session-a","user-agent":"claude-cli/2.1"}', '{"messages":[]}', 'req_000')
   sqlite
     .prepare('update requests set request_headers = ? where id in (?, ?)')
     .run('{"session-id":"session-a"}', 'req_010', 'req_021')
@@ -31,6 +31,7 @@ it('finds retained legacy headers and paginates exact session matches before ret
     expect(first.sessionId).toBe('session-a')
     expect(first.requests).toHaveLength(20)
     expect(first.requests[0].payloads.requestBody).toBe('recent')
+    expect(first.requests[0].clientUserAgent).toBe('claude-cli/2.1')
     expect(first.requests.map((row) => row.id)).toContain('req_010')
     const second = listRequestSession('req_000', first.nextCursor!)!
     expect(second.requests.map((row) => row.id)).toEqual(['req_020', 'req_021'])
@@ -39,8 +40,18 @@ it('finds retained legacy headers and paginates exact session matches before ret
     expect(newest.requests.map((row) => row.id)).toEqual(
       Array.from({ length: 20 }, (_, i) => `req_${String(21 - i).padStart(3, '0')}`),
     )
-    expect(newest.nextCursor).toBe('req_002')
-    expect(newest.olderContext).toEqual({ streamed: true, payloads: { requestBody: null, responseBody: null } })
+    expect(newest.nextCursor).toBe('2:req_002')
+    expect(newest.olderContext).toEqual({
+      id: 'req_001',
+      statusCode: 200,
+      model: 'model-a',
+      streamed: true,
+      promptTokens: 10,
+      endpoint: '/v1/chat/completions',
+      cacheReadTokens: null,
+      cacheCreationTokens: null,
+      payloads: { requestBody: null, responseBody: null },
+    })
     const older = listRequestSession('req_000', newest.nextCursor!, 'desc')!
     expect(older.requests.map((row) => row.id)).toEqual(['req_001', 'req_000'])
     expect(older.nextCursor).toBeNull()
@@ -53,6 +64,35 @@ it('finds retained legacy headers and paginates exact session matches before ret
     expect(invalid.status).toBe(400)
 
     expect(listRequestSession('missing')).toBeNull()
+    insertTestRequests(
+      sqlite,
+      Array.from({ length: 25 }, (_, i) => ({
+        id: `reordered_${String(24 - i).padStart(2, '0')}`,
+        startedAt: Math.floor(i / 2) * 1000,
+        sessionId: 'session-b',
+      })),
+    )
+    const page = listRequestSession('reordered_24', undefined, 'asc')!
+    const expected = Array.from({ length: 25 }, (_, i) => ({
+      id: `reordered_${String(24 - i).padStart(2, '0')}`,
+      startedAt: Math.floor(i / 2) * 1000,
+    }))
+      .sort((a, b) => a.startedAt - b.startedAt || a.id.localeCompare(b.id))
+      .map((row) => row.id)
+    expect(page.requests.map((row) => row.id)).toEqual(expected.slice(0, 20))
+    const legacyCursor = page.requests[19].id
+    expect(listRequestSession('reordered_24', legacyCursor)!.requests.map((row) => row.id)).toEqual(expected.slice(20))
+    sqlite.prepare('delete from requests where id = ?').run(legacyCursor)
+    expect(listRequestSession('reordered_24', page.nextCursor!)!.requests.map((row) => row.id)).toEqual(
+      expected.slice(20),
+    )
+    const descending = listRequestSession('reordered_24', undefined, 'desc')!
+    expect(descending.requests.map((row) => row.id)).toEqual(
+      expected
+        .filter((id) => id !== legacyCursor)
+        .reverse()
+        .slice(0, 20),
+    )
   } finally {
     clearRecentBodiesForTest()
     sqlite.close()

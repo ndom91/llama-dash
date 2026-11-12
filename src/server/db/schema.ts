@@ -64,6 +64,7 @@ export const requests = sqliteTable(
     index('idx_requests_key_started_at').on(table.keyId, table.startedAt),
     index('idx_requests_model_id').on(table.model, table.id),
     index('idx_requests_session_id_id').on(table.sessionId, table.id),
+    index('idx_requests_session_started_id').on(table.sessionId, table.startedAt, table.id),
   ],
 )
 
