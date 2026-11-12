@@ -1,12 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { SessionPage } from '../features/requests/SessionPage'
 import { SessionPagePending } from '../features/requests/SessionPagePending'
+import { validateSessionSearch } from '../features/requests/sessionSearch'
 
 export const Route = createFileRoute('/sessions/$id')({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { show?: string } => ({
-    show: typeof search.show === 'string' ? search.show : undefined,
-  }),
+  validateSearch: validateSessionSearch,
   component: SessionRoute,
   pendingComponent: SessionPagePending,
 })

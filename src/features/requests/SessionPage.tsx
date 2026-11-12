@@ -1,12 +1,13 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { api } from '../../lib/api'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { useMediaQuery } from '../../lib/use-media-query'
+import { SessionMobileDetail, SessionMobileSheet, SessionScrubber, type SessionSheetTab } from './SessionMobile'
 import { SessionExchangeSkeleton, SessionPagePending } from './SessionPagePending'
 import { SessionTranscriptView, type TranscriptExchange, type TranscriptFilters } from './SessionTranscriptView'
 import {
@@ -28,7 +29,7 @@ const initialFilters: TranscriptFilters = {
 }
 
 export function SessionPage({ id }: { id: string }) {
-  const mobile = useMediaQuery('(max-width: 768px)')
+  const mobile = useMediaQuery('(max-width: 767px)')
   const order = mobile ? 'desc' : 'asc'
   const navigate = useNavigate()
   const search = useSearch({ strict: false })
@@ -43,6 +44,7 @@ export function SessionPage({ id }: { id: string }) {
       to: '/sessions/$id',
       params: { id },
       search: {
+        ...search,
         show: Object.entries(value)
           .filter(([, enabled]) => enabled)
           .map(([key]) => key)
@@ -51,6 +53,10 @@ export function SessionPage({ id }: { id: string }) {
       replace: true,
     })
   }
+  const updateView = (patch: { sheet?: SessionSheetTab; detail?: string }, replace = false) => {
+    void navigate({ to: '/sessions/$id', params: { id }, search: { ...search, ...patch }, replace })
+  }
+  const scrollRef = useRef<HTMLDivElement>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -274,71 +280,129 @@ export function SessionPage({ id }: { id: string }) {
     }
   }
   return (
-    <div className="content">
+    <div ref={scrollRef} className="content">
       <div className="page min-h-full min-w-0 max-md:[&>.page-header]:flex-wrap max-md:[&_.page-header-action]:w-full">
-        <PageHeader
-          kicker="dsh · requests · session"
-          title={title}
-          titleNode={
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h1 className="page-header-title m-0 min-w-0 break-words text-xl font-semibold text-fg">{title}</h1>
-              {client ? (
-                <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-fg-dim">
-                  {client}
-                </span>
-              ) : null}
-            </div>
-          }
-          subtitle={
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <span className="break-all">{sessionId ?? '—'}</span>
+        {!mobile ? (
+          <PageHeader
+            kicker="dsh · requests · session"
+            title={title}
+            titleNode={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h1 className="page-header-title m-0 min-w-0 break-words text-xl font-semibold text-fg">{title}</h1>
+                {client ? (
+                  <span className="rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-fg-dim">
+                    {client}
+                  </span>
+                ) : null}
+              </div>
+            }
+            subtitle={
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                <span className="break-all">{sessionId ?? '—'}</span>
+                {sessionId ? (
+                  <CopyButton
+                    text={sessionId}
+                    variant="icon"
+                    ariaLabel="Copy session ID"
+                    className="flex h-6 w-6 items-center justify-center rounded-sm text-fg-dim hover:text-fg focus-visible:outline-none focus-visible:shadow-focus max-md:h-11 max-md:w-11"
+                  />
+                ) : null}
+                {start != null && end != null ? (
+                  <span>
+                    {' '}
+                    · {new Date(start).toLocaleTimeString()} → {new Date(end).toLocaleTimeString()} ·{' '}
+                    {formatDuration(end - start)}
+                    {incomplete ? ' · loaded' : ''}
+                  </span>
+                ) : null}
+              </div>
+            }
+            action={
+              <div className="flex flex-wrap gap-2">
+                <Link to="/requests/$id" params={{ id }} className="btn btn-sm max-md:min-h-11">
+                  ← request detail
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-sm max-md:min-h-11"
+                  disabled={exporting || !sessionId}
+                  onClick={() => void exportSession('jsonl')}
+                >
+                  {exporting ? 'exporting…' : 'raw JSONL'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm max-md:min-h-11"
+                  disabled={exporting || !sessionId}
+                  onClick={() => void exportSession('md')}
+                >
+                  export .md
+                </button>
+                {sessionId ? (
+                  <Link to="/requests" search={{ session: sessionId }} className="btn btn-sm max-md:min-h-11">
+                    open in requests ›
+                  </Link>
+                ) : null}
+              </div>
+            }
+          />
+        ) : (
+          <header className="border-b border-border px-3.5 py-3">
+            <Link
+              to="/requests/$id"
+              params={{ id }}
+              className="inline-flex min-h-9 items-center font-mono text-[11px] text-info"
+            >
+              ‹ REQUESTS
+            </Link>
+            <h1 className="page-header-title m-0 break-words text-lg font-semibold text-fg">{title}</h1>
+            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 font-mono text-[10px] text-fg-dim">
+              {client ? <span className="rounded border border-border px-1.5 py-0.5">{client}</span> : null}
               {sessionId ? (
-                <CopyButton
-                  text={sessionId}
-                  variant="icon"
-                  ariaLabel="Copy session ID"
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-fg-dim hover:text-fg focus-visible:outline-none focus-visible:shadow-focus max-md:h-11 max-md:w-11"
-                />
+                <>
+                  <span>{sessionId.length > 15 ? `${sessionId.slice(0, 8)}…${sessionId.slice(-4)}` : sessionId}</span>
+                  <CopyButton
+                    text={sessionId}
+                    variant="icon"
+                    ariaLabel="Copy session ID"
+                    className="flex size-9 items-center justify-center text-fg-dim"
+                  />
+                </>
               ) : null}
               {start != null && end != null ? (
                 <span>
-                  {' '}
-                  · {new Date(start).toLocaleTimeString()} → {new Date(end).toLocaleTimeString()} ·{' '}
+                  · {new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} →{' '}
+                  {new Date(end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
                   {formatDuration(end - start)}
                   {incomplete ? ' · loaded' : ''}
                 </span>
               ) : null}
             </div>
-          }
-          action={
-            <div className="flex flex-wrap gap-2">
-              <Link to="/requests/$id" params={{ id }} className="btn btn-sm max-md:min-h-11">
-                ← request detail
-              </Link>
-              <button
-                type="button"
-                className="btn btn-sm max-md:min-h-11"
-                disabled={exporting || !sessionId}
-                onClick={() => void exportSession('jsonl')}
-              >
-                {exporting ? 'exporting…' : 'raw JSONL'}
+          </header>
+        )}
+        {mobile && sessionId ? (
+          <div className="sticky top-0 z-20 flex min-w-0 items-center justify-between gap-2 border-b border-border bg-surface-1 px-3.5 py-2 font-mono text-[10px] text-fg-dim">
+            <span className="min-w-0">
+              <span className="text-fg">{requests.length}</span> req ·{' '}
+              <span className="text-fg">
+                {formatCompactNumber(requests.reduce((sum, request) => sum + (sessionInputTokens(request) ?? 0), 0))}
+              </span>{' '}
+              in · <span className="text-fg">{mobileCachePercent(requests)}</span> cache{incomplete ? ' · loaded' : ''}
+            </span>
+            <span className="flex shrink-0 gap-1">
+              <button type="button" className="btn min-h-9 px-2" onClick={() => updateView({ sheet: 'session' })}>
+                info
               </button>
               <button
                 type="button"
-                className="btn btn-sm max-md:min-h-11"
-                disabled={exporting || !sessionId}
-                onClick={() => void exportSession('md')}
+                className="btn min-h-9 px-2 text-info"
+                onClick={() => updateView({ sheet: 'show' })}
               >
-                export .md
+                filter·{Object.values(filters).filter(Boolean).length}
               </button>
-              {sessionId ? (
-                <Link to="/requests" search={{ session: sessionId }} className="btn btn-sm max-md:min-h-11">
-                  open in requests ›
-                </Link>
-              ) : null}
-            </div>
-          }
-        />
+            </span>
+          </div>
+        ) : null}
         {exportError ? (
           <p role="alert" className="px-6 text-xs text-err">
             Export failed: {exportError}
@@ -348,12 +412,21 @@ export function SessionPage({ id }: { id: string }) {
           <p className="p-6 text-sm text-fg-dim">No session ID was captured for this request.</p>
         ) : (
           <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_300px] max-lg:grid-cols-1">
-            <main className="min-w-0">
+            <main className="min-w-0 max-md:pb-24">
               <p className="sr-only">
                 Only retained captures are shown.{' '}
                 {mobile ? 'Newest requests appear first.' : 'Oldest requests appear first.'}
               </p>
-              <SessionTranscriptView exchanges={exchanges} filters={filters} />
+              <SessionTranscriptView
+                exchanges={exchanges}
+                filters={filters}
+                mobile={mobile}
+                onOpenDetail={(value) => {
+                  const requestId = value.split('~')[0]
+                  const number = exchanges.find((exchange) => exchange.request.id === requestId)?.number
+                  updateView({ detail: number == null ? value : `${value}~${number}`, sheet: undefined })
+                }}
+              />
               {query.isFetchingNextPage ? (
                 <div role="status" aria-label="Loading more session requests" className="mx-auto max-w-[820px] px-6">
                   <SessionExchangeSkeleton />
@@ -375,15 +448,80 @@ export function SessionPage({ id }: { id: string }) {
                 <p className="px-6 text-xs text-err">Could not load more requests. Try again.</p>
               ) : null}
             </main>
-            <SessionRail
-              exchanges={exchanges}
-              filters={filters}
-              setFilters={setFilters}
-              incomplete={incomplete}
-              client={client}
-              activeId={activeId}
-              onSelect={setActiveId}
-            />
+            {!mobile ? (
+              <SessionRail
+                exchanges={exchanges}
+                filters={filters}
+                setFilters={setFilters}
+                incomplete={incomplete}
+                client={client}
+                activeId={activeId}
+                onSelect={setActiveId}
+              />
+            ) : null}
+            {mobile && search.sheet ? (
+              <SessionMobileSheet
+                tab={search.sheet}
+                onTab={(sheet) => updateView({ sheet }, true)}
+                onClose={() => updateView({ sheet: undefined }, true)}
+                actions={
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      className="btn min-h-9"
+                      disabled={exporting}
+                      onClick={() => void exportSession('jsonl')}
+                    >
+                      raw JSONL
+                    </button>
+                    <button
+                      type="button"
+                      className="btn min-h-9"
+                      disabled={exporting}
+                      onClick={() => void exportSession('md')}
+                    >
+                      export .md
+                    </button>
+                    <Link to="/requests" search={{ session: sessionId }} className="btn min-h-9">
+                      open in requests ›
+                    </Link>
+                  </div>
+                }
+              >
+                <SessionRail
+                  exchanges={exchanges}
+                  filters={filters}
+                  setFilters={setFilters}
+                  incomplete={incomplete}
+                  client={client}
+                  activeId={activeId}
+                  onSelect={(requestId) => {
+                    updateView({ sheet: undefined }, true)
+                    scrollToSessionRequest(requestId)
+                    setActiveId(requestId)
+                  }}
+                  mobileTab={search.sheet}
+                />
+              </SessionMobileSheet>
+            ) : null}
+            {mobile ? (
+              <SessionScrubber
+                exchanges={exchanges}
+                activeId={activeId}
+                scrollRef={scrollRef}
+                onSelect={(requestId) => {
+                  scrollToSessionRequest(requestId)
+                  setActiveId(requestId)
+                }}
+              />
+            ) : null}
+            {mobile && search.detail ? (
+              <SessionMobileDetail
+                detail={search.detail}
+                sessionAnchor={id}
+                onClose={() => updateView({ detail: undefined }, true)}
+              />
+            ) : null}
           </div>
         )}
       </div>
@@ -399,6 +537,7 @@ function SessionRail({
   client,
   activeId,
   onSelect,
+  mobileTab,
 }: {
   exchanges: TranscriptExchange[]
   filters: TranscriptFilters
@@ -407,6 +546,7 @@ function SessionRail({
   client: string | null
   activeId: string | null
   onSelect: (id: string) => void
+  mobileTab?: SessionSheetTab
 }) {
   const requests = exchanges.map((item) => item.request)
   const total = (key: 'promptTokens' | 'completionTokens' | 'cacheReadTokens' | 'costUsd') =>
@@ -429,7 +569,7 @@ function SessionRail({
   ]
   const body = (
     <div className="font-mono text-[11px] text-fg-dim">
-      <section className="border-b border-border p-4">
+      <section className={`border-b border-border p-4 ${mobileTab && mobileTab !== 'session' ? 'hidden' : ''}`}>
         <div className="mb-3 text-[10px] uppercase tracking-wider text-fg-faint">
           Session {incomplete ? '· loaded requests' : ''}
         </div>
@@ -468,7 +608,7 @@ function SessionRail({
           </div>
         ))}
       </section>
-      <section className="border-b border-border p-4">
+      <section className={`border-b border-border p-4 ${mobileTab && mobileTab !== 'requests' ? 'hidden' : ''}`}>
         <div className="mb-3 flex justify-between text-[10px] uppercase tracking-wider text-fg-faint">
           <span>Requests</span>
           <span>latency</span>
@@ -507,7 +647,7 @@ function SessionRail({
           ))}
         </div>
       </section>
-      <section className="p-4">
+      <section className={`p-4 ${mobileTab && mobileTab !== 'show' ? 'hidden' : ''}`}>
         <div className="mb-3 text-[10px] uppercase tracking-wider text-fg-faint">Show</div>
         <div className="space-y-2">
           {controls.map(([key, label]) => (
@@ -524,6 +664,7 @@ function SessionRail({
       </section>
     </div>
   )
+  if (mobileTab) return body
   return (
     <aside className="min-w-0 border-l border-border bg-surface-0 max-lg:order-first max-lg:border-b max-lg:border-l-0">
       <div className="max-lg:hidden">{body}</div>
@@ -533,4 +674,20 @@ function SessionRail({
       </details>
     </aside>
   )
+}
+
+function mobileCachePercent(requests: CapturedRequest[]): string {
+  const known = requests.filter((request) => request.cacheReadTokens != null && sessionInputTokens(request) != null)
+  const total = known.reduce((sum, request) => sum + (sessionInputTokens(request) ?? 0), 0)
+  return total
+    ? `${Math.round((known.reduce((sum, request) => sum + (request.cacheReadTokens ?? 0), 0) / total) * 100)}%`
+    : '—'
+}
+
+export function scrollToSessionRequest(id: string) {
+  const target = document.getElementById(`session-${id}`)
+  if (!target) return
+  const parent = target.parentElement?.closest('details')
+  if (parent) parent.open = true
+  target.scrollIntoView({ block: 'start' })
 }

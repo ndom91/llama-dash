@@ -41,6 +41,7 @@ import { cleanup } from '@testing-library/react'
 import { api } from '../../lib/api'
 import { SessionPage } from './SessionPage'
 import { SessionPagePending } from './SessionPagePending'
+import { validateSessionSearch } from './sessionSearch'
 
 afterEach(() => {
   cleanup()
@@ -58,6 +59,33 @@ it('links to raw request details for unreadable and truncated captures', async (
   )
   expect(await screen.findByText(/no readable content/i)).toBeTruthy()
   expect(screen.getAllByRole('link', { name: /open raw/i }).length).toBeGreaterThan(0)
+  client.clear()
+})
+
+it('groups request and response capture warnings into one footer', async () => {
+  const first = await api.getRequestSession('req_1')
+  vi.mocked(api.getRequestSession).mockResolvedValueOnce({
+    ...first,
+    requests: [
+      {
+        ...first.requests[0],
+        payloads: {
+          requestBody: 'request\n...[truncated 100 bytes]',
+          responseBody: 'response\n...[truncated 200 bytes]',
+        },
+      },
+    ],
+  })
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SessionPage id="req_1" />
+    </QueryClientProvider>,
+  )
+  const response = await view.findByText(/response cut off at/)
+  expect(response.parentElement?.textContent).toContain('request 7 B of 107 B')
+  expect(response.parentElement?.querySelectorAll('a')).toHaveLength(1)
+  view.unmount()
   client.clear()
 })
 
@@ -149,8 +177,8 @@ it('loads the newest requests first on mobile and appends older pages without re
   fireEvent.click(button)
   expect(await view.findByText('earlier question')).toBeTruthy()
   const cards = view.getAllByRole('region', { name: /Request [12]/ })
-  expect(cards[0].textContent).toContain('req_new')
-  expect(cards[1].textContent).toContain('req_old')
+  expect(cards[0].id).toBe('session-req_new')
+  expect(cards[1].id).toBe('session-req_old')
   expect(vi.mocked(api.getRequestSession)).toHaveBeenLastCalledWith('req_1', 'req_new', expect.anything(), 'desc')
   expect(view.getAllByText('earlier question')).toHaveLength(1)
   view.unmount()
@@ -180,6 +208,35 @@ it('reads and writes transcript filters in the session URL', async () => {
   )
   view.unmount()
   client.clear()
+})
+
+it('opens mobile overlays without losing URL filters', async () => {
+  viewport.mobile = true
+  viewport.show = 'messages,thinking'
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const view = render(
+    <QueryClientProvider client={client}>
+      <SessionPage id="req_1" />
+    </QueryClientProvider>,
+  )
+  fireEvent.click(await view.findByRole('button', { name: 'filter·2' }))
+  expect(viewport.navigate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ search: { show: 'messages,thinking', sheet: 'show' }, replace: false }),
+  )
+  fireEvent.click(view.getAllByRole('button', { name: /open raw/i })[0])
+  expect(viewport.navigate).toHaveBeenLastCalledWith(
+    expect.objectContaining({ search: { show: 'messages,thinking', sheet: undefined, detail: 'req_1~request~0~1' } }),
+  )
+  view.unmount()
+  client.clear()
+})
+
+it('accepts addressable details for hyphenated request IDs', () => {
+  expect(validateSessionSearch({ detail: 'req-a~tool~3~12', sheet: 'show' })).toEqual({
+    show: undefined,
+    sheet: 'show',
+    detail: 'req-a~tool~3~12',
+  })
 })
 
 it('reconstructs side requests, a single reminder, and paired tool activity', async () => {

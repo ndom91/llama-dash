@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
-import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
+import { SessionAssistantMessage } from './SessionAssistantMessage'
 import {
   type CapturedRequest,
+  parseTranscriptInput,
+  parseTranscriptResponse,
   sessionInputTokens,
   type TranscriptContext,
   type TranscriptPart,
@@ -31,9 +32,13 @@ export type TranscriptExchange = {
 export function SessionTranscriptView({
   exchanges,
   filters,
+  mobile = false,
+  onOpenDetail,
 }: {
   exchanges: TranscriptExchange[]
   filters: TranscriptFilters
+  mobile?: boolean
+  onOpenDetail?: (detail: string) => void
 }) {
   const results = new Map<string, TranscriptPart>()
   const toolIds = new Set<string>()
@@ -63,7 +68,15 @@ export function SessionTranscriptView({
   }
   flush()
   const renderExchange = (exchange: TranscriptExchange) => (
-    <Exchange key={exchange.request.id} exchange={exchange} filters={filters} results={results} toolIds={toolIds} />
+    <Exchange
+      key={exchange.request.id}
+      exchange={exchange}
+      filters={filters}
+      results={results}
+      toolIds={toolIds}
+      mobile={mobile}
+      onOpenDetail={onOpenDetail}
+    />
   )
   return (
     <div className="mx-auto w-full max-w-[820px] space-y-5 px-6 py-6 max-md:px-3">
@@ -88,16 +101,58 @@ function Exchange({
   filters,
   results,
   toolIds,
+  mobile,
+  onOpenDetail,
 }: {
   exchange: TranscriptExchange
   filters: TranscriptFilters
   results: Map<string, TranscriptPart>
   toolIds: Set<string>
+  mobile: boolean
+  onOpenDetail?: (detail: string) => void
 }) {
   const { request, parts, side, number } = exchange
+  const [expandedChip, setExpandedChip] = useState(false)
+  const openPart = (part: TranscriptPart) => {
+    const input = parseTranscriptInput(request.payloads.requestBody)
+    const all = [...input.parts.flat(), ...parseTranscriptResponse(request.payloads.responseBody, request.streamed)]
+    const index = all.findIndex(
+      (item) =>
+        item.kind === part.kind && (part.id ? item.id === part.id : item.name === part.name && item.text === part.text),
+    )
+    if (index >= 0) onOpenDetail?.(`${request.id}~tool~${index}`)
+  }
+  const openContext = (context: TranscriptContext) => {
+    const index = parseTranscriptInput(request.payloads.requestBody).contexts.findIndex(
+      (item) => item.kind === context.kind && item.label === context.label && item.text === context.text,
+    )
+    if (index >= 0) onOpenDetail?.(`${request.id}~context~${index}`)
+  }
   const inputTokens = sessionInputTokens(request)
   const cache =
     inputTokens && request.cacheReadTokens != null ? Math.round((request.cacheReadTokens / inputTokens) * 100) : null
+  const warnings = (['response', 'request'] as const).flatMap((kind) => {
+    const body = kind === 'request' ? request.payloads.requestBody : request.payloads.responseBody
+    const match = body?.match(/\n\.\.\.\[truncated (\d+) bytes\]$/)
+    if (!match || !body) return []
+    const captured = new TextEncoder().encode(body.slice(0, match.index)).length
+    const formatBytes = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`)
+    return [
+      {
+        kind,
+        text: `▲ ${kind} ${kind === 'response' ? 'cut off at ' : ''}${formatBytes(captured)} of ${formatBytes(captured + Number(match[1]))}`,
+      },
+    ]
+  })
+  const responseHasMessage =
+    warnings.some((item) => item.kind === 'response') &&
+    parseTranscriptResponse(request.payloads.responseBody, request.streamed).some(
+      (part) => part.kind === 'message' && part.role === 'assistant',
+    )
+  const lastAssistant = parts.reduce(
+    (last, part, index) => (part.kind === 'message' && part.role === 'assistant' ? index : last),
+    -1,
+  )
   const content = (
     <>
       {exchange.replaced != null ? (
@@ -105,7 +160,9 @@ function Exchange({
           context reset · {exchange.replaced} messages replaced
         </div>
       ) : null}
-      {filters.context && exchange.contexts.length > 0 ? <ContextPills contexts={exchange.contexts} /> : null}
+      {filters.context && exchange.contexts.length > 0 ? (
+        <ContextPills contexts={exchange.contexts} mobile={mobile} onOpen={openContext} />
+      ) : null}
       <div className="space-y-4">
         {parts.map((part, index) => {
           if ((part.kind === 'message' && !filters.messages) || (part.kind === 'tool' && !filters.tools)) return null
@@ -118,31 +175,50 @@ function Exchange({
               result={part.kind === 'tool' && part.id ? results.get(part.id) : undefined}
               expanded={part.kind === 'thinking' ? filters.thinking : filters.results}
               time={request.startedAt}
+              truncated={
+                responseHasMessage && index === lastAssistant && warnings.some((item) => item.kind === 'response')
+              }
+              onOpen={mobile && (part.kind === 'tool' || part.kind === 'result') ? () => openPart(part) : undefined}
             />
           )
         })}
       </div>
-      {(['request', 'response'] as const).map((kind) => {
-        const body = kind === 'request' ? request.payloads.requestBody : request.payloads.responseBody
-        const match = body?.match(/\n\.\.\.\[truncated (\d+) bytes\]$/)
-        if (!match || !body) return null
-        const captured = new TextEncoder().encode(body.slice(0, match.index)).length
-        const formatBytes = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`)
-        return (
-          <div key={kind} className="mt-2 font-mono text-[10px] text-warn">
-            ▲ {kind} captured {formatBytes(captured)} of {formatBytes(captured + Number(match[1]))} ·{' '}
-            <Link to="/requests/$id" params={{ id: request.id }} className="text-info">
+      {warnings.length > 0 ? (
+        <div className="ml-0.5 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 font-mono text-[10px] text-warn">
+          {warnings.map((warning) => (
+            <span key={warning.kind}>{warning.text}</span>
+          ))}
+          {mobile ? (
+            <button
+              type="button"
+              className="ml-auto min-h-9 text-info"
+              onClick={() => onOpenDetail?.(`${request.id}~${warnings[0].kind}~0`)}
+            >
+              open raw ›
+            </button>
+          ) : (
+            <Link to="/requests/$id" params={{ id: request.id }} className="ml-auto text-info">
               open raw ›
             </Link>
-          </div>
-        )
-      })}
+          )}
+        </div>
+      ) : null}
       {parts.length === 0 ? (
         <div className="font-mono text-xs text-fg-dim">
           no readable content ·{' '}
-          <Link to="/requests/$id" params={{ id: request.id }} className="text-info">
-            open raw ›
-          </Link>
+          {mobile ? (
+            <button
+              type="button"
+              className="min-h-9 text-info"
+              onClick={() => onOpenDetail?.(`${request.id}~response~0`)}
+            >
+              open raw ›
+            </button>
+          ) : (
+            <Link to="/requests/$id" params={{ id: request.id }} className="text-info">
+              open raw ›
+            </Link>
+          )}
         </div>
       ) : null}
     </>
@@ -177,21 +253,38 @@ function Exchange({
     <section id={`session-${request.id}`} data-session-request={request.id} aria-label={`Request ${number}`}>
       <div className="my-3 flex min-w-0 items-center gap-2">
         <span className="h-px flex-1 bg-border" />
-        <Link
-          to="/requests/$id"
-          params={{ id: request.id }}
-          className="max-w-full rounded-full border border-border px-3 py-1 text-center font-mono text-[10px] text-fg-dim no-underline hover:border-fg-dim hover:text-fg"
-        >
-          <span className="text-info">#{number}</span> ·{' '}
-          {request.id.length > 20 ? `${request.id.slice(0, 13)}…${request.id.slice(-4)}` : request.id} ·{' '}
-          {request.model ?? '—'} ·{' '}
-          <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
-          {formatDuration(request.durationMs)} ·{' '}
-          {exchange.inputDelta == null
-            ? '—'
-            : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
-          in / {formatCompactNumber(request.completionTokens)} out{cache == null ? '' : ` · cache ${cache}%`}
-        </Link>
+        {mobile && !expandedChip ? (
+          <button
+            type="button"
+            className="min-h-9 max-w-full font-mono text-[10px] text-fg-dim"
+            onClick={() => setExpandedChip(true)}
+            aria-label={`Expand request ${number} details`}
+          >
+            <span className="text-info">#{number}</span> ·{' '}
+            <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
+            {formatDuration(request.durationMs)} ·{' '}
+            {exchange.inputDelta == null
+              ? '—'
+              : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
+            in
+          </button>
+        ) : (
+          <Link
+            to="/requests/$id"
+            params={{ id: request.id }}
+            className="max-w-full rounded-full border border-border px-3 py-1 text-center font-mono text-[10px] text-fg-dim no-underline hover:border-fg-dim hover:text-fg"
+          >
+            <span className="text-info">#{number}</span> ·{' '}
+            {request.id.length > 20 ? `${request.id.slice(0, 13)}…${request.id.slice(-4)}` : request.id} ·{' '}
+            {request.model ?? '—'} ·{' '}
+            <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
+            {formatDuration(request.durationMs)} ·{' '}
+            {exchange.inputDelta == null
+              ? '—'
+              : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
+            in / {formatCompactNumber(request.completionTokens)} out{cache == null ? '' : ` · cache ${cache}%`}
+          </Link>
+        )}
         <span className="h-px flex-1 bg-border" />
       </div>
       {content}
@@ -199,22 +292,39 @@ function Exchange({
   )
 }
 
-function ContextPills({ contexts }: { contexts: TranscriptContext[] }) {
+function ContextPills({
+  contexts,
+  mobile,
+  onOpen,
+}: {
+  contexts: TranscriptContext[]
+  mobile: boolean
+  onOpen: (item: TranscriptContext) => void
+}) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [selected, setSelected] = useState<TranscriptContext | null>(null)
   return (
     <div className="mb-4 space-y-2">
       <div className="font-mono text-[10px] uppercase tracking-wider text-fg-faint">Context</div>
-      <div className="flex flex-wrap gap-2">
+      <div
+        className={
+          mobile
+            ? 'flex min-w-0 gap-2 overflow-x-auto pb-2 [mask-image:linear-gradient(to_right,black_90%,transparent)]'
+            : 'flex flex-wrap gap-2'
+        }
+      >
         {contexts.map((item) => (
           <button
             type="button"
             key={`${item.kind}-${item.label}-${item.text}`}
             onClick={() => {
-              setSelected(item)
-              dialog.current?.showModal()
+              if (mobile) onOpen(item)
+              else {
+                setSelected(item)
+                dialog.current?.showModal()
+              }
             }}
-            className={`max-w-full rounded border px-2 py-1 font-mono text-[11px] text-fg-dim ${item.changed ? 'border-info text-info' : 'border-dashed border-border'}`}
+            className={`max-w-full rounded border px-2 py-1 font-mono text-[11px] text-fg-dim ${mobile ? 'shrink-0 whitespace-nowrap' : ''} ${item.changed ? 'border-info text-info' : 'border-dashed border-border'}`}
           >
             {item.kind} · {item.label} · ~{formatCompactNumber(Math.ceil(item.text.length / 4))} tok
           </button>
@@ -258,14 +368,30 @@ function TranscriptItem({
   result,
   expanded,
   time,
+  onOpen,
+  truncated,
 }: {
   part: TranscriptPart
   result?: TranscriptPart
   expanded: boolean
   time: string
+  onOpen?: () => void
+  truncated: boolean
 }) {
   if (part.kind === 'tool' || part.kind === 'result' || part.kind === 'thinking') {
     const name = part.name?.startsWith('mcp__') ? `mcp · ${part.name.slice(5).replace('__', ' · ')}` : part.name
+    if (onOpen)
+      return (
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex min-h-9 w-full min-w-0 items-center gap-2 rounded border border-border bg-surface-0 px-3 text-left font-mono text-xs text-fg-dim"
+        >
+          <span className="shrink-0 text-info">{name ?? (part.kind === 'result' ? 'tool result' : 'tool')}</span>
+          <span className="min-w-0 flex-1 truncate">{primaryArgument(part.text)}</span>
+          <span aria-hidden="true">›</span>
+        </button>
+      )
     return (
       <details
         open={
@@ -303,6 +429,7 @@ function TranscriptItem({
       </details>
     )
   }
+  if (part.role !== 'user') return <SessionAssistantMessage text={part.text} time={time} truncated={truncated} />
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">
@@ -312,14 +439,8 @@ function TranscriptItem({
           {new Date(time).toLocaleTimeString()}
         </time>
       </div>
-      <div
-        className={
-          part.role === 'user'
-            ? 'rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg'
-            : 'prose prose-sm max-w-none break-words text-fg'
-        }
-      >
-        {part.role === 'user' ? part.text : <Markdown remarkPlugins={[remarkGfm]}>{part.text}</Markdown>}
+      <div className="rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
+        {part.text}
       </div>
     </div>
   )

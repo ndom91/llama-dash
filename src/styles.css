@@ -2311,3 +2311,43 @@ a {
   align-items: center;
   justify-content: center;
 }
+
+/* Session mobile overlays stay in the top layer and contain scroll gestures. */
+.session-mobile-sheet::backdrop, dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-behavior: contain; }
+.session-mobile-sheet:modal, dialog[aria-label='Session detail']:modal { overscroll-behavior: contain; }
+
+/* Markdown in session transcripts: restore structure removed by preflight. */
+.session-md { max-width: 72ch; color: var(--fg); font-size: 0.84375rem; line-height: 1.65; overflow-wrap: anywhere; }
+.session-md > * + * { margin-top: 10px; }
+.session-md strong { color: var(--fg); font-weight: 600; }
+.session-md a { color: var(--info); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 2px; }
+.session-md :not(pre) > code { border: 1px solid var(--border); border-radius: 3px; background: var(--bg-3); padding: 0.08em 0.3em; font-family: var(--font-mono); font-size: 0.86em; }
+.session-md :is(ol, ul) { padding-left: 22px; }
+.session-md ol { list-style: decimal; }
+.session-md ul { list-style: '–  '; }
+.session-md .contains-task-list, .session-md .task-list-item { list-style: none; }
+.session-md li::marker { color: var(--fg-dim); font-family: var(--font-mono); font-size: 11px; }
+.session-md ol > li::marker { color: var(--info); }
+.session-md li + li { margin-top: 5px; }
+.session-md > ol > li + li { margin-top: 12px; }
+.session-md li > :is(ul, ol) { margin-top: 6px; }
+.session-md li > p + p { margin-top: 10px; }
+.session-md :is(h1, h2, h3) { color: var(--fg); font-weight: 600; line-height: 1.35; }
+.session-md h1 { font-size: 1rem; }
+.session-md h2 { border-bottom: 1px solid var(--border); padding-bottom: 4px; font-size: 0.90625rem; }
+.session-md h3 { font-size: 0.84375rem; }
+.session-md blockquote { border-left: 2px solid var(--border-strong); padding-left: 12px; color: var(--fg-muted); }
+.session-md hr { border: 0; border-top: 1px solid var(--border); }
+.session-table-scroll { max-width: 100%; overflow-x: auto; }
+.session-md table { width: 100%; border-collapse: collapse; text-align: left; }
+.session-md :is(th, td) { padding: 7px 10px; border-bottom: 1px dashed var(--border); }
+.session-md th { color: var(--fg-dim); font-family: var(--font-mono); font-size: 10px; font-weight: 500; text-transform: uppercase; }
+.session-code-block { overflow: hidden; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-0); }
+.session-code-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); padding: 2px 8px; color: var(--fg-dim); font: 10px var(--font-mono); }
+.session-code-block pre { max-width: 100%; overflow-x: auto; padding: 12px; font: 0.71875rem/1.6 var(--font-mono); white-space: pre; }
+.session-code-block pre code { background: transparent; }
+.session-message-source { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 0.75rem/1.65 var(--font-mono); }
+.session-message-clamp { position: relative; min-width: 0; }
+.session-message-clamp.is-clamped { max-height: 890px; overflow: hidden; }
+.session-message-clamp.is-clamped::after { position: absolute; right: 0; bottom: 0; left: 0; height: 64px; background: linear-gradient(transparent, var(--bg-1)); content: ''; pointer-events: none; }
+dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-behavior: contain; }
