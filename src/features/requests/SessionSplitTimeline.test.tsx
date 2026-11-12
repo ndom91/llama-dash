@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { SessionSplitTimeline } from './SessionSplitTimeline'
+import { interleaveInputParts, SessionSplitTimeline } from './SessionSplitTimeline'
 import type { TranscriptExchange, TranscriptFilters } from './SessionTranscriptView'
 import type { CapturedRequest, TranscriptPart } from './sessionTranscript'
 
@@ -20,6 +20,48 @@ const filters: TranscriptFilters = {
   side: false,
   context: true,
 }
+
+it('interleaves matching calls and results without crossing messages or losing unmatched blocks', () => {
+  const parts: TranscriptPart[] = [
+    { kind: 'tool', role: 'assistant', id: 'a', text: 'read a' },
+    { kind: 'tool', role: 'assistant', id: 'b', text: 'read b' },
+    { kind: 'result', role: 'tool', id: 'b', text: 'result b' },
+    { kind: 'result', role: 'tool', id: 'a', text: 'result a' },
+    { kind: 'result', role: 'tool', id: 'orphan', text: 'orphan' },
+    { kind: 'message', role: 'user', text: 'next' },
+    { kind: 'result', role: 'tool', id: 'a', text: 'later' },
+  ]
+  expect(interleaveInputParts(parts).map(({ index }) => index)).toEqual([0, 3, 1, 2, 4, 5, 6])
+})
+
+it('renders a single user header with the timestamp alongside it', () => {
+  const item = exchange(1, [{ kind: 'message', role: 'user', text: 'Hello' }], [])
+  const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  const message = screen.getByText('Hello')
+  const header = message.parentElement?.previousElementSibling
+  expect(header?.textContent).toContain('user')
+  expect(header?.querySelector('time')?.className).not.toContain('ml-auto')
+  expect(message.parentElement?.className).toContain('border-l')
+  expect(view.container.querySelector('.session-sent-strip')).toBeNull()
+})
+
+it('places each input result immediately after its matching call', () => {
+  const item = exchange(
+    1,
+    [
+      { kind: 'tool', role: 'assistant', name: 'Read', id: 'a', text: 'file-a' },
+      { kind: 'tool', role: 'assistant', name: 'Read', id: 'b', text: 'file-b' },
+      { kind: 'result', role: 'tool', id: 'a', text: 'contents-a' },
+      { kind: 'result', role: 'tool', id: 'b', text: 'contents-b' },
+    ],
+    [],
+  )
+  const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  const text = view.container.querySelector('.session-conversation')!.textContent!
+  expect(text.indexOf('file-a')).toBeLessThan(text.indexOf('contents-a'))
+  expect(text.indexOf('contents-a')).toBeLessThan(text.indexOf('file-b'))
+  expect(text.indexOf('file-b')).toBeLessThan(text.indexOf('contents-b'))
+})
 function exchange(number: number, inputParts: TranscriptPart[], responseParts: TranscriptPart[]): TranscriptExchange {
   return {
     request: {

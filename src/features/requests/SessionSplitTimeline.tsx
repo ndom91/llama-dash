@@ -10,6 +10,44 @@ import { parseStopReason, sessionInputTokens, sessionTitle, type TranscriptPart 
 type Location = { requestId: string; number: number; index: number; part: TranscriptPart }
 type Pair = { call?: Location; result?: Location }
 
+// Pair calls with later results only within a continuous tool-activity run.
+// Keep original indices so deep links and request provenance stay intact.
+export function interleaveInputParts(parts: TranscriptPart[]): Array<{ part: TranscriptPart; index: number }> {
+  const output: Array<{ part: TranscriptPart; index: number }> = []
+  let start = 0
+  while (start < parts.length) {
+    if (parts[start].kind !== 'tool' && parts[start].kind !== 'result') {
+      output.push({ part: parts[start], index: start++ })
+      continue
+    }
+    let end = start
+    while (end < parts.length && (parts[end].kind === 'tool' || parts[end].kind === 'result')) end++
+    const results = new Map<string, number[]>()
+    for (let index = start; index < end; index++) {
+      const part = parts[index]
+      if (part.kind === 'result' && part.id) {
+        const entries = results.get(part.id) ?? []
+        entries.push(index)
+        results.set(part.id, entries)
+      }
+    }
+    const used = new Set<number>()
+    for (let index = start; index < end; index++) {
+      if (used.has(index)) continue
+      const part = parts[index]
+      output.push({ part, index })
+      if (part.kind !== 'tool' || !part.id) continue
+      const match = results.get(part.id)?.find((candidate) => candidate > index && !used.has(candidate))
+      if (match != null) {
+        used.add(match)
+        output.push({ part: parts[match], index: match })
+      }
+    }
+    start = end
+  }
+  return output
+}
+
 function isCompacted(exchange: TranscriptExchange): boolean {
   return (
     exchange.inputDelta != null &&
@@ -66,6 +104,10 @@ export function SessionSplitTimeline({
   incomplete?: boolean
 }) {
   const [hovered, setHovered] = useState<string | null>(null)
+  const inputOrder = useMemo(
+    () => new Map(exchanges.map((exchange) => [exchange.request.id, interleaveInputParts(exchange.inputParts)])),
+    [exchanges],
+  )
   const metadata = useMemo(
     () =>
       new Map(
@@ -185,7 +227,7 @@ export function SessionSplitTimeline({
             {filters.context && exchange.contexts.length ? (
               <ContextPills contexts={exchange.contexts} mobile={false} onOpen={() => {}} />
             ) : null}
-            {exchange.inputParts.map((part, index) => {
+            {inputOrder.get(request.id)!.map(({ part, index }) => {
               if (part.kind === 'message' && !filters.messages) return null
               if (part.kind === 'result') {
                 const pair = part.id ? pairs.get(part.id) : undefined
@@ -205,9 +247,21 @@ export function SessionSplitTimeline({
                 )
               }
               if (part.kind === 'tool' && !filters.tools) return null
+              if (part.kind === 'message' && part.role === 'user') {
+                return (
+                  <TranscriptItem
+                    key={`${part.kind}-${index}`}
+                    part={part}
+                    expanded={false}
+                    time={request.startedAt}
+                    hideRaw
+                    truncated={false}
+                  />
+                )
+              }
               return (
                 <div className="session-sent-strip" key={`${part.kind}-${index}`}>
-                  <span>{part.kind === 'message' && part.role === 'user' ? 'USER' : 'SENT'}</span>
+                  <span>SENT</span>
                   <TranscriptItem
                     part={part}
                     expanded={filters.thinking}

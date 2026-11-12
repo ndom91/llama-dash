@@ -441,12 +441,12 @@ export const TranscriptItem = memo(function TranscriptItem({
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">
         <span className={part.role === 'user' ? 'size-1.5 rounded-full bg-info' : 'size-1.5 rounded-full bg-ok'} />
         {part.role}
-        <time className="ml-auto" title="Request start time">
-          {new Date(time).toLocaleTimeString()}
-        </time>
+        <time title="Request start time">{new Date(time).toLocaleTimeString()}</time>
       </div>
-      <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
-        {part.text}
+      <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
+        <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
+          {part.text}
+        </div>
       </div>
     </div>
   )
