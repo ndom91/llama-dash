@@ -373,6 +373,7 @@ export const TranscriptItem = memo(function TranscriptItem({
   time,
   onOpen,
   truncated,
+  hideRaw = false,
 }: {
   part: TranscriptPart
   result?: TranscriptPart
@@ -380,6 +381,7 @@ export const TranscriptItem = memo(function TranscriptItem({
   time: string
   onOpen?: () => void
   truncated: boolean
+  hideRaw?: boolean
 }) {
   if (part.kind === 'tool' || part.kind === 'result' || part.kind === 'thinking') {
     const name = part.name?.startsWith('mcp__') ? `mcp · ${part.name.slice(5).replace('__', ' · ')}` : part.name
@@ -432,7 +434,8 @@ export const TranscriptItem = memo(function TranscriptItem({
       </details>
     )
   }
-  if (part.role !== 'user') return <SessionAssistantMessage text={part.text} time={time} truncated={truncated} />
+  if (part.role !== 'user')
+    return <SessionAssistantMessage text={part.text} time={time} truncated={truncated} hideRaw={hideRaw} />
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">
@@ -442,7 +445,7 @@ export const TranscriptItem = memo(function TranscriptItem({
           {new Date(time).toLocaleTimeString()}
         </time>
       </div>
-      <div className="rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
+      <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
         {part.text}
       </div>
     </div>

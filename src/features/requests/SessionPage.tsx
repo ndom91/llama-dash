@@ -578,6 +578,8 @@ function SessionRail({
   )
   const cacheInputs = cacheRequests.reduce((sum, request) => sum + (sessionInputTokens(request) ?? 0), 0)
   const knownCached = cacheRequests.reduce((sum, request) => sum + (request.cacheReadTokens ?? 0), 0)
+  const mainExchanges = exchanges.filter((exchange) => !exchange.side)
+  const inputsCaptured = mainExchanges.filter((exchange) => exchange.inputParts.length > 0).length
   const max = Math.max(1, ...requests.map((request) => request.durationMs))
   const controls: Array<[keyof TranscriptFilters, string]> = [
     ['messages', 'messages'],
@@ -607,6 +609,7 @@ function SessionRail({
               ? `${Math.round((knownCached / cacheInputs) * 100)}%${cacheRequests.length < requests.length ? ' · partial' : ''}`
               : '—',
           ],
+          ['input captured', `${inputsCaptured} / ${mainExchanges.length}${incomplete ? ' · loaded' : ''}`],
           [
             'tool calls',
             `${exchanges.reduce((n, item) => n + item.parts.filter((part) => part.kind === 'tool').length, 0)} · ${exchanges.reduce((n, item) => n + item.parts.filter((part) => part.kind === 'result' && part.isError).length, 0)} errors`,
@@ -624,7 +627,14 @@ function SessionRail({
             className="flex justify-between gap-3 border-b border-dashed border-border py-1.5 last:border-0"
           >
             <span>{label}</span>
-            <span className="min-w-0 truncate text-right text-fg" title={value}>
+            <span
+              className={`min-w-0 truncate text-right ${label === 'input captured' && inputsCaptured < mainExchanges.length ? 'text-warn' : 'text-fg'}`}
+              title={
+                label === 'input captured'
+                  ? 'Main-loop requests with new input recovered from retained captures'
+                  : value
+              }
+            >
               {value}
             </span>
           </div>

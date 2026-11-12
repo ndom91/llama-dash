@@ -76,7 +76,7 @@ it('shows unmatched calls and captured stop reasons', () => {
   item.request.payloads.responseBody = '{"stop_reason":"end_turn"}'
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
   expect(screen.getByText('no result captured')).toBeTruthy()
-  expect(screen.getByText('end_turn')).toBeTruthy()
+  expect(screen.getByText(/end_turn/)).toBeTruthy()
   expect(view.container.querySelector('.is-final')).toBeTruthy()
 })
 
@@ -124,4 +124,27 @@ it('explains a missing response even when input was captured', () => {
   const item = exchange(1, [{ kind: 'message', role: 'user', text: 'hello' }], [])
   render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
   expect(screen.getByText(/no readable content/)).toBeTruthy()
+})
+
+it('shows a capture limit notice, a single raw control, and a compaction marker', () => {
+  const item = exchange(19, [], [{ kind: 'message', role: 'assistant', text: 'Finished' }])
+  item.inputDelta = -114416
+  item.request.promptTokens = 1000
+  item.request.cacheReadTokens = 0
+  item.request.payloads.requestBody = 'prefix\n...[truncated 100 bytes]'
+  item.request.payloads.responseBody = '{"stop_reason":"end_turn"}'
+  const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  expect(screen.getByText(/context compacted before #19/)).toBeTruthy()
+  expect(screen.getByText(/input not captured · new messages are past the capture limit/)).toBeTruthy()
+  expect(view.container.querySelectorAll('.session-capture-controls')).toHaveLength(1)
+  expect(screen.getAllByRole('link', { name: 'raw ↗' })).toHaveLength(1)
+  expect(screen.queryByRole('button', { name: 'raw' })).toBeNull()
+  expect(view.container.querySelector('.session-stop-badge')?.textContent).toContain('end_turn')
+})
+
+it('does not mark a complete unchanged input as missing', () => {
+  const item = exchange(1, [], [{ kind: 'message', role: 'assistant', text: 'Finished' }])
+  item.request.payloads.requestBody = '{"messages":[]}'
+  render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  expect(screen.queryByText(/input not captured/)).toBeNull()
 })

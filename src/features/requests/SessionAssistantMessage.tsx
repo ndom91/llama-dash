@@ -26,10 +26,12 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
   text,
   time,
   truncated,
+  hideRaw = false,
 }: {
   text: string
   time: string
   truncated: boolean
+  hideRaw?: boolean
 }) {
   const [raw, setRaw] = useState(false)
   const [expanded, setExpanded] = useState(false)
@@ -52,9 +54,11 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
         assistant
         <time title="Request start time">{new Date(time).toLocaleTimeString()}</time>
         <div className="ml-auto flex items-center gap-1 normal-case tracking-normal">
-          <button type="button" aria-pressed={raw} onClick={() => setRaw(!raw)} className="px-1.5 py-1 hover:text-fg">
-            {raw ? 'markdown' : 'raw'}
-          </button>
+          {!hideRaw ? (
+            <button type="button" aria-pressed={raw} onClick={() => setRaw(!raw)} className="px-1.5 py-1 hover:text-fg">
+              {raw ? 'markdown' : 'raw'}
+            </button>
+          ) : null}
           <CopyButton text={text} ariaLabel="Copy assistant message" />
         </div>
       </div>
@@ -116,7 +120,7 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
             aria-expanded={expanded}
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? 'show less' : 'show full message'}
+            {expanded ? 'show less' : `show full message · ${text.trim() ? text.trim().split(/\s+/).length : 0} words`}
           </button>
         ) : null}
       </div>

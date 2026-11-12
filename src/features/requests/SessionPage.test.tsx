@@ -58,7 +58,7 @@ it('links to raw request details for unreadable and truncated captures', async (
     </QueryClientProvider>,
   )
   expect(await screen.findByText(/no readable content/i)).toBeTruthy()
-  expect(screen.getAllByRole('link', { name: /open raw/i }).length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('link', { name: /raw ↗/i }).length).toBeGreaterThan(0)
   client.clear()
 })
 
@@ -82,8 +82,8 @@ it('groups request and response capture warnings into one footer', async () => {
       <SessionPage id="req_1" />
     </QueryClientProvider>,
   )
-  const response = await view.findByText(/response cut off at/)
-  expect(response.parentElement?.textContent).toContain('request 7 B of 107 B')
+  const response = await view.findByTitle('response captured 8 B of 208 B')
+  expect(response.parentElement?.textContent).toContain('req 7 B/107 B')
   expect(response.parentElement?.querySelectorAll('a')).toHaveLength(1)
   view.unmount()
   client.clear()
@@ -330,9 +330,12 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
   expect(view.getByText(/title generation/)).toBeTruthy()
   expect(view.getAllByText('Build a calendar')).toHaveLength(1)
   expect(view.getAllByRole('button', { name: /reminder · ~\/\.claude\/CLAUDE.md/ })).toHaveLength(1)
-  expect(view.getAllByText('+new file')).toHaveLength(1)
+  expect(view.getByText(/↳ Bash · \+new file/)).toBeTruthy()
   expect(view.getByRole('button', { name: '→ #4' })).toBeTruthy()
   expect(view.getByRole('button', { name: '← #3' })).toBeTruthy()
+  expect(view.getAllByTitle('Main-loop requests with new input recovered from retained captures')[0].textContent).toBe(
+    '2 / 2',
+  )
   expect(view.getByText(/title generation/).textContent).not.toContain('{"title"')
   expect(view.getByText('successfully').tagName).toBe('STRONG')
   view.unmount()

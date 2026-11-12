@@ -2,13 +2,22 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Positions distinguish repeated captured blocks.
 // biome-ignore-all lint/a11y/noStaticElementInteractions: Hover only highlights linked blocks; their buttons provide keyboard access.
 import { Link } from '@tanstack/react-router'
-import { memo, useMemo, useState } from 'react'
+import { Fragment, memo, useMemo, useState } from 'react'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { ContextPills, type TranscriptExchange, type TranscriptFilters, TranscriptItem } from './SessionTranscriptView'
 import { parseStopReason, sessionInputTokens, sessionTitle, type TranscriptPart } from './sessionTranscript'
 
 type Location = { requestId: string; number: number; index: number; part: TranscriptPart }
 type Pair = { call?: Location; result?: Location }
+
+function isCompacted(exchange: TranscriptExchange): boolean {
+  return (
+    exchange.inputDelta != null &&
+    exchange.inputDelta <= -10_000 &&
+    exchange.request.cacheReadTokens === 0 &&
+    Boolean(sessionInputTokens(exchange.request))
+  )
+}
 
 function partId(location: Location, kind: 'call' | 'result') {
   return `session-${location.requestId}-${kind}-${location.index}`
@@ -32,8 +41,15 @@ function warnings(exchange: TranscriptExchange) {
     if (!body || !match) return []
     const size = new TextEncoder().encode(body.slice(0, match.index)).length
     const format = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`)
+    const total = size + Number(match[1])
     return [
-      `▲ ${kind} ${kind === 'response' ? 'cut off at ' : ''}${format(size)} of ${format(size + Number(match[1]))}`,
+      {
+        kind,
+        size,
+        total,
+        label: `${format(size)}/${format(total)}`,
+        title: `${kind} captured ${format(size)} of ${format(total)}`,
+      },
     ]
   })
 }
@@ -90,6 +106,7 @@ export function SessionSplitTimeline({
       !item.side &&
       item.replaced == null &&
       !item.contexts.length &&
+      !isCompacted(item) &&
       item.responseParts.some((part) => part.kind === 'tool') &&
       !item.parts.some((part) => part.kind === 'message')
     if (previous && ((exchange.side && previous[0].side) || (toolOnly(exchange) && toolOnly(previous[0]))))
@@ -106,135 +123,178 @@ export function SessionSplitTimeline({
       (last, part, index) => (part.kind === 'message' ? index : last),
       -1,
     )
+    const compacted = isCompacted(exchange)
+    const missingInput =
+      !exchange.inputParts.length &&
+      (!request.payloads.requestBody || /\n\.\.\.\[truncated \d+ bytes\]$/.test(request.payloads.requestBody))
     return (
-      <section
-        key={request.id}
-        id={`session-${request.id}`}
-        data-session-request={request.id}
-        aria-label={`Request ${number}`}
-        className={`session-split-row ${activeId === request.id ? 'is-active' : ''} ${reason === 'end_turn' || reason === 'stop' ? 'is-final' : ''}`}
-      >
-        <div className="session-split-meta">
-          <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
-            #{number}
-          </Link>
-          <div>{new Date(request.startedAt).toLocaleTimeString()}</div>
-          <div>
-            <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
-            {formatDuration(request.durationMs)}
+      <Fragment key={request.id}>
+        {compacted ? (
+          <div className="session-compaction">
+            ⇣ context compacted before #{number} · {exchange.inputDelta!.toLocaleString()} tokens · cache reset
           </div>
-          <div className="my-1 h-1 bg-surface-3">
-            <div
-              className={request.statusCode >= 400 ? 'h-full bg-err' : 'h-full bg-info'}
-              style={{ width: `${Math.max(2, (request.durationMs / maxLatency) * 100)}%` }}
-            />
+        ) : null}
+        <section
+          id={`session-${request.id}`}
+          data-session-request={request.id}
+          aria-label={`Request ${number}`}
+          className={`session-split-row ${activeId === request.id ? 'is-active' : ''} ${reason === 'end_turn' || reason === 'stop' ? 'is-final' : ''}`}
+        >
+          <div
+            className={`session-split-meta ${reason === 'tool_use' ? 'is-tool' : reason === 'end_turn' || reason === 'stop' ? 'is-end' : ''}`}
+          >
+            <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
+              #{number}
+            </Link>
+            {reason ? (
+              <div>
+                <span
+                  className={`session-stop-badge ${reason === 'end_turn' || reason === 'stop' ? 'is-end' : 'is-tool'}`}
+                >
+                  ● {reason}
+                </span>
+              </div>
+            ) : null}
+            <div>{new Date(request.startedAt).toLocaleTimeString()}</div>
+            <div>
+              <span className={request.statusCode >= 400 ? 'text-err' : 'text-ok'}>{request.statusCode}</span> ·{' '}
+              {formatDuration(request.durationMs)}
+            </div>
+            <div className="my-1 h-1 bg-surface-3">
+              <div
+                className={
+                  compacted ? 'h-full bg-warn' : request.statusCode >= 400 ? 'h-full bg-err' : 'h-full bg-info'
+                }
+                style={{ width: `${Math.max(2, (request.durationMs / maxLatency) * 100)}%` }}
+              />
+            </div>
+            <div>
+              {exchange.inputDelta == null
+                ? '—'
+                : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
+              / {formatCompactNumber(request.completionTokens)}
+            </div>
+            <div>cache {cache == null ? '—' : `${cache}%`}</div>
           </div>
-          <div>
-            {exchange.inputDelta == null
-              ? '—'
-              : `${exchange.inputDelta >= 0 ? '+' : ''}${formatCompactNumber(exchange.inputDelta)}`}{' '}
-            / {formatCompactNumber(request.completionTokens)}
-          </div>
-          <div>cache {cache == null ? '—' : `${cache}%`}</div>
-          {reason ? (
-            <div className={reason === 'end_turn' || reason === 'stop' ? 'text-ok' : 'text-accent'}>{reason}</div>
-          ) : null}
-        </div>
-        <div className="session-split-input space-y-3">
-          {exchange.replaced != null ? (
-            <div className="font-mono text-[10px] text-warn">context reset · {exchange.replaced} messages replaced</div>
-          ) : null}
-          {filters.context && exchange.contexts.length ? (
-            <ContextPills contexts={exchange.contexts} mobile={false} onOpen={() => {}} />
-          ) : null}
-          {exchange.inputParts.map((part, index) => {
-            if (part.kind === 'message' && !filters.messages) return null
-            if (part.kind === 'result') {
-              const pair = part.id ? pairs.get(part.id) : undefined
-              const location = { requestId: request.id, number, index, part }
+          <div className="session-conversation space-y-3">
+            {exchange.replaced != null ? (
+              <div className="font-mono text-[10px] text-warn">
+                context reset · {exchange.replaced} messages replaced
+              </div>
+            ) : null}
+            {filters.context && exchange.contexts.length ? (
+              <ContextPills contexts={exchange.contexts} mobile={false} onOpen={() => {}} />
+            ) : null}
+            {exchange.inputParts.map((part, index) => {
+              if (part.kind === 'message' && !filters.messages) return null
+              if (part.kind === 'result') {
+                const pair = part.id ? pairs.get(part.id) : undefined
+                const location = { requestId: request.id, number, index, part }
+                return (
+                  <div className="session-sent-strip" key={`${part.kind}-${index}-${filters.results}`}>
+                    <span>SENT</span>
+                    <ResultBlock
+                      key={`${part.kind}-${index}-${filters.results}`}
+                      location={location}
+                      call={filters.tools ? pair?.call : undefined}
+                      expanded={filters.results}
+                      highlighted={Boolean(part.id && hovered === part.id)}
+                      onHover={setHovered}
+                    />
+                  </div>
+                )
+              }
+              if (part.kind === 'tool' && !filters.tools) return null
               return (
-                <ResultBlock
-                  key={`${part.kind}-${index}-${filters.results}`}
-                  location={location}
-                  call={filters.tools ? pair?.call : undefined}
-                  expanded={filters.results}
-                  highlighted={Boolean(part.id && hovered === part.id)}
-                  onHover={setHovered}
+                <div className="session-sent-strip" key={`${part.kind}-${index}`}>
+                  <span>{part.kind === 'message' && part.role === 'user' ? 'USER' : 'SENT'}</span>
+                  <TranscriptItem
+                    part={part}
+                    expanded={filters.thinking}
+                    time={request.startedAt}
+                    hideRaw
+                    truncated={false}
+                  />
+                </div>
+              )
+            })}
+            {missingInput ? (
+              <div className="session-sent-strip">
+                <span>SENT</span>
+                <div className="session-input-missing">
+                  ▲ input not captured ·{' '}
+                  {request.payloads.requestBody
+                    ? 'new messages are past the capture limit'
+                    : 'request body unavailable'}
+                </div>
+              </div>
+            ) : null}
+            {exchange.responseParts.map((part, index) => {
+              if ((part.kind === 'message' && !filters.messages) || (part.kind === 'tool' && !filters.tools))
+                return null
+              const location = { requestId: request.id, number, index, part }
+              const result = part.id ? pairs.get(part.id)?.result : undefined
+              return part.kind === 'tool' ? (
+                <div
+                  key={`${part.kind}-${index}`}
+                  id={partId(location, 'call')}
+                  className={`session-linked-tool ${part.id && hovered === part.id ? 'is-linked' : ''}`}
+                  onMouseEnter={() => setHovered(part.id ?? null)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <TranscriptItem part={part} expanded={false} time={request.startedAt} truncated={false} />
+                  {result ? (
+                    <button type="button" className="session-link-chip" onClick={() => jumpToPart(result, 'result')}>
+                      → #{result.number}
+                    </button>
+                  ) : (
+                    <span className="session-link-missing">
+                      {incomplete ? 'result may be in unloaded requests' : 'no result captured'}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <TranscriptItem
+                  key={`${part.kind}-${index}`}
+                  part={part}
+                  expanded={filters.thinking}
+                  time={request.startedAt}
+                  hideRaw
+                  truncated={index === lastResponseMessage && warningLines.some((line) => line.kind === 'response')}
                 />
               )
-            }
-            if (part.kind === 'tool' && !filters.tools) return null
-            return (
-              <TranscriptItem
-                key={`${part.kind}-${index}`}
-                part={part}
-                expanded={filters.thinking}
-                time={request.startedAt}
-                truncated={false}
-              />
-            )
-          })}
-        </div>
-        <div className="session-split-output space-y-3">
-          {exchange.responseParts.map((part, index) => {
-            if ((part.kind === 'message' && !filters.messages) || (part.kind === 'tool' && !filters.tools)) return null
-            const location = { requestId: request.id, number, index, part }
-            const result = part.id ? pairs.get(part.id)?.result : undefined
-            return part.kind === 'tool' ? (
-              <div
-                key={`${part.kind}-${index}`}
-                id={partId(location, 'call')}
-                className={`session-linked-tool ${part.id && hovered === part.id ? 'is-linked' : ''}`}
-                onMouseEnter={() => setHovered(part.id ?? null)}
-                onMouseLeave={() => setHovered(null)}
-              >
-                <TranscriptItem part={part} expanded={false} time={request.startedAt} truncated={false} />
-                {result ? (
-                  <button type="button" className="session-link-chip" onClick={() => jumpToPart(result, 'result')}>
-                    → #{result.number}
-                  </button>
-                ) : (
-                  <span className="session-link-missing">
-                    {incomplete ? 'result may be in unloaded requests' : 'no result captured'}
+            })}
+            {!exchange.responseParts.length ? (
+              <div className="font-mono text-xs text-fg-dim">no readable content</div>
+            ) : null}
+            <div className="session-capture-controls">
+              {warningLines.map((line) => (
+                <span className="session-capture-segment" key={line.kind} title={line.title}>
+                  {line.kind === 'request' ? 'req' : 'resp'} {line.label}
+                  <span className="session-capture-bar">
+                    <i style={{ width: `${line.total ? (line.size / line.total) * 100 : 0}%` }} />
                   </span>
-                )}
-              </div>
-            ) : (
-              <TranscriptItem
-                key={`${part.kind}-${index}`}
-                part={part}
-                expanded={filters.thinking}
-                time={request.startedAt}
-                truncated={index === lastResponseMessage && warningLines.some((line) => line.startsWith('▲ response'))}
-              />
-            )
-          })}
-          {!exchange.responseParts.length ? (
-            <div className="font-mono text-xs text-fg-dim">
-              no readable content ·{' '}
-              <Link to="/requests/$id" params={{ id: request.id }} className="text-info">
-                open raw ›
+                </span>
+              ))}
+              <Link to="/requests/$id" params={{ id: request.id }} className="session-capture-raw">
+                raw ↗
               </Link>
             </div>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] text-warn">
-            {warningLines.map((line) => (
-              <span key={line}>{line}</span>
-            ))}
-            <Link to="/requests/$id" params={{ id: request.id }} className="ml-auto text-info">
-              {warningLines.length ? 'open raw ›' : 'raw · open request ›'}
-            </Link>
           </div>
-        </div>
-      </section>
+        </section>
+      </Fragment>
     )
   }
   return (
     <div className="session-split-timeline">
       <div className="session-split-heading">
         <span>Request</span>
-        <span>Sent to model · new since previous</span>
-        <span>Model response</span>
+        <span>
+          Conversation{' '}
+          <span className="session-legend">
+            <i /> sent to model <b /> model response
+          </span>
+        </span>
       </div>
       {groups.map((group) =>
         group[0].side ? (
@@ -324,9 +384,9 @@ const ResultBlock = memo(
         onMouseEnter={() => onHover(location.part.id ?? null)}
         onMouseLeave={() => onHover(null)}
       >
-        <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1 font-mono text-[10px] text-fg-dim">
-          <span>
-            ↳ result · {call?.part.name ?? location.part.name ?? 'tool'} · {lines.length}{' '}
+        <div className="flex min-w-0 items-center gap-2 px-2 py-1 font-mono text-[10px] text-fg-dim">
+          <span className="min-w-0 flex-1 truncate">
+            ↳ {call?.part.name ?? location.part.name ?? 'tool'} · {lines[0] || '(empty result)'} · {lines.length}{' '}
             {lines.length === 1 ? 'line' : 'lines'}
           </span>
           {call ? (
@@ -338,16 +398,18 @@ const ResultBlock = memo(
             {isOpen ? 'collapse' : 'expand'}
           </button>
         </div>
-        <pre className="m-0 overflow-auto whitespace-pre-wrap break-words p-2 font-mono text-[10px] text-fg-dim">
-          {(isOpen ? lines : lines.slice(0, 4)).map((line, index) => (
-            <span
-              key={`${index}-${line}`}
-              className={`block ${line.startsWith('+') ? 'text-ok' : line.startsWith('-') ? 'text-err' : ''}`}
-            >
-              {line || ' '}
-            </span>
-          ))}
-        </pre>
+        {isOpen ? (
+          <pre className="m-0 overflow-auto whitespace-pre-wrap break-words border-t border-border p-2 font-mono text-[10px] text-fg-dim">
+            {lines.map((line, index) => (
+              <span
+                key={`${index}-${line}`}
+                className={`block ${line.startsWith('+') ? 'text-ok' : line.startsWith('-') ? 'text-err' : ''}`}
+              >
+                {line || ' '}
+              </span>
+            ))}
+          </pre>
+        ) : null}
       </div>
     )
   },
