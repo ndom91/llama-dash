@@ -60,6 +60,8 @@ export function SessionPage({ id }: { id: string }) {
   }
   const scrollRef = useRef<HTMLDivElement>(null)
   const transcriptRef = useRef<HTMLElement>(null)
+  const lastSheet = useRef<SessionSheetTab>('session')
+  if (search.sheet) lastSheet.current = search.sheet
   const [activeId, setActiveId] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -479,9 +481,10 @@ export function SessionPage({ id }: { id: string }) {
                 onSelect={setActiveId}
               />
             ) : null}
-            {mobile && search.sheet ? (
+            {mobile ? (
               <SessionMobileSheet
-                tab={search.sheet}
+                open={Boolean(search.sheet)}
+                tab={search.sheet ?? lastSheet.current}
                 onTab={(sheet) => updateView({ sheet }, true)}
                 onClose={() => updateView({ sheet: undefined }, true)}
                 actions={
@@ -520,7 +523,7 @@ export function SessionPage({ id }: { id: string }) {
                     scrollToSessionRequest(requestId)
                     setActiveId(requestId)
                   }}
-                  mobileTab={search.sheet}
+                  mobileTab={search.sheet ?? lastSheet.current}
                 />
               </SessionMobileSheet>
             ) : null}

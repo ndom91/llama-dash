@@ -2348,6 +2348,7 @@ a {
 .session-code-block pre code { background: transparent; }
 .session-message-source { max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 0.75rem/1.65 var(--font-mono); }
 .session-message-clamp { position: relative; min-width: 0; }
+.session-message-clamp.is-animated { overflow: hidden; transition: max-height var(--acc-expand) var(--acc-ease); }
 .session-message-clamp.is-clamped { max-height: 890px; overflow: hidden; }
 .session-message-clamp.is-clamped::after { position: absolute; right: 0; bottom: 0; left: 0; height: 64px; background: linear-gradient(transparent, var(--bg-1)); content: ''; pointer-events: none; }
 
@@ -2391,4 +2392,30 @@ a {
 .session-link-chip, .session-link-chip-static { border: 1px solid var(--border-strong); padding: 1px 4px; color: var(--info); }
 .session-link-missing { color: var(--fg-faint); border: 1px dashed var(--border); padding: 1px 4px; }
 .session-result { min-width: 0; border: 1px solid var(--border); border-left: 2px solid var(--info); background: var(--bg-0); }
+
+/* Native dialogs stay in the top layer while their exit transition runs. */
+.session-context-dialog, .session-mobile-sheet {
+  opacity: 0;
+  transition: opacity var(--motion-duration-quick) var(--motion-ease-smooth-out), transform var(--motion-duration-quick) var(--motion-ease-smooth-out), display var(--motion-duration-quick) allow-discrete, overlay var(--motion-duration-quick) allow-discrete;
+}
+.session-context-dialog { transform: scale(var(--motion-scale-large)); }
+.session-mobile-sheet { transform: translateY(24px); }
+.session-context-dialog[open], .session-mobile-sheet[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--motion-duration-fast);
+}
+@starting-style {
+  .session-context-dialog[open] { opacity: 0; transform: scale(var(--motion-scale-large)); }
+  .session-mobile-sheet[open] { opacity: 0; transform: translateY(24px); }
+}
+.session-sheet-tabs { position: relative; overflow: hidden; }
+.session-sheet-tab-indicator { top: 0; bottom: 0; height: auto; border-radius: 3px; background: var(--bg-2); opacity: 0; }
+.session-sheet-tab-indicator[data-ready='true'] { opacity: 1; }
+.session-sheet-tabs:has(.session-sheet-tab-indicator[data-ready='false']) [aria-selected='true'] { background: var(--bg-2); }
+.session-scrubber { transition: opacity var(--motion-duration-quick) var(--motion-ease-smooth-out), transform var(--motion-duration-quick) var(--motion-ease-smooth-out), visibility var(--motion-duration-quick); }
+.session-scrubber.is-hidden { opacity: 0; transform: translateY(12px); visibility: hidden; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .session-context-dialog, .session-mobile-sheet, .session-scrubber, .session-message-clamp.is-animated { transition: none !important; }
+}
 dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-behavior: contain; }

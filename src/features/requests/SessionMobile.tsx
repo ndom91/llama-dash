@@ -4,6 +4,7 @@ import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } 
 import { CopyButton } from '../../components/CopyButton'
 import { api } from '../../lib/api'
 import { formatDuration } from '../../lib/format'
+import { useSlidingIndicator } from '../../lib/use-sliding-indicator'
 import type { TranscriptExchange } from './SessionTranscriptView'
 import { parseTranscriptInput, parseTranscriptResponse } from './sessionTranscript'
 
@@ -17,17 +18,27 @@ export function SessionMobileSheet({
   onClose,
   actions,
   children,
+  open,
 }: {
   tab: SessionSheetTab
   onTab: (tab: SessionSheetTab) => void
   onClose: () => void
   actions: ReactNode
   children: ReactNode
+  open: boolean
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
-    dialog.current?.showModal()
-  }, [])
+    const node = dialog.current
+    if (!node) return
+    if (open && !node.open) node.showModal()
+    else if (!open && node.open) node.close()
+  }, [open])
+  const { containerRef, indicatorRef, itemRefs, ready } = useSlidingIndicator<SessionSheetTab, HTMLDivElement>(
+    tab,
+    'session,requests,show',
+    open,
+  )
   return (
     <dialog
       ref={dialog}
@@ -57,10 +68,25 @@ export function SessionMobileSheet({
           </button>
         </div>
       </div>
-      <div role="tablist" aria-label="Session information" className="mx-4 mt-3 flex rounded border border-border">
+      <div
+        ref={containerRef}
+        role="tablist"
+        aria-label="Session information"
+        className="session-sheet-tabs mx-4 mt-3 flex rounded border border-border"
+      >
+        <span
+          ref={indicatorRef}
+          aria-hidden="true"
+          className="t-tabs-pill session-sheet-tab-indicator"
+          data-ready={ready}
+        />
         {(['session', 'requests', 'show'] as const).map((item) => (
           <button
             key={item}
+            ref={(node) => {
+              if (node) itemRefs.current.set(item, node)
+              else itemRefs.current.delete(item)
+            }}
             type="button"
             role="tab"
             id={`session-tab-${item}`}
@@ -77,7 +103,7 @@ export function SessionMobileSheet({
             }}
             aria-selected={tab === item}
             onClick={() => onTab(item)}
-            className={`min-h-9 flex-1 font-mono text-xs ${tab === item ? 'bg-surface-2 text-fg' : 'text-fg-dim'}`}
+            className={`relative z-10 min-h-9 flex-1 font-mono text-xs ${tab === item ? 'text-fg' : 'text-fg-dim'}`}
           >
             {item}
           </button>
@@ -129,7 +155,8 @@ export function SessionScrubber({
   const max = Math.max(1, ...exchanges.map(({ request }) => request.durationMs))
   return (
     <div
-      className={`fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 rounded-lg border border-border bg-surface-0 p-2 shadow-lg ${hidden ? 'pointer-events-none invisible' : ''}`}
+      className={`session-scrubber fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 rounded-lg border border-border bg-surface-0 p-2 shadow-lg ${hidden ? 'is-hidden' : ''}`}
+      inert={hidden}
     >
       <div className="flex justify-between gap-2 font-mono text-[10px] text-fg-dim">
         <span>

@@ -347,7 +347,6 @@ export function ContextPills({
       <dialog
         ref={dialog}
         closedby="any"
-        onClose={() => setSelected(null)}
         onPointerDown={(event) => {
           if (!('closedBy' in HTMLDialogElement.prototype)) pressedOutside.current = outside(event)
         }}
@@ -358,7 +357,7 @@ export function ContextPills({
           pressedOutside.current = false
         }}
         aria-label={selected?.label ?? 'Context'}
-        className="fixed inset-0 m-auto max-h-[80dvh] w-[min(90vw,700px)] max-w-[calc(100%-2rem)] overflow-hidden rounded border border-border bg-surface-0 p-0 text-fg backdrop:bg-surface-0/80"
+        className="session-context-dialog fixed inset-0 m-auto max-h-[80dvh] w-[min(90vw,700px)] max-w-[calc(100%-2rem)] overflow-hidden rounded border border-border bg-surface-0 p-0 text-fg backdrop:bg-surface-0/80"
       >
         <div className="flex items-center justify-between gap-4 border-b border-border p-4">
           <h2 className="m-0 text-sm font-semibold">{selected?.label}</h2>

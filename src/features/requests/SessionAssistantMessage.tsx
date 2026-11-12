@@ -36,11 +36,15 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
   const [raw, setRaw] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [long, setLong] = useState(false)
+  const [height, setHeight] = useState(0)
   const bodyRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const body = bodyRef.current
     if (!body) return
-    const measure = () => setLong(body.scrollHeight > 895)
+    const measure = () => {
+      setLong(body.scrollHeight > 895)
+      setHeight(body.scrollHeight)
+    }
     measure()
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(measure)
@@ -64,7 +68,8 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
         <div
-          className={`session-message-clamp ${long && !expanded ? 'is-clamped' : ''}`}
+          className={`session-message-clamp ${long && !expanded ? 'is-clamped' : ''} ${long && text.length <= 20_000 ? 'is-animated' : ''}`}
+          style={long && text.length <= 20_000 ? { maxHeight: expanded ? height : 890 } : undefined}
           onFocusCapture={() => {
             if (long) setExpanded(true)
           }}

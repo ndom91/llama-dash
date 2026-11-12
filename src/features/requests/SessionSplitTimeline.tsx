@@ -431,10 +431,12 @@ const ResultBlock = memo(
     const [open, setOpen] = useState<boolean | null>(null)
     const isOpen = open ?? expanded
     const lines = useMemo(() => location.part.text.split('\n'), [location.part.text])
+    const animate = lines.length <= 120 && location.part.text.length <= 15_000
     return (
       <div
         id={partId(location, 'result')}
-        className={`session-result ${highlighted ? 'is-linked' : ''}`}
+        className={`session-result ${animate ? 't-acc' : ''} ${highlighted ? 'is-linked' : ''}`}
+        data-open={isOpen}
         onMouseEnter={() => onHover(location.part.id ?? null)}
         onMouseLeave={() => onHover(null)}
       >
@@ -452,17 +454,14 @@ const ResultBlock = memo(
             {isOpen ? 'collapse' : 'expand'}
           </button>
         </div>
-        {isOpen ? (
-          <pre className="m-0 overflow-auto whitespace-pre-wrap break-words border-t border-border p-2 font-mono text-[10px] text-fg-dim">
-            {lines.map((line, index) => (
-              <span
-                key={`${index}-${line}`}
-                className={`block ${line.startsWith('+') ? 'text-ok' : line.startsWith('-') ? 'text-err' : ''}`}
-              >
-                {line || ' '}
-              </span>
-            ))}
-          </pre>
+        {animate ? (
+          <div className="t-acc-panel" aria-hidden={!isOpen} inert={!isOpen}>
+            <div className="t-acc-panel-inner">
+              <ResultText lines={lines} />
+            </div>
+          </div>
+        ) : isOpen ? (
+          <ResultText lines={lines} />
         ) : null}
       </div>
     )
@@ -477,3 +476,18 @@ const ResultBlock = memo(
     previous.highlighted === next.highlighted &&
     previous.onHover === next.onHover,
 )
+
+function ResultText({ lines }: { lines: string[] }) {
+  return (
+    <pre className="m-0 overflow-auto whitespace-pre-wrap break-words border-t border-border p-2 font-mono text-[10px] text-fg-dim">
+      {lines.map((line, index) => (
+        <span
+          key={`${index}-${line}`}
+          className={`block ${line.startsWith('+') ? 'text-ok' : line.startsWith('-') ? 'text-err' : ''}`}
+        >
+          {line || ' '}
+        </span>
+      ))}
+    </pre>
+  )
+}

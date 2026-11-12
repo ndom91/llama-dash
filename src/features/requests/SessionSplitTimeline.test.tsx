@@ -125,7 +125,7 @@ it('links matching tool IDs, highlights the pair, and opens a collapsed run when
   fireEvent.click(chip)
   expect(screen.getByText(/show 9 requests/).closest('details')?.open).toBe(true)
   expect(scroll).toHaveBeenCalled()
-  expect(screen.queryByText('five')).toBeNull()
+  expect(screen.getByText('five').closest('[aria-hidden="true"]')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: 'expand' }))
   expect(screen.getByText('five')).toBeTruthy()
   expect(screen.getByRole('button', { name: '← #1' })).toBeTruthy()
@@ -167,10 +167,25 @@ it('lets the global result filter override a manual toggle', () => {
   expect(screen.getByText('five')).toBeTruthy()
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: true }} activeId={null} />)
   fireEvent.click(screen.getByRole('button', { name: 'collapse' }))
-  expect(screen.queryByText('five')).toBeNull()
+  expect(screen.getByText('five').closest('[aria-hidden="true"]')).toBeTruthy()
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: false }} activeId={null} />)
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: true }} activeId={null} />)
   expect(screen.getByText('five')).toBeTruthy()
+})
+
+it('keeps very large result content unmounted until expanded', () => {
+  const result = {
+    kind: 'result',
+    role: 'tool',
+    text: Array.from({ length: 121 }, (_, i) => `line-${i}`).join('\n'),
+  } as const
+  const view = render(
+    <SessionSplitTimeline exchanges={[exchange(1, [result], [])]} filters={filters} activeId={null} />,
+  )
+  expect(screen.queryByText('line-120')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'expand' }))
+  expect(screen.getByText('line-120')).toBeTruthy()
+  expect(view.container.querySelector('.session-result.t-acc')).toBeNull()
 })
 
 it('applies message and tool filters to side requests', () => {
