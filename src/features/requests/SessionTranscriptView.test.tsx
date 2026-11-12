@@ -1,13 +1,69 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { SessionTranscriptView, type TranscriptExchange, type TranscriptFilters } from './SessionTranscriptView'
+import {
+  ContextPills,
+  SessionTranscriptView,
+  type TranscriptExchange,
+  type TranscriptFilters,
+} from './SessionTranscriptView'
 import type { CapturedRequest } from './sessionTranscript'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a href="/request">{children}</a>,
 }))
 afterEach(cleanup)
+
+it('opens, copies, and dismisses context details from the backdrop', async () => {
+  const showModal = vi.fn(function (this: HTMLDialogElement) {
+    this.setAttribute('open', '')
+  })
+  const close = vi.fn(function (this: HTMLDialogElement) {
+    this.removeAttribute('open')
+    fireEvent(this, new Event('close'))
+  })
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: showModal })
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: close })
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  vi.stubGlobal('PointerEvent', MouseEvent)
+  const view = render(
+    <ContextPills
+      contexts={[{ kind: 'system', label: 'system prompt', text: 'full context' }]}
+      mobile={false}
+      onOpen={() => {}}
+    />,
+  )
+  fireEvent.click(screen.getByRole('button', { name: /system · system prompt/ }))
+  const dialog = screen.getByRole('dialog', { name: 'system prompt' })
+  expect(dialog.getAttribute('closedby')).toBe('any')
+  expect(dialog.className).toContain('m-auto')
+  fireEvent.click(screen.getByRole('button', { name: 'Copy context' }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith('full context'))
+  vi.spyOn(dialog, 'getBoundingClientRect').mockReturnValue({
+    left: 100,
+    right: 500,
+    top: 100,
+    bottom: 500,
+    width: 400,
+    height: 400,
+    x: 100,
+    y: 100,
+    toJSON: () => ({}),
+  })
+  fireEvent.pointerDown(dialog, { clientX: 200, clientY: 200 })
+  fireEvent.pointerUp(dialog, { clientX: 10, clientY: 10 })
+  expect(close).not.toHaveBeenCalled()
+  fireEvent.pointerDown(dialog, { clientX: 10, clientY: 10 })
+  fireEvent.pointerUp(dialog, { clientX: 10, clientY: 10 })
+  expect(close).toHaveBeenCalledOnce()
+  view.unmount()
+  vi.restoreAllMocks()
+  vi.unstubAllGlobals()
+  Reflect.deleteProperty(navigator, 'clipboard')
+  Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal')
+  Reflect.deleteProperty(HTMLDialogElement.prototype, 'close')
+})
 const filters: TranscriptFilters = {
   messages: true,
   tools: true,
