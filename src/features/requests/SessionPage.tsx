@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { ArrowDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
@@ -445,56 +446,67 @@ export function SessionPage({ id }: { id: string }) {
           <p className="p-6 text-sm text-fg-dim">No session ID was captured for this request.</p>
         ) : (
           <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_300px] max-lg:grid-cols-1 md:min-h-0 md:grid-rows-[auto_minmax(0,1fr)] lg:grid-rows-1">
-            <main
-              ref={transcriptRef}
-              tabIndex={mobile ? undefined : 0}
-              aria-label="Session transcript"
-              className="min-w-0 max-md:pb-24 md:min-h-0 md:overflow-y-auto md:overscroll-contain"
-            >
-              <p className="sr-only">
-                Only retained captures are shown.{' '}
-                {mobile ? 'Newest requests appear first.' : 'Oldest requests appear first.'}
-              </p>
-              {mobile ? (
-                <SessionTranscriptView
-                  exchanges={exchanges}
-                  filters={filters}
-                  mobile
-                  onOpenDetail={(value) => {
-                    const requestId = value.split('~')[0]
-                    const number = exchanges.find((exchange) => exchange.request.id === requestId)?.number
-                    updateView({ detail: number == null ? value : `${value}~${number}`, sheet: undefined })
-                  }}
-                />
-              ) : (
-                <SessionSplitTimeline
-                  exchanges={exchanges}
-                  filters={filters}
-                  activeId={activeId}
-                  incomplete={incomplete}
-                />
-              )}
-              {query.isFetchingNextPage ? (
-                <div role="status" aria-label="Loading more session requests" className="w-full">
-                  <SessionExchangeSkeleton />
-                </div>
-              ) : null}
+            <div className="flex min-w-0 flex-col max-md:pb-24 md:min-h-0">
+              <main
+                ref={transcriptRef}
+                tabIndex={mobile ? undefined : 0}
+                aria-label="Session transcript"
+                className="min-w-0 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain"
+              >
+                <p className="sr-only">
+                  Only retained captures are shown.{' '}
+                  {mobile ? 'Newest requests appear first.' : 'Oldest requests appear first.'}
+                </p>
+                {mobile ? (
+                  <SessionTranscriptView
+                    exchanges={exchanges}
+                    filters={filters}
+                    mobile
+                    onOpenDetail={(value) => {
+                      const requestId = value.split('~')[0]
+                      const number = exchanges.find((exchange) => exchange.request.id === requestId)?.number
+                      updateView({ detail: number == null ? value : `${value}~${number}`, sheet: undefined })
+                    }}
+                  />
+                ) : (
+                  <SessionSplitTimeline
+                    exchanges={exchanges}
+                    filters={filters}
+                    activeId={activeId}
+                    incomplete={incomplete}
+                  />
+                )}
+                {query.isFetchingNextPage ? (
+                  <div role="status" aria-label="Loading more session requests" className="w-full">
+                    <SessionExchangeSkeleton />
+                  </div>
+                ) : null}
+              </main>
               {query.hasNextPage ? (
-                <div className="mx-auto max-w-[820px] px-6 pb-8 max-md:px-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-0 px-4 py-3 md:px-5">
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium text-fg">More requests available</div>
+                    <div className="mt-1 font-mono text-[10px] text-fg-dim">
+                      {requests.length} {requests.length === 1 ? 'request' : 'requests'} loaded
+                    </div>
+                  </div>
                   <button
                     type="button"
-                    className="btn min-h-11 max-md:w-full"
+                    className="btn flex min-h-10 items-center justify-center gap-2 px-4 max-sm:w-full"
                     disabled={query.isFetchingNextPage}
                     onClick={() => void query.fetchNextPage()}
                   >
+                    <ArrowDown aria-hidden="true" className="size-3.5 text-info" />
                     {query.isFetchingNextPage ? 'Loading…' : mobile ? 'Load older requests' : 'Load more requests'}
                   </button>
                 </div>
               ) : null}
               {query.isFetchNextPageError ? (
-                <p className="px-6 text-xs text-err">Could not load more requests. Try again.</p>
+                <p role="alert" className="bg-surface-0 px-4 pb-3 text-xs text-err md:px-5">
+                  Could not load more requests. Try again.
+                </p>
               ) : null}
-            </main>
+            </div>
             {!mobile ? (
               <SessionRail
                 exchanges={exchanges}
