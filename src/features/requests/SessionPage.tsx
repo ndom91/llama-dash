@@ -481,31 +481,31 @@ export function SessionPage({ id }: { id: string }) {
                     <SessionExchangeSkeleton />
                   </div>
                 ) : null}
-              </main>
-              {query.hasNextPage ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-0 px-4 py-3 md:px-5">
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-fg">More requests available</div>
-                    <div className="mt-1 font-mono text-[10px] text-fg-dim">
-                      {requests.length} {requests.length === 1 ? 'request' : 'requests'} loaded
+                {query.hasNextPage ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-0 px-4 py-3 md:px-5">
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-fg">More requests available</div>
+                      <div className="mt-1 font-mono text-[10px] text-fg-dim">
+                        {requests.length} {requests.length === 1 ? 'request' : 'requests'} loaded
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      className="btn flex min-h-10 items-center justify-center gap-2 px-4 max-sm:w-full"
+                      disabled={query.isFetchingNextPage}
+                      onClick={() => void query.fetchNextPage()}
+                    >
+                      <ArrowDown aria-hidden="true" className="size-3.5 text-info" />
+                      {query.isFetchingNextPage ? 'Loading…' : mobile ? 'Load older requests' : 'Load more requests'}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn flex min-h-10 items-center justify-center gap-2 px-4 max-sm:w-full"
-                    disabled={query.isFetchingNextPage}
-                    onClick={() => void query.fetchNextPage()}
-                  >
-                    <ArrowDown aria-hidden="true" className="size-3.5 text-info" />
-                    {query.isFetchingNextPage ? 'Loading…' : mobile ? 'Load older requests' : 'Load more requests'}
-                  </button>
-                </div>
-              ) : null}
-              {query.isFetchNextPageError ? (
-                <p role="alert" className="bg-surface-0 px-4 pb-3 text-xs text-err md:px-5">
-                  Could not load more requests. Try again.
-                </p>
-              ) : null}
+                ) : null}
+                {query.isFetchNextPageError ? (
+                  <p role="alert" className="bg-surface-0 px-4 pb-3 text-xs text-err md:px-5">
+                    Could not load more requests. Try again.
+                  </p>
+                ) : null}
+              </main>
             </div>
             {!mobile ? (
               <SessionRail

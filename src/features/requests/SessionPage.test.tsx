@@ -125,7 +125,9 @@ it('shows the first batch while fetching the next page in the background', async
   )
   expect(await view.findByRole('status', { name: 'Loading more session requests' })).toBeTruthy()
   expect(view.getByRole('region', { name: 'Request 1' })).toBeTruthy()
-  expect(view.getByRole('button', { name: 'Loading…' }).closest('main')).toBeNull()
+  expect(view.getByRole('button', { name: 'Loading…' }).closest('main')).toBe(
+    view.getByRole('main', { name: 'Session transcript' }),
+  )
   expect(view.getByText('1 request loaded')).toBeTruthy()
   expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'asc', 4)
   expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', 'cursor', expect.anything(), 'asc', undefined)
