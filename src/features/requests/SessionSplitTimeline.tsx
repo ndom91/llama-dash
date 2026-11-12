@@ -141,7 +141,7 @@ export function SessionSplitTimeline({
           className={`session-split-row ${activeId === request.id ? 'is-active' : ''} ${reason === 'end_turn' || reason === 'stop' ? 'is-final' : ''}`}
         >
           <div
-            className={`session-split-meta ${reason === 'tool_use' ? 'is-tool' : reason === 'end_turn' || reason === 'stop' ? 'is-end' : ''}`}
+            className={`session-split-meta ${reason === 'tool_use' || reason === 'tool_calls' || reason === 'function_call' ? 'is-tool' : reason === 'end_turn' || reason === 'stop' ? 'is-end' : ''}`}
           >
             <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
               #{number}

@@ -92,7 +92,9 @@ it('groups request and response capture warnings into one footer', async () => {
 it('shows the same accessible responsive skeleton during navigation and initial loading', async () => {
   const pending = render(<SessionPagePending />)
   const status = pending.getByRole('status', { name: 'Loading session history' })
-  expect(status.querySelectorAll('.rounded.border.border-border')).toHaveLength(2)
+  expect(status.querySelectorAll('.session-split-row')).toHaveLength(3)
+  expect(status.querySelector('.session-split-heading')).toBeTruthy()
+  expect(status.querySelectorAll('.session-sent-strip')).toHaveLength(3)
   expect(status.querySelector('[aria-hidden="true"]')?.className).toContain('min-w-0')
   expect(status.querySelector('.grid')?.className).toContain('max-lg:grid-cols-1')
   pending.unmount()

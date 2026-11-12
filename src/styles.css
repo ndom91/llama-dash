@@ -2359,8 +2359,7 @@ a {
 .session-split-row { min-width: 0; border-bottom: 1px solid var(--border); scroll-margin-top: 36px; }
 .session-split-row:nth-child(even) { background: color-mix(in srgb, var(--bg-2) 28%, var(--bg-1)); }
 .session-split-row.is-active { background: color-mix(in srgb, var(--info) 5%, var(--bg-1)); }
-.session-split-row.is-final { box-shadow: inset 2px 0 var(--ok); }
-.session-split-meta { min-width: 0; padding: 12px 14px; font: 10px/1.7 var(--font-mono); color: var(--fg-dim); overflow-wrap: anywhere; }
+.session-split-meta { min-width: 0; border-left: 3px solid var(--border-strong); padding: 12px 14px 12px 11px; font: 10px/1.7 var(--font-mono); color: var(--fg-dim); overflow-wrap: anywhere; }
 .session-conversation { min-width: 0; padding: 12px 14px; border-left: 1px solid var(--border); }
 .session-conversation .session-md { max-width: 92ch; }
 .session-sent-strip { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 8px; }
@@ -2369,8 +2368,8 @@ a {
 .session-legend { margin-left: 12px; color: var(--fg-dim); font-size: 9px; letter-spacing: normal; text-transform: none; }
 .session-legend i, .session-legend b { display: inline-block; height: 9px; width: 9px; margin: 0 3px 0 8px; border-left: 2px solid var(--info); vertical-align: middle; }
 .session-legend b { border-color: var(--border-strong); }
-.session-split-meta.is-tool { background: linear-gradient(to right, color-mix(in srgb, var(--accent-shifted) 8%, transparent), transparent); }
-.session-split-meta.is-end { background: linear-gradient(to right, color-mix(in srgb, var(--ok) 8%, transparent), transparent); }
+.session-split-meta.is-tool { border-left-color: var(--accent-shifted); }
+.session-split-meta.is-end { border-left-color: var(--ok); }
 .session-stop-badge { display: inline-block; margin: 3px 0; border: 1px solid color-mix(in srgb, var(--accent-shifted) 35%, transparent); border-radius: 3px; padding: 0 4px; background: color-mix(in srgb, var(--accent-shifted) 12%, transparent); color: var(--accent-shifted); }
 .session-stop-badge.is-end { border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
 .session-compaction { border-bottom: 1px solid var(--border); padding: 8px 14px; background: color-mix(in srgb, var(--accent-shifted) 8%, var(--bg-1)); color: var(--accent-shifted); font: 10px var(--font-mono); }
@@ -2385,10 +2384,10 @@ a {
 .session-side-content summary { white-space: nowrap; }
 .session-side-content :is(.session-user-message, .session-md) { font-size: 0.75rem; }
 .session-collapsed-run > summary { cursor: pointer; border-bottom: 1px solid var(--border); padding: 12px 14px 12px 132px; color: var(--info); font: 10px var(--font-mono); }
-.session-linked-tool { position: relative; min-width: 0; border-radius: 3px; }
-.session-linked-tool summary { padding-right: 100px; }
+.session-linked-tool { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; min-width: 0; border-radius: 3px; }
+.session-linked-tool > details { flex: 1 1 24rem; min-width: 0; }
 .session-linked-tool.is-linked, .session-result.is-linked { outline: 1px solid var(--info); }
-.session-link-chip, .session-link-missing { position: absolute; top: 7px; right: 8px; font: 10px var(--font-mono); }
+.session-link-chip, .session-link-missing { margin-top: 7px; max-width: 100%; font: 10px var(--font-mono); overflow-wrap: anywhere; }
 .session-link-chip, .session-link-chip-static { border: 1px solid var(--border-strong); padding: 1px 4px; color: var(--info); }
 .session-link-missing { color: var(--fg-faint); border: 1px dashed var(--border); padding: 1px 4px; }
 .session-result { min-width: 0; border: 1px solid var(--border); border-left: 2px solid var(--info); background: var(--bg-0); }

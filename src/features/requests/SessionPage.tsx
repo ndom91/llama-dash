@@ -448,7 +448,7 @@ export function SessionPage({ id }: { id: string }) {
                 />
               )}
               {query.isFetchingNextPage ? (
-                <div role="status" aria-label="Loading more session requests" className="mx-auto max-w-[820px] px-6">
+                <div role="status" aria-label="Loading more session requests" className="w-full">
                   <SessionExchangeSkeleton />
                 </div>
               ) : null}
