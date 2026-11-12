@@ -148,6 +148,36 @@ it('suppresses only the matching occurrence and preserves distinct tool call ids
   expect(diffTranscript(before, after, previous).parts.map((part) => part.id)).toEqual(['b'])
 })
 
+it('deduplicates calls by ID when arguments are serialized differently and keeps results', () => {
+  const before = input([user('hi')])
+  const after = input([
+    user('hi'),
+    { type: 'function_call', call_id: 'a', name: 'shell', arguments: '{"command":"ls"}' },
+    { type: 'function_call_output', call_id: 'a', output: 'file' },
+  ])
+  const previous = [{ kind: 'tool' as const, role: 'assistant', id: 'a', name: 'shell', text: '{ "command": "ls" }' }]
+  expect(diffTranscript(before, after, previous).parts).toEqual([
+    { kind: 'result', role: 'tool', id: 'a', isError: false, name: undefined, text: 'file' },
+  ])
+})
+
+it('suppresses matching tool IDs after unmatched content without removing unrelated calls or resets', () => {
+  const before = input([user('hi')])
+  const after = input([
+    user('hi'),
+    { role: 'assistant', content: 'changed response' },
+    { type: 'function_call', call_id: 'a', name: 'shell', arguments: '{}' },
+    { type: 'function_call', call_id: 'b', name: 'shell', arguments: '{}' },
+  ])
+  const previous = [{ kind: 'tool' as const, role: 'assistant', id: 'a', name: 'shell', text: '{ }' }]
+  expect(diffTranscript(before, after, previous).parts.map((part) => part.id ?? part.text)).toEqual([
+    'changed response',
+    'b',
+  ])
+  const reset = input([{ type: 'function_call', call_id: 'a', name: 'shell', arguments: '{}' }])
+  expect(diffTranscript(before, reset, previous).parts[0].id).toBe('a')
+})
+
 it('preserves streaming reasoning, tool and message order', () => {
   const events = [
     { type: 'response.reasoning_summary_text.delta', output_index: 0, delta: 'thinking' },

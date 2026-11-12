@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { memo, useRef, useState } from 'react'
+import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
 import {
@@ -442,6 +443,9 @@ export const TranscriptItem = memo(function TranscriptItem({
         <span className={part.role === 'user' ? 'size-1.5 rounded-full bg-info' : 'size-1.5 rounded-full bg-ok'} />
         {part.role}
         <time title="Request start time">{new Date(time).toLocaleTimeString()}</time>
+        <span className="ml-auto">
+          <CopyButton text={part.text} variant="icon" ariaLabel="Copy user message" />
+        </span>
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
         <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">

@@ -59,7 +59,7 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
               {raw ? 'markdown' : 'raw'}
             </button>
           ) : null}
-          <CopyButton text={text} ariaLabel="Copy assistant message" />
+          <CopyButton text={text} variant="icon" ariaLabel="Copy assistant message" />
         </div>
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">

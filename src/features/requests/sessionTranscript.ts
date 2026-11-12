@@ -254,13 +254,22 @@ export function diffTranscript(
         (part) =>
           part.kind === candidate.kind &&
           part.role === candidate.role &&
-          part.text === candidate.text &&
-          part.name === candidate.name &&
-          (part.id || candidate.id ? part.id != null && part.id === candidate.id : true),
+          (part.kind === 'tool' && part.id && candidate.id
+            ? part.id === candidate.id
+            : part.text === candidate.text &&
+              part.name === candidate.name &&
+              (part.id || candidate.id ? part.id != null && part.id === candidate.id : true)),
       )
       if (index < 0) break
       unmatched.splice(index, 1)
       parts.shift()
+    }
+    // Tool IDs survive serialization changes and remain authoritative even if
+    // another block prevented the initial prefix from matching.
+    const toolIds = new Set(unmatched.filter((part) => part.kind === 'tool' && part.id).map((part) => part.id))
+    for (let index = 0; index < parts.length; index++) {
+      const part = parts[index]
+      if (part.kind === 'tool' && part.id && toolIds.delete(part.id)) parts.splice(index--, 1)
     }
   }
   return { parts, replaced: reset ? previous.raw.length - common : null }

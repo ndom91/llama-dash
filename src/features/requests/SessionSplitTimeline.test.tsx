@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { interleaveInputParts, SessionSplitTimeline } from './SessionSplitTimeline'
 import type { TranscriptExchange, TranscriptFilters } from './SessionTranscriptView'
@@ -11,6 +11,7 @@ vi.mock('@tanstack/react-router', () => ({
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+  Reflect.deleteProperty(navigator, 'clipboard')
 })
 const filters: TranscriptFilters = {
   messages: true,
@@ -43,6 +44,24 @@ it('renders a single user header with the timestamp alongside it', () => {
   expect(header?.querySelector('time')?.className).not.toContain('ml-auto')
   expect(message.parentElement?.className).toContain('border-l')
   expect(view.container.querySelector('.session-sent-strip')).toBeNull()
+})
+
+it('copies user and assistant source text with icon-only controls', async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  const item = exchange(
+    1,
+    [{ kind: 'message', role: 'user', text: 'User text' }],
+    [{ kind: 'message', role: 'assistant', text: '**Assistant source**' }],
+  )
+  render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  const userCopy = screen.getByRole('button', { name: 'Copy user message' })
+  const assistantCopy = screen.getByRole('button', { name: 'Copy assistant message' })
+  expect(userCopy.textContent).toBe('')
+  expect(assistantCopy.textContent).toBe('')
+  fireEvent.click(userCopy)
+  fireEvent.click(assistantCopy)
+  await waitFor(() => expect(writeText.mock.calls).toEqual([['User text'], ['**Assistant source**']]))
 })
 
 it('places each input result immediately after its matching call', () => {

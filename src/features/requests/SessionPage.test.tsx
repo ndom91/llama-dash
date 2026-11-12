@@ -292,7 +292,7 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
       requestBody: body(
         [
           user,
-          { role: 'assistant', content: [call] },
+          { role: 'assistant', content: [{ ...call, input: '{"command":"ls"}' }] },
           { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'call-1', content: '+new file' }] },
         ],
         { system: 'system instructions', tools: [{ name: 'Bash' }] },
@@ -335,6 +335,7 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
   expect(view.getByText(/↳ Bash · \+new file/)).toBeTruthy()
   expect(view.getByRole('button', { name: '→ #4' })).toBeTruthy()
   expect(view.getByRole('button', { name: '← #3' })).toBeTruthy()
+  expect(view.getByRole('region', { name: 'Request 4' }).querySelectorAll('summary')).toHaveLength(0)
   expect(view.getAllByTitle('Main-loop requests with new input recovered from retained captures')[0].textContent).toBe(
     '2 / 2',
   )
