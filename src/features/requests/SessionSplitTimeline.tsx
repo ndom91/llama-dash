@@ -4,6 +4,7 @@
 import { Link } from '@tanstack/react-router'
 import { Fragment, memo, useMemo, useState } from 'react'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
+import { SessionCollapsedRun } from './SessionCollapsedRun'
 import { ContextPills, type TranscriptExchange, type TranscriptFilters, TranscriptItem } from './SessionTranscriptView'
 import { parseStopReason, sessionInputTokens, sessionTitle, type TranscriptPart } from './sessionTranscript'
 
@@ -69,7 +70,7 @@ function jumpToPart(location: Location, kind: 'call' | 'result') {
     if (parent instanceof HTMLDetailsElement) parent.open = true
     parent = parent.parentElement
   }
-  target.scrollIntoView({ block: 'center' })
+  requestAnimationFrame(() => document.getElementById(partId(location, kind))?.scrollIntoView({ block: 'center' }))
 }
 
 function warnings(exchange: TranscriptExchange) {
@@ -114,7 +115,10 @@ export function SessionSplitTimeline({
         exchanges.map((exchange) => [
           exchange.request.id,
           {
-            reason: parseStopReason(exchange.request.payloads.responseBody),
+            reason:
+              exchange.stopReason === undefined
+                ? parseStopReason(exchange.request.payloads.responseBody)
+                : exchange.stopReason,
             warnings: warnings(exchange),
           },
         ]),
@@ -400,12 +404,26 @@ export function SessionSplitTimeline({
             </div>
           </div>
         ) : group.length > 8 ? (
-          <details key={group[0].request.id} className="session-collapsed-run">
-            <summary>
-              #{group[0].number} – #{group[group.length - 1].number} · show {group.length} requests
-            </summary>
-            {group.map(renderRow)}
-          </details>
+          <SessionCollapsedRun
+            key={group[0].request.id}
+            className="session-collapsed-run"
+            anchors={group.flatMap((exchange) => [
+              `session-${exchange.request.id}`,
+              ...exchange.responseParts.flatMap((part, index) =>
+                part.kind === 'tool' ? [`session-${exchange.request.id}-call-${index}`] : [],
+              ),
+              ...exchange.inputParts.flatMap((part, index) =>
+                part.kind === 'result' ? [`session-${exchange.request.id}-result-${index}`] : [],
+              ),
+            ])}
+            summary={
+              <>
+                #{group[0].number} – #{group[group.length - 1].number} · show {group.length} requests
+              </>
+            }
+          >
+            {() => group.map(renderRow)}
+          </SessionCollapsedRun>
         ) : (
           group.map(renderRow)
         ),

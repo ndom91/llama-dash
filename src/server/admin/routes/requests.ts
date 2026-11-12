@@ -25,7 +25,10 @@ export const requestRoutes: Route[] = [
           (cursor.includes(':') && !Number.isSafeInteger(Number(cursor.split(':', 1)[0]))))
       )
         return error(400, 'Invalid session cursor')
-      const session = listRequestSession(match[1], cursor, order)
+      const limit = params.get('limit')
+      if (limit !== null && (!/^\d+$/.test(limit) || Number(limit) < 1 || Number(limit) > 20))
+        return error(400, 'Invalid session limit')
+      const session = listRequestSession(match[1], cursor, order, limit === null ? 20 : Number(limit))
       if (!session) return error(404, `Request ${match[1]} not found`)
       return json(200, session, { noStore: true })
     },

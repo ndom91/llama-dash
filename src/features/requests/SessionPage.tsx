@@ -68,11 +68,19 @@ export function SessionPage({ id }: { id: string }) {
   const query = useInfiniteQuery({
     queryKey: ['request-session', id, order],
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => api.getRequestSession(id, pageParam, { signal }, order),
+    queryFn: ({ pageParam, signal }) =>
+      api.getRequestSession(id, pageParam, { signal }, order, pageParam ? undefined : 4),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     staleTime: 0,
     gcTime: 60_000,
   })
+  const startedBackgroundPage = useRef('')
+  useEffect(() => {
+    const key = `${id}:${order}`
+    if (mobile || !query.data || !query.hasNextPage || query.isFetching || startedBackgroundPage.current === key) return
+    startedBackgroundPage.current = key
+    void query.fetchNextPage()
+  }, [id, order, mobile, query.data, query.hasNextPage, query.isFetching, query.fetchNextPage])
   const requests = useMemo(() => query.data?.pages.flatMap((page) => page.requests) ?? [], [query.data])
   const boundary = mobile ? query.data?.pages.at(-1)?.olderContext : null
   const boundaryIsSide = Boolean(boundary && sideRequest(boundary, parseTranscriptInput(boundary.payloads.requestBody)))
@@ -96,7 +104,10 @@ export function SessionPage({ id }: { id: string }) {
     gcTime: 60_000,
   })
   const parsed = useMemo(() => new WeakMap<object, ReturnType<typeof parseTranscriptInput>>(), [])
-  const responses = useMemo(() => new WeakMap<object, ReturnType<typeof parseTranscriptResponse>>(), [])
+  const responses = useMemo(
+    () => new WeakMap<object, { parts: ReturnType<typeof parseTranscriptResponse>; reason: string | null }>(),
+    [],
+  )
   const diffs = useMemo(
     () => new WeakMap<object, { previous: object | null; value: ReturnType<typeof diffTranscript> }>(),
     [],
@@ -113,7 +124,11 @@ export function SessionPage({ id }: { id: string }) {
     const responseFor = (request: { streamed: boolean; payloads: { responseBody: string | null } }) => {
       let result = responses.get(request)
       if (!result) {
-        result = parseTranscriptResponse(request.payloads.responseBody, request.streamed)
+        let reason: string | null = null
+        const parts = parseTranscriptResponse(request.payloads.responseBody, request.streamed, (value) => {
+          reason = value
+        })
+        result = { parts, reason }
         responses.set(request, result)
       }
       return result
@@ -134,14 +149,14 @@ export function SessionPage({ id }: { id: string }) {
       const side = sideRequest(request, input)
       const older = side ? null : previousByIndex[index]
       const previous = older ? inputFor(older) : null
-      const priorOutput = older ? responseFor(older) : []
+      const priorOutput = older ? responseFor(older).parts : []
       let cachedDiff = diffs.get(request)
       if (!cachedDiff || cachedDiff.previous !== (older ?? null)) {
         cachedDiff = { previous: older ?? null, value: diffTranscript(previous, input, priorOutput) }
         diffs.set(request, cachedDiff)
       }
       const diff = cachedDiff.value
-      const response = responseFor(request)
+      const { parts: response, reason: stopReason } = responseFor(request)
       const parts = mobile ? [...response].reverse().concat([...diff.parts].reverse()) : [...diff.parts, ...response]
       const previousRequest = mobile ? (requests[index + 1] ?? context) : requests[index - 1]
       const previousTokens =
@@ -160,6 +175,7 @@ export function SessionPage({ id }: { id: string }) {
         parts,
         inputParts: diff.parts,
         responseParts: response,
+        stopReason,
         replaced: diff.replaced,
         side,
         contexts: input.contexts.flatMap((item) => {
@@ -206,11 +222,20 @@ export function SessionPage({ id }: { id: string }) {
       },
       { root: mobile ? scrollRef.current : transcriptRef.current, rootMargin: '-10% 0px -60% 0px', threshold: 0 },
     )
-    for (const exchange of exchanges) {
-      const node = document.getElementById(`session-${exchange.request.id}`)
-      if (node) observer.observe(node)
+    const observe = () => {
+      observer.disconnect()
+      for (const exchange of exchanges) {
+        const node = document.getElementById(`session-${exchange.request.id}`)
+        if (node) observer.observe(node)
+      }
     }
-    return () => observer.disconnect()
+    observe()
+    const root = mobile ? scrollRef.current : transcriptRef.current
+    root?.addEventListener('toggle', observe, true)
+    return () => {
+      root?.removeEventListener('toggle', observe, true)
+      observer.disconnect()
+    }
   }, [exchanges, mobile])
 
   if (query.error && !query.data)
@@ -724,5 +749,5 @@ export function scrollToSessionRequest(id: string) {
   if (!target) return
   const parent = target.parentElement?.closest('details')
   if (parent) parent.open = true
-  target.scrollIntoView({ block: 'start' })
+  requestAnimationFrame(() => document.getElementById(`session-${id}`)?.scrollIntoView({ block: 'start' }))
 }

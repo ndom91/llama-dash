@@ -4,6 +4,7 @@ import { memo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
+import { SessionCollapsedRun } from './SessionCollapsedRun'
 import {
   type CapturedRequest,
   parseTranscriptInput,
@@ -28,6 +29,7 @@ export type TranscriptExchange = {
   parts: TranscriptPart[]
   inputParts: TranscriptPart[]
   responseParts: TranscriptPart[]
+  stopReason?: string | null
   replaced: number | null
   side: 'title' | 'probe' | 'helper' | 'count' | null
   contexts: TranscriptContext[]
@@ -87,12 +89,18 @@ export function SessionTranscriptView({
     <div className="mx-auto w-full max-w-[820px] space-y-5 px-6 py-6 max-md:px-3">
       {groups.map((group) =>
         group.length > 8 ? (
-          <details key={group[0].request.id} className="group">
-            <summary className="cursor-pointer rounded-full border border-border px-3 py-1 text-center font-mono text-[10px] text-info">
-              #{group[0].number} – #{group[group.length - 1].number} · {group.length} more · show
-            </summary>
-            <div className="space-y-5">{group.map(renderExchange)}</div>
-          </details>
+          <SessionCollapsedRun
+            key={group[0].request.id}
+            className="group"
+            anchors={group.map((exchange) => `session-${exchange.request.id}`)}
+            summary={
+              <span className="block cursor-pointer rounded-full border border-border px-3 py-1 text-center font-mono text-[10px] text-info">
+                #{group[0].number} – #{group[group.length - 1].number} · {group.length} more · show
+              </span>
+            }
+          >
+            {() => <div className="space-y-5">{group.map(renderExchange)}</div>}
+          </SessionCollapsedRun>
         ) : (
           group.map(renderExchange)
         ),

@@ -33,6 +33,12 @@ it('finds retained legacy headers and paginates exact session matches before ret
     expect(first.requests[0].payloads.requestBody).toBe('recent')
     expect(first.requests[0].clientUserAgent).toBe('claude-cli/2.1')
     expect(first.requests.map((row) => row.id)).toContain('req_010')
+    const small = listRequestSession('req_000', undefined, 'asc', 4)!
+    expect(small.requests.map((row) => row.id)).toEqual(['req_000', 'req_001', 'req_002', 'req_003'])
+    expect(listRequestSession('req_000', small.nextCursor!, 'asc', 4)!.requests[0].id).toBe('req_004')
+    const smallNewest = listRequestSession('req_000', undefined, 'desc', 4)!
+    expect(smallNewest.requests.map((row) => row.id)).toEqual(['req_021', 'req_020', 'req_019', 'req_018'])
+    expect(smallNewest.olderContext?.id).toBe('req_017')
     const second = listRequestSession('req_000', first.nextCursor!)!
     expect(second.requests.map((row) => row.id)).toEqual(['req_020', 'req_021'])
     expect(second.nextCursor).toBeNull()
@@ -62,6 +68,9 @@ it('finds retained legacy headers and paginates exact session matches before ret
     expect((await response.json()).requests[0].id).toBe('req_021')
     const invalid = await route.handler(new Request('http://test/api/requests/req_000/session?order=invalid'), match)
     expect(invalid.status).toBe(400)
+    expect((await route.handler(new Request('http://test/api/requests/req_000/session?limit=0'), match)).status).toBe(
+      400,
+    )
 
     expect(listRequestSession('missing')).toBeNull()
     insertTestRequests(

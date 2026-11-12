@@ -260,7 +260,7 @@ export function getRequestPayloadsById(id: string) {
 }
 
 // Older rows can still be associated when their captured headers survived retention.
-export function listRequestSession(id: string, cursor?: string, order: 'asc' | 'desc' = 'asc') {
+export function listRequestSession(id: string, cursor?: string, order: 'asc' | 'desc' = 'asc', limit = 20) {
   const anchor = db
     .select({ sessionId: schema.requests.sessionId, headers: schema.requests.requestHeaders })
     .from(schema.requests)
@@ -303,23 +303,23 @@ export function listRequestSession(id: string, cursor?: string, order: 'asc' | '
   const cursorArgs = cursorId ? [cursorTime!, cursorId] : []
   const current = sqliteDb
     .prepare(`select id, started_at as startedAt from requests indexed by idx_requests_session_started_id
-    where session_id = ? and request_class = 'inference' ${cursorClause} order by started_at ${direction}, id ${direction} limit 21`)
-    .all(sessionId, ...cursorArgs) as Array<{ id: string; startedAt: number }>
+    where session_id = ? and request_class = 'inference' ${cursorClause} order by started_at ${direction}, id ${direction} limit ?`)
+    .all(sessionId, ...cursorArgs, limit + 1) as Array<{ id: string; startedAt: number }>
   const legacy = sqliteDb
     .prepare(`select id, started_at as startedAt from requests indexed by idx_requests_session_started_id
     where session_id is null and request_class = 'inference' ${cursorClause}
       and case when json_valid(request_headers) then
         (json_extract(request_headers, '$."x-claude-code-session-id"') = ?
           or json_extract(request_headers, '$."session-id"') = ?) else 0 end
-    order by started_at ${direction}, id ${direction} limit 21`)
-    .all(...cursorArgs, sessionId, sessionId) as Array<{ id: string; startedAt: number }>
+    order by started_at ${direction}, id ${direction} limit ?`)
+    .all(...cursorArgs, sessionId, sessionId, limit + 1) as Array<{ id: string; startedAt: number }>
   const entries = [...current, ...legacy].sort(
     (a, b) => a.startedAt - b.startedAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   )
   if (order === 'desc') entries.reverse()
   const ids = entries.map((entry) => entry.id)
-  const page = ids.slice(0, 20)
-  const contextId = order === 'desc' ? ids[20] : undefined
+  const page = ids.slice(0, limit)
+  const contextId = order === 'desc' ? ids[limit] : undefined
   const fetchedIds = contextId ? [...page, contextId] : page
   const rows =
     fetchedIds.length === 0
@@ -358,7 +358,7 @@ export function listRequestSession(id: string, cursor?: string, order: 'asc' | '
         },
       }
     }),
-    nextCursor: ids.length > 20 ? `${entries[19].startedAt}:${entries[19].id}` : null,
+    nextCursor: ids.length > limit ? `${entries[limit - 1].startedAt}:${entries[limit - 1].id}` : null,
     olderContext: contextId
       ? (() => {
           const row = rowMap.get(contextId)!

@@ -27,6 +27,20 @@ it('reads stop reasons only from response metadata in JSON and SSE', () => {
   expect(parseStopReason('{"content":"unfinished')).toBeNull()
 })
 
+it('extracts stop reasons while normalizing JSON and streaming responses', () => {
+  for (const [body, streamed, expected] of [
+    ['{"content":[{"type":"text","text":"hello"}],"stop_reason":"end_turn"}', false, 'end_turn'],
+    ['data: {"type":"message_delta","delta":{"stop_reason":"tool_use"}}\n\n', true, 'tool_use'],
+    ['data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n', true, 'stop'],
+  ] as const) {
+    let reason: string | null = null
+    parseTranscriptResponse(body, streamed, (value) => {
+      reason = value
+    })
+    expect(reason).toBe(expected)
+  }
+})
+
 describe('session transcript', () => {
   it('deduplicates repeated snapshots and preserves new suffixes', () => {
     const prior = input([user('one'), { role: 'assistant', content: 'answer' }])

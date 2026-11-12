@@ -105,7 +105,7 @@ function exchange(number: number, inputParts: TranscriptPart[], responseParts: T
   }
 }
 
-it('links matching tool IDs, highlights the pair, and opens a collapsed run when navigating', () => {
+it('links matching tool IDs and lazily opens a collapsed run when navigating', async () => {
   const call = { kind: 'tool', role: 'assistant', id: 'call-1', name: 'Bash', text: 'ls' } as const
   const result = { kind: 'result', role: 'tool', id: 'call-1', text: 'one\ntwo\nthree\nfour\nfive' } as const
   const rows = [
@@ -121,11 +121,12 @@ it('links matching tool IDs, highlights the pair, and opens a collapsed run when
   const view = render(<SessionSplitTimeline exchanges={rows} filters={filters} activeId="req1" />)
   const chip = screen.getByRole('button', { name: '→ #2' })
   fireEvent.mouseEnter(chip.parentElement!)
-  expect(view.container.querySelectorAll('.is-linked')).toHaveLength(2)
+  expect(view.container.querySelectorAll('.is-linked')).toHaveLength(1)
   fireEvent.click(chip)
   expect(screen.getByText(/show 9 requests/).closest('details')?.open).toBe(true)
-  expect(scroll).toHaveBeenCalled()
+  await waitFor(() => expect(scroll).toHaveBeenCalled())
   expect(screen.getByText('five').closest('[aria-hidden="true"]')).toBeTruthy()
+  expect(view.container.querySelectorAll('.is-linked')).toHaveLength(2)
   fireEvent.click(screen.getByRole('button', { name: 'expand' }))
   expect(screen.getByText('five')).toBeTruthy()
   expect(screen.getByRole('button', { name: '← #1' })).toBeTruthy()

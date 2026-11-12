@@ -189,12 +189,22 @@ export const api = {
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
-  getRequestSession: (id: string, cursor?: string, options: ApiFetchOptions = {}, order: 'asc' | 'desc' = 'asc') => {
+  getRequestSession: (
+    id: string,
+    cursor?: string,
+    options: ApiFetchOptions = {},
+    order: 'asc' | 'desc' = 'asc',
+    limit?: number,
+  ) => {
     const params = new URLSearchParams()
     if (cursor) params.set('cursor', cursor)
     if (order === 'desc') params.set('order', order)
+    if (limit != null) params.set('limit', String(limit))
     const query = params.toString()
-    return getJson(`/api/requests/${encodeURIComponent(id)}/session${query ? `?${query}` : ''}`, RequestSessionSchema, { priority: 'high', ...options })
+    return getJson(`/api/requests/${encodeURIComponent(id)}/session${query ? `?${query}` : ''}`, RequestSessionSchema, {
+      priority: 'high',
+      ...options,
+    })
   },
   getRequestMetadata: (id: string, options: ApiFetchOptions = {}) =>
     getJson(`/api/requests/${id}/metadata`, RequestMetadataResponseSchema, { priority: 'high', ...options }),

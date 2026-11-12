@@ -112,7 +112,7 @@ it('shows the same accessible responsive skeleton during navigation and initial 
   client.clear()
 })
 
-it('keeps existing requests visible while loading the next page', async () => {
+it('shows the first batch while fetching the next page in the background', async () => {
   const first = await api.getRequestSession('req_1')
   vi.mocked(api.getRequestSession)
     .mockResolvedValueOnce({ ...first, nextCursor: 'cursor' })
@@ -123,9 +123,10 @@ it('keeps existing requests visible while loading the next page', async () => {
       <SessionPage id="req_1" />
     </QueryClientProvider>,
   )
-  fireEvent.click(await view.findByRole('button', { name: 'Load more requests' }))
   expect(await view.findByRole('status', { name: 'Loading more session requests' })).toBeTruthy()
   expect(view.getByRole('region', { name: 'Request 1' })).toBeTruthy()
+  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'asc', 4)
+  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', 'cursor', expect.anything(), 'asc', undefined)
   view.unmount()
   client.clear()
 })
@@ -200,13 +201,19 @@ it('loads the newest requests first on mobile and appends older pages without re
   const card = view.getByRole('region', { name: 'Request 1' })
   expect(card.textContent!.indexOf('latest answer')).toBeLessThan(card.textContent!.indexOf('latest question'))
   const button = view.getByRole('button', { name: 'Load older requests' })
-  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'desc')
+  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'desc', 4)
   fireEvent.click(button)
   expect(await view.findByText('earlier question')).toBeTruthy()
   const cards = view.getAllByRole('region', { name: /Request [12]/ })
   expect(cards[0].id).toBe('session-req_new')
   expect(cards[1].id).toBe('session-req_old')
-  expect(vi.mocked(api.getRequestSession)).toHaveBeenLastCalledWith('req_1', 'req_new', expect.anything(), 'desc')
+  expect(vi.mocked(api.getRequestSession)).toHaveBeenLastCalledWith(
+    'req_1',
+    'req_new',
+    expect.anything(),
+    'desc',
+    undefined,
+  )
   expect(view.getAllByText('earlier question')).toHaveLength(1)
   view.unmount()
   client.clear()
@@ -374,7 +381,7 @@ it('finds an early generated title while retaining newest-first mobile paging', 
   )
   expect(await view.findByRole('heading', { name: 'A generated title' })).toBeTruthy()
   expect(view.getByText('Latest')).toBeTruthy()
-  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'desc')
+  expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith('req_1', undefined, expect.anything(), 'desc', 4)
   expect(vi.mocked(api.getRequestSession)).toHaveBeenCalledWith(
     'req_1',
     undefined,
@@ -388,10 +395,9 @@ it('finds an early generated title while retaining newest-first mobile paging', 
 it('exports every page as JSONL rather than only the visible page', async () => {
   const first = await api.getRequestSession('req_1')
   const next = { ...first.requests[0], id: 'req_older' }
-  vi.mocked(api.getRequestSession)
-    .mockResolvedValueOnce({ ...first, nextCursor: 'req_1' })
-    .mockResolvedValueOnce({ ...first, nextCursor: 'req_1' })
-    .mockResolvedValueOnce({ ...first, requests: [next], nextCursor: null })
+  vi.mocked(api.getRequestSession).mockImplementation(async (_id, cursor) =>
+    cursor ? { ...first, requests: [next], nextCursor: null } : { ...first, nextCursor: 'req_1' },
+  )
   const originalCreate = URL.createObjectURL
   const originalRevoke = URL.revokeObjectURL
   URL.createObjectURL = vi.fn(() => 'blob:test')
@@ -412,6 +418,7 @@ it('exports every page as JSONL rather than only the visible page', async () => 
   click.mockRestore()
   URL.createObjectURL = originalCreate
   URL.revokeObjectURL = originalRevoke
+  vi.mocked(api.getRequestSession).mockReset().mockResolvedValue(first)
 })
 
 it('skips side requests at a mobile page boundary when finding the previous conversation snapshot', async () => {

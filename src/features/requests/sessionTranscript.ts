@@ -41,8 +41,7 @@ export function sessionTitle(value: string): string {
   return trimmed
 }
 
-export function parseStopReason(body: string | null): string | null {
-  if (!body) return null
+function stopReasonFromData(data: Record<string, unknown>, stream: boolean): string | null {
   const record = (value: unknown): Record<string, unknown> | null =>
     value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
   const reason = (value: unknown): string | null => (typeof value === 'string' ? value : null)
@@ -50,26 +49,27 @@ export function parseStopReason(body: string | null): string | null {
     const choice = Array.isArray(data.choices) ? record(data.choices[0]) : null
     return reason(data.stop_reason) ?? reason(choice?.finish_reason)
   }
+  if (stream && data.type === 'message_delta') return reason(record(data.delta)?.stop_reason)
+  if (stream && data.type === 'message_start') return reason(record(data.message)?.stop_reason)
+  return stream && !Array.isArray(data.choices) ? null : read(data)
+}
+
+export function parseStopReason(body: string | null): string | null {
+  if (!body) return null
   if (/^(?:event|data):/m.test(body.slice(0, 128))) {
     for (const event of parseSseStream(body).events) {
       const data = event.parsedData
       if (!data) continue
-      if (data.type === 'message_delta') {
-        const value = reason(record(data.delta)?.stop_reason)
-        if (value) return value
-      }
-      if (data.type === 'message_start') {
-        const value = reason(record(data.message)?.stop_reason)
-        if (value) return value
-      }
-      const value = Array.isArray(data.choices) ? read(data) : null
+      const value = stopReasonFromData(data, true)
       if (value) return value
     }
     return null
   }
   try {
-    const data = record(JSON.parse(body.replace(/\n\.\.\.\[truncated \d+ bytes\]$/, '')))
-    return data ? read(data) : null
+    const data: unknown = JSON.parse(body.replace(/\n\.\.\.\[truncated \d+ bytes\]$/, ''))
+    return data && typeof data === 'object' && !Array.isArray(data)
+      ? stopReasonFromData(data as Record<string, unknown>, false)
+      : null
   } catch {
     return null
   }
@@ -275,20 +275,36 @@ export function diffTranscript(
   return { parts, replaced: reset ? previous.raw.length - common : null }
 }
 
-export function parseTranscriptResponse(body: string | null, streamed: boolean): TranscriptPart[] {
+export function parseTranscriptResponse(
+  body: string | null,
+  streamed: boolean,
+  onStopReason?: (reason: string) => void,
+): TranscriptPart[] {
   if (!body) return []
-  if (!streamed && !/^(?:event|data):/m.test(body.slice(0, 128))) {
+  const isSse = /^(?:event|data):/m.test(body.slice(0, 128))
+  if (!streamed && !isSse) {
     try {
       const data = JSON.parse(body) as Record<string, unknown>
+      const reason = stopReasonFromData(data, false)
+      if (reason) onStopReason?.(reason)
       if (Array.isArray(data.choices))
         return data.choices.flatMap((choice: { message?: unknown }) => partsForItem(choice.message))
       if (Array.isArray(data.output)) return data.output.flatMap(partsForItem)
       return partsForItem({ role: 'assistant', content: data.content ?? data.output_text })
     } catch {
+      if (onStopReason && /\n\.\.\.\[truncated \d+ bytes\]$/.test(body)) {
+        const reason = parseStopReason(body)
+        if (reason) onStopReason(reason)
+      }
       return []
     }
   }
+  if (!isSse && onStopReason) {
+    const reason = parseStopReason(body)
+    if (reason) onStopReason(reason)
+  }
   const stream = parseSseStream(body)
+  let foundStopReason = false
   const parts: TranscriptPart[] = []
   let completedOutput: TranscriptPart[] | null = null
   const slots = new Map<string, TranscriptPart>()
@@ -310,6 +326,13 @@ export function parseTranscriptResponse(body: string | null, streamed: boolean):
   for (const event of stream.events) {
     const data = event.parsedData
     if (!data) continue
+    if (!foundStopReason) {
+      const reason = stopReasonFromData(data, true)
+      if (reason) {
+        foundStopReason = true
+        onStopReason?.(reason)
+      }
+    }
     const type = data.type
     const outputIndex = Number(data.output_index ?? 0)
     const contentIndex = Number(data.content_index ?? 0)
