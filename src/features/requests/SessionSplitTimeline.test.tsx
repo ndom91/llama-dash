@@ -130,7 +130,7 @@ function exchange(number: number, inputParts: TranscriptPart[], responseParts: T
   }
 }
 
-it('links matching tool IDs and lazily opens a collapsed run when navigating', async () => {
+it('pairs tool results in the call card and links back from a collapsed run', async () => {
   const call = { kind: 'tool', role: 'assistant', id: 'call-1', name: 'Bash', text: 'ls' } as const
   const result = { kind: 'result', role: 'tool', id: 'call-1', text: 'one\ntwo\nthree\nfour\nfive' } as const
   const rows = [
@@ -144,18 +144,57 @@ it('links matching tool IDs and lazily opens a collapsed run when navigating', a
   const scroll = vi.fn()
   Element.prototype.scrollIntoView = scroll
   const view = render(<SessionSplitTimeline exchanges={rows} filters={filters} activeId="req1" />)
-  const chip = screen.getByRole('button', { name: '→ #2' })
-  fireEvent.mouseEnter(chip.parentElement!)
-  expect(view.container.querySelectorAll('.is-linked')).toHaveLength(1)
-  fireEvent.click(chip)
-  expect(screen.getByText(/show 9 requests/).closest('details')?.open).toBe(true)
-  await waitFor(() => expect(scroll).toHaveBeenCalled())
-  expect(screen.getByText('five').closest('[aria-hidden="true"]')).toBeTruthy()
-  expect(view.container.querySelectorAll('.is-linked')).toHaveLength(2)
+  expect(screen.queryByText('five')).toBeNull()
+  fireEvent.click(screen.getByText('Bash').closest('summary')!)
+  expect(await screen.findByText(/returned in #2/)).toBeTruthy()
+  expect(screen.queryByText('five')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'expand' }))
   expect(screen.getByText('five')).toBeTruthy()
-  expect(screen.getByRole('button', { name: '← #1' })).toBeTruthy()
+  const run = screen.getByText(/show 9 requests/).closest('details')!
+  fireEvent.click(run.querySelector('summary')!)
+  const back = await screen.findByRole('button', { name: /shown in #1/ })
+  fireEvent.click(back)
+  await waitFor(() => expect(scroll).toHaveBeenCalled())
   expect(view.container.querySelector('#session-req1')?.classList.contains('is-active')).toBe(true)
+})
+
+it('shows parsed commands, result status, elapsed time and an expandable output in the call row', async () => {
+  const call = {
+    kind: 'tool',
+    role: 'assistant',
+    id: 'c1',
+    name: 'exec',
+    text: 'Promise.allSettled([tools.exec_command({cmd:"cat AGENTS.md"}),tools.exec_command({cmd:"ls"})])',
+  } as const
+  const result = {
+    kind: 'result',
+    role: 'tool',
+    id: 'c1',
+    text: JSON.stringify({
+      results: [
+        { status: 'fulfilled', value: { output: 'one\ntwo\nthree\nfour', exit_code: 0 } },
+        { status: 'fulfilled', value: { output: 'five', exit_code: 0 } },
+      ],
+    }),
+  } as const
+  const first = exchange(1, [], [call])
+  const second = exchange(2, [result], [])
+  second.request.startedAt = '2026-01-01T00:00:00.700Z'
+  const view = render(<SessionSplitTimeline exchanges={[first, second]} filters={filters} activeId={null} />)
+  const row = view.getByRole('region', { name: 'Request 1' })
+  expect(row.textContent).toContain('cat AGENTS.md · +1 more')
+  expect(row.textContent).toContain('exit 0')
+  expect(row.textContent).toContain('600ms')
+  expect(row.textContent).toContain('5 lines')
+  fireEvent.click(screen.getByText('exec').closest('summary')!)
+  expect(await screen.findByText(/returned in #2/)).toBeTruthy()
+  expect(screen.getByText('one')).toBeTruthy()
+  expect(screen.queryByText('five')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'expand' }))
+  expect(screen.getByText('five')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: 'raw json' }))
+  expect(screen.getByText(/"results"/)).toBeTruthy()
+  expect(view.getByRole('region', { name: 'Request 2' }).textContent).toContain('shown in #1')
 })
 
 it('shows unmatched calls and captured stop reasons', () => {

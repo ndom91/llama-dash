@@ -5,7 +5,9 @@ import { Link } from '@tanstack/react-router'
 import { Fragment, memo, useMemo, useState } from 'react'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionCollapsedRun } from './SessionCollapsedRun'
+import { SessionToolCard } from './SessionToolCard'
 import { ContextPills, type TranscriptExchange, type TranscriptFilters, TranscriptItem } from './SessionTranscriptView'
+import { summarizeTool } from './sessionToolSummary'
 import { parseStopReason, sessionInputTokens, sessionTitle, type TranscriptPart } from './sessionTranscript'
 
 type Location = { requestId: string; number: number; index: number; part: TranscriptPart }
@@ -105,6 +107,7 @@ export function SessionSplitTimeline({
   incomplete?: boolean
 }) {
   const [hovered, setHovered] = useState<string | null>(null)
+  const requestsById = useMemo(() => new Map(exchanges.map(({ request }) => [request.id, request])), [exchanges])
   const inputOrder = useMemo(
     () => new Map(exchanges.map((exchange) => [exchange.request.id, interleaveInputParts(exchange.inputParts)])),
     [exchanges],
@@ -236,6 +239,37 @@ export function SessionSplitTimeline({
               if (part.kind === 'result') {
                 const pair = part.id ? pairs.get(part.id) : undefined
                 const location = { requestId: request.id, number, index, part }
+                const call = filters.tools ? pair?.call : undefined
+                if (call) {
+                  const info = summarizeTool(call.part.name ?? 'tool', call.part.text, part)
+                  return (
+                    <div className="session-sent-strip" key={`${part.kind}-${index}`}>
+                      <span>SENT</span>
+                      <button
+                        id={partId(location, 'result')}
+                        type="button"
+                        className="flex min-w-0 items-center gap-2 border border-dashed border-border px-2 py-1 text-left font-mono text-[10px] text-fg-dim hover:border-border-strong hover:text-fg"
+                        onClick={() => {
+                          jumpToPart(call, 'call')
+                          setHovered(part.id ?? null)
+                          setTimeout(() => setHovered(null), 1500)
+                        }}
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          ↳ {info.name} · result of #{call.number} · {info.summary}
+                          {info.commands.length > 1 ? ` +${info.commands.length - 1}` : ''} ·{' '}
+                          {info.status === 'error'
+                            ? 'error'
+                            : info.status === null
+                              ? 'result captured'
+                              : `exit ${info.status}`}{' '}
+                          · {info.size} {info.size === 1 ? 'line' : 'lines'}
+                        </span>
+                        <span className="shrink-0">shown in #{call.number} ↑</span>
+                      </button>
+                    </div>
+                  )
+                }
                 return (
                   <div className="session-sent-strip" key={`${part.kind}-${index}-${filters.results}`}>
                     <span>SENT</span>
@@ -292,6 +326,11 @@ export function SessionSplitTimeline({
                 return null
               const location = { requestId: request.id, number, index, part }
               const result = part.id ? pairs.get(part.id)?.result : undefined
+              const resultRequest = result ? requestsById.get(result.requestId) : undefined
+              const elapsed = resultRequest
+                ? new Date(resultRequest.startedAt).getTime() -
+                  (new Date(request.startedAt).getTime() + request.durationMs)
+                : NaN
               return part.kind === 'tool' ? (
                 <div
                   key={`${part.kind}-${index}`}
@@ -300,16 +339,15 @@ export function SessionSplitTimeline({
                   onMouseEnter={() => setHovered(part.id ?? null)}
                   onMouseLeave={() => setHovered(null)}
                 >
-                  <TranscriptItem part={part} expanded={false} time={request.startedAt} truncated={false} />
-                  {result ? (
-                    <button type="button" className="session-link-chip" onClick={() => jumpToPart(result, 'result')}>
-                      → #{result.number}
-                    </button>
-                  ) : (
-                    <span className="session-link-missing">
-                      {incomplete ? 'result may be in unloaded requests' : 'no result captured'}
-                    </span>
-                  )}
+                  <SessionToolCard
+                    key={String(filters.results)}
+                    part={part}
+                    result={result?.part}
+                    resultNumber={result?.number}
+                    elapsed={Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : undefined}
+                    expanded={filters.results}
+                    incomplete={incomplete}
+                  />
                 </div>
               ) : (
                 <TranscriptItem

@@ -343,9 +343,8 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
   expect(view.getByText(/title generation/)).toBeTruthy()
   expect(view.getAllByText('Build a calendar')).toHaveLength(1)
   expect(view.getAllByRole('button', { name: /reminder · ~\/\.claude\/CLAUDE.md/ })).toHaveLength(1)
-  expect(view.getByText(/↳ Bash · \+new file/)).toBeTruthy()
-  expect(view.getByRole('button', { name: '→ #4' })).toBeTruthy()
-  expect(view.getByRole('button', { name: '← #3' })).toBeTruthy()
+  expect(view.getByRole('button', { name: /↳ Bash · result of #3/ })).toBeTruthy()
+  expect(view.getByText('Bash').closest('details')).toBeTruthy()
   expect(view.getByRole('region', { name: 'Request 4' }).querySelectorAll('summary')).toHaveLength(0)
   expect(view.getAllByTitle('Main-loop requests with new input recovered from retained captures')[0].textContent).toBe(
     '2 / 2',
