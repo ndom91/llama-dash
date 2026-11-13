@@ -112,7 +112,7 @@ function partsForItem(value: unknown): TranscriptPart[] {
   const type = typeof item.type === 'string' ? item.type : ''
   const role = typeof item.role === 'string' ? item.role : 'assistant'
   if (role === 'system' || role === 'developer') return []
-  if (type === 'function_call' || type === 'tool_use') {
+  if (type === 'function_call' || type === 'custom_tool_call' || type === 'tool_use') {
     const input = item.arguments ?? item.input
     return [
       {
@@ -124,7 +124,12 @@ function partsForItem(value: unknown): TranscriptPart[] {
       },
     ]
   }
-  if (type === 'function_call_output' || type === 'tool_result' || role === 'tool') {
+  if (
+    type === 'function_call_output' ||
+    type === 'custom_tool_call_output' ||
+    type === 'tool_result' ||
+    role === 'tool'
+  ) {
     return [
       {
         kind: 'result',
@@ -352,7 +357,7 @@ export function parseTranscriptResponse(
     }
     if (type === 'response.output_item.added' || type === 'response.output_item.done') {
       const item = data.item as Record<string, unknown> | undefined
-      if (item?.type === 'function_call') {
+      if (item?.type === 'function_call' || item?.type === 'custom_tool_call') {
         const normalized = partsForItem(item)[0]
         const part = slot(`tool:${outputIndex}`, normalized)
         if (type === 'response.output_item.done') Object.assign(part, normalized)
@@ -369,8 +374,15 @@ export function parseTranscriptResponse(
         for (const candidate of partsForItem(item)) addCompleted(candidate)
       }
     }
-    if (type === 'response.function_call_arguments.delta' && typeof data.delta === 'string') {
+    if (
+      (type === 'response.function_call_arguments.delta' || type === 'response.custom_tool_call_input.delta') &&
+      typeof data.delta === 'string'
+    ) {
       slot(`tool:${outputIndex}`, { kind: 'tool', role: 'assistant', name: 'tool', text: '' }).text += data.delta
+    }
+    if (type === 'response.custom_tool_call_input.done' && typeof data.input === 'string') {
+      const part = slot(`tool:${outputIndex}`, { kind: 'tool', role: 'assistant', name: 'tool', text: '' })
+      if (!part.text) part.text = data.input
     }
     if (Array.isArray(data.choices))
       for (const choice of data.choices as Array<{

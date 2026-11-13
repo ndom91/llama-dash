@@ -41,6 +41,35 @@ it('extracts stop reasons while normalizing JSON and streaming responses', () =>
   }
 })
 
+it('normalizes Codex custom tool calls and their results in requests and responses', () => {
+  const call = {
+    type: 'custom_tool_call',
+    id: 'item-1',
+    call_id: 'call-1',
+    name: 'exec',
+    input: 'text(await tools.exec_command({cmd: "pwd"}))',
+  }
+  const result = { type: 'custom_tool_call_output', call_id: 'call-1', output: '/workspace' }
+  const request = parseTranscriptInput(JSON.stringify({ input: [call, result] }))
+  expect(request.parts.flat()).toEqual([
+    { kind: 'tool', role: 'assistant', name: 'exec', id: 'call-1', text: call.input },
+    { kind: 'result', role: 'tool', name: undefined, id: 'call-1', isError: false, text: '/workspace' },
+  ])
+  expect(parseTranscriptResponse(JSON.stringify({ output: [call] }), false)).toEqual([request.parts[0][0]])
+  const stream = [
+    { type: 'response.output_item.added', output_index: 0, item: { ...call, input: '' } },
+    { type: 'response.custom_tool_call_input.delta', output_index: 0, delta: call.input.slice(0, 10) },
+    { type: 'response.custom_tool_call_input.delta', output_index: 0, delta: call.input.slice(10) },
+    { type: 'response.custom_tool_call_input.done', output_index: 0, input: call.input },
+    { type: 'response.output_item.done', output_index: 0, item: call },
+    { type: 'response.completed', response: { output: [call] } },
+  ]
+    .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+    .join('')
+  expect(parseTranscriptResponse(stream, true)).toEqual([request.parts[0][0]])
+  expect(diffTranscript(input([]), request).parts).toEqual(request.parts.flat())
+})
+
 describe('session transcript', () => {
   it('deduplicates repeated snapshots and preserves new suffixes', () => {
     const prior = input([user('one'), { role: 'assistant', content: 'answer' }])
