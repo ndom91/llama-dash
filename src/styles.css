@@ -2409,10 +2409,10 @@ dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-beh
 
 .session-entry { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px; min-width: 0; }
 .session-entry-tile { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-0); color: var(--fg-dim); }
-.session-entry-sent .session-entry-tile, .session-entry-user .session-entry-tile { color: var(--info); }
-.session-entry-user .session-entry-tile { border-color: color-mix(in srgb, var(--info) 40%, var(--border)); }
+.session-entry-sent .session-entry-tile, .session-entry-user .session-entry-tile { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, var(--border)); }
+.session-entry-thinking .session-entry-tile { border-color: color-mix(in srgb, var(--fg-dim) 40%, var(--border)); }
 .session-entry-assistant .session-entry-tile { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); }
-.session-entry-tool .session-entry-tile { color: var(--accent-shifted); }
+.session-entry-tool .session-entry-tile { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
 .session-entry-header { display: flex; align-items: center; min-width: 0; min-height: 20px; }
 .session-entry-line { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 20px; text-align: left; font: 10px var(--font-mono); color: var(--fg-dim); }
 button.session-entry-line { cursor: pointer; }
