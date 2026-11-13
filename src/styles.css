@@ -2417,6 +2417,7 @@ dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-beh
 .session-entry-line { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 20px; text-align: left; font: 10px var(--font-mono); color: var(--fg-dim); }
 button.session-entry-line { cursor: pointer; }
 button.session-entry-line:hover { color: var(--fg); }
+button.session-entry-line:hover .session-entry-summary > span { color: var(--fg); }
 .session-entry-label { flex: none; color: var(--fg-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .session-entry-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-entry-meta { min-width: 0; max-width: 50%; margin-left: auto; flex: none; overflow: hidden; color: var(--fg-dim); text-overflow: ellipsis; white-space: nowrap; }

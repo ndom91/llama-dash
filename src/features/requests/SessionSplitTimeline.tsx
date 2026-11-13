@@ -329,8 +329,6 @@ export function SessionSplitTimeline({
                   key={`${part.kind}-${index}`}
                   id={partId(location, 'call')}
                   className={`session-linked-tool ${part.id && hovered === part.id ? 'is-linked' : ''}`}
-                  onMouseEnter={() => setHovered(part.id ?? null)}
-                  onMouseLeave={() => setHovered(null)}
                 >
                   <SessionToolCard
                     key={String(filters.results)}

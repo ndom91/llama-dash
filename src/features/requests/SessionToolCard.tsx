@@ -56,48 +56,50 @@ export function SessionToolCard({
         </>
       }
     >
-      {info.commands.length ? (
-        <div className="space-y-1 py-1">
-          {info.commands.map((command, index) => (
-            <div key={index} className="flex gap-3">
-              <span className="min-w-0 flex-1 break-all">
-                <span className="text-fg-dim">$ </span>
-                {command.command}
-                {command.workdir ? <span className="text-fg-dim"> · {command.workdir}</span> : null}
-              </span>
-              {command.exitCode != null ? (
-                <span className={command.exitCode === 0 ? 'text-ok' : 'text-err'}>
-                  {command.exitCode === 0 ? '✓' : '✗'} {command.exitCode}
+      <div className="font-mono text-[10px] leading-relaxed text-fg">
+        {info.commands.length ? (
+          <div className="space-y-1 py-1">
+            {info.commands.map((command, index) => (
+              <div key={index} className="flex gap-3">
+                <span className="min-w-0 flex-1 break-all">
+                  <span className="text-fg-dim">$ </span>
+                  {command.command}
+                  {command.workdir ? <span className="text-fg-dim"> · {command.workdir}</span> : null}
                 </span>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : result && part.text ? (
-        <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words px-3 py-2 text-fg-dim">{part.text}</pre>
-      ) : null}
-      {result ? (
-        <div className="py-2">
-          <div className="mb-2 flex flex-wrap items-center gap-3 text-fg-dim">
-            <span className="mr-auto uppercase">output · returned in #{resultNumber}</span>
-            <button type="button" className="text-info" onClick={() => setFull(!full)}>
-              {full ? 'collapse' : 'expand'}
-            </button>
-            <button type="button" className="text-info" aria-pressed={raw} onClick={() => setRaw(!raw)}>
-              {raw ? 'output' : 'raw json'}
-            </button>
-          </div>
-          <pre className="m-0 overflow-x-auto whitespace-pre text-fg-dim">
-            {(full ? lines : lines.slice(0, 3)).map((line, index) => (
-              <span key={index} className={`block ${index === 0 ? 'text-fg' : ''}`}>
-                {line || ' '}
-              </span>
+                {command.exitCode != null ? (
+                  <span className={command.exitCode === 0 ? 'text-ok' : 'text-err'}>
+                    {command.exitCode === 0 ? '✓' : '✗'} {command.exitCode}
+                  </span>
+                ) : null}
+              </div>
             ))}
-          </pre>
-        </div>
-      ) : (
-        <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words px-3 py-2 text-fg-dim">{part.text}</pre>
-      )}
+          </div>
+        ) : result && part.text ? (
+          <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words px-3 py-2 text-fg-dim">{part.text}</pre>
+        ) : null}
+        {result ? (
+          <div className="py-2">
+            <div className="mb-2 flex flex-wrap items-center gap-3 text-fg-dim">
+              <span className="mr-auto uppercase">output · returned in #{resultNumber}</span>
+              <button type="button" className="text-info" onClick={() => setFull(!full)}>
+                {full ? 'collapse' : 'expand'}
+              </button>
+              <button type="button" className="text-info" aria-pressed={raw} onClick={() => setRaw(!raw)}>
+                {raw ? 'output' : 'raw json'}
+              </button>
+            </div>
+            <pre className="m-0 overflow-x-auto whitespace-pre text-fg-dim">
+              {(full ? lines : lines.slice(0, 3)).map((line, index) => (
+                <span key={index} className={`block ${index === 0 ? 'text-fg' : ''}`}>
+                  {line || ' '}
+                </span>
+              ))}
+            </pre>
+          </div>
+        ) : (
+          <pre className="m-0 overflow-x-auto whitespace-pre-wrap break-words px-3 py-2 text-fg-dim">{part.text}</pre>
+        )}
+      </div>
     </SessionEntry>
   )
 }
