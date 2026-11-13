@@ -143,9 +143,11 @@ it('expands and collapses thinking and unpaired results with the corresponding f
     { kind: 'result', role: 'tool', text: 'Result' },
   ]
   const view = render(<SessionTranscriptView exchanges={[item]} filters={filters} />)
-  const thinking = screen.getByText(/thinking ·/).closest('details')!
+  const thinking = screen.getByText('thinking').closest('details')!
   const result = screen.getByText('tool result').closest('details')!
   expect(thinking.open).toBe(false)
+  expect(thinking.className).not.toContain('border')
+  expect(screen.getByText('Planning').parentElement?.className).toContain('border-dashed')
   expect(result.open).toBe(false)
   view.rerender(<SessionTranscriptView exchanges={[item]} filters={{ ...filters, thinking: true, results: true }} />)
   expect(thinking.open).toBe(true)

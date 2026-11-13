@@ -420,7 +420,22 @@ export const TranscriptItem = memo(function TranscriptItem({
   truncated: boolean
   hideRaw?: boolean
 }) {
-  if (part.kind === 'tool' || part.kind === 'result' || part.kind === 'thinking') {
+  if (part.kind === 'thinking') {
+    return (
+      <details open={expanded || undefined} className="min-w-0">
+        <summary className="cursor-pointer py-1 font-mono text-[10px] text-fg-faint marker:text-fg-faint">
+          <span className="uppercase tracking-wider">thinking</span> · ~
+          {formatCompactNumber(Math.ceil(part.text.length / 4))} tok
+        </summary>
+        <div className="ml-0.5 max-w-[92ch] border-l border-dashed border-border-strong pl-5">
+          <div className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-[13px] italic leading-relaxed text-fg-dim">
+            {part.text}
+          </div>
+        </div>
+      </details>
+    )
+  }
+  if (part.kind === 'tool' || part.kind === 'result') {
     const name = part.name?.startsWith('mcp__') ? `mcp · ${part.name.slice(5).replace('__', ' · ')}` : part.name
     if (onOpen)
       return (
@@ -436,21 +451,11 @@ export const TranscriptItem = memo(function TranscriptItem({
       )
     return (
       <details
-        open={
-          expanded && (part.kind === 'thinking' || part.kind === 'result' || (part.kind === 'tool' && Boolean(result)))
-            ? true
-            : undefined
-        }
+        open={expanded && (part.kind === 'result' || (part.kind === 'tool' && Boolean(result))) ? true : undefined}
         className="min-w-0 rounded border border-border bg-surface-0 font-mono text-xs"
       >
         <summary className="cursor-pointer break-words px-3 py-2 text-fg-dim">
-          <span className="text-info">
-            {part.kind === 'tool'
-              ? (name ?? 'tool')
-              : part.kind === 'result'
-                ? 'tool result'
-                : `thinking · ~${formatCompactNumber(Math.ceil(part.text.length / 4))} tok`}
-          </span>
+          <span className="text-info">{part.kind === 'tool' ? (name ?? 'tool') : 'tool result'}</span>
           {part.kind === 'tool' && part.text ? ` · ${primaryArgument(part.text).slice(0, 140)}` : ''}
           {result ? (
             <span className={result.isError ? 'float-right text-err' : 'float-right text-ok'}>
