@@ -1,8 +1,9 @@
-import { memo, useEffect, useRef, useState } from 'react'
+import { memo, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import { CopyButton } from '../../components/CopyButton'
+import { SessionMessageClamp } from './SessionMessageClamp'
 
 // CommonMark closes an unfinished list at the end of the document. Close fences
 // explicitly as well, so the truncation marker is never included in a code block.
@@ -34,23 +35,6 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
   hideRaw?: boolean
 }) {
   const [raw, setRaw] = useState(false)
-  const [expanded, setExpanded] = useState(false)
-  const [long, setLong] = useState(false)
-  const [height, setHeight] = useState(0)
-  const bodyRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const body = bodyRef.current
-    if (!body) return
-    const measure = () => {
-      setLong(body.scrollHeight > 895)
-      setHeight(body.scrollHeight)
-    }
-    measure()
-    if (typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(measure)
-    observer.observe(body)
-    return () => observer.disconnect()
-  }, [])
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">
@@ -67,14 +51,8 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
         </div>
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
-        <div
-          className={`session-message-clamp ${long && !expanded ? 'is-clamped' : ''} ${long && text.length <= 20_000 ? 'is-animated' : ''}`}
-          style={long && text.length <= 20_000 ? { maxHeight: expanded ? height : 890 } : undefined}
-          onFocusCapture={() => {
-            if (long) setExpanded(true)
-          }}
-        >
-          <div ref={bodyRef} className="session-md">
+        <SessionMessageClamp text={text}>
+          <div className="session-md">
             {raw ? (
               <pre className="session-message-source">{text}</pre>
             ) : (
@@ -117,17 +95,7 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
               </span>
             ) : null}
           </div>
-        </div>
-        {long ? (
-          <button
-            type="button"
-            className="btn btn-sm mt-2 text-info"
-            aria-expanded={expanded}
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? 'show less' : `show full message · ${text.trim() ? text.trim().split(/\s+/).length : 0} words`}
-          </button>
-        ) : null}
+        </SessionMessageClamp>
       </div>
     </div>
   )

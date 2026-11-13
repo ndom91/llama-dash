@@ -4,6 +4,7 @@ import { memo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
+import { SessionMessageClamp } from './SessionMessageClamp'
 import { SessionCollapsedRun } from './SessionCollapsedRun'
 import {
   type CapturedRequest,
@@ -483,9 +484,11 @@ export const TranscriptItem = memo(function TranscriptItem({
         </span>
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
-        <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
-          {part.text}
-        </div>
+        <SessionMessageClamp text={part.text}>
+          <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
+            {part.text}
+          </div>
+        </SessionMessageClamp>
       </div>
     </div>
   )

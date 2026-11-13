@@ -39,11 +39,36 @@ it('renders a single user header with the timestamp alongside it', () => {
   const item = exchange(1, [{ kind: 'message', role: 'user', text: 'Hello' }], [])
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
   const message = screen.getByText('Hello')
-  const header = message.parentElement?.previousElementSibling
+  const body = message.closest('.border-l')!
+  const header = body.previousElementSibling
   expect(header?.textContent).toContain('user')
   expect(header?.querySelector('time')?.className).not.toContain('ml-auto')
-  expect(message.parentElement?.className).toContain('border-l')
+  expect(body.className).toContain('border-l')
   expect(view.container.querySelector('.session-sent-strip')).toBeNull()
+})
+
+it('collapses long user messages while keeping their full text available to copy', async () => {
+  vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1000)
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+  const text = Array.from({ length: 30 }, (_, index) => `Line ${index}`).join('\n')
+  const view = render(
+    <SessionSplitTimeline
+      exchanges={[exchange(1, [{ kind: 'message', role: 'user', text }], [])]}
+      filters={filters}
+      activeId={null}
+    />,
+  )
+  const button = screen.getByRole('button', { name: 'show more' })
+  expect(button.getAttribute('aria-expanded')).toBe('false')
+  expect(view.container.querySelector('.is-clamped')?.textContent).toBe(text)
+  fireEvent.click(screen.getByRole('button', { name: 'Copy user message' }))
+  await waitFor(() => expect(writeText).toHaveBeenCalledWith(text))
+  fireEvent.click(button)
+  expect(button.getAttribute('aria-expanded')).toBe('true')
+  expect(view.container.querySelector('.is-clamped')).toBeNull()
+  fireEvent.click(button)
+  expect(view.container.querySelector('.is-clamped')).toBeTruthy()
 })
 
 it('copies user and assistant source text with icon-only controls', async () => {

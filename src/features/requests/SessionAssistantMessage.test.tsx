@@ -33,7 +33,7 @@ it('closes unfinished fences without changing the captured source', () => {
 it('allows a long message to be expanded and collapsed', () => {
   vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1000)
   const view = render(<SessionAssistantMessage text="Long message" time="2026-01-01T00:00:00Z" truncated={false} />)
-  const button = screen.getByRole('button', { name: /show full message/ })
+  const button = screen.getByRole('button', { name: 'show more' })
   expect(view.container.querySelector('.is-clamped')).toBeTruthy()
   fireEvent.click(button)
   expect(view.container.querySelector('.is-clamped')).toBeNull()
