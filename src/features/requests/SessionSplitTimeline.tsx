@@ -191,7 +191,7 @@ export function SessionSplitTimeline({
           className={`session-split-row ${activeId === request.id ? 'is-active' : ''}`}
         >
           <div className="session-split-meta">
-            <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
+            <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-accent">
               #{number}
             </Link>
             {reason ? (
