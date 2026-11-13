@@ -4,6 +4,7 @@ import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import { CopyButton } from '../../components/CopyButton'
 import { SessionMessageClamp } from './SessionMessageClamp'
+import { SessionEntry } from './SessionEntry'
 
 // CommonMark closes an unfinished list at the end of the document. Close fences
 // explicitly as well, so the truncation marker is never included in a code block.
@@ -28,13 +29,73 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
   time,
   truncated,
   hideRaw = false,
+  glyph = false,
 }: {
   text: string
   time: string
   truncated: boolean
   hideRaw?: boolean
+  glyph?: boolean
 }) {
   const [raw, setRaw] = useState(false)
+  const message = (
+    <SessionMessageClamp text={text}>
+      <div className="session-md">
+        {raw ? (
+          <pre className="session-message-source">{text}</pre>
+        ) : (
+          <Markdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={{
+              pre({ node, children }) {
+                const code = node?.children[0] as CodeNode | undefined
+                const language = code?.properties?.className?.find((name) => name.startsWith('language-'))?.slice(9)
+                const source = code ? nodeText(code).replace(/\n$/, '') : ''
+                return (
+                  <div className="session-code-block">
+                    <div className="session-code-header">
+                      <span>{language || 'code'}</span>
+                      <CopyButton text={source} ariaLabel="Copy code block" />
+                    </div>
+                    {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard scrolling. */}
+                    <pre tabIndex={0}>{children}</pre>
+                  </div>
+                )
+              },
+              table({ children }) {
+                return (
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to scroll wide tables.
+                  <section className="session-table-scroll" tabIndex={0} aria-label="Message table">
+                    <table>{children}</table>
+                  </section>
+                )
+              },
+            }}
+          >
+            {truncated ? closeTruncatedMarkdown(text) : text}
+          </Markdown>
+        )}
+        {truncated ? (
+          <span className="text-fg-dim">
+            {' '}
+            …<span className="sr-only">Response truncated</span>
+          </span>
+        ) : null}
+      </div>
+    </SessionMessageClamp>
+  )
+  if (glyph)
+    return (
+      <SessionEntry
+        kind="assistant"
+        initiallyOpen
+        meta={<time title="Request start time">{new Date(time).toLocaleTimeString()}</time>}
+        actions={<CopyButton text={text} variant="icon" ariaLabel="Copy assistant message" />}
+      >
+        {message}
+      </SessionEntry>
+    )
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">
@@ -50,53 +111,7 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
           <CopyButton text={text} variant="icon" ariaLabel="Copy assistant message" />
         </div>
       </div>
-      <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
-        <SessionMessageClamp text={text}>
-          <div className="session-md">
-            {raw ? (
-              <pre className="session-message-source">{text}</pre>
-            ) : (
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-                components={{
-                  pre({ node, children }) {
-                    const code = node?.children[0] as CodeNode | undefined
-                    const language = code?.properties?.className?.find((name) => name.startsWith('language-'))?.slice(9)
-                    const source = code ? nodeText(code).replace(/\n$/, '') : ''
-                    return (
-                      <div className="session-code-block">
-                        <div className="session-code-header">
-                          <span>{language || 'code'}</span>
-                          <CopyButton text={source} ariaLabel="Copy code block" />
-                        </div>
-                        {/* biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to scroll long code lines. */}
-                        <pre tabIndex={0}>{children}</pre>
-                      </div>
-                    )
-                  },
-                  table({ children }) {
-                    return (
-                      // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard users need to scroll wide tables.
-                      <section className="session-table-scroll" tabIndex={0} aria-label="Message table">
-                        <table>{children}</table>
-                      </section>
-                    )
-                  },
-                }}
-              >
-                {truncated ? closeTruncatedMarkdown(text) : text}
-              </Markdown>
-            )}
-            {truncated ? (
-              <span className="text-fg-dim">
-                {' '}
-                …<span className="sr-only">Response truncated</span>
-              </span>
-            ) : null}
-          </div>
-        </SessionMessageClamp>
-      </div>
+      <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">{message}</div>
     </div>
   )
 })

@@ -2362,8 +2362,6 @@ a {
 .session-split-meta { min-width: 0; padding: 12px 14px; font: 10px/1.7 var(--font-mono); color: var(--fg-dim); overflow-wrap: anywhere; }
 .session-conversation { min-width: 0; padding: 12px 14px; border-left: 1px solid var(--border); }
 .session-conversation .session-md { max-width: 92ch; }
-.session-sent-strip { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 8px; }
-.session-sent-strip > span { padding-top: 7px; color: var(--fg-faint); font: 10px var(--font-mono); }
 .session-input-missing { border: 1px dashed var(--border); padding: 5px 8px; color: var(--warn); font: 10px/1.5 var(--font-mono); }
 .session-stop-badge { display: inline-block; margin: 3px 0; border: 1px solid color-mix(in srgb, var(--accent-shifted) 35%, transparent); border-radius: 3px; padding: 0 4px; background: color-mix(in srgb, var(--accent-shifted) 12%, transparent); color: var(--accent-shifted); }
 .session-stop-badge.is-end { border-color: color-mix(in srgb, var(--ok) 35%, transparent); background: color-mix(in srgb, var(--ok) 12%, transparent); color: var(--ok); }
@@ -2379,13 +2377,8 @@ a {
 .session-side-content summary { white-space: nowrap; }
 .session-side-content :is(.session-user-message, .session-md) { font-size: 0.75rem; }
 .session-collapsed-run > summary { cursor: pointer; border-bottom: 1px solid var(--border); padding: 12px 14px 12px 132px; color: var(--info); font: 10px var(--font-mono); }
-.session-linked-tool { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; min-width: 0; border-radius: 3px; }
-.session-linked-tool > details { flex: 1 1 24rem; min-width: 0; }
-.session-linked-tool.is-linked, .session-result.is-linked { outline: 1px solid var(--info); }
-.session-link-chip, .session-link-missing { margin-top: 7px; max-width: 100%; font: 10px var(--font-mono); overflow-wrap: anywhere; }
-.session-link-chip, .session-link-chip-static { border: 1px solid var(--border-strong); padding: 1px 4px; color: var(--info); }
-.session-link-missing { color: var(--fg-faint); border: 1px dashed var(--border); padding: 1px 4px; }
-.session-result { min-width: 0; border: 1px solid var(--border); border-left: 2px solid var(--info); background: var(--bg-0); }
+.session-linked-tool { min-width: 0; border-radius: 3px; }
+.session-linked-tool.is-linked { outline: 1px solid var(--info); }
 
 /* Native dialogs stay in the top layer while their exit transition runs. */
 .session-context-dialog, .session-mobile-sheet {
@@ -2413,3 +2406,18 @@ a {
   .session-context-dialog, .session-mobile-sheet, .session-scrubber, .session-message-clamp.is-animated { transition: none !important; }
 }
 dialog[aria-label='Session detail']::backdrop { overflow: hidden; overscroll-behavior: contain; }
+
+.session-entry { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 12px; min-width: 0; }
+.session-entry-tile { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-0); color: var(--fg-dim); }
+.session-entry-sent .session-entry-tile, .session-entry-user .session-entry-tile { color: var(--info); }
+.session-entry-user .session-entry-tile { border-color: color-mix(in srgb, var(--info) 40%, var(--border)); }
+.session-entry-assistant .session-entry-tile { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); }
+.session-entry-tool .session-entry-tile { color: var(--accent-shifted); }
+.session-entry-header { display: flex; align-items: center; min-width: 0; min-height: 20px; }
+.session-entry-line { display: flex; flex: 1; align-items: center; gap: 10px; min-width: 0; min-height: 20px; text-align: left; font: 10px var(--font-mono); color: var(--fg-dim); }
+button.session-entry-line { cursor: pointer; }
+button.session-entry-line:hover { color: var(--fg); }
+.session-entry-label { flex: none; color: var(--fg-faint); letter-spacing: 0.08em; text-transform: uppercase; }
+.session-entry-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.session-entry-meta { min-width: 0; max-width: 50%; margin-left: auto; flex: none; overflow: hidden; color: var(--fg-dim); text-overflow: ellipsis; white-space: nowrap; }
+.session-entry-body { min-width: 0; margin-top: 4px; border-left: 1px solid var(--border-strong); padding-left: 14px; }

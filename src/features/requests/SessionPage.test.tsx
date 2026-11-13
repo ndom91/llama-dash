@@ -94,7 +94,7 @@ it('shows the same accessible responsive skeleton during navigation and initial 
   const status = pending.getByRole('status', { name: 'Loading session history' })
   expect(status.querySelectorAll('.session-split-row')).toHaveLength(3)
   expect(status.querySelector('.session-split-heading')).toBeTruthy()
-  expect(status.querySelectorAll('.session-sent-strip')).toHaveLength(3)
+  expect(status.querySelectorAll('.session-entry')).toHaveLength(12)
   expect(status.querySelector('[aria-hidden="true"]')?.className).toContain('min-w-0')
   expect(status.querySelector('.grid')?.className).toContain('max-lg:grid-cols-1')
   pending.unmount()
@@ -343,8 +343,8 @@ it('reconstructs side requests, a single reminder, and paired tool activity', as
   expect(view.getByText(/title generation/)).toBeTruthy()
   expect(view.getAllByText('Build a calendar')).toHaveLength(1)
   expect(view.getAllByRole('button', { name: /reminder · ~\/\.claude\/CLAUDE.md/ })).toHaveLength(1)
-  expect(view.getByRole('button', { name: /↳ Bash · result of #3/ })).toBeTruthy()
-  expect(view.getByText('Bash').closest('details')).toBeTruthy()
+  expect(view.getByRole('button', { name: /sent Bash · result of #3/ })).toBeTruthy()
+  expect(view.getByRole('button', { name: /tool Bash/ })).toBeTruthy()
   expect(view.getByRole('region', { name: 'Request 4' }).querySelectorAll('summary')).toHaveLength(0)
   expect(view.getAllByTitle('Main-loop requests with new input recovered from retained captures')[0].textContent).toBe(
     '2 / 2',

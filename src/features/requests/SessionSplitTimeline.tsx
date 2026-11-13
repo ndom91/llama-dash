@@ -2,9 +2,10 @@
 // biome-ignore-all lint/suspicious/noArrayIndexKey: Positions distinguish repeated captured blocks.
 // biome-ignore-all lint/a11y/noStaticElementInteractions: Hover only highlights linked blocks; their buttons provide keyboard access.
 import { Link } from '@tanstack/react-router'
-import { Fragment, memo, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionCollapsedRun } from './SessionCollapsedRun'
+import { SessionEntry } from './SessionEntry'
 import { SessionToolCard } from './SessionToolCard'
 import { ContextPills, type TranscriptExchange, type TranscriptFilters, TranscriptItem } from './SessionTranscriptView'
 import { summarizeTool } from './sessionToolSummary'
@@ -223,7 +224,7 @@ export function SessionSplitTimeline({
             </div>
             <div>cache {cache == null ? '—' : `${cache}%`}</div>
           </div>
-          <div className="session-conversation space-y-3">
+          <div className="session-conversation space-y-2">
             {exchange.replaced != null ? (
               <div className="font-mono text-[10px] text-warn">
                 context reset · {exchange.replaced} messages replaced
@@ -241,44 +242,35 @@ export function SessionSplitTimeline({
                 if (call) {
                   const info = summarizeTool(call.part.name ?? 'tool', call.part.text, part)
                   return (
-                    <div className="session-sent-strip" key={`${part.kind}-${index}`}>
-                      <span>SENT</span>
-                      <button
-                        id={partId(location, 'result')}
-                        type="button"
-                        className="flex min-w-0 items-center gap-2 border border-dashed border-border px-2 py-1 text-left font-mono text-[10px] text-fg-dim hover:border-border-strong hover:text-fg"
-                        onClick={() => {
+                    <div id={partId(location, 'result')} key={`${part.kind}-${index}`}>
+                      <SessionEntry
+                        kind="sent"
+                        summary={
+                          <>
+                            {info.name} · result of #{call.number} · {info.summary}
+                            {info.commands.length > 1 ? ` +${info.commands.length - 1}` : ''} · {info.size}{' '}
+                            {info.size === 1 ? 'line' : 'lines'}
+                          </>
+                        }
+                        meta={`shown in #${call.number} ↑`}
+                        onActivate={() => {
                           jumpToPart(call, 'call')
                           setHovered(part.id ?? null)
                           setTimeout(() => setHovered(null), 1500)
                         }}
-                      >
-                        <span className="min-w-0 flex-1 truncate">
-                          ↳ {info.name} · result of #{call.number} · {info.summary}
-                          {info.commands.length > 1 ? ` +${info.commands.length - 1}` : ''} ·{' '}
-                          {info.status === 'error'
-                            ? 'error'
-                            : info.status === null
-                              ? 'result captured'
-                              : `exit ${info.status}`}{' '}
-                          · {info.size} {info.size === 1 ? 'line' : 'lines'}
-                        </span>
-                        <span className="shrink-0">shown in #{call.number} ↑</span>
-                      </button>
+                      />
                     </div>
                   )
                 }
                 return (
-                  <div className="session-sent-strip" key={`${part.kind}-${index}-${filters.results}`}>
-                    <span>SENT</span>
-                    <ResultBlock
-                      key={`${part.kind}-${index}-${filters.results}`}
-                      location={location}
-                      call={filters.tools ? pair?.call : undefined}
-                      expanded={filters.results}
-                      highlighted={Boolean(part.id && hovered === part.id)}
-                      onHover={setHovered}
-                    />
+                  <div id={partId(location, 'result')} key={`${part.kind}-${index}`}>
+                    <SessionEntry
+                      kind="sent"
+                      initiallyOpen={filters.results}
+                      summary={<>tool result · {part.text.split('\n').length} lines</>}
+                    >
+                      <ResultText lines={part.text.split('\n')} />
+                    </SessionEntry>
                   </div>
                 )
               }
@@ -291,33 +283,36 @@ export function SessionSplitTimeline({
                     expanded={false}
                     time={request.startedAt}
                     hideRaw
+                    glyph
                     truncated={false}
                   />
                 )
               }
               return (
-                <div className="session-sent-strip" key={`${part.kind}-${index}`}>
-                  <span>SENT</span>
+                <div key={`${part.kind}-${index}`}>
                   <TranscriptItem
                     part={part}
                     expanded={filters.thinking}
                     time={request.startedAt}
                     hideRaw
+                    glyph
                     truncated={false}
                   />
                 </div>
               )
             })}
             {missingInput ? (
-              <div className="session-sent-strip">
-                <span>SENT</span>
-                <div className="session-input-missing">
-                  ▲ input not captured ·{' '}
-                  {request.payloads.requestBody
-                    ? 'new messages are past the capture limit'
-                    : 'request body unavailable'}
-                </div>
-              </div>
+              <SessionEntry
+                kind="sent"
+                summary={
+                  <>
+                    ▲ input not captured ·{' '}
+                    {request.payloads.requestBody
+                      ? 'new messages are past the capture limit'
+                      : 'request body unavailable'}
+                  </>
+                }
+              />
             ) : null}
             {exchange.responseParts.map((part, index) => {
               if ((part.kind === 'message' && !filters.messages) || (part.kind === 'tool' && !filters.tools))
@@ -354,6 +349,7 @@ export function SessionSplitTimeline({
                   expanded={filters.thinking}
                   time={request.startedAt}
                   hideRaw
+                  glyph
                   truncated={index === lastResponseMessage && warningLines.some((line) => line.kind === 'response')}
                 />
               )
@@ -463,72 +459,9 @@ export function SessionSplitTimeline({
   )
 }
 
-const ResultBlock = memo(
-  function ResultBlock({
-    location,
-    call,
-    expanded,
-    highlighted,
-    onHover,
-  }: {
-    location: Location
-    call?: Location
-    expanded: boolean
-    highlighted: boolean
-    onHover: (id: string | null) => void
-  }) {
-    const [open, setOpen] = useState<boolean | null>(null)
-    const isOpen = open ?? expanded
-    const lines = useMemo(() => location.part.text.split('\n'), [location.part.text])
-    const animate = lines.length <= 120 && location.part.text.length <= 15_000
-    return (
-      <div
-        id={partId(location, 'result')}
-        className={`session-result ${animate ? 't-acc' : ''} ${highlighted ? 'is-linked' : ''}`}
-        data-open={isOpen}
-        onMouseEnter={() => onHover(location.part.id ?? null)}
-        onMouseLeave={() => onHover(null)}
-      >
-        <div className="flex min-w-0 items-center gap-2 px-2 py-1 font-mono text-[10px] text-fg-dim">
-          <span className="min-w-0 flex-1 truncate">
-            ↳ {call?.part.name ?? location.part.name ?? 'tool'} · {lines[0] || '(empty result)'} · {lines.length}{' '}
-            {lines.length === 1 ? 'line' : 'lines'}
-          </span>
-          {call ? (
-            <button type="button" className="session-link-chip-static" onClick={() => jumpToPart(call, 'call')}>
-              ← #{call.number}
-            </button>
-          ) : null}
-          <button type="button" className="ml-auto text-info" aria-expanded={isOpen} onClick={() => setOpen(!isOpen)}>
-            {isOpen ? 'collapse' : 'expand'}
-          </button>
-        </div>
-        {animate ? (
-          <div className="t-acc-panel" aria-hidden={!isOpen} inert={!isOpen}>
-            <div className="t-acc-panel-inner">
-              <ResultText lines={lines} />
-            </div>
-          </div>
-        ) : isOpen ? (
-          <ResultText lines={lines} />
-        ) : null}
-      </div>
-    )
-  },
-  (previous, next) =>
-    previous.location.part === next.location.part &&
-    previous.location.requestId === next.location.requestId &&
-    previous.location.number === next.location.number &&
-    previous.location.index === next.location.index &&
-    previous.call === next.call &&
-    previous.expanded === next.expanded &&
-    previous.highlighted === next.highlighted &&
-    previous.onHover === next.onHover,
-)
-
 function ResultText({ lines }: { lines: string[] }) {
   return (
-    <pre className="m-0 overflow-auto whitespace-pre-wrap break-words border-t border-border p-2 font-mono text-[10px] text-fg-dim">
+    <pre className="m-0 overflow-auto whitespace-pre-wrap break-words font-mono text-[10px] text-fg-dim">
       {lines.map((line, index) => (
         <span
           key={`${index}-${line}`}

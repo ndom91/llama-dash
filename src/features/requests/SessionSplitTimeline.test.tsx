@@ -39,12 +39,40 @@ it('renders a single user header with the timestamp alongside it', () => {
   const item = exchange(1, [{ kind: 'message', role: 'user', text: 'Hello' }], [])
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
   const message = screen.getByText('Hello')
-  const body = message.closest('.border-l')!
+  const body = message.closest('.session-entry-body')!
   const header = body.previousElementSibling
   expect(header?.textContent).toContain('user')
   expect(header?.querySelector('time')?.className).not.toContain('ml-auto')
-  expect(body.className).toContain('border-l')
+  expect(body.className).toContain('session-entry-body')
   expect(view.container.querySelector('.session-sent-strip')).toBeNull()
+})
+
+it('uses aligned glyph entries and toggles user, thinking and assistant bodies', () => {
+  const item = exchange(
+    1,
+    [{ kind: 'message', role: 'user', text: 'User body' }],
+    [
+      { kind: 'thinking', role: 'assistant', text: 'Thinking body' },
+      { kind: 'message', role: 'assistant', text: 'Assistant body' },
+      { kind: 'tool', role: 'assistant', name: 'Bash', text: 'pwd' },
+    ],
+  )
+  const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  const entries = view.container.querySelectorAll('.session-conversation .session-entry')
+  expect(entries).toHaveLength(4)
+  for (const entry of entries) expect(entry.querySelector('.session-entry-tile svg')).toBeTruthy()
+  const user = screen.getByRole('button', { name: /^user / })
+  const assistant = screen.getByRole('button', { name: /^assistant / })
+  const thinking = screen.getByRole('button', { name: /^thinking / })
+  expect(user.getAttribute('aria-expanded')).toBe('true')
+  expect(assistant.getAttribute('aria-expanded')).toBe('true')
+  expect(thinking.getAttribute('aria-expanded')).toBe('false')
+  fireEvent.click(user)
+  fireEvent.click(assistant)
+  fireEvent.click(thinking)
+  expect(screen.queryByText('User body')).toBeNull()
+  expect(screen.queryByText('Assistant body')).toBeNull()
+  expect(view.container.querySelector('.session-entry-thinking .session-entry-body')?.textContent).toBe('Thinking body')
 })
 
 it('collapses long user messages while keeping their full text available to copy', async () => {
@@ -101,6 +129,7 @@ it('places each input result immediately after its matching call', () => {
     [],
   )
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
+  for (const button of view.getAllByRole('button', { name: /sent tool result/ })) fireEvent.click(button)
   const text = view.container.querySelector('.session-conversation')!.textContent!
   expect(text.indexOf('file-a')).toBeLessThan(text.indexOf('contents-a'))
   expect(text.indexOf('contents-a')).toBeLessThan(text.indexOf('file-b'))
@@ -145,7 +174,7 @@ it('pairs tool results in the call card and links back from a collapsed run', as
   Element.prototype.scrollIntoView = scroll
   const view = render(<SessionSplitTimeline exchanges={rows} filters={filters} activeId="req1" />)
   expect(screen.queryByText('five')).toBeNull()
-  fireEvent.click(screen.getByText('Bash').closest('summary')!)
+  fireEvent.click(screen.getByRole('button', { name: /tool Bash/ }))
   expect(await screen.findByText(/returned in #2/)).toBeTruthy()
   expect(screen.queryByText('five')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'expand' }))
@@ -186,7 +215,7 @@ it('shows parsed commands, result status, elapsed time and an expandable output 
   expect(row.textContent).toContain('exit 0')
   expect(row.textContent).toContain('600ms')
   expect(row.textContent).toContain('5 lines')
-  fireEvent.click(screen.getByText('exec').closest('summary')!)
+  fireEvent.click(screen.getByRole('button', { name: /tool exec/ }))
   expect(await screen.findByText(/returned in #2/)).toBeTruthy()
   expect(screen.getByText('one')).toBeTruthy()
   expect(screen.queryByText('five')).toBeNull()
@@ -227,11 +256,11 @@ it('lets the global result filter override a manual toggle', () => {
   const result = { kind: 'result', role: 'tool', text: 'one\ntwo\nthree\nfour\nfive' } as const
   const item = exchange(1, [result], [])
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
-  fireEvent.click(screen.getByRole('button', { name: 'expand' }))
+  fireEvent.click(screen.getByRole('button', { name: /sent tool result/ }))
   expect(screen.getByText('five')).toBeTruthy()
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: true }} activeId={null} />)
-  fireEvent.click(screen.getByRole('button', { name: 'collapse' }))
-  expect(screen.getByText('five').closest('[aria-hidden="true"]')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: /sent tool result/ }))
+  expect(screen.queryByText('five')).toBeNull()
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: false }} activeId={null} />)
   view.rerender(<SessionSplitTimeline exchanges={[item]} filters={{ ...filters, results: true }} activeId={null} />)
   expect(screen.getByText('five')).toBeTruthy()
@@ -247,7 +276,7 @@ it('keeps very large result content unmounted until expanded', () => {
     <SessionSplitTimeline exchanges={[exchange(1, [result], [])]} filters={filters} activeId={null} />,
   )
   expect(screen.queryByText('line-120')).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: 'expand' }))
+  fireEvent.click(screen.getByRole('button', { name: /sent tool result/ }))
   expect(screen.getByText('line-120')).toBeTruthy()
   expect(view.container.querySelector('.session-result.t-acc')).toBeNull()
 })

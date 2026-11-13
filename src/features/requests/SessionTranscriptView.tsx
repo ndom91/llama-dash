@@ -4,6 +4,8 @@ import { memo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
+import { SessionEntry } from './SessionEntry'
+import { SessionToolCard } from './SessionToolCard'
 import { SessionMessageClamp } from './SessionMessageClamp'
 import { SessionCollapsedRun } from './SessionCollapsedRun'
 import {
@@ -411,6 +413,7 @@ export const TranscriptItem = memo(function TranscriptItem({
   onOpen,
   truncated,
   hideRaw = false,
+  glyph = false,
 }: {
   part: TranscriptPart
   result?: TranscriptPart
@@ -419,8 +422,25 @@ export const TranscriptItem = memo(function TranscriptItem({
   onOpen?: () => void
   truncated: boolean
   hideRaw?: boolean
+  glyph?: boolean
 }) {
   if (part.kind === 'thinking') {
+    if (glyph)
+      return (
+        <SessionEntry
+          kind="thinking"
+          initiallyOpen={expanded}
+          summary={
+            <>
+              ~{formatCompactNumber(Math.ceil(part.text.length / 4))} tok · <i>{part.text.split('\n')[0]}</i>
+            </>
+          }
+        >
+          <div className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-[13px] italic leading-relaxed text-fg-dim">
+            {part.text}
+          </div>
+        </SessionEntry>
+      )
     return (
       <details open={expanded || undefined} className="min-w-0">
         <summary className="cursor-pointer py-1 font-mono text-[10px] text-fg-faint marker:text-fg-faint">
@@ -436,6 +456,8 @@ export const TranscriptItem = memo(function TranscriptItem({
     )
   }
   if (part.kind === 'tool' || part.kind === 'result') {
+    if (glyph && part.kind === 'tool')
+      return <SessionToolCard part={part} result={result} expanded={expanded} incomplete={false} />
     const name = part.name?.startsWith('mcp__') ? `mcp · ${part.name.slice(5).replace('__', ' · ')}` : part.name
     if (onOpen)
       return (
@@ -477,7 +499,22 @@ export const TranscriptItem = memo(function TranscriptItem({
     )
   }
   if (part.role !== 'user')
-    return <SessionAssistantMessage text={part.text} time={time} truncated={truncated} hideRaw={hideRaw} />
+    return (
+      <SessionAssistantMessage text={part.text} time={time} truncated={truncated} hideRaw={hideRaw} glyph={glyph} />
+    )
+  if (glyph)
+    return (
+      <SessionEntry
+        kind="user"
+        initiallyOpen
+        meta={<time title="Request start time">{new Date(time).toLocaleTimeString()}</time>}
+        actions={<CopyButton text={part.text} variant="icon" ariaLabel="Copy user message" />}
+      >
+        <SessionMessageClamp text={part.text}>
+          <div className="session-user-message whitespace-pre-wrap break-words text-sm text-fg">{part.text}</div>
+        </SessionMessageClamp>
+      </SessionEntry>
+    )
   return (
     <div className="min-w-0">
       <div className="mb-1.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-fg-faint">

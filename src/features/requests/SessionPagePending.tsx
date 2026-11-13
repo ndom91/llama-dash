@@ -76,17 +76,21 @@ export function SessionExchangeSkeleton() {
           <SkeletonLine width={75} height={5} />
           <SkeletonLine width={55} height={10} />
         </div>
-        <div className="session-conversation flex min-w-0 flex-col gap-3">
-          <div className="session-sent-strip">
-            <SkeletonLine width={28} height={9} />
-            <SkeletonLine width="100%" height={30} />
-          </div>
-          <SkeletonLine width={120} height={10} />
-          <div className="space-y-2 border-l border-border pl-5">
-            <SkeletonLine width="72%" height={12} className="max-w-full" />
-            <SkeletonLine width="55%" height={12} className="max-w-full" />
-          </div>
-          <SkeletonLine width="100%" height={32} />
+        <div className="session-conversation flex min-w-0 flex-col gap-2">
+          {['sent', 'thinking', 'assistant', 'tool'].map((kind) => (
+            <div key={kind} className="session-entry">
+              <SkeletonLine width={20} height={20} />
+              <div className="min-w-0 space-y-2">
+                <SkeletonLine width={kind === 'tool' ? '60%' : 120} height={10} />
+                {kind === 'assistant' ? (
+                  <div className="space-y-2 border-l border-border-strong pl-3.5">
+                    <SkeletonLine width="72%" height={12} />
+                    <SkeletonLine width="55%" height={12} />
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ))}
           <SkeletonLine width={65} height={18} className="ml-auto" />
         </div>
       </div>
