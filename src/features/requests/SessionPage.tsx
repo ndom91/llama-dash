@@ -632,7 +632,7 @@ function SessionRail({
   const body = (
     <div className="font-mono text-[11px] text-fg-dim">
       <section className={`border-b border-border p-4 ${mobileTab && mobileTab !== 'session' ? 'hidden' : ''}`}>
-        <div className="mb-3 text-[10px] uppercase tracking-wider text-fg-faint">
+        <div className="mb-3 text-[10px] uppercase tracking-wider text-accent">
           Session {incomplete ? '· loaded requests' : ''}
         </div>
         {[
@@ -666,7 +666,7 @@ function SessionRail({
             key={label}
             className="flex justify-between gap-3 border-b border-dashed border-border py-1.5 last:border-0"
           >
-            <span>{label}</span>
+            <span className="text-accent">{label}</span>
             <span
               className={`min-w-0 truncate text-right ${label === 'input captured' && inputsCaptured < mainExchanges.length ? 'text-warn' : 'text-fg'}`}
               title={
@@ -699,7 +699,7 @@ function SessionRail({
                 target.scrollIntoView({ block: 'start' })
                 onSelect(request.id)
               }}
-              className={`flex items-center gap-2 no-underline hover:text-fg ${activeId === request.id ? 'font-semibold text-fg' : ''}`}
+              className={`flex items-center gap-2 no-underline hover:text-fg ${activeId === request.id ? 'font-semibold text-fg' : 'text-fg-dim'}`}
             >
               <span className="w-6">#{number}</span>
               <span className="h-1.5 min-w-0 flex-1 bg-surface-2">
