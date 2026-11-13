@@ -36,7 +36,7 @@ export function SessionPagePending() {
                 <SkeletonLine width={65} height={9} />
               </span>
               <span>
-                <SkeletonLine width={190} height={9} />
+                <SkeletonLine width={90} height={9} />
               </span>
             </div>
             <SessionExchangeSkeleton />

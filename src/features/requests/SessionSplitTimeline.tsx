@@ -187,11 +187,9 @@ export function SessionSplitTimeline({
           id={`session-${request.id}`}
           data-session-request={request.id}
           aria-label={`Request ${number}`}
-          className={`session-split-row ${activeId === request.id ? 'is-active' : ''} ${reason === 'end_turn' || reason === 'stop' ? 'is-final' : ''}`}
+          className={`session-split-row ${activeId === request.id ? 'is-active' : ''}`}
         >
-          <div
-            className={`session-split-meta ${reason === 'tool_use' || reason === 'tool_calls' || reason === 'function_call' ? 'is-tool' : reason === 'end_turn' || reason === 'stop' ? 'is-end' : ''}`}
-          >
+          <div className="session-split-meta">
             <Link to="/requests/$id" params={{ id: request.id }} className="text-sm font-semibold text-info">
               #{number}
             </Link>
@@ -385,12 +383,7 @@ export function SessionSplitTimeline({
     <div className="session-split-timeline">
       <div className="session-split-heading">
         <span>Request</span>
-        <span>
-          Conversation{' '}
-          <span className="session-legend">
-            <i /> sent to model <b /> model response
-          </span>
-        </span>
+        <span>Conversation</span>
       </div>
       {groups.map((group) =>
         group[0].side ? (

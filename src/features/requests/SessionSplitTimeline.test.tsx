@@ -203,8 +203,7 @@ it('shows unmatched calls and captured stop reasons', () => {
   const view = render(<SessionSplitTimeline exchanges={[item]} filters={filters} activeId={null} />)
   expect(screen.getByText('no result captured')).toBeTruthy()
   expect(screen.getByText(/end_turn/)).toBeTruthy()
-  expect(view.container.querySelector('.is-final')).toBeTruthy()
-  expect(view.container.querySelector('.session-split-meta.is-end')).toBeTruthy()
+  expect(view.container.querySelector('.session-stop-badge.is-end')).toBeTruthy()
 })
 
 it('marks tool-call metadata for Anthropic and OpenAI stop reasons', () => {
@@ -213,7 +212,7 @@ it('marks tool-call metadata for Anthropic and OpenAI stop reasons', () => {
   const openai = exchange(2, [], [])
   openai.request.payloads.responseBody = '{"choices":[{"finish_reason":"tool_calls"}]}'
   const view = render(<SessionSplitTimeline exchanges={[anthropic, openai]} filters={filters} activeId={null} />)
-  expect(view.container.querySelectorAll('.session-split-meta.is-tool')).toHaveLength(2)
+  expect(view.container.querySelectorAll('.session-stop-badge')).toHaveLength(2)
 })
 
 it('distinguishes unloaded results from missing results', () => {
