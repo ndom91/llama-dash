@@ -2320,7 +2320,8 @@ a {
 .session-mobile-sheet:modal, dialog[aria-label='Session detail']:modal { overscroll-behavior: contain; }
 
 /* Markdown in session transcripts: restore structure removed by preflight. */
-.session-md { max-width: 72ch; color: var(--fg); font-size: 0.84375rem; line-height: 1.65; overflow-wrap: anywhere; }
+.session-prose { font-family: var(--font-sans); font-size: 0.8125rem; line-height: 1.6; }
+.session-md { max-width: 72ch; color: var(--fg); overflow-wrap: anywhere; }
 .session-md > * + * { margin-top: 10px; }
 .session-md strong { color: var(--fg); font-weight: 600; }
 .session-md a { color: var(--info); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 2px; }

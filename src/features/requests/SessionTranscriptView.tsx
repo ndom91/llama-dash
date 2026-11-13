@@ -511,7 +511,7 @@ export const TranscriptItem = memo(function TranscriptItem({
         actions={<CopyButton text={part.text} variant="icon" ariaLabel="Copy user message" />}
       >
         <SessionMessageClamp text={part.text}>
-          <div className="session-user-message whitespace-pre-wrap break-words text-sm text-fg">{part.text}</div>
+          <div className="session-user-message session-prose whitespace-pre-wrap break-words text-fg">{part.text}</div>
         </SessionMessageClamp>
       </SessionEntry>
     )
@@ -527,7 +527,7 @@ export const TranscriptItem = memo(function TranscriptItem({
       </div>
       <div className="ml-0.5 min-w-0 border-l border-border-strong pl-5">
         <SessionMessageClamp text={part.text}>
-          <div className="session-user-message rounded border border-border bg-surface-1 px-3 py-3 text-sm whitespace-pre-wrap break-words text-fg">
+          <div className="session-user-message session-prose rounded border border-border bg-surface-1 px-3 py-3 whitespace-pre-wrap break-words text-fg">
             {part.text}
           </div>
         </SessionMessageClamp>

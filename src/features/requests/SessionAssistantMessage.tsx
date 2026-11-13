@@ -40,7 +40,7 @@ export const SessionAssistantMessage = memo(function SessionAssistantMessage({
   const [raw, setRaw] = useState(false)
   const message = (
     <SessionMessageClamp text={text}>
-      <div className="session-md">
+      <div className="session-md session-prose">
         {raw ? (
           <pre className="session-message-source">{text}</pre>
         ) : (
