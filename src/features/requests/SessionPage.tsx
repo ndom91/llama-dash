@@ -482,7 +482,7 @@ export function SessionPage({ id }: { id: string }) {
                   </div>
                 ) : null}
                 {query.hasNextPage ? (
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-surface-0 px-4 py-3 md:px-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-0 px-4 py-3 max-md:border-t max-md:border-border md:border-l-[3px] md:border-l-border-strong md:px-5">
                     <div className="min-w-0">
                       <div className="text-xs font-medium text-fg">More requests available</div>
                       <div className="mt-1 font-mono text-[10px] text-fg-dim">
