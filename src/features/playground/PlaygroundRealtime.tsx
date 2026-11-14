@@ -79,6 +79,13 @@ export function PlaygroundRealtime() {
         setVadSilenceMs={rt.setVadSilenceMs}
         instructions={rt.instructions}
         setInstructions={rt.setInstructions}
+        inputDevices={rt.inputDevices}
+        inputDeviceId={rt.inputDeviceId}
+        setInputDeviceId={rt.setInputDeviceId}
+        voiceProcessing={rt.voiceProcessing}
+        setVoiceProcessing={rt.setVoiceProcessing}
+        micLabel={rt.micLabel}
+        inputLevel={rt.inputLevel}
       />
 
       <section className="panel !rounded-none !border-t-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden !border-b-0 !border-l-0 !border-r border-r-border !bg-surface-0">

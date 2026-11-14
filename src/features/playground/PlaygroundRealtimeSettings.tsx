@@ -6,9 +6,11 @@ import {
   DEFAULT_REALTIME_INSTRUCTIONS,
   DEFAULT_VAD_SILENCE_MS,
   DEFAULT_VAD_THRESHOLD,
+  type RealtimeInputDevice,
   type RealtimeStatus,
   type RealtimeTurnMode,
 } from '../../lib/use-playground-realtime'
+import { PlaygroundRealtimeMicrophone } from './PlaygroundRealtimeMicrophone'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
 import { PlaygroundSlider } from './PlaygroundSlider'
 import { splitRealtimeModels } from './playgroundRealtimeUtils'
@@ -33,6 +35,13 @@ type Props = {
   setVadSilenceMs: (value: number) => void
   instructions: string
   setInstructions: (value: string) => void
+  inputDevices: Array<RealtimeInputDevice>
+  inputDeviceId: string
+  setInputDeviceId: (value: string) => void
+  voiceProcessing: boolean
+  setVoiceProcessing: (value: boolean) => void
+  micLabel: string | null
+  inputLevel: number
 }
 
 export function PlaygroundRealtimeSettings({
@@ -50,6 +59,13 @@ export function PlaygroundRealtimeSettings({
   setVadSilenceMs,
   instructions,
   setInstructions,
+  inputDevices,
+  inputDeviceId,
+  setInputDeviceId,
+  voiceProcessing,
+  setVoiceProcessing,
+  micLabel,
+  inputLevel,
 }: Props) {
   const { audio, other } = splitRealtimeModels(models)
   const live = status === 'connected' || status === 'connecting'
@@ -118,6 +134,16 @@ export function PlaygroundRealtimeSettings({
           </p>
         ) : null}
       </PlaygroundSessionSection>
+
+      <PlaygroundRealtimeMicrophone
+        devices={inputDevices}
+        deviceId={inputDeviceId}
+        setDeviceId={setInputDeviceId}
+        voiceProcessing={voiceProcessing}
+        setVoiceProcessing={setVoiceProcessing}
+        micLabel={micLabel}
+        inputLevel={inputLevel}
+      />
 
       <PlaygroundSessionSection label="turns">
         <fieldset className="m-0 flex min-w-0 rounded border border-border bg-surface-2 p-0.5">

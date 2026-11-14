@@ -29,6 +29,8 @@ const LS_INSTRUCTIONS = 'playground-realtime-instructions'
 const LS_MODE = 'playground-realtime-mode'
 const LS_VAD_THRESHOLD = 'playground-realtime-vad-threshold'
 const LS_VAD_SILENCE = 'playground-realtime-vad-silence-ms'
+const LS_INPUT_DEVICE = 'playground-realtime-input-device'
+const LS_VOICE_PROCESSING = 'playground-realtime-voice-processing'
 
 export const DEFAULT_REALTIME_INSTRUCTIONS = 'Respond with interleaved text and audio.'
 export const DEFAULT_VAD_THRESHOLD = 0.02
@@ -78,6 +80,8 @@ registerProcessor('${WORKLET_NAME}', LlamaDashRealtimeCapture)
 `
 
 export type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'error'
+
+export type RealtimeInputDevice = { deviceId: string; label: string }
 export type RealtimeTurnMode = 'push-to-talk' | 'hands-free'
 export type RealtimeMicState = 'off' | 'starting' | 'live' | 'blocked'
 export type RealtimeMicSupport = 'unknown' | 'ok' | 'insecure' | 'unsupported'
@@ -147,6 +151,8 @@ type Connection = {
   inputRate: number
   outputRate: number
   stream: MediaStream | null
+  /** registerProcessor throws on a second load in the same AudioContext. */
+  workletLoaded: boolean
   nodes: Array<AudioNode>
   resampler: StreamResampler | null
   playhead: number
@@ -175,6 +181,10 @@ type Settings = {
   vadThreshold: number
   vadSilenceMs: number
   listening: boolean
+  /** Empty string means the system default input. */
+  inputDeviceId: string
+  /** Browser echo cancellation, noise suppression and auto gain. */
+  voiceProcessing: boolean
 }
 
 type Ui = {
@@ -182,6 +192,8 @@ type Ui = {
   setError: Dispatch<SetStateAction<string | null>>
   setMicState: Dispatch<SetStateAction<RealtimeMicState>>
   setMicError: Dispatch<SetStateAction<string | null>>
+  setMicLabel: Dispatch<SetStateAction<string | null>>
+  setInputDevices: Dispatch<SetStateAction<Array<RealtimeInputDevice>>>
   setSession: Dispatch<SetStateAction<RealtimeSession | null>>
   setTiming: Dispatch<SetStateAction<RealtimeTiming>>
   setTurns: Dispatch<SetStateAction<Array<RealtimeTurn>>>
@@ -212,6 +224,10 @@ export function usePlaygroundRealtime() {
     loadNumber(LS_VAD_SILENCE, DEFAULT_VAD_SILENCE_MS, 200, 3000),
   )
   const [listening, setListening] = useState(true)
+  const [inputDeviceId, setInputDeviceIdState] = useState(() => loadString(LS_INPUT_DEVICE, ''))
+  const [voiceProcessing, setVoiceProcessingState] = useState(() => loadString(LS_VOICE_PROCESSING, 'on') !== 'off')
+  const [inputDevices, setInputDevices] = useState<Array<RealtimeInputDevice>>([])
+  const [micLabel, setMicLabel] = useState<string | null>(null)
 
   const [status, setStatus] = useState<RealtimeStatus>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -229,15 +245,33 @@ export function usePlaygroundRealtime() {
 
   const { loadApiKey, refreshApiKey } = usePlaygroundApiKey()
   const apiKeyRef = useRef<ApiKeyFns>({ loadApiKey, refreshApiKey })
-  const settingsRef = useRef<Settings>({ model, instructions, mode, vadThreshold, vadSilenceMs, listening })
+  const settingsRef = useRef<Settings>({
+    model,
+    instructions,
+    mode,
+    vadThreshold,
+    vadSilenceMs,
+    listening,
+    inputDeviceId,
+    voiceProcessing,
+  })
 
   useEffect(() => {
     apiKeyRef.current = { loadApiKey, refreshApiKey }
   }, [loadApiKey, refreshApiKey])
 
   useEffect(() => {
-    settingsRef.current = { model, instructions, mode, vadThreshold, vadSilenceMs, listening }
-  }, [model, instructions, mode, vadThreshold, vadSilenceMs, listening])
+    settingsRef.current = {
+      model,
+      instructions,
+      mode,
+      vadThreshold,
+      vadSilenceMs,
+      listening,
+      inputDeviceId,
+      voiceProcessing,
+    }
+  }, [model, instructions, mode, vadThreshold, vadSilenceMs, listening, inputDeviceId, voiceProcessing])
 
   useEffect(() => {
     setMicSupport(detectMicSupport())
@@ -250,6 +284,8 @@ export function usePlaygroundRealtime() {
         setError,
         setMicState,
         setMicError,
+        setMicLabel,
+        setInputDevices,
         setSession,
         setTiming,
         setTurns,
@@ -265,6 +301,37 @@ export function usePlaygroundRealtime() {
   )
 
   useEffect(() => () => controller.dispose(), [controller])
+
+  // Device labels stay empty until mic permission is granted; the list is
+  // refreshed again once the mic goes live.
+  useEffect(() => {
+    const media = navigator.mediaDevices
+    if (!media?.enumerateDevices) return
+    void controller.refreshInputDevices()
+    const onChange = () => void controller.refreshInputDevices()
+    media.addEventListener('devicechange', onChange)
+    return () => media.removeEventListener('devicechange', onChange)
+  }, [controller])
+
+  const setInputDeviceId = useCallback(
+    (value: string) => {
+      setInputDeviceIdState(value)
+      localStorage.setItem(LS_INPUT_DEVICE, value)
+      settingsRef.current = { ...settingsRef.current, inputDeviceId: value }
+      controller.restartMic()
+    },
+    [controller],
+  )
+
+  const setVoiceProcessing = useCallback(
+    (value: boolean) => {
+      setVoiceProcessingState(value)
+      localStorage.setItem(LS_VOICE_PROCESSING, value ? 'on' : 'off')
+      settingsRef.current = { ...settingsRef.current, voiceProcessing: value }
+      controller.restartMic()
+    },
+    [controller],
+  )
 
   const setModel = useCallback((value: string) => {
     setModelState(value)
@@ -313,6 +380,12 @@ export function usePlaygroundRealtime() {
     setVadSilenceMs,
     listening,
     toggleListening,
+    inputDeviceId,
+    setInputDeviceId,
+    inputDevices,
+    voiceProcessing,
+    setVoiceProcessing,
+    micLabel,
     status,
     error,
     micState,
@@ -426,6 +499,7 @@ function createRealtimeController(
       inputRate: DEFAULT_INPUT_RATE,
       outputRate: DEFAULT_OUTPUT_RATE,
       stream: null,
+      workletLoaded: false,
       nodes: [],
       resampler: null,
       playhead: 0,
@@ -531,13 +605,7 @@ function createRealtimeController(
     prerollSamples = 0
     vad.reset()
 
-    for (const node of target.nodes) {
-      if (node instanceof AudioWorkletNode) node.port.onmessage = null
-      node.disconnect()
-    }
-    target.nodes = []
-    for (const track of target.stream?.getTracks() ?? []) track.stop()
-    target.stream = null
+    stopMic(target)
     stopPlayback(target)
     void target.ctx.close().catch(() => {})
     if (target.ws) {
@@ -786,20 +854,24 @@ function createRealtimeController(
     }
     ui.setMicState('starting')
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      })
+      const stream = await openMicStream()
       if (conn !== target) {
         for (const track of stream.getTracks()) track.stop()
         return
       }
       target.stream = stream
+      const label = stream.getAudioTracks()[0]?.label || null
+      ui.setMicLabel(label)
+      void refreshInputDevices()
 
-      const moduleUrl = URL.createObjectURL(new Blob([WORKLET_SOURCE], { type: 'text/javascript' }))
-      try {
-        await target.ctx.audioWorklet.addModule(moduleUrl)
-      } finally {
-        URL.revokeObjectURL(moduleUrl)
+      if (!target.workletLoaded) {
+        const moduleUrl = URL.createObjectURL(new Blob([WORKLET_SOURCE], { type: 'text/javascript' }))
+        try {
+          await target.ctx.audioWorklet.addModule(moduleUrl)
+          target.workletLoaded = true
+        } finally {
+          URL.revokeObjectURL(moduleUrl)
+        }
       }
       if (conn !== target) return
 
@@ -820,13 +892,70 @@ function createRealtimeController(
       target.resampler = new StreamResampler(target.ctx.sampleRate, target.inputRate)
       worklet.port.onmessage = (message: MessageEvent<Float32Array>) => onMicFrame(target, message.data)
       ui.setMicState('live')
-      logEvent('local', 'mic.live', `${target.ctx.sampleRate} Hz → ${target.inputRate} Hz`)
+      logEvent('local', 'mic.live', `${label ?? 'microphone'} · ${target.ctx.sampleRate} Hz → ${target.inputRate} Hz`)
     } catch (err) {
       if (conn !== target) return
       const message = micErrorMessage(err)
       ui.setMicState('blocked')
       ui.setMicError(message)
       logEvent('local', 'mic.error', message)
+    }
+  }
+
+  async function openMicStream(): Promise<MediaStream> {
+    const { inputDeviceId, voiceProcessing } = settingsRef.current
+    const base: MediaTrackConstraints = {
+      channelCount: 1,
+      echoCancellation: voiceProcessing,
+      noiseSuppression: voiceProcessing,
+      autoGainControl: voiceProcessing,
+    }
+    if (!inputDeviceId) return navigator.mediaDevices.getUserMedia({ audio: base })
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: { ...base, deviceId: { exact: inputDeviceId } } })
+    } catch (err) {
+      // A saved device that was unplugged shouldn't block the session.
+      const name = err instanceof DOMException ? err.name : ''
+      if (name !== 'OverconstrainedError' && name !== 'NotFoundError') throw err
+      logEvent('local', 'mic.fallback', 'selected input not found, using the system default')
+      return navigator.mediaDevices.getUserMedia({ audio: base })
+    }
+  }
+
+  function stopMic(target: Connection) {
+    for (const node of target.nodes) {
+      if (node instanceof AudioWorkletNode) node.port.onmessage = null
+      node.disconnect()
+    }
+    target.nodes = []
+    for (const track of target.stream?.getTracks() ?? []) track.stop()
+    target.stream = null
+    target.resampler = null
+    ui.setMicLabel(null)
+  }
+
+  // Applies a new input device or processing setting to a live session.
+  function restartMic() {
+    const target = conn
+    if (!target?.stream) return
+    cancelTurn()
+    stopMic(target)
+    ui.setInputLevel(0)
+    void startMic(target)
+  }
+
+  async function refreshInputDevices() {
+    const media = navigator.mediaDevices
+    if (!media?.enumerateDevices) return
+    try {
+      const devices = await media.enumerateDevices()
+      ui.setInputDevices(
+        devices
+          .filter((device) => device.kind === 'audioinput' && device.deviceId && device.deviceId !== 'default')
+          .map((device) => ({ deviceId: device.deviceId, label: device.label })),
+      )
+    } catch {
+      ui.setInputDevices([])
     }
   }
 
@@ -1009,6 +1138,8 @@ function createRealtimeController(
     sendText,
     clearTurns,
     clearEvents,
+    restartMic,
+    refreshInputDevices,
     dispose,
   }
 }
