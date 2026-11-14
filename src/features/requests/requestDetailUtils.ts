@@ -137,9 +137,15 @@ export type ResponseAnalysis = {
   isSse: boolean
 }
 
+/** True when the body starts like an SSE stream (`event:` / `data:` fields near the top). */
+export function looksLikeSse(body: string): boolean {
+  return /^(?:event|data):/m.test(body.slice(0, 128))
+}
+
 export function analyzeResponse(responseBody: string | null, streamed: boolean): ResponseAnalysis {
   if (!responseBody) return { displayBody: '', isJson: false, isSse: false }
-  if (!streamed) {
+  // Streamed is not always SSE: WebSocket sessions (/v1/realtime) log a JSON summary of event counts.
+  if (!streamed || !looksLikeSse(responseBody)) {
     const trimmed = responseBody.trimStart()
     return {
       displayBody: responseBody,

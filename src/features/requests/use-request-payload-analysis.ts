@@ -24,8 +24,8 @@ export function useRequestPayloadAnalysis(
     [payloads?.responseBody, streamed],
   )
   const parsedSse = useMemo(
-    () => (streamed && payloads?.responseBody ? parseSseStream(payloads.responseBody) : null),
-    [payloads?.responseBody, streamed],
+    () => (responseAnalysis.isSse ? parseSseStream(responseAnalysis.displayBody) : null),
+    [responseAnalysis],
   )
   const timing = useMemo(() => {
     const fallback = streamed

@@ -6,7 +6,7 @@ import { byteSize } from './requestDetailUtils'
 import type { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 
 type Props = {
-  request: Pick<ApiRequestMetadata, 'id' | 'streamed' | 'promptTokens' | 'completionTokens'>
+  request: Pick<ApiRequestMetadata, 'id' | 'promptTokens' | 'completionTokens'>
   state: RequestPayloadState
   analysis: ReturnType<typeof useRequestPayloadAnalysis>
   onRetry: () => void
@@ -54,7 +54,7 @@ export function RequestPayloadsPanel({ request, state, analysis, onRetry }: Prop
               <RequestPayloadPane
                 key={`${request.id}-response`}
                 title="Response"
-                subtitle={`${request.streamed ? 'SSE' : 'body'} • ${byteSize(state.data.responseBody ?? '')} • ${request.completionTokens?.toLocaleString() ?? '—'} tok`}
+                subtitle={`${responseAnalysis.isSse ? 'SSE' : 'body'} • ${byteSize(state.data.responseBody ?? '')} • ${request.completionTokens?.toLocaleString() ?? '—'} tok`}
                 body={responseAnalysis.displayBody}
                 headers={resHeaders}
                 mode={responseAnalysis.isSse ? 'sse' : responseAnalysis.isJson ? 'pretty' : 'raw'}

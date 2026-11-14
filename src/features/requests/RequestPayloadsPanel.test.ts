@@ -10,7 +10,7 @@ function Panel({ state, onRetry = () => {} }: { state: RequestPayloadState; onRe
   const data = state.status === 'loading' ? undefined : state.data
   const analysis = useRequestPayloadAnalysis(data, false, null)
   return createElement(RequestPayloadsPanel, {
-    request: { id: 'req_fixture', streamed: false, promptTokens: 2, completionTokens: 3 },
+    request: { id: 'req_fixture', promptTokens: 2, completionTokens: 3 },
     state,
     analysis,
     onRetry,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyzeJsonTiming, assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
+import { analyzeJsonTiming, analyzeResponse, assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
 
 describe('non-streaming timing fallback', () => {
   it('reads historical JSON response timings', () => {
@@ -134,5 +134,16 @@ describe('groupHeaders', () => {
 
   it('handles an empty header map', () => {
     expect(groupHeaders([])).toEqual({ primary: [], boilerplate: [] })
+  })
+})
+
+describe('analyzeResponse', () => {
+  it('renders streamed SSE bodies as SSE', () => {
+    expect(analyzeResponse('data: {"a":1}\n\ndata: [DONE]\n\n', true)).toMatchObject({ isSse: true, isJson: false })
+  })
+
+  it('renders a streamed WebSocket event summary as JSON', () => {
+    const summary = '{"events":{"session.created":1,"response.done":4}}'
+    expect(analyzeResponse(summary, true)).toEqual({ displayBody: summary, isSse: false, isJson: true })
   })
 })

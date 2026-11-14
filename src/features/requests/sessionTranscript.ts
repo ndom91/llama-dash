@@ -1,5 +1,5 @@
 import type { ApiRequest } from '../../lib/schemas/request'
-import { parseSseStream } from './requestDetailUtils'
+import { looksLikeSse, parseSseStream } from './requestDetailUtils'
 import { capturedInput } from './sessionMessages'
 
 export type CapturedRequest = ApiRequest & {
@@ -286,7 +286,7 @@ export function parseTranscriptResponse(
   onStopReason?: (reason: string) => void,
 ): TranscriptPart[] {
   if (!body) return []
-  const isSse = /^(?:event|data):/m.test(body.slice(0, 128))
+  const isSse = looksLikeSse(body)
   if (!streamed && !isSse) {
     try {
       const data = JSON.parse(body) as Record<string, unknown>
