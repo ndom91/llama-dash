@@ -105,6 +105,15 @@ export const ModelKeyBreakdownSchema = v.object({
 
 export type ApiModelKeyBreakdown = v.InferOutput<typeof ModelKeyBreakdownSchema>
 
+/** Weights file details read from the model server while it was last loaded. */
+export const ModelSpecsSchema = v.object({
+  sizeBytes: v.nullable(v.number()),
+  paramCount: v.nullable(v.number()),
+  quantization: v.nullable(v.string()),
+})
+
+export type ApiModelSpecs = v.InferOutput<typeof ModelSpecsSchema>
+
 export const ModelDetailResponseSchema = v.object({
   model: ApiModelSchema,
   events: v.array(ApiModelEventSchema),
@@ -115,6 +124,7 @@ export const ModelDetailResponseSchema = v.object({
   }),
   configSnippet: v.nullable(v.string()),
   keyBreakdown: v.array(ModelKeyBreakdownSchema),
+  specs: v.nullable(ModelSpecsSchema),
 })
 
 export type ApiModelDetail = v.InferOutput<typeof ModelDetailResponseSchema>

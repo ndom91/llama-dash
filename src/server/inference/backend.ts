@@ -53,6 +53,12 @@ export type BackendModelCapabilities = {
   supportedParameters: Array<string>
 }
 
+export type BackendModelSpecs = {
+  sizeBytes: number | null
+  paramCount: number | null
+  quantization: string | null
+}
+
 export type BackendRunningModel = {
   model: string
   state: string
@@ -100,6 +106,11 @@ export type InferenceBackend = {
    * ask for running models, because the lookup may otherwise start the model.
    */
   reasoningEffortLevels?(id: string): Promise<Array<string>>
+  /**
+   * Size and shape of the model's weights file, or null when the server does not report them.
+   * Callers must only ask for running models, because the lookup may otherwise start the model.
+   */
+  modelSpecs?(id: string): Promise<BackendModelSpecs | null>
   /** Starts following pause changes, including ones made outside llama-dash. */
   watchPauseState?(onChange: (paused: boolean | null) => void): void
 }

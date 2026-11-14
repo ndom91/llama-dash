@@ -131,6 +131,15 @@ export const modelFootprints = sqliteTable('model_footprints', {
   measuredAt: integer('measured_at', { mode: 'timestamp_ms' }).notNull(),
 })
 
+export const modelSpecs = sqliteTable('model_specs', {
+  id: text('id').primaryKey(),
+  modelId: text('model_id').notNull().unique(),
+  sizeBytes: integer('size_bytes'),
+  paramCount: integer('param_count'),
+  quantization: text('quantization'),
+  capturedAt: integer('captured_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
 export type ModelEvent = typeof modelEvents.$inferSelect
 export type NewModelEvent = typeof modelEvents.$inferInsert
 

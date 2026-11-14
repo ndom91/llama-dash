@@ -187,6 +187,11 @@ export function createLlamaSwapBackend(): InferenceBackend {
       const props = await llamaSwap.props(id)
       return props.chat_template_caps?.reasoning_effort_levels ?? []
     },
+    async modelSpecs(id) {
+      const meta = (await llamaSwap.upstreamModels(id)).data[0]?.meta
+      if (!meta) return null
+      return { sizeBytes: meta.size ?? null, paramCount: meta.n_params ?? null, quantization: meta.ftype ?? null }
+    },
     watchPauseState(onChange) {
       onInferencePausedChange(onChange)
       watchLlamaSwapPauseState(setInferencePaused)

@@ -337,6 +337,13 @@
       "when": 1794489494253,
       "tag": "0047_overrated_james_howlett",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1794686027418,
+      "tag": "0048_model_specs",
+      "breakpoints": true
     }
   ]
 }

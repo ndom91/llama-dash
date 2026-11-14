@@ -95,6 +95,23 @@ export const PerformanceResponseSchema = v.object({
 })
 
 // Subset of llama-server's /props. reasoning_effort_levels arrived in b12017.
+/** llama-server's own `/v1/models`. `meta` describes the loaded GGUF; peers and older builds may omit it. */
+export const LlamaServerModelsSchema = v.object({
+  data: v.array(
+    v.object({
+      meta: v.optional(
+        v.nullable(
+          v.object({
+            size: v.optional(v.number()),
+            n_params: v.optional(v.number()),
+            ftype: v.optional(v.string()),
+          }),
+        ),
+      ),
+    }),
+  ),
+})
+
 export const LlamaServerPropsSchema = v.object({
   chat_template_caps: v.optional(
     v.object({

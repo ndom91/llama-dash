@@ -104,6 +104,7 @@ src/
     system-telemetry.ts   — 10s telemetry tick: 24h in-memory ring (`telemetry-ring.ts`), backend host performance, SSE samples
     system-events.ts      — in-memory System page event log (startup, threshold crossings, log-queue drops)
     model-footprints.ts   — measures per-model accelerator-memory growth on lone model loads
+    model-specs.ts        — records weights size, parameter count, and quantization of ready models
     model-watcher.ts      — polls /running every 15s, writes load/unload events
     db/                   — drizzle schema + SQLite init; migrations are applied explicitly with pnpm db:migrate
     proxy/                — /v1/* pass-through: context, handler, auth, body snapshots, transforms, forwarding, usage, queued logging, rate limits
@@ -133,7 +134,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/mcp-relay/*` — configured `/mcp-relays/:slug` reverse proxies for coding-agent MCP HTTP transports. Relays require `x-llama-dash-api-key`, the key must allow the relay, stored upstream credentials are injected into outbound headers, responses stream through, and the exchange is logged without exposing provider secrets. Successful relay requests are metadata-only by default; failures follow the configured capture policy.
 - `src/server/auth.ts` — Better Auth setup for dashboard username/password and passkey sessions; protects UI and `/api/*`, not inference proxy paths (`/v1/*` and `/infill`). Signup is only allowed while no dashboard user exists.
 - `src/server/gpu-poller.ts` — polls inference-host CPU counters plus `nvidia-smi` / `rocm-smi` / `system_profiler` every 10s, caches result in memory, and publishes hardware-change events for live dashboard refresh. AMD APUs use GTT (not VRAM) for actual usable memory; Apple shows unified memory and core count when available.
-- `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events. A lone load schedules a footprint measurement (`model-footprints.ts`).
+- `src/server/model-watcher.ts` — polls the inference backend running-model capability every 15s, diffs state, writes load/unload events to `model_events` table, and publishes model-change events. A lone load schedules a footprint measurement (`model-footprints.ts`). Each poll also records weights size, parameter count, and quantization once per residency for ready models (`model-specs.ts`), read from llama-server's own `/v1/models` `meta` via `/upstream/<id>/`. Only running models are queried, because that path starts a stopped model. The size covers the main GGUF only, not `--mmproj`.
 - `src/server/system-telemetry.ts` — every 10s, records GPU values from the GPU poller plus inference-host CPU/RAM/swap/load from the backend `hostPerformance()` capability (llama-swap `/api/performance`, falling back to local counters) into a 24h columnar `Float32Array` ring (~0.5 MB, reset on restart). On startup it backfills CPU/RAM from llama-swap's own 1h buffer. Each tick evaluates threshold crossings and publishes a `system.telemetry` SSE event.
 - `src/server/inference/*` — selected inference backend facade plus backend-specific adapters and hints.
 - `src/server/llama-swap/client.ts` — typed client over llama-swap's HTTP API, including v229 `/v1/models` capability metadata and v247 inference-host hardware snapshots.
@@ -160,7 +161,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    user usage rollup that outlives request-log retention; sessions are not
    rolled up), `model_events` (load/unload
    event-sourced timeline), `model_footprints` (last observed accelerator-memory
-   growth per model, measured only when a model loads alone), `api_keys` (hashed keys + rate limits + ACLs +
+   growth per model, measured only when a model loads alone), `model_specs` (last
+   reported weights size, parameter count, and quantization per model), `api_keys` (hashed keys + rate limits + ACLs +
    system prompt + MCP relay allow-lists), `model_aliases` (global model name mapping),
     `routing_rules` (ordered request routing rules), `upstream_credentials`
    (encrypted direct-upstream bearer credentials), `mcp_relays` (configured
@@ -200,7 +202,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    Dashboard auth, when enabled, gates all `/api/*` routes below except `/api/auth/*`, `/api/login-meta`, and `/api/gpu` (public so Home Assistant can poll it).
    `/api/auth/*` is handled by Better Auth for first-user signup, username/password and passkey sign-in, session lookup, and sign-out.
    - `/api/models` — list models (merged with running state + peer info)
-   - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
+   - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown, last recorded weights specs)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/models/pause`, `/api/models/resume` — llama-swap v268+ pause (unload all, reject inference); state follows llama-swap's `/api/events` `pauseChanged` messages and is reported as `paused` on `/api/health`
    - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
@@ -519,6 +521,7 @@ Format: `{prefix}_{ulid}`, e.g. `req_01J5A3KWGF9QXRZ0N1BVCH6YPM`.
 | ModelAlias  | `mal`  |
 | McpRelay    | `mrl`  |
 | ModelFootprint | `mfp` |
+| ModelSpecs  | `msp`  |
 
 When adding a new table, pick a short (2–4 char) lowercase prefix, add it
 to the table above, and generate the ID at insert time via `ulidx`:

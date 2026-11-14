@@ -10,6 +10,7 @@ import {
   getModelRequests,
   getPeerHosts,
 } from '../model-detail.ts'
+import { getModelSpecs } from '../../model-specs.ts'
 import { getModelActivity, getModelTimeline } from '../model-events.ts'
 import { formatSseEvent, publishAdminEvent, subscribeAdminEvents } from '../events.ts'
 import { clamp, error, json, type Route } from './types.ts'
@@ -52,7 +53,9 @@ export const modelRoutes: Route[] = [
       const keyBreakdown = getModelKeyBreakdown(id)
       const configSnippet = extractModelConfig(id)
 
-      return json(200, { model, events, stats, requests, configSnippet, keyBreakdown })
+      const specs = getModelSpecs(id)
+
+      return json(200, { model, events, stats, requests, configSnippet, keyBreakdown, specs })
     },
   },
   {

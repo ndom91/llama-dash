@@ -64,7 +64,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   </tr>
   <tr>
     <td align="center" valign="top">
-      <sub><strong>Model detail</strong><br />Load history, stats, recent requests, and config context</sub>
+      <sub><strong>Model detail</strong><br />Load history, stats, recent requests, weights size, and config context</sub>
     </td>
     <td align="center" valign="top">
       <sub><strong>Speech playground</strong><br />Read any article and audio testing</sub>

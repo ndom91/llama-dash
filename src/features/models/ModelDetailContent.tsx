@@ -7,10 +7,12 @@ import type { ApiModelDetail } from '../../lib/api'
 import { useLoadModel, useModelReasoningEffort, useUnloadModel } from '../../lib/queries'
 import { ModelEventsPanel } from './ModelEventsPanel'
 import { ModelRequestsPanel } from './ModelRequestsPanel'
+import { formatBytesShort } from '../system/systemMetrics'
 import { ModelStatsRow } from './ModelStatsRow'
 import {
   formatCapabilityLabel,
   formatContextLength,
+  formatParamCount,
   formatTtl,
   getModelCapabilityBadges,
   hasModelCapabilities,
@@ -22,7 +24,7 @@ type Props = {
 }
 
 export function ModelDetailContent({ data }: Props) {
-  const { model, events, stats, requests, configSnippet } = data
+  const { model, events, stats, requests, configSnippet, specs } = data
   const loadModel = useLoadModel()
   const unloadModel = useUnloadModel()
   const tone = model.kind === 'peer' ? ('warn' as const) : stateTone(model.state, model.running)
@@ -101,6 +103,22 @@ export function ModelDetailContent({ data }: Props) {
                   <div>
                     <dt>port</dt>
                     <dd>{configMeta.port ?? '—'}</dd>
+                  </div>
+                </>
+              ) : null}
+              {model.kind === 'local' ? (
+                <>
+                  <div>
+                    <dt>size</dt>
+                    <dd>{specs?.sizeBytes != null ? formatBytesShort(specs.sizeBytes) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>params</dt>
+                    <dd>{specs?.paramCount != null ? formatParamCount(specs.paramCount) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt>quant</dt>
+                    <dd>{specs?.quantization ?? '—'}</dd>
                   </div>
                 </>
               ) : null}

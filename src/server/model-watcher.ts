@@ -4,6 +4,7 @@ import { publishAdminEvent } from './admin/events.ts'
 import { db, schema } from './db/index.ts'
 import { inferenceBackend } from './inference/backend.ts'
 import { scheduleFootprintMeasurement } from './model-footprints.ts'
+import { captureModelSpecs } from './model-specs.ts'
 
 const POLL_INTERVAL_MS = 15_000
 
@@ -59,6 +60,7 @@ async function diffRunning() {
       }
     }
 
+    captureModelSpecs(running)
     knownRunning = current
     lastPollAt = now.getTime()
   } catch {

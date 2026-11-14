@@ -19,6 +19,13 @@ export function parseModelConfigSnippet(snippet: string | null) {
   }
 }
 
+const paramCountFormatter = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
+
+/** Parameter count as `1.7B` / `270M`. */
+export function formatParamCount(count: number): string {
+  return paramCountFormatter.format(count)
+}
+
 export function formatContextLength(contextLength: number | null | undefined): string | null {
   if (contextLength == null) return null
   if (contextLength >= 1024) {
