@@ -274,3 +274,15 @@ it('ignores moving cache_control breakpoints when matching Claude Code history',
   expect(result.replaced).toBeNull()
   expect(result.parts).toEqual([{ kind: 'message', role: 'user', text: 'follow up' }])
 })
+
+it('treats a cache-marked single text block as the same message as plain string content', () => {
+  const marked = {
+    role: 'system',
+    content: [{ type: 'text', text: 'style reminder', cache_control: { type: 'ephemeral', ttl: '1h' } }],
+  }
+  const first = input([user('question'), marked])
+  const second = input([user('question'), { role: 'system', content: 'style reminder' }, user('follow up')])
+  const result = diffTranscript(first, second)
+  expect(result.replaced).toBeNull()
+  expect(result.parts).toEqual([{ kind: 'message', role: 'user', text: 'follow up' }])
+})

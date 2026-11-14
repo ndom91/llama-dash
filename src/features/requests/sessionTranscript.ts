@@ -213,15 +213,28 @@ export function parseTranscriptInput(body: string | null): TranscriptInput {
 
 // Anthropic clients (Claude Code) move `cache_control` breakpoints to the newest
 // blocks on every turn, so the same message carries different markers across
-// requests. They are cache hints, not content.
+// requests. They are cache hints, not content. To attach a marker, the client
+// also expands string content into a single text block, then collapses it back
+// once the marker moves on.
 const VOLATILE_KEYS = new Set(['cache_control'])
+
+function singleTextBlock(value: unknown): string | null {
+  if (!Array.isArray(value) || value.length !== 1) return null
+  const block = value[0] as Record<string, unknown> | null
+  if (!block || typeof block !== 'object' || block.type !== 'text' || typeof block.text !== 'string') return null
+  return Object.keys(block).every((key) => key === 'type' || key === 'text' || VOLATILE_KEYS.has(key))
+    ? block.text
+    : null
+}
 
 // A reset is only asserted when both snapshots are complete; a truncated prefix
 // cannot establish whether missing history was replaced.
 function sameValue(a: unknown, b: unknown): boolean {
   const pending: Array<[unknown, unknown]> = [[a, b]]
   while (pending.length) {
-    const [left, right] = pending.pop()!
+    let [left, right] = pending.pop()!
+    if (typeof left === 'string' && Array.isArray(right)) right = singleTextBlock(right) ?? right
+    if (typeof right === 'string' && Array.isArray(left)) left = singleTextBlock(left) ?? left
     if (left === right) continue
     if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false
     if (Array.isArray(left) || Array.isArray(right)) {
