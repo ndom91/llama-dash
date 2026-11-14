@@ -25,11 +25,11 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 
 - Monitor traffic, token usage, models, and CPU/GPU health in one dashboard.
 - Browse request history with filters, timing, attribution, token counts, and cost estimates. Usage rollups persist beyond raw request retention.
-- Load and unload models, inspect their capabilities and history, and edit validated llama-swap configuration.
-- Proxy OpenAI and Anthropic clients to local models, peers, or direct upstreams; native llama.cpp and llama-swap audio endpoints are supported too.
+- Load and unload models, pause all inference (llama-swap v268+), inspect capabilities (including llama-server reasoning effort levels) and history, and edit validated llama-swap configuration.
+- Proxy OpenAI and Anthropic clients to local models, peers, or direct upstreams; native llama.cpp and llama-swap audio endpoints are supported too, including `/v1/audio/speech` and the `/v1/realtime` WebSocket for voice sessions.
 - Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
 - Route or reject requests, rewrite models, inject credentials and system prompts, and set request size limits.
-- Test chat, image, speech, and transcription models in the playground.
+- Test chat, image, speech, transcription, and realtime voice models in the playground.
 - View logs and system status: live CPU/GPU/memory telemetry with up to 24 hours of in-memory history, configurable alert thresholds, a unified-memory breakdown per loaded model, recent system events, and runtime/database posture (including `models.dev` pricing catalog status). Manage retention, and export Prometheus metrics at `/metrics`.
 - Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
 

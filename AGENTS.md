@@ -68,6 +68,7 @@ src/
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
     requests/              · request list/detail pages, payload helpers, `RequestsFilterSidebar`, and `requestsSearch.ts` (/requests search-param type + validator)
+    playground/            · also the Realtime voice tab (`PlaygroundRealtime*.tsx`, hook in `src/lib/use-playground-realtime.ts`, pure audio helpers in `src/lib/realtime-audio.ts`)
     usage/                 · usage page: period switch, input/output chart, breakdown panels, and route/data loading skeletons
     policies/              · routing, credentials, and MCP relays (shared `PolicyPanel` shell)
     system/                · System page: resource tiles, SVG time-series charts, unified-memory bar, components rail + thresholds, compact detail grid (shared `SystemPanel` + `MetaRow`, helpers in `systemMetrics.ts`)
@@ -124,6 +125,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 
 ## How it's wired
 
+- `src/server/proxy/realtime.ts` — `/v1/realtime` WebSocket passthrough. srvx and Vite only hand fetch requests to `src/server.ts`, so `prod-server.mjs` and a dev plugin in `vite.config.ts` route Node `upgrade` events for that path to the `globalThis.__llamaDashUpgrade` hook it registers. Keys come from headers, the `openai-insecure-api-key.<key>` subprotocol, or `?api_key=` (stripped upstream, never logged). Model checks run on `?model=` before the upgrade, or on the first `session.update` naming a model (earlier frames buffered, 8 MiB / 30 s cap). No subprotocols are forwarded upstream because llama-server selects none. One request row per session, logged on close with summed `response.done` usage and per-type event counts instead of bodies. See [`docs/2026_11_14_realtime_proxy.md`](./docs/2026_11_14_realtime_proxy.md).
 - `src/server/proxy/*` — the `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through; `/v1/audio/llama-tts` routes native speech to the selected model's llama-swap upstream: streaming SSE preserved, proxy context/body snapshots kept isolated, full request/response capture by default with an optional persisted-body limit, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/pricing.ts` — startup-cached `models.dev` model pricing used to estimate logged request cost from upstream usage counters.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
@@ -200,6 +202,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models` — list models (merged with running state + peer info)
    - `/api/models/:id` — model detail (stats, events, recent requests, config snippet, key breakdown)
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
+   - `/api/models/pause`, `/api/models/resume` — llama-swap v268+ pause (unload all, reject inference); state follows llama-swap's `/api/events` `pauseChanged` messages and is reported as `paused` on `/api/health`
+   - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
    - `/api/requests` — cursor-paginated list
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
@@ -239,7 +243,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    15s, diffs against known state, inserts `load`/`unload` events into SQLite,
    and publishes model-change dashboard events.
 9. UI views: Login (Better Auth username/password + passkey form), Dashboard (stats, a merged Models panel with a local group and one combined peer group, 15m/1h/6h/24h residency tracks, per-request ticks, traffic-derived peer health, and hover unload/logs actions, upstream+GPU,
-    recent requests), Models (list + load/unload + capability badges + llama-swap selector routing + per-model detail),
+    recent requests), Models (list + load/unload + pause/resume inference with a top-bar paused indicator + capability badges + llama-swap selector routing + per-model detail),
     Requests (filtered/sorted log + histogram + detail), Logs, System (CPU/GPU/GPU-memory/RAM
     tiles with threshold meters and sparklines, utilization and thermals/power charts with
     model-load bands, a `?range=` picker of 5m–24h, a unified-memory bar split by
@@ -248,7 +252,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     CPU cores, and runtime/database), Playground
     (chat plus request/response/timing/events/curl inspector tabs; speech TTS
     with plain text or paragraph-chunked server-extracted article URLs and waveform playback;
-    image and transcription testing; timing sidebar shows TTFT, prefill,
+    image and transcription testing; a Realtime voice tab over `/v1/realtime` (push-to-talk or hands-free VAD, 16 kHz PCM16 in, gapless 24 kHz playback, per-turn WAV replay);
+    a chat reasoning-effort select shown when a running model reports levels; timing sidebar shows TTFT, prefill,
     decode, and stream-close when upstream llama.cpp timing metadata is present), Config editor with explicit
     validate action plus pre-save schema validation, Settings (appearance controls
     and global proxy/privacy/retention defaults), API Keys (list +
@@ -610,6 +615,9 @@ sort lexicographically by creation time).
 - `GET /upstream/:model_id/*` — proxy directly to a specific llama-server (useful for `/metrics`)
 - `GET /logs/stream`, `/logs/stream/proxy`, `/logs/stream/upstream`, `/logs/stream/{model_id}` — SSE log streams
 - `GET /health`
+- `GET /upstream/:model_id/props` — only for running models; read for `chat_template_caps.reasoning_effort_levels`
+- `POST /api/models/pause`, `POST /api/models/resume`, `GET /api/events` (`pauseChanged`) — inference pause (v268+)
+- `/v1/realtime` — WebSocket; llama-swap routes by `?model=` or the first `session.update` (v270+)
 - `GET /v1/models` — OpenAI-format list including peers and v229 capability metadata
 - Hot reload: editing `config.yaml` when llama-swap runs with `-watch-config` triggers the stat-poll watcher; SIGHUP reload is also supported by llama-swap.
 
