@@ -12,6 +12,7 @@ const CAPABILITY_LABELS: Record<keyof ApiSystemStatus['inference']['capabilities
   logs: 'logs',
   config: 'config',
   metrics: 'metrics',
+  pause: 'pause',
 }
 
 export function SystemBackendPanel({

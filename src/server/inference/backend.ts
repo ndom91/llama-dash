@@ -16,6 +16,7 @@ export type InferenceBackendInfo = {
     logs: boolean
     config: boolean
     metrics: boolean
+    pause: boolean
   }
 }
 
@@ -89,6 +90,13 @@ export type InferenceBackend = {
   loadModel?(id: string): Promise<void>
   unloadModel?(id: string): Promise<void>
   unloadAll?(): Promise<void>
+  /** Unloads every model and rejects inference until resumed. Returns the new paused state. */
+  pauseInference?(): Promise<boolean>
+  resumeInference?(): Promise<boolean>
+  /** Last known paused state, or null when unknown. */
+  inferencePaused?(): boolean | null
+  /** Starts following pause changes, including ones made outside llama-dash. */
+  watchPauseState?(onChange: (paused: boolean | null) => void): void
 }
 
 function createInferenceBackend(kind: string): InferenceBackend {

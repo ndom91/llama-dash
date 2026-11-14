@@ -37,7 +37,7 @@ import {
 import { SystemThresholdsSchema, type UpdateSystemThresholdsBody } from './schemas/system-thresholds'
 import { ApiConfigReadSchema, ApiConfigSaveResultSchema, ApiConfigValidationSchema } from './schemas/config'
 import { GpuSnapshotSchema } from './schemas/gpu'
-import { ApiHealthSchema } from './schemas/health'
+import { ApiHealthSchema, InferencePauseResponseSchema } from './schemas/health'
 import {
   ModelActivityResponseSchema,
   ModelDetailResponseSchema,
@@ -213,6 +213,8 @@ export const api = {
   loadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/load`, OkSchema, 'POST'),
   unloadModel: (id: string) => sendEmpty(`/api/models/${encodeURIComponent(id)}/unload`, OkSchema, 'POST'),
   unloadAll: () => sendEmpty('/api/models/unload', OkSchema, 'POST'),
+  setInferencePaused: (paused: boolean) =>
+    sendEmpty(`/api/models/${paused ? 'pause' : 'resume'}`, InferencePauseResponseSchema, 'POST'),
   getConfig: () => getJson('/api/config', ApiConfigReadSchema),
   saveConfig: (content: string, modifiedAt: number) =>
     sendJson('/api/config', ApiConfigSaveResultSchema, { method: 'PUT', body: { content, modifiedAt } }),

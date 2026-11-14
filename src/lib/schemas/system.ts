@@ -51,6 +51,7 @@ export const ApiSystemStatusSchema = v.object({
       logs: v.boolean(),
       config: v.boolean(),
       metrics: v.boolean(),
+      pause: v.boolean(),
     }),
   }),
   inferenceHardware: v.nullable(InferenceHardwareSchema),

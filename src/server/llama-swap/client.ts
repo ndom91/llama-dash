@@ -14,6 +14,8 @@ export type { OpenAiModel, RunningModel }
 
 const POLL_TIMEOUT_MS = 5_000
 
+const PauseStateSchema = v.object({ paused: v.boolean() })
+
 const callRaw = async (path: string, init?: RequestInit): Promise<Response> => {
   const res = await fetch(`${config.inferenceBaseUrl}${path}`, init)
   if (!res.ok) {
@@ -37,6 +39,8 @@ export const llamaSwap = {
   unloadModel: (id: string) => callText(`/api/models/unload/${encodeURIComponent(id)}`, { method: 'POST' }),
   loadModel: (id: string) => callText(`/upstream/${encodeURIComponent(id)}/`),
   unloadAll: () => callJson('/api/models/unload', v.object({ msg: v.string() }), { method: 'POST' }),
+  pause: () => callJson('/api/models/pause', PauseStateSchema, { method: 'POST' }),
+  resume: () => callJson('/api/models/resume', PauseStateSchema, { method: 'POST' }),
   health: () => callText('/health'),
   version: () => callJson('/api/version', VersionResponseSchema),
   hardware: () => callJson('/api/hardware', InferenceHardwareSchema),

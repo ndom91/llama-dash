@@ -18,6 +18,10 @@ export const ApiHealthSchema = v.object({
       error: v.string(),
     }),
   ]),
+  /** Whether inference is paused upstream. Null when unknown or unsupported. */
+  paused: v.nullable(v.boolean()),
 })
 
 export type ApiHealth = v.InferOutput<typeof ApiHealthSchema>
+
+export const InferencePauseResponseSchema = v.object({ paused: v.boolean() })

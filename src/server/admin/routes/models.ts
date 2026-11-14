@@ -88,6 +88,18 @@ export const modelRoutes: Route[] = [
     },
   },
   {
+    method: 'POST',
+    pattern: /^\/api\/models\/(pause|resume)$/,
+    handler: async (_request, match) => {
+      const pausing = match[1] === 'pause'
+      const action = pausing ? inferenceBackend.pauseInference : inferenceBackend.resumeInference
+      if (!action) return error(501, 'Inference backend does not support pausing inference')
+      const paused = await action()
+      if (pausing) publishAdminEvent('model.changed', { action: 'unload_all' })
+      return json(200, { paused })
+    },
+  },
+  {
     method: 'GET',
     pattern: /^\/api\/gpu$/,
     handler: async () => json(200, getGpuSnapshot()),

@@ -3,6 +3,7 @@ import { getPrivacySettings } from '../admin/settings.ts'
 import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import { errorMessage } from '../error-message.ts'
+import { inferencePaused } from '../inference/pause-state.ts'
 import type { RequestAttribution } from './attribution.ts'
 import type { ProxyForwardBody } from './body.ts'
 import { filterResponseHeaders, headersToRecord, redactSensitiveHeaders } from './headers.ts'
@@ -82,6 +83,12 @@ function deriveClientHost(reqHeadersJson: string | null): string | null {
   } catch {
     return null
   }
+}
+
+// llama-swap answers every local-model request with 503 while inference is paused.
+function pausedUpstreamError(status: number): string | null {
+  if (status !== 503 || inferencePaused() !== true) return null
+  return 'inference_paused: llama-swap rejected the request because inference is paused'
 }
 
 export function writeProxyLog(input: ProxyLogInput) {
@@ -209,7 +216,7 @@ export async function forwardUpstreamAndLog(input: {
       endpoint: input.endpoint,
       usage,
       streamed,
-      error,
+      error: error ?? pausedUpstreamError(upstreamResponse.status),
       reqHeaders: input.reqHeadersJson,
       reqBody: input.reqBody,
       resHeaders: resHeadersJson,

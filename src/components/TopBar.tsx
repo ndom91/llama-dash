@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { formatRate, formatVersionLabel } from '../lib/format'
 import { useMobileMenu } from '../lib/use-mobile-menu'
 import { useHealth, useModelCounts, useRequestStats } from '../lib/queries'
+import { InferencePausedIndicator } from './InferencePausedIndicator'
 import { StatusDot } from './StatusDot'
 import { Tooltip } from './Tooltip'
 
@@ -45,6 +46,7 @@ export function TopBar() {
       <span className="w-px self-stretch bg-border my-2.5 mx-1 max-md:hidden" aria-hidden="true" />
       <TopBarLiveStats />
       <div className="ml-auto flex items-center gap-1.5">
+        <InferencePausedIndicator />
         <TopBarClock />
       </div>
     </header>

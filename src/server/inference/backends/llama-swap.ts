@@ -2,6 +2,8 @@ import { config } from '../../config.ts'
 import { llamaSwap } from '../../llama-swap/client.ts'
 import type { OpenAiModel, RunningModel } from '../../llama-swap/client.ts'
 import type { PerformanceSysStat } from '../../llama-swap/schemas.ts'
+import { watchLlamaSwapPauseState } from '../../llama-swap/pause-watcher.ts'
+import { inferencePaused, onInferencePausedChange, setInferencePaused } from '../pause-state.ts'
 import type {
   BackendModel,
   BackendModelCapabilities,
@@ -109,6 +111,7 @@ function getLlamaSwapInfo(): InferenceBackendInfo {
       logs: true,
       config: true,
       metrics: true,
+      pause: true,
     },
   }
 }
@@ -172,6 +175,17 @@ export function createLlamaSwapBackend(): InferenceBackend {
     },
     async unloadAll() {
       await llamaSwap.unloadAll()
+    },
+    async pauseInference() {
+      return setInferencePaused((await llamaSwap.pause()).paused)
+    },
+    async resumeInference() {
+      return setInferencePaused((await llamaSwap.resume()).paused)
+    },
+    inferencePaused,
+    watchPauseState(onChange) {
+      onInferencePausedChange(onChange)
+      watchLlamaSwapPauseState(setInferencePaused)
     },
   }
 }

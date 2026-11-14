@@ -347,6 +347,21 @@ export function useUnloadModel(): UseMutationResult<{ ok: true }, Error, string>
   })
 }
 
+export function useSetInferencePaused(): UseMutationResult<{ paused: boolean }, Error, boolean> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (paused: boolean) => api.setInferencePaused(paused),
+    onSuccess: ({ paused }) => {
+      toast.success(paused ? 'Inference paused, all models unloaded' : 'Inference resumed')
+      invalidateKeys(qc, [qk.health, qk.models])
+    },
+    onError: (e, paused) => {
+      invalidateKeys(qc, [qk.health])
+      toastMutationError(paused ? 'Pause failed' : 'Resume failed', e)
+    },
+  })
+}
+
 export function useUnloadAll(): UseMutationResult<{ ok: true }, Error, void> {
   const qc = useQueryClient()
   return useMutation({

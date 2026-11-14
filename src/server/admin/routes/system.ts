@@ -55,6 +55,7 @@ export const systemRoutes: Route[] = [
       const health = await inferenceBackend.health()
       return json(200, {
         upstream: { ...health, backend: inferenceBackend.info.label, host: inferenceBackend.info.upstreamHost },
+        paused: inferenceBackend.inferencePaused?.() ?? null,
       })
     },
   },

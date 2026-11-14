@@ -1,10 +1,17 @@
-import { PowerOff, RefreshCw } from 'lucide-react'
+import { Pause, Play, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
-import { useLoadModel, useModels, useUnloadAll, useUnloadModel } from '../../lib/queries'
+import {
+  useHealth,
+  useLoadModel,
+  useModels,
+  useSetInferencePaused,
+  useUnloadAll,
+  useUnloadModel,
+} from '../../lib/queries'
 import { ModelRow } from './ModelRow'
 import { ModelsPageSkeleton } from './ModelsPageSkeleton'
 import { SelectorRow } from './SelectorRow'
@@ -14,6 +21,10 @@ export function ModelsPage() {
   const loadModel = useLoadModel()
   const unloadModel = useUnloadModel()
   const unloadAll = useUnloadAll()
+  const { data: health } = useHealth()
+  const setPaused = useSetInferencePaused()
+  // Null means the backend doesn't report a pause state, so the control is hidden.
+  const paused = health?.paused ?? null
 
   const hasRunning = useMemo(() => models?.some((m) => m.running && m.kind === 'local') ?? false, [models])
   const selectors = models?.filter((m) => m.kind === 'selector') ?? []
@@ -48,6 +59,28 @@ export function ModelsPage() {
                   />
                 </button>
               </Tooltip>
+              {paused != null ? (
+                <Tooltip
+                  label={
+                    paused ? 'Accept inference requests again' : 'Unload every model and reject inference until resumed'
+                  }
+                  side="left"
+                >
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => setPaused.mutate(!paused)}
+                    disabled={setPaused.isPending}
+                  >
+                    {paused ? (
+                      <Play className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                    ) : (
+                      <Pause className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
+                    )}
+                    {pauseButtonLabel(paused, setPaused.isPending)}
+                  </button>
+                </Tooltip>
+              ) : null}
               <Tooltip label="Unload every running model" side="left">
                 <button
                   type="button"
@@ -141,4 +174,9 @@ export function ModelsPage() {
       </div>
     </div>
   )
+}
+
+function pauseButtonLabel(paused: boolean, pending: boolean): string {
+  if (pending) return paused ? 'resuming…' : 'pausing…'
+  return paused ? 'resume' : 'pause'
 }
