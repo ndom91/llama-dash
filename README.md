@@ -67,7 +67,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       <sub><strong>Model detail</strong><br />Load history, stats, recent requests, weights size, and config context</sub>
     </td>
     <td align="center" valign="top">
-      <sub><strong>Speech playground</strong><br />Read any article and audio testing</sub>
+      <sub><strong>Session History</strong><br />View detailed session history</sub>
     </td>
     <td align="center" valign="top">
       <sub><strong>Policies</strong><br />Aliases, routing rules, passthrough auth, and request limits</sub>
@@ -81,7 +81,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
       <img alt="Dark - Model Details" src="./.github/assets/model-details.png" />
     </td>
     <td valign="top">
-      <img alt="Dark - Speech" src="./.github/assets/playground-speech_2.png" />
+      <img alt="Dark - Session History" src="./.github/assets/session_history.png" />
     </td>
     <td valign="top">
       <img alt="Dark - Policies" src="./.github/assets/policies_2.png" />
