@@ -2,7 +2,7 @@ import type { ApiRequestMetadata } from '../../lib/schemas/request'
 import { RequestBodySkeleton } from './RequestBodySkeleton'
 import { RequestPayloadPane } from './RequestPayloadPane'
 import type { RequestPayloadState } from './requestPayloadState'
-import { byteSize } from './requestDetailUtils'
+import { byteSize, type RequestPayloadSummary } from './requestDetailUtils'
 import type { useRequestPayloadAnalysis } from './use-request-payload-analysis'
 
 type Props = {
@@ -46,7 +46,7 @@ export function RequestPayloadsPanel({ request, state, analysis, onRetry }: Prop
               <RequestPayloadPane
                 key={`${request.id}-request`}
                 title="Request"
-                subtitle={`${byteSize(state.data.requestBody ?? '')} • ${requestPayload.messagesCount} messages${requestPayload.toolsCount > 0 ? ` • ${requestPayload.toolsCount} tools` : ''} • ${request.promptTokens?.toLocaleString() ?? '—'} tok`}
+                subtitle={`${byteSize(state.data.requestBody ?? '')} • ${requestContentLabel(requestPayload)} • ${request.promptTokens?.toLocaleString() ?? '—'} tok`}
                 body={state.data.requestBody ?? ''}
                 headers={reqHeaders}
                 mode="pretty"
@@ -66,4 +66,10 @@ export function RequestPayloadsPanel({ request, state, analysis, onRetry }: Prop
       )}
     </section>
   )
+}
+
+function requestContentLabel(payload: RequestPayloadSummary): string {
+  if (payload.eventsCount != null) return `${payload.eventsCount.toLocaleString()} events`
+  const messages = `${payload.messagesCount} messages`
+  return payload.toolsCount > 0 ? `${messages} • ${payload.toolsCount} tools` : messages
 }

@@ -12,18 +12,42 @@ export type RequestTiming = {
   streamCloseMs: number | null
 }
 
-export function parseRequestPayload(body: string | null) {
-  if (!body) return { model: null as string | null, messagesCount: 0, toolsCount: 0 }
+export type RequestPayloadSummary = {
+  model: string | null
+  messagesCount: number
+  toolsCount: number
+  /** Total client events for WebSocket sessions (/v1/realtime), which log `{ events: { type: count } }`. */
+  eventsCount: number | null
+}
+
+export function parseRequestPayload(body: string | null): RequestPayloadSummary {
+  const empty: RequestPayloadSummary = { model: null, messagesCount: 0, toolsCount: 0, eventsCount: null }
+  if (!body) return empty
   try {
-    const parsed = JSON.parse(body) as { model?: string; messages?: Array<unknown>; tools?: Array<unknown> }
+    const parsed = JSON.parse(body) as {
+      model?: string
+      messages?: Array<unknown>
+      tools?: Array<unknown>
+      events?: unknown
+    }
     return {
       model: typeof parsed.model === 'string' ? parsed.model : null,
       messagesCount: Array.isArray(parsed.messages) ? parsed.messages.length : 0,
       toolsCount: Array.isArray(parsed.tools) ? parsed.tools.length : 0,
+      eventsCount: countEvents(parsed.events),
     }
   } catch {
-    return { model: null, messagesCount: 0, toolsCount: 0 }
+    return empty
   }
+}
+
+function countEvents(events: unknown): number | null {
+  if (events == null || typeof events !== 'object' || Array.isArray(events)) return null
+  let total = 0
+  for (const count of Object.values(events)) {
+    if (typeof count === 'number') total += count
+  }
+  return total
 }
 
 export type SseEvent = {

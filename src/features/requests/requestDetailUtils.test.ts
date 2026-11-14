@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { analyzeJsonTiming, analyzeResponse, assembleSseText, groupHeaders, parseSseStream } from './requestDetailUtils'
+import {
+  analyzeJsonTiming,
+  analyzeResponse,
+  parseRequestPayload,
+  assembleSseText,
+  groupHeaders,
+  parseSseStream,
+} from './requestDetailUtils'
 
 describe('non-streaming timing fallback', () => {
   it('reads historical JSON response timings', () => {
@@ -145,5 +152,20 @@ describe('analyzeResponse', () => {
   it('renders a streamed WebSocket event summary as JSON', () => {
     const summary = '{"events":{"session.created":1,"response.done":4}}'
     expect(analyzeResponse(summary, true)).toEqual({ displayBody: summary, isSse: false, isJson: true })
+  })
+})
+
+describe('parseRequestPayload', () => {
+  it('counts client events in a WebSocket session summary', () => {
+    const summary = '{"events":{"session.update":1,"input_audio_buffer.append":605,"response.create":4}}'
+    expect(parseRequestPayload(summary)).toMatchObject({ messagesCount: 0, eventsCount: 610 })
+  })
+
+  it('leaves eventsCount null for chat requests', () => {
+    expect(parseRequestPayload('{"messages":[{}],"tools":[{}]}')).toMatchObject({
+      messagesCount: 1,
+      toolsCount: 1,
+      eventsCount: null,
+    })
   })
 })
