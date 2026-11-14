@@ -20,15 +20,17 @@ const gitCommit = (() => {
 })()
 
 // The dev server only routes fetch requests into src/server.ts. This forwards
-// /v1/realtime WebSocket upgrades to the hook it registers, and leaves every
+// /v1/realtime and /comfyui/* WebSocket upgrades to the hook it registers, and leaves every
 // other upgrade (Vite HMR) alone.
-function realtimeUpgradeDevPlugin(): Plugin {
+function proxyUpgradeDevPlugin(): Plugin {
   return {
-    name: 'llama-dash-realtime-upgrade',
+    name: 'llama-dash-proxy-upgrade',
     apply: 'serve',
     configureServer(server) {
       server.httpServer?.on('upgrade', (req, socket, head) => {
-        if (new URL(req.url ?? '/', 'http://localhost').pathname !== '/v1/realtime') return
+        // Same paths as isProxyUpgradePath in src/server/proxy/upgrade.ts.
+        const pathname = new URL(req.url ?? '/', 'http://localhost').pathname
+        if (pathname !== '/v1/realtime' && !pathname.startsWith('/comfyui/')) return
         void forwardDevUpgrade(server, req, socket, head)
       })
     },
@@ -74,7 +76,7 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    realtimeUpgradeDevPlugin(),
+    proxyUpgradeDevPlugin(),
   ],
 })
 

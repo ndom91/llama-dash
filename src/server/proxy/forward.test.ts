@@ -419,4 +419,28 @@ describe('writeProxyLog', () => {
       }),
     )
   })
+
+  it('logs UI passthrough page loads without storing their bodies', async () => {
+    undiciFetch.mockResolvedValue(new Response('<html>comfy</html>', { headers: { 'content-type': 'text/html' } }))
+
+    const response = await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/comfyui/',
+      method: 'GET',
+      headers: {},
+      body: undefined,
+      hasBody: false,
+      startedAt: Date.now(),
+      endpoint: '/comfyui/',
+      reqModel: null,
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    expect(await (response as Response).text()).toBe('<html>comfy</html>')
+    expect(writeRequestLog).toHaveBeenCalledWith(expect.objectContaining({ endpoint: '/comfyui/', responseBody: null }))
+  })
 })

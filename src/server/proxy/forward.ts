@@ -85,6 +85,13 @@ function deriveClientHost(reqHeadersJson: string | null): string | null {
   }
 }
 
+// GETs through llama-swap's embedded UI passthroughs are page assets and polling
+// (JS, CSS, images, queue state). Log them, but don't store their bodies.
+function isUiPassthroughRead(method: string, endpoint: string): boolean {
+  if (method !== 'GET') return false
+  return ['/comfyui', '/audiocpp'].some((prefix) => endpoint === prefix || endpoint.startsWith(`${prefix}/`))
+}
+
 // llama-swap answers every local-model request with 503 while inference is paused.
 function pausedUpstreamError(status: number): string | null {
   if (status !== 503 || inferencePaused() !== true) return null
@@ -206,7 +213,10 @@ export async function forwardUpstreamAndLog(input: {
   const isJson = contentType.includes('application/json') || (isHeaderlessCodex && !isSse)
   const isBinaryResponse = !isSse && !isJson
   const privacy = getPrivacySettings()
-  const captureResponseBodies = privacy.captureResponseBodies && privacy.maxStoredBodyBytes !== 0
+  const captureResponseBodies =
+    privacy.captureResponseBodies &&
+    privacy.maxStoredBodyBytes !== 0 &&
+    !isUiPassthroughRead(input.method, input.endpoint)
   const log = (usage: UsageWithClose, streamed: boolean, error: string | null, resBody: string | null) =>
     writeProxyLog({
       startedAt: input.startedAt,

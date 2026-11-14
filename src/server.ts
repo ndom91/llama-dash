@@ -37,8 +37,8 @@ startInferencePauseWatcher()
 
 // srvx and Vite only pass fetch requests into this entry. Their Node servers call
 // this hook for WebSocket upgrades (see prod-server.mjs and vite.config.ts).
-const { handleRealtimeUpgrade } = await import('./server/proxy/realtime.ts')
-globalThis.__llamaDashUpgrade = handleRealtimeUpgrade
+const { handleProxyUpgrade } = await import('./server/proxy/upgrade.ts')
+globalThis.__llamaDashUpgrade = handleProxyUpgrade
 
 const ssrHandler = createStartHandler(defaultStreamHandler)
 

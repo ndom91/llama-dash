@@ -1,27 +1,38 @@
-import { STATUS_CODES, type IncomingMessage } from 'node:http'
+import type { IncomingMessage } from 'node:http'
 import type { Duplex } from 'node:stream'
-import { type RawData, WebSocket, WebSocketServer } from 'ws'
+import { type RawData, WebSocket } from 'ws'
 import { getAttributionSettings } from '../admin/settings.ts'
-import { config } from '../config.ts'
 import type { ApiKey } from '../db/schema.ts'
 import { errorMessage } from '../error-message.ts'
 import { inferenceBackend } from '../inference/backend.ts'
 import { extractAttribution, type RequestAttribution } from './attribution.ts'
-import { enforceAuth, headerApiKeyToken, type KeyResolution, resolveApiKeyToken } from './auth.ts'
+import { enforceAuth, type KeyResolution, resolveApiKeyToken } from './auth.ts'
 import { nullUsage, writeProxyLog } from './forward.ts'
-import { deleteGatewayAuthHeaders, filterRequestHeaders, redactSensitiveHeaders } from './headers.ts'
 import { recordTokenUsage } from './rate-limiter.ts'
 import { resolveProxyRouting, shouldPreserveAuthorization } from './routing.ts'
+import {
+  acceptUpgrade,
+  closeSafely,
+  connectUpstreamSocket,
+  loggedHeaders,
+  MAX_UPSTREAM_ERROR_BYTES,
+  parseProtocols,
+  readLimited,
+  toHeaders,
+  truncateReason,
+  upstreamSearch,
+  upstreamSocketHeaders,
+  writeHttpError,
+  writeRawHttp,
+  wsKeyToken,
+} from './ws-common.ts'
 import { applyTransforms, emptyRoutingOutcome, type RoutingOutcome, routingOutcomeFromDecision } from './transforms.ts'
 
 export const REALTIME_PATH = '/v1/realtime'
 
-// OpenAI SDK convention for browser clients, which cannot set Authorization on a WebSocket.
-const KEY_PROTOCOL_PREFIX = 'openai-insecure-api-key.'
 const SESSION_MODEL_TIMEOUT_MS = 30_000
 // Clients may stream input audio before naming a model in session.update.
 const MAX_PENDING_BYTES = 8 * 1024 * 1024
-const MAX_UPSTREAM_ERROR_BYTES = 4096
 const SESSION_UPDATE_TYPES = new Set(['session.update', 'transcription_session.update'])
 const USAGE_EVENT_TYPES = new Set(['response.done', 'conversation.item.input_audio_transcription.completed'])
 
@@ -52,14 +63,6 @@ type Session = {
   logged: boolean
 }
 
-// Protocol chosen for each pending handshake. ws asks for it via handleProtocols.
-const chosenProtocols = new WeakMap<IncomingMessage, string | false>()
-const wss = new WebSocketServer({
-  noServer: true,
-  perMessageDeflate: false,
-  handleProtocols: (_protocols, request) => chosenProtocols.get(request) ?? false,
-})
-
 export function isRealtimeUpgradePath(rawUrl: string | undefined): boolean {
   if (!rawUrl) return false
   return new URL(rawUrl, 'http://localhost').pathname === REALTIME_PATH
@@ -85,7 +88,7 @@ function startSession(req: IncomingMessage, socket: Duplex, head: Buffer) {
   const url = new URL(req.url ?? REALTIME_PATH, 'http://localhost')
   const headers = toHeaders(req.headers)
   const offeredProtocols = parseProtocols(headers.get('sec-websocket-protocol'))
-  const keyResolution = resolveApiKeyToken(realtimeKeyToken(headers, offeredProtocols, url))
+  const keyResolution = resolveApiKeyToken(wsKeyToken(headers, offeredProtocols, url))
   const queryModel = url.searchParams.get('model') || null
 
   const session: Session = {
@@ -130,8 +133,7 @@ function startSession(req: IncomingMessage, socket: Duplex, head: Buffer) {
   if (!queryModel) {
     // The model arrives in the first session.update. Accept the client now and
     // connect upstream once the model has passed the same checks as ?model=.
-    chosenProtocols.set(req, pickClientProtocol(offeredProtocols))
-    wss.handleUpgrade(req, socket, head, (client) => bridge(session, client, null))
+    acceptUpgrade(req, socket, head, offeredProtocols, (client) => bridge(session, client, null))
     return
   }
 
@@ -156,8 +158,7 @@ function startSession(req: IncomingMessage, socket: Duplex, head: Buffer) {
     if (settled) return
     settled = true
     socket.off('close', onSocketClose)
-    chosenProtocols.set(req, pickClientProtocol(offeredProtocols))
-    wss.handleUpgrade(req, socket, head, (client) => bridge(session, client, upstream))
+    acceptUpgrade(req, socket, head, offeredProtocols, (client) => bridge(session, client, upstream))
   })
   upstream.once('unexpected-response', (_request, response) => {
     if (settled) return
@@ -346,32 +347,13 @@ function resolveModel(session: Session, model: string): RealtimeError | { model:
 }
 
 function connectUpstream(session: Session): WebSocket {
-  const search = new URLSearchParams(session.url.searchParams)
-  search.delete('api_key')
+  const search = upstreamSearch(session.url)
   if (session.model) search.set('model', session.model)
   const httpUrl = inferenceBackend.defaultProxyUpstream(REALTIME_PATH, `?${search.toString()}`)
-  const wsUrl = httpUrl.replace(/^http/, 'ws')
-
-  // No subprotocols upstream: llama-server selects none, and ws rejects a
-  // handshake that offered some but got none back.
-  return new WebSocket(wsUrl, {
-    headers: upstreamHeaders(session),
-    perMessageDeflate: false,
-    handshakeTimeout: config.upstreamHeadersTimeoutMs > 0 ? config.upstreamHeadersTimeoutMs : undefined,
-  })
-}
-
-function upstreamHeaders(session: Session): Record<string, string> {
-  const out = filterRequestHeaders(session.headers)
-  deleteGatewayAuthHeaders(out)
-  for (const key of Object.keys(out)) {
-    const lower = key.toLowerCase()
-    // ws builds its own handshake headers. The dashboard cookie and browser Origin
-    // belong to llama-dash, and llama-server rejects unexpected cross-origin upgrades.
-    if (lower.startsWith('sec-websocket-') || lower === 'cookie' || lower === 'origin') delete out[key]
-    if (lower === 'authorization' && !shouldPreserveAuthorization(session.routing)) delete out[key]
-  }
-  return out
+  return connectUpstreamSocket(
+    httpUrl,
+    upstreamSocketHeaders(session.headers, shouldPreserveAuthorization(session.routing)),
+  )
 }
 
 function finishSession(session: Session, statusOverride?: number) {
@@ -462,35 +444,6 @@ function sessionUpdateModel(data: RawData): string | null {
   return null
 }
 
-function realtimeKeyToken(headers: Headers, protocols: Array<string>, url: URL): string | null {
-  const protocolKey = protocols.find((protocol) => protocol.startsWith(KEY_PROTOCOL_PREFIX))
-  return (
-    headerApiKeyToken(headers) ??
-    (protocolKey ? protocolKey.slice(KEY_PROTOCOL_PREFIX.length) : null) ??
-    url.searchParams.get('api_key')
-  )
-}
-
-// Browsers fail the handshake when they offer subprotocols and the server picks
-// none, so fall back to one of the offered values.
-function pickClientProtocol(offered: Array<string>): string | false {
-  return offered.find((protocol) => !protocol.startsWith(KEY_PROTOCOL_PREFIX)) ?? offered[0] ?? false
-}
-
-function loggedHeaders(headers: Headers): string {
-  const out = filterRequestHeaders(headers)
-  for (const key of Object.keys(out)) {
-    const lower = key.toLowerCase()
-    if (lower === 'sec-websocket-key' || lower === 'sec-websocket-extensions') delete out[key]
-    if (lower === 'sec-websocket-protocol') {
-      out[key] = parseProtocols(out[key])
-        .map((protocol) => (protocol.startsWith(KEY_PROTOCOL_PREFIX) ? `${KEY_PROTOCOL_PREFIX}[redacted]` : protocol))
-        .join(', ')
-    }
-  }
-  return JSON.stringify(redactSensitiveHeaders(out))
-}
-
 function sendErrorEvent(client: WebSocket, error: RealtimeError) {
   if (client.readyState !== WebSocket.OPEN) return
   client.send(
@@ -501,63 +454,6 @@ function sendErrorEvent(client: WebSocket, error: RealtimeError) {
   )
 }
 
-function closeSafely(ws: WebSocket, code: number, reason: Buffer) {
-  if (ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED) return
-  if (ws.readyState === WebSocket.CONNECTING) {
-    ws.terminate()
-    return
-  }
-  ws.close(sendableCloseCode(code), truncateReason(reason.toString('utf8')))
-}
-
-// 1005 and 1006 are reserved for reporting and can't be sent on the wire.
-function sendableCloseCode(code: number): number {
-  if (code >= 3000 && code <= 4999) return code
-  if (code >= 1000 && code <= 1014 && code !== 1004 && code !== 1005 && code !== 1006) return code
-  return code === 1006 ? 1011 : 1000
-}
-
-// Close reasons are limited to 123 bytes.
-function truncateReason(reason: string): string {
-  let out = reason
-  while (Buffer.byteLength(out) > 123) out = out.slice(0, -1)
-  return out
-}
-
-function writeHttpError(socket: Duplex, status: number, error: { message: string; type: string }) {
-  writeRawHttp(socket, status, 'application/json', Buffer.from(JSON.stringify({ error })))
-}
-
-function writeRawHttp(socket: Duplex, status: number, contentType: string, body: Buffer) {
-  if (socket.destroyed) return
-  socket.end(
-    `HTTP/1.1 ${status} ${STATUS_CODES[status] ?? 'Error'}\r\n` +
-      `Content-Type: ${contentType}\r\n` +
-      `Content-Length: ${body.length}\r\n` +
-      'Connection: close\r\n\r\n' +
-      body.toString('utf8'),
-  )
-}
-
-function readLimited(stream: IncomingMessage, limit: number): Promise<Buffer> {
-  return new Promise((resolve) => {
-    const chunks: Array<Buffer> = []
-    let size = 0
-    const done = () => resolve(Buffer.concat(chunks).subarray(0, limit))
-    stream.on('data', (chunk: Buffer) => {
-      if (size >= limit) return
-      chunks.push(chunk)
-      size += chunk.length
-      if (size >= limit) {
-        stream.destroy()
-        done()
-      }
-    })
-    stream.on('end', done)
-    stream.on('error', done)
-  })
-}
-
 function eventSummary(counts: Map<string, number>): string | null {
   if (counts.size === 0) return null
   return JSON.stringify({ events: Object.fromEntries(counts) })
@@ -565,23 +461,6 @@ function eventSummary(counts: Map<string, number>): string | null {
 
 function increment(counts: Map<string, number>, key: string) {
   counts.set(key, (counts.get(key) ?? 0) + 1)
-}
-
-function toHeaders(raw: IncomingMessage['headers']): Headers {
-  const headers = new Headers()
-  for (const [key, value] of Object.entries(raw)) {
-    if (value == null) continue
-    headers.set(key, Array.isArray(value) ? value.join(', ') : value)
-  }
-  return headers
-}
-
-function parseProtocols(header: string | null | undefined): Array<string> {
-  if (!header) return []
-  return header
-    .split(',')
-    .map((protocol) => protocol.trim())
-    .filter(Boolean)
 }
 
 function rawDataBuffer(data: RawData): Buffer {

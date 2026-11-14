@@ -19,7 +19,7 @@ const server = serve({
   },
 })
 
-// The fetch handler can't accept WebSockets, so /v1/realtime upgrades are
+// The fetch handler can't accept WebSockets, so proxied upgrades are
 // handed to the hook that the server bundle registers.
 server.node?.server?.on('upgrade', (req, socket, head) => {
   if (globalThis.__llamaDashUpgrade?.(req, socket, head)) return
