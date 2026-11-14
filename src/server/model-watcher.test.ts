@@ -8,6 +8,7 @@ vi.mock('./db/index.ts', () => ({
 }))
 vi.mock('./admin/events.ts', () => ({ publishAdminEvent: vi.fn() }))
 vi.mock('./model-footprints.ts', () => ({ scheduleFootprintMeasurement: vi.fn() }))
+vi.mock('./model-specs.ts', () => ({ captureModelSpecs: vi.fn() }))
 
 afterEach(() => {
   vi.clearAllTimers()

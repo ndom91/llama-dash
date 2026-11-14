@@ -5,10 +5,9 @@ import { db, schema } from './db/index.ts'
 import { inferenceBackend } from './inference/backend.ts'
 import type { BackendRunningModel } from './inference/backend.ts'
 
-// Models whose specs were read during their current residency. Cleared on unload so a reload,
-// which may point at a different GGUF, is read again.
+// Models whose specs were requested during their current residency, whatever the outcome.
+// Cleared on unload so a reload, which may point at a different GGUF, is read again.
 const captured = new Set<string>()
-const inFlight = new Set<string>()
 
 /**
  * Reads weights size, parameter count, and quantization for ready models not yet captured.
@@ -22,24 +21,21 @@ export function captureModelSpecs(running: Array<BackendRunningModel>) {
     if (!runningIds.has(id)) captured.delete(id)
   }
   for (const model of running) {
-    if (model.state !== 'ready' || captured.has(model.model) || inFlight.has(model.model)) continue
-    inFlight.add(model.model)
-    fetchSpecs(model.model)
+    const id = model.model
+    if (model.state !== 'ready' || captured.has(id)) continue
+    captured.add(id)
+    fetchSpecs(id)
       .then((specs) => {
         if (!specs) return
         const capturedAt = new Date()
         db.insert(schema.modelSpecs)
-          .values({ id: `msp_${ulid()}`, modelId: model.model, ...specs, capturedAt })
+          .values({ id: `msp_${ulid()}`, modelId: id, ...specs, capturedAt })
           .onConflictDoUpdate({ target: schema.modelSpecs.modelId, set: { ...specs, capturedAt } })
           .run()
       })
       .catch(() => {
         // Best effort: the previous row stays in place. Not retrying until the next load keeps
         // upstreams that are not llama-server from being probed on every poll.
-      })
-      .finally(() => {
-        inFlight.delete(model.model)
-        captured.add(model.model)
       })
   }
 }
