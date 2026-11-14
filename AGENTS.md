@@ -126,7 +126,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 ## How it's wired
 
 - `src/server/proxy/realtime.ts` — `/v1/realtime` WebSocket passthrough. srvx and Vite only hand fetch requests to `src/server.ts`, so `prod-server.mjs` and a dev plugin in `vite.config.ts` route Node `upgrade` events for that path to the `globalThis.__llamaDashUpgrade` hook it registers. Keys come from headers, the `openai-insecure-api-key.<key>` subprotocol, or `?api_key=` (stripped upstream, never logged). Model checks run on `?model=` before the upgrade, or on the first `session.update` naming a model (earlier frames buffered, 8 MiB / 30 s cap). No subprotocols are forwarded upstream because llama-server selects none. One request row per session, logged on close with summed `response.done` usage and per-type event counts instead of bodies. See [`docs/2026_11_14_realtime_proxy.md`](./docs/2026_11_14_realtime_proxy.md).
-- `src/server/proxy/*` — the `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through; `/v1/audio/llama-tts` routes native speech to the selected model's llama-swap upstream: streaming SSE preserved, proxy context/body snapshots kept isolated, full request/response capture by default with an optional persisted-body limit, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
+- `src/server/proxy/*` — the `/v1/*`, native llama.cpp `/infill`, and llama-swap `/audiocpp/*` pass-through; llama.cpp TTS models are served through the standard `/v1/audio/speech` (wav or pcm only, no `speed`; voices are listed in llama-server `/props`, not `/v1/audio/voices`): streaming SSE preserved, proxy context/body snapshots kept isolated, full request/response capture by default with an optional persisted-body limit, token counts scraped from responses as they fly by, and one queued SQLite row per completed request.
 - `src/server/pricing.ts` — startup-cached `models.dev` model pricing used to estimate logged request cost from upstream usage counters.
 - `src/server/admin/*` — the `/api/*` admin surface consumed by the UI, with grouped route modules under `src/server/admin/routes/*` for models, requests, config, keys, aliases, routing, MCP relays, upstream credentials, settings, and system health. JSON GET responses support conditional ETag polling, `/api/events` streams lightweight dashboard events, and `/api/log-events` streams llama-swap logs only while the Logs page is mounted.
 - `src/server/article-extract.ts` — server-side article URL fetcher for the Speech playground. It validates public HTTP(S) URLs, caps HTML fetch size/time, parses readable article text with Readability, and returns editable text for TTS.
@@ -608,7 +608,6 @@ sort lexicographically by creation time).
 
 - `POST /v1/*` — forward OpenAI / Anthropic calls unchanged (after our middleware)
 - `POST /infill` — forward native llama.cpp FIM requests unchanged (after the same auth and routing middleware)
-- `/v1/audio/llama-tts` — llama-dash native TTS endpoint forwarding to llama-swap `/upstream/{model}/tts` (JSON model IDs without slashes)
 - `/audiocpp/*` — forward llama-swap's audio.cpp UI and API passthrough unchanged (after the same auth and routing middleware)
 - `GET /running` — which models are currently loaded
 - `POST /models/unload` — unload a model

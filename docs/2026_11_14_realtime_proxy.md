@@ -51,6 +51,15 @@ llama-swap v272 does not forward them in `/v1/models`, so llama-dash reads
 `/upstream/<id>/props`. That path starts a stopped model, so the route only
 asks running models and otherwise returns `null`.
 
+## Native speech replaces /v1/audio/llama-tts
+
+llama-server's `/v1/audio/speech` (llama.cpp #31763) runs the same TTS code as
+its native `/tts`, so the custom `/v1/audio/llama-tts` → `/upstream/<id>/tts`
+route was removed. Verified against `lfm3-audio-2b`: WAV out, `voice` works
+(`male`/`female` from `/props`), unknown voices and `mp3` get clear 400s.
+Gotchas: only `wav`/`pcm` response formats, and any `speed` other than 1.0 is
+rejected. `/v1/audio/voices` 404s for llama.cpp models.
+
 ## Not verified live
 
 No LFM3 or llama.cpp-native TTS model was configured on the reference host

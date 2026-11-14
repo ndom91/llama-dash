@@ -5,7 +5,6 @@ import { usePlaygroundApiKey } from './use-playground-api-key'
 
 const LS_MODEL = 'playground-speech-model'
 const LS_VOICE = 'playground-speech-voice'
-const LS_API = 'playground-speech-api'
 const LS_ENTRIES = 'playground-speech-entries'
 const SPEECH_REQUEST_TIMEOUT_MS = 180_000
 const AUDIO_METADATA_TIMEOUT_MS = 3_000
@@ -30,9 +29,6 @@ function loadJson<T>(key: string, fallback: T): T {
 export function usePlaygroundSpeech() {
   const [model, setModelState] = useState(() => loadString(LS_MODEL, ''))
   const [voice, setVoiceState] = useState(() => loadString(voiceStorageKey(loadString(LS_MODEL, '')), ''))
-  const [speechApi, setSpeechApiState] = useState<'openai' | 'llama'>(() =>
-    loadString(LS_API, 'openai') === 'llama' ? 'llama' : 'openai',
-  )
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [entries, setEntries] = useState<Array<SpeechEntry>>(() => normalizeSpeechEntries(loadJson(LS_ENTRIES, [])))
@@ -80,11 +76,6 @@ export function usePlaygroundSpeech() {
     [model],
   )
 
-  const setSpeechApi = useCallback((value: 'openai' | 'llama') => {
-    setSpeechApiState(value)
-    localStorage.setItem(LS_API, value)
-  }, [])
-
   const generate = useCallback(
     async (options: GenerateSpeechOptions = {}) => {
       const input = (options.input ?? text).trim()
@@ -99,7 +90,6 @@ export function usePlaygroundSpeech() {
       try {
         const result = await requestSpeech({
           model,
-          speechApi,
           voice,
           input,
           apiKey: await loadApiKey(),
@@ -113,7 +103,7 @@ export function usePlaygroundSpeech() {
             id,
             audioUrl: result.audioUrl,
             input,
-            voice: speechApi === 'llama' ? 'default' : voice.trim() || 'default',
+            voice: voice.trim() || 'default',
             source: options.source,
             renderMs: result.renderMs,
             audioDurationSec: result.audioDurationSec,
@@ -132,7 +122,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [loadApiKey, model, refreshApiKey, speechApi, text, voice],
+    [loadApiKey, model, refreshApiKey, text, voice],
   )
 
   const generateSegments = useCallback(
@@ -157,7 +147,7 @@ export function usePlaygroundSpeech() {
       const baseEntry: SpeechEntry = {
         id,
         input,
-        voice: speechApi === 'llama' ? 'default' : voice.trim() || 'default',
+        voice: voice.trim() || 'default',
         source: options.source,
         renderMs: null,
         audioDurationSec: null,
@@ -174,7 +164,6 @@ export function usePlaygroundSpeech() {
           const chunk = chunks[index]
           const result = await requestSpeech({
             model,
-            speechApi,
             voice,
             input: chunk,
             apiKey: await loadApiKey(),
@@ -231,7 +220,7 @@ export function usePlaygroundSpeech() {
         abortRef.current = null
       }
     },
-    [generate, loadApiKey, model, refreshApiKey, speechApi, text, voice],
+    [generate, loadApiKey, model, refreshApiKey, text, voice],
   )
 
   const stop = useCallback(() => {
@@ -247,8 +236,6 @@ export function usePlaygroundSpeech() {
     setModel,
     voice,
     setVoice,
-    speechApi,
-    setSpeechApi,
     voices,
     text,
     setText,
@@ -334,7 +321,6 @@ async function loadVoices(
 
 async function requestSpeech(input: {
   model: string
-  speechApi: 'openai' | 'llama'
   voice: string
   input: string
   apiKey: string | null
@@ -343,11 +329,11 @@ async function requestSpeech(input: {
 }) {
   const startedAt = performance.now()
   const body: Record<string, unknown> = { model: input.model, input: input.input }
-  if (input.speechApi === 'openai' && input.voice.trim()) body.voice = input.voice.trim()
+  if (input.voice.trim()) body.voice = input.voice.trim()
   const signal = withTimeout(input.signal, SPEECH_REQUEST_TIMEOUT_MS, 'Speech request timed out')
 
   const send = (apiKey: string | null) =>
-    fetch(input.speechApi === 'llama' ? '/v1/audio/llama-tts' : '/v1/audio/speech', {
+    fetch('/v1/audio/speech', {
       method: 'POST',
       headers: bearerHeaders(apiKey, { 'content-type': 'application/json' }),
       body: JSON.stringify(body),
