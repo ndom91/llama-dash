@@ -881,7 +881,7 @@
 }
 
 .detail-sidecar-code {
-  @apply m-0 whitespace-pre-wrap border px-3 py-3 font-mono text-[11px] leading-[1.55] text-fg-muted;
+  @apply m-0 whitespace-pre-wrap wrap-anywhere border px-3 py-3 font-mono text-[11px] leading-[1.55] text-fg-muted;
   background: color-mix(in srgb, var(--bg-1) 84%, var(--bg-2));
   border-color: color-mix(in srgb, var(--border) 86%, transparent);
 }
