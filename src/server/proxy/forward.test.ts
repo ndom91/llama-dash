@@ -385,4 +385,38 @@ describe('writeProxyLog', () => {
       expect.objectContaining({ responseBody: null, promptTokens: null, completionTokens: null, totalTokens: null }),
     )
   })
+
+  it('passes native /v1/audio/speech audio through byte for byte without capturing it', async () => {
+    const audio = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0xff, 0x10, 0x80])
+    undiciFetch.mockResolvedValue(new Response(audio, { headers: { 'content-type': 'audio/wav' } }))
+
+    const response = await forwardUpstreamAndLog({
+      upstream: 'http://upstream.test/v1/audio/speech',
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"model":"pocket-tts","input":"hi","voice":"alba"}',
+      hasBody: true,
+      startedAt: Date.now(),
+      endpoint: '/v1/audio/speech',
+      reqModel: 'pocket-tts',
+      reqHeadersJson: '{}',
+      reqBody: null,
+      keyId: null,
+      keyRow: null,
+      attribution: { clientName: null, endUserId: null, sessionId: null },
+      routing: input().routing,
+    })
+
+    expect((response as Response).headers.get('content-type')).toBe('audio/wav')
+    expect(new Uint8Array(await (response as Response).arrayBuffer())).toEqual(audio)
+    expect(writeRequestLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: '/v1/audio/speech',
+        model: 'pocket-tts',
+        statusCode: 200,
+        responseBody: null,
+        totalTokens: null,
+      }),
+    )
+  })
 })
