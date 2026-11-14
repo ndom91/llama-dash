@@ -11,6 +11,9 @@ const PlaygroundSpeech = lazy(() => import('./PlaygroundSpeech').then((mod) => (
 const PlaygroundTranscribe = lazy(() =>
   import('./PlaygroundTranscribe').then((mod) => ({ default: mod.PlaygroundTranscribe })),
 )
+const PlaygroundRealtime = lazy(() =>
+  import('./PlaygroundRealtime').then((mod) => ({ default: mod.PlaygroundRealtime })),
+)
 
 type Props = {
   searchTab?: string
@@ -57,6 +60,7 @@ export function PlaygroundPage({ searchTab }: Props) {
           {tab === 'image' ? <PlaygroundImage /> : null}
           {tab === 'speech' ? <PlaygroundSpeech /> : null}
           {tab === 'transcribe' ? <PlaygroundTranscribe /> : null}
+          {tab === 'realtime' ? <PlaygroundRealtime /> : null}
         </Suspense>
       </div>
     </div>

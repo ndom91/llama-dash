@@ -14,9 +14,17 @@ type Props = {
   onDownload: () => void
   autoPlay?: boolean
   onEnded?: () => void
+  format?: string
 }
 
-export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, autoPlay = false, onEnded }: Props) {
+export function PlaygroundSpeechPreviewPlayer({
+  src,
+  durationHint,
+  onDownload,
+  autoPlay = false,
+  onEnded,
+  format = 'mp3',
+}: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const waveformRef = useRef<HTMLDivElement | null>(null)
   const rafRef = useRef<number | null>(null)
@@ -111,6 +119,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
     onEndedRef.current = onEnded
   }, [onEnded])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: autoplay again whenever a new src loads
   useEffect(() => {
     const audio = audioRef.current
     if (!audio || !autoPlay) return
@@ -242,7 +251,7 @@ export function PlaygroundSpeechPreviewPlayer({ src, durationHint, onDownload, a
 
         <div className="flex w-8 shrink-0 flex-col items-stretch gap-1">
           <span className="flex h-5 w-8 items-center justify-center rounded border border-border bg-surface-2 font-mono text-[10px] uppercase tracking-[0.08em] text-fg-dim">
-            mp3
+            {format}
           </span>
 
           <Tooltip label="Download">
