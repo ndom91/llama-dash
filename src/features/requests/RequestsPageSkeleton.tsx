@@ -1,3 +1,5 @@
+import { RequestsHistogramSkeleton } from '../../components/skeleton/RequestsHistogramSkeleton'
+
 const ROWS = Array.from({ length: 10 }, (_, index) => `request-row-${index}`)
 
 export function RequestsPageSkeleton() {
@@ -23,11 +25,7 @@ export function RequestsPageSkeleton() {
               </span>
             </div>
           </div>
-          <div className="px-4 pb-4">
-            <div className="h-28 rounded-sm bg-surface-2">
-              <span className="skel skel-block h-full" />
-            </div>
-          </div>
+          <RequestsHistogramSkeleton />
         </section>
 
         <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">

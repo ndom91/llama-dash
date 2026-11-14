@@ -1,3 +1,4 @@
+import { RequestsHistogramSkeleton } from './RequestsHistogramSkeleton'
 import { PageHeaderSkeleton, SkeletonBlock, SkeletonLine, SkeletonPageFrame } from './SkeletonFrame'
 
 const TABLE_ROWS = Array.from({ length: 11 }, (_, index) => `pending-row-${index}`)
@@ -22,9 +23,7 @@ export function RouteRequestsSkeleton() {
               <span className="panel-title">req/s</span>
               <span className="panel-sub">last 60m</span>
             </div>
-            <div className="px-4 pb-4">
-              <SkeletonBlock className="h-28 rounded-sm" />
-            </div>
+            <RequestsHistogramSkeleton />
           </section>
 
           <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
