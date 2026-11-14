@@ -6,9 +6,21 @@
 # Models are stored in /models inside the container.
 # Use ${PORT} — llama-swap replaces it with an assigned port.
 
+# Defaults that suit running behind llama-dash:
+# - llama-dash captures request/response bodies itself, so llama-swap's own
+#   capture buffer would only keep a second copy of every prompt.
+# - The Help page and its /api/mcp endpoint (docs and source-code tools) are
+#   not used by llama-dash.
+# Keep `performance` enabled: llama-dash's System page reads /api/performance.
+captureBuffer: 0
+helpagent:
+  disable: true
+
 models:
   llama3:
-    cmd: llama-server --port ${PORT} --model /models/llama-3.gguf
+    # Bind model servers to localhost so only llama-swap can reach them;
+    # 0.0.0.0 exposes every model port without llama-swap/llama-dash auth.
+    cmd: llama-server --host 127.0.0.1 --port ${PORT} --model /models/llama-3.gguf
     ttl: 300
 
   # More full featured usage example
@@ -25,5 +37,5 @@ models:
   #       --ctx-size 16384
   #       --reasoning off
   #       --parallel 1
-  #       --host 0.0.0.0
+  #       --host 127.0.0.1
   #       --port ${PORT}
