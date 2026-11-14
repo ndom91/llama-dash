@@ -130,7 +130,7 @@ function startSession(req: IncomingMessage, socket: Duplex, head: Buffer) {
   if (!queryModel) {
     // The model arrives in the first session.update. Accept the client now and
     // connect upstream once the model has passed the same checks as ?model=.
-    chosenProtocols.set(req, pickClientProtocol(offeredProtocols, null))
+    chosenProtocols.set(req, pickClientProtocol(offeredProtocols))
     wss.handleUpgrade(req, socket, head, (client) => bridge(session, client, null))
     return
   }
@@ -156,7 +156,7 @@ function startSession(req: IncomingMessage, socket: Duplex, head: Buffer) {
     if (settled) return
     settled = true
     socket.off('close', onSocketClose)
-    chosenProtocols.set(req, pickClientProtocol(offeredProtocols, upstream.protocol))
+    chosenProtocols.set(req, pickClientProtocol(offeredProtocols))
     wss.handleUpgrade(req, socket, head, (client) => bridge(session, client, upstream))
   })
   upstream.once('unexpected-response', (_request, response) => {
@@ -352,8 +352,9 @@ function connectUpstream(session: Session): WebSocket {
   const httpUrl = inferenceBackend.defaultProxyUpstream(REALTIME_PATH, `?${search.toString()}`)
   const wsUrl = httpUrl.replace(/^http/, 'ws')
 
-  const protocols = session.offeredProtocols.filter((protocol) => !protocol.startsWith(KEY_PROTOCOL_PREFIX))
-  return new WebSocket(wsUrl, protocols, {
+  // No subprotocols upstream: llama-server selects none, and ws rejects a
+  // handshake that offered some but got none back.
+  return new WebSocket(wsUrl, {
     headers: upstreamHeaders(session),
     perMessageDeflate: false,
     handshakeTimeout: config.upstreamHeadersTimeoutMs > 0 ? config.upstreamHeadersTimeoutMs : undefined,
@@ -472,8 +473,7 @@ function realtimeKeyToken(headers: Headers, protocols: Array<string>, url: URL):
 
 // Browsers fail the handshake when they offer subprotocols and the server picks
 // none, so fall back to one of the offered values.
-function pickClientProtocol(offered: Array<string>, upstreamProtocol: string | null): string | false {
-  if (upstreamProtocol && offered.includes(upstreamProtocol)) return upstreamProtocol
+function pickClientProtocol(offered: Array<string>): string | false {
   return offered.find((protocol) => !protocol.startsWith(KEY_PROTOCOL_PREFIX)) ?? offered[0] ?? false
 }
 

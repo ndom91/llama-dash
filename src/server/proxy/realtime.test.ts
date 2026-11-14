@@ -84,7 +84,8 @@ const upstreamConnections: Array<UpstreamConnection> = []
 
 beforeAll(async () => {
   upstreamHttp = createServer()
-  upstreamWss = new WebSocketServer({ server: upstreamHttp })
+  // Like llama-server, select no subprotocol.
+  upstreamWss = new WebSocketServer({ server: upstreamHttp, handleProtocols: () => false })
   upstreamWss.on('connection', (ws, req) => {
     const connection: UpstreamConnection = { url: req.url ?? '', headers: req.headers, received: [] }
     upstreamConnections.push(connection)
@@ -184,7 +185,7 @@ describe('handleRealtimeUpgrade', () => {
 
     const upstream = upstreamConnections[0]
     expect(upstream.url).toBe('/v1/realtime?model=lfm3-audio')
-    expect(upstream.headers['sec-websocket-protocol']).toBe('realtime')
+    expect(upstream.headers['sec-websocket-protocol']).toBeUndefined()
     expect(upstream.received).toEqual([JSON.stringify({ type: 'response.create' })])
 
     ws.close(1000)
