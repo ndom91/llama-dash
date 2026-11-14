@@ -367,8 +367,8 @@
   --shake-ease: var(--motion-ease-smooth-out);
 
   /* Skeleton reveal (transitions.dev 14), toned down: opacity only, from partly visible */
-  --reveal-dur: var(--motion-duration-fast);
-  --reveal-from: 0.4;
+  --reveal-dur: var(--motion-duration-medium);
+  --reveal-from: 0.15;
   --reveal-ease: var(--motion-ease-out);
 }
 
