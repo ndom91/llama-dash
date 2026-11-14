@@ -159,7 +159,6 @@ type ResponseState = {
   turnId: string
   startedAt: number
   chunks: Array<Int16Array>
-  samples: number
   firstTextAt: number | null
   firstAudioAt: number | null
 }
@@ -199,8 +198,6 @@ type Connection = {
 type Capture = {
   active: boolean
   confirmed: boolean
-  held: Array<Int16Array>
-  heldSamples: number
   chunks: Array<Int16Array>
 }
 
@@ -343,25 +340,22 @@ export function usePlaygroundRealtime() {
     return () => media.removeEventListener('devicechange', onChange)
   }, [controller])
 
-  const setInputDeviceId = useCallback(
-    (value: string) => {
-      setInputDeviceIdState(value)
-      localStorage.setItem(LS_INPUT_DEVICE, value)
-      settingsRef.current = { ...settingsRef.current, inputDeviceId: value }
-      controller.restartMic()
-    },
-    [controller],
-  )
+  // Runs after the settingsRef sync above, so the restart reads the new input.
+  // A no-op until a session is live, including on first render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restart only when the input settings change
+  useEffect(() => {
+    controller.restartMic()
+  }, [controller, inputDeviceId, voiceProcessing])
 
-  const setVoiceProcessing = useCallback(
-    (value: boolean) => {
-      setVoiceProcessingState(value)
-      localStorage.setItem(LS_VOICE_PROCESSING, value ? 'on' : 'off')
-      settingsRef.current = { ...settingsRef.current, voiceProcessing: value }
-      controller.restartMic()
-    },
-    [controller],
-  )
+  const setInputDeviceId = useCallback((value: string) => {
+    setInputDeviceIdState(value)
+    localStorage.setItem(LS_INPUT_DEVICE, value)
+  }, [])
+
+  const setVoiceProcessing = useCallback((value: boolean) => {
+    setVoiceProcessingState(value)
+    localStorage.setItem(LS_VOICE_PROCESSING, value ? 'on' : 'off')
+  }, [])
 
   const setModel = useCallback((value: string) => {
     setModelState(value)
@@ -750,7 +744,6 @@ function createRealtimeController(
           turnId,
           startedAt: target.commitAt ?? Date.now(),
           chunks: [],
-          samples: 0,
           firstTextAt: null,
           firstAudioAt: null,
         })
@@ -759,11 +752,7 @@ function createRealtimeController(
         return
       }
 
-      // llama.cpp emits output_text; the others are OpenAI GA/beta names.
-      case 'response.output_text.delta':
-      case 'response.text.delta':
-      case 'response.output_audio_transcript.delta':
-      case 'response.audio_transcript.delta': {
+      case 'response.output_text.delta': {
         logEvent('in', event.type)
         const response = responseFor(target, event)
         if (!response || !event.delta) return
@@ -773,15 +762,13 @@ function createRealtimeController(
         return
       }
 
-      case 'response.output_audio.delta':
-      case 'response.audio.delta': {
+      case 'response.output_audio.delta': {
         logEvent('in', event.type)
         const response = responseFor(target, event)
         if (!response || !event.delta) return
         const pcm = base64ToPcm16(event.delta)
         response.firstAudioAt ??= Date.now()
         response.chunks.push(pcm)
-        response.samples += pcm.length
         const responseId = event.response_id ?? target.activeResponseId
         if (!responseId || !target.silenced.has(responseId)) playChunk(target, pcm)
         return
@@ -1039,7 +1026,7 @@ function createRealtimeController(
     if (settings.mode === 'push-to-talk') {
       if (!capture.active) return
       pushTurnAudio(target, pcm)
-      if (!capture.confirmed && capture.heldSamples >= (target.inputRate * PTT_MIN_MS) / 1000) confirmTurn(target)
+      if (!capture.confirmed && pcmLength(capture.chunks) >= (target.inputRate * PTT_MIN_MS) / 1000) confirmTurn(target)
       return
     }
 
@@ -1079,8 +1066,6 @@ function createRealtimeController(
     capture = {
       active: true,
       confirmed: false,
-      held: [...initial],
-      heldSamples: initial.reduce((sum, chunk) => sum + chunk.length, 0),
       chunks: [...initial],
     }
     preroll = []
@@ -1092,20 +1077,14 @@ function createRealtimeController(
   // llama-server cannot drop audio once it has been appended.
   function pushTurnAudio(target: Connection, pcm: Int16Array) {
     capture.chunks.push(pcm)
-    if (capture.confirmed) {
-      send(target, { type: 'input_audio_buffer.append', audio: pcm16ToBase64(pcm) })
-      return
-    }
-    capture.held.push(pcm)
-    capture.heldSamples += pcm.length
+    if (capture.confirmed) send(target, { type: 'input_audio_buffer.append', audio: pcm16ToBase64(pcm) })
   }
 
   function confirmTurn(target: Connection) {
     if (!capture.active || capture.confirmed) return
     capture.confirmed = true
-    const held = concatPcm16(capture.held)
-    capture.held = []
-    capture.heldSamples = 0
+    // Until now the turn's audio was only held locally in chunks.
+    const held = concatPcm16(capture.chunks)
     if (held.length > 0) send(target, { type: 'input_audio_buffer.append', audio: pcm16ToBase64(held) })
   }
 
@@ -1209,7 +1188,13 @@ function createRealtimeController(
 }
 
 function idleCapture(): Capture {
-  return { active: false, confirmed: false, held: [], heldSamples: 0, chunks: [] }
+  return { active: false, confirmed: false, chunks: [] }
+}
+
+function pcmLength(chunks: ReadonlyArray<Int16Array>): number {
+  let total = 0
+  for (const chunk of chunks) total += chunk.length
+  return total
 }
 
 function emptyTurn(role: RealtimeTurn['role']): Omit<RealtimeTurn, 'id' | 'createdAt'> {

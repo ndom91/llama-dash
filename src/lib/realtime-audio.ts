@@ -78,14 +78,15 @@ export function rms(input: Float32Array): number {
 }
 
 /** 44-byte RIFF header plus little-endian mono PCM16 samples. */
-export function encodeWavBytes(pcm: Int16Array, sampleRate: number): Uint8Array {
-  const out = new Uint8Array(44 + pcm.length * 2)
+// 44-byte RIFF header for mono 16-bit PCM.
+export function wavHeader(samples: number, sampleRate: number): Uint8Array {
+  const out = new Uint8Array(44)
   const view = new DataView(out.buffer)
   const ascii = (offset: number, text: string) => {
     for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i))
   }
   ascii(0, 'RIFF')
-  view.setUint32(4, 36 + pcm.length * 2, true)
+  view.setUint32(4, 36 + samples * 2, true)
   ascii(8, 'WAVE')
   ascii(12, 'fmt ')
   view.setUint32(16, 16, true)
@@ -96,13 +97,15 @@ export function encodeWavBytes(pcm: Int16Array, sampleRate: number): Uint8Array 
   view.setUint16(32, 2, true)
   view.setUint16(34, 16, true)
   ascii(36, 'data')
-  view.setUint32(40, pcm.length * 2, true)
-  for (let i = 0; i < pcm.length; i++) view.setInt16(44 + i * 2, pcm[i], true)
+  view.setUint32(40, samples * 2, true)
   return out
 }
 
+// WAV is little-endian, as are the Int16Array bytes on every platform browsers run on.
 export function encodeWav(pcm: Int16Array, sampleRate: number): Blob {
-  return new Blob([encodeWavBytes(pcm, sampleRate).buffer as ArrayBuffer], { type: 'audio/wav' })
+  return new Blob([wavHeader(pcm.length, sampleRate) as Uint8Array<ArrayBuffer>, pcm as Int16Array<ArrayBuffer>], {
+    type: 'audio/wav',
+  })
 }
 
 /**
@@ -199,10 +202,6 @@ export class VoiceActivityDetector {
     public silenceMs: number,
     public minSpeechMs = 250,
   ) {}
-
-  get active(): boolean {
-    return this.speaking
-  }
 
   reset() {
     this.speaking = false

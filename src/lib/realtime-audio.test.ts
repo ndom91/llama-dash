@@ -5,7 +5,6 @@ import {
   concatPcm16,
   describeRealtimeClose,
   encodeWav,
-  encodeWavBytes,
   mergeEventLog,
   floatToPcm16,
   nextPlaybackStart,
@@ -91,11 +90,13 @@ describe('rms', () => {
   })
 })
 
-describe('encodeWavBytes', () => {
-  it('writes a mono PCM16 RIFF header and samples', () => {
-    const bytes = encodeWavBytes(new Int16Array([1, -2]), 24_000)
+describe('encodeWav', () => {
+  it('writes a mono PCM16 RIFF header followed by the samples', async () => {
+    const blob = encodeWav(new Int16Array([1, -2]), 24_000)
+    const bytes = new Uint8Array(await blob.arrayBuffer())
     const view = new DataView(bytes.buffer)
     const text = (offset: number) => String.fromCharCode(...bytes.subarray(offset, offset + 4))
+    expect(blob.type).toBe('audio/wav')
     expect(bytes.length).toBe(48)
     expect(text(0)).toBe('RIFF')
     expect(view.getUint32(4, true)).toBe(40)
@@ -109,12 +110,6 @@ describe('encodeWavBytes', () => {
     expect(view.getUint32(40, true)).toBe(4)
     expect(view.getInt16(44, true)).toBe(1)
     expect(view.getInt16(46, true)).toBe(-2)
-  })
-
-  it('wraps the bytes in an audio/wav blob', () => {
-    const blob = encodeWav(new Int16Array(10), 16_000)
-    expect(blob.type).toBe('audio/wav')
-    expect(blob.size).toBe(64)
   })
 })
 
@@ -176,7 +171,6 @@ describe('VoiceActivityDetector', () => {
     expect(vad.feed(0.1, 20)).toBeNull()
     expect(vad.feed(0.001, 300)).toBeNull()
     expect(vad.feed(0.001, 300)).toBe('end')
-    expect(vad.active).toBe(false)
   })
 
   it('discards blips shorter than the minimum speech length', () => {
