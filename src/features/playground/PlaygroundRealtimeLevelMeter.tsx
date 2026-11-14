@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { cn } from '../../lib/cn'
-import type { RealtimeLevelSource } from '../../lib/use-playground-realtime'
+import type { RealtimeLevelSource } from '../../lib/realtime-types'
 
 // RMS levels are small; a square-root scale makes quiet speech visible.
 const FULL_SCALE = 0.3

@@ -1,4 +1,4 @@
-import type { RealtimeInputDevice, RealtimeLevelSource } from '../../lib/use-playground-realtime'
+import type { RealtimeInputDevice, RealtimeLevelSource } from '../../lib/realtime-types'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
 import { PlaygroundRealtimeLevelMeter } from './PlaygroundRealtimeLevelMeter'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'

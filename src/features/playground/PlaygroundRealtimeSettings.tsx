@@ -10,7 +10,7 @@ import {
   type RealtimeLevelSource,
   type RealtimeStatus,
   type RealtimeTurnMode,
-} from '../../lib/use-playground-realtime'
+} from '../../lib/realtime-types'
 import { PlaygroundRealtimeMicrophone } from './PlaygroundRealtimeMicrophone'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
 import { PlaygroundSlider } from './PlaygroundSlider'

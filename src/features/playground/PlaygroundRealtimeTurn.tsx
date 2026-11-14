@@ -2,7 +2,7 @@ import { AlertCircle } from 'lucide-react'
 import { memo, useCallback } from 'react'
 import { cn } from '../../lib/cn'
 import { buildRealtimeFilename } from '../../lib/realtime-audio'
-import type { RealtimeTurn } from '../../lib/use-playground-realtime'
+import type { RealtimeTurn } from '../../lib/realtime-types'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
 import { formatRealtimeMs } from './playgroundRealtimeUtils'
 

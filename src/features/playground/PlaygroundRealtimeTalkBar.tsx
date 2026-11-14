@@ -2,12 +2,7 @@ import { Mic, MicOff, Send, Square } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
-import type {
-  RealtimeLevelSource,
-  RealtimeMicState,
-  RealtimeStatus,
-  RealtimeTurnMode,
-} from '../../lib/use-playground-realtime'
+import type { RealtimeLevelSource, RealtimeMicState, RealtimeStatus, RealtimeTurnMode } from '../../lib/realtime-types'
 import { PlaygroundRealtimeLevelMeter } from './PlaygroundRealtimeLevelMeter'
 
 type Props = {
