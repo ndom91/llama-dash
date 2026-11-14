@@ -366,10 +366,10 @@
   --shake-dur-b: 60ms;
   --shake-ease: var(--motion-ease-smooth-out);
 
-  /* Skeleton reveal (transitions.dev 14) */
-  --reveal-dur: var(--motion-duration-slow);
-  --reveal-blur: var(--motion-blur-small);
-  --reveal-ease: var(--motion-ease-in-out);
+  /* Skeleton reveal (transitions.dev 14), toned down: opacity only, from partly visible */
+  --reveal-dur: var(--motion-duration-fast);
+  --reveal-from: 0.4;
+  --reveal-ease: var(--motion-ease-out);
 }
 
 /*
@@ -2209,12 +2209,11 @@ a {
 }
 
 /* Skeleton reveal (transitions.dev 14), content side only: the skeleton and the content are
-   separate trees, so content fades in from blur when it replaces a skeleton. `backwards` drops
-   the filter once done, so it does not leave a containing block for fixed descendants. */
+   separate trees, so content settles in when it replaces a skeleton. Opacity only: blurring a
+   large page (session history) repaints the whole subtree every frame and stutters. */
 @keyframes t-reveal {
   from {
-    opacity: 0;
-    filter: blur(var(--reveal-blur));
+    opacity: var(--reveal-from);
   }
 }
 .t-reveal {
