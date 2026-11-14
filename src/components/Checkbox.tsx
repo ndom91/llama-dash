@@ -29,10 +29,7 @@ export function Checkbox({ className, ...props }: Props) {
     <span className="relative inline-flex shrink-0">
       <input
         type="checkbox"
-        className={cn(
-          't-check-input absolute inset-0 m-0 cursor-pointer opacity-0 disabled:cursor-default',
-          className,
-        )}
+        className={cn('t-check-input absolute inset-0 m-0 cursor-pointer opacity-0 disabled:cursor-default', className)}
         {...props}
       />
       <CheckMark />

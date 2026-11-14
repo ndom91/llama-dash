@@ -1,3 +1,4 @@
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { Link } from '@tanstack/react-router'
 import { ChevronRight } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
@@ -76,6 +77,8 @@ export function DashboardModelsPanel({ models, health }: Props) {
   const labels = axisLabels(windowMs)
   const bucketMs = activity?.bucketMs ?? windowMs
 
+  const reveal = useSkeletonReveal(models == null)
+
   return (
     <section className="panel !rounded-none !bg-surface-1">
       <div className="panel-head h-11 flex-wrap bg-transparent px-4 py-0 max-[700px]:h-auto max-[700px]:py-2">
@@ -133,32 +136,34 @@ export function DashboardModelsPanel({ models, health }: Props) {
           idle — no models loaded. Hit <code translate="no">/v1/chat/completions</code> to swap one in.
         </div>
       ) : (
-        groups.map((group) => (
-          <Fragment key={group.key}>
-            <DashboardModelGroupHeader
-              kind={group.kind}
-              host={group.host}
-              health={group.kind === 'peer' ? derivePeerHealth(group.models, activityByModel) : undefined}
-              now={frame.now}
-            />
-            {group.models.map((model) => {
-              const step = seriesSteps.get(model.id)
-              return (
-                <DashboardModelRow
-                  key={model.id}
-                  model={model}
-                  frame={frame}
-                  spans={spans.get(model.id) ?? EMPTY_SPANS}
-                  color={step != null ? seriesVar(step) : null}
-                  loadedAt={loadedAt.get(model.id) ?? null}
-                  activity={activityByModel.get(model.id)}
-                  bucketMs={bucketMs}
-                  onToggleLoaded={() => (model.running ? unloadModel : loadModel).mutate(model.id)}
-                />
-              )
-            })}
-          </Fragment>
-        ))
+        <div className={cn(reveal && 't-reveal')}>
+          {groups.map((group) => (
+            <Fragment key={group.key}>
+              <DashboardModelGroupHeader
+                kind={group.kind}
+                host={group.host}
+                health={group.kind === 'peer' ? derivePeerHealth(group.models, activityByModel) : undefined}
+                now={frame.now}
+              />
+              {group.models.map((model) => {
+                const step = seriesSteps.get(model.id)
+                return (
+                  <DashboardModelRow
+                    key={model.id}
+                    model={model}
+                    frame={frame}
+                    spans={spans.get(model.id) ?? EMPTY_SPANS}
+                    color={step != null ? seriesVar(step) : null}
+                    loadedAt={loadedAt.get(model.id) ?? null}
+                    activity={activityByModel.get(model.id)}
+                    bucketMs={bucketMs}
+                    onToggleLoaded={() => (model.running ? unloadModel : loadModel).mutate(model.id)}
+                  />
+                )
+              })}
+            </Fragment>
+          ))}
+        </div>
       )}
 
       <DashboardModelsLegend />

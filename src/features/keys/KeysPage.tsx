@@ -1,3 +1,4 @@
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { PageHeader } from '../../components/PageHeader'
@@ -18,6 +19,7 @@ const CREATE_FORM_EXIT_TIMEOUT_MS = 400
 export function KeysPage() {
   const { data: keys, error, isLoading } = useApiKeys()
   const { data: models } = useModels()
+  const reveal = useSkeletonReveal(isLoading)
   const [showCreate, setShowCreate] = useState(false)
   const [renderCreate, setRenderCreate] = useState(false)
   const [createFormKey, setCreateFormKey] = useState(0)
@@ -85,6 +87,7 @@ export function KeysPage() {
           className={cn(
             'panel flex min-h-0 flex-1 flex-col !rounded-none !border-x-0 !bg-surface-1',
             showCreate && 'border-t',
+            reveal && 't-reveal',
           )}
         >
           {isLoading ? (

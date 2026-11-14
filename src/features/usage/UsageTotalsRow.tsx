@@ -1,3 +1,4 @@
+import { cn } from '../../lib/cn'
 import type { ApiUsageReport } from '../../lib/api'
 import { NumberPopIn } from '../../components/NumberPopIn'
 import { UsageDelta } from './UsageDelta'
@@ -6,9 +7,10 @@ import { formatTokens } from './usageUtils'
 
 type Props = {
   report: ApiUsageReport
+  className?: string
 }
 
-export function UsageTotalsRow({ report }: Props) {
+export function UsageTotalsRow({ report, className }: Props) {
   const { totals, previous, days } = report
   const against = `vs prev ${days}d`
   const cards = [
@@ -51,7 +53,7 @@ export function UsageTotalsRow({ report }: Props) {
   ]
 
   return (
-    <div className={usageTotalsRowClass}>
+    <div className={cn(usageTotalsRowClass, className)}>
       {cards.map((card) => (
         <div key={card.label} className={`${usageTotalsCardClass} relative`}>
           <div className="stat-card-label min-[769px]:pr-[145px]">{card.label}</div>

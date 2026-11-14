@@ -1,3 +1,4 @@
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -172,6 +173,7 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const freshRowIds = useFreshRowIds(allRows, filters)
+  const reveal = useSkeletonReveal(isLoading && selectedMinutes.length === 0)
   const rows = useMemo(() => {
     const sorted = [...displayed]
     const dir = sortDir === 'asc' ? 1 : -1
@@ -370,7 +372,12 @@ export function RequestsPage() {
         {isLoading && selectedMinutes.length === 0 ? (
           <RequestsPageSkeleton />
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[auto_minmax(400px,1fr)]">
+          <div
+            className={cn(
+              'grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)] items-stretch gap-0 max-[1280px]:grid-cols-[200px_minmax(0,1fr)] max-[1100px]:grid-cols-[180px_minmax(0,1fr)] max-[900px]:grid-cols-1 max-[900px]:grid-rows-[auto_minmax(400px,1fr)]',
+              reveal && 't-reveal',
+            )}
+          >
             <RequestsFilterSidebar
               open={filtersOpen}
               onToggle={() => setFiltersOpen((open) => !open)}

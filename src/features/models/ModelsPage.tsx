@@ -1,3 +1,4 @@
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { Pause, Play, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
@@ -23,6 +24,7 @@ export function ModelsPage() {
   const unloadModel = useUnloadModel()
   const unloadAll = useUnloadAll()
   const { data: health } = useHealth()
+  const reveal = useSkeletonReveal(models == null)
   const setPaused = useSetInferencePaused()
   // Null means the backend doesn't report a pause state, so the control is hidden.
   const paused = health?.paused ?? null
@@ -97,7 +99,12 @@ export function ModelsPage() {
           }
         />
 
-        <section className="panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
+        <section
+          className={cn(
+            'panel !rounded-none !border-x-0 !bg-surface-1 flex min-h-0 flex-1 flex-col',
+            reveal && 't-reveal',
+          )}
+        >
           {models == null ? (
             <ModelsPageSkeleton />
           ) : models.length === 0 ? (

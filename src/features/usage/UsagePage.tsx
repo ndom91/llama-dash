@@ -1,3 +1,4 @@
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
 import { Settings2 } from 'lucide-react'
 import { PageHeader } from '../../components/PageHeader'
@@ -33,6 +34,7 @@ export function UsagePage() {
   const report = isPlaceholderData ? undefined : data
   const setDays = (next: UsagePeriodDays) => navigate({ to: '/usage', search: { days: next }, replace: true })
   const isEmpty = report != null && report.oldestDay == null
+  const reveal = useSkeletonReveal(report == null && !error)
   // localStorage-backed like other UI toggles. Hydration-safe here because the
   // chart only renders once the client-side usage query has data.
   const [generatedOnly, toggleGeneratedOnly] = useStickyToggle('usage-chart-generated-only', false)
@@ -62,8 +64,12 @@ export function UsagePage() {
           action={<UsagePeriodSwitch value={days} onChange={setDays} />}
         />
 
-        {report && !isEmpty ? <UsageTotalsRow report={report} /> : !report && !error ? <UsageTotalsSkeleton /> : null}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        {report && !isEmpty ? (
+          <UsageTotalsRow report={report} className={cn(reveal && 't-reveal')} />
+        ) : !report && !error ? (
+          <UsageTotalsSkeleton />
+        ) : null}
+        <div className={cn('min-h-0 flex-1 overflow-y-auto', reveal && 't-reveal')}>
           {error ? <div className="err-banner m-4">{error.message}</div> : null}
           {report?.comparisonIncomplete ? (
             <div className="m-4 font-mono text-xs text-fg-dim">
