@@ -2,6 +2,7 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import { Check, ChevronDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '../lib/cn'
+import { CheckMark } from './Checkbox'
 
 export type SelectOption = {
   value: string
@@ -35,19 +36,6 @@ const ALL_VALUE = '__select_all__'
 
 const itemClass =
   'group flex cursor-pointer select-none items-center gap-2 rounded-sm py-1.5 pr-2.5 pl-2 font-mono text-xs text-fg-muted outline-none data-[highlighted]:bg-surface-3 data-[highlighted]:text-fg data-[selected]:text-fg'
-
-function Checkbox({ checked }: { checked?: boolean }) {
-  return (
-    <span
-      className={cn(
-        'flex size-3.5 shrink-0 items-center justify-center rounded-sm border border-border-strong text-transparent transition-colors duration-100 group-data-[selected]:border-accent group-data-[selected]:bg-accent group-data-[selected]:text-accent-on',
-        checked && 'border-accent bg-accent text-accent-on',
-      )}
-    >
-      <Check size={10} strokeWidth={3} />
-    </span>
-  )
-}
 
 export function Select(props: SelectProps) {
   const { options, placeholder, className } = props
@@ -91,7 +79,7 @@ export function Select(props: SelectProps) {
               {props.multiple ? (
                 <>
                   <BaseSelect.Item value={ALL_VALUE} className={itemClass}>
-                    <Checkbox checked={props.value.length === 0} />
+                    <CheckMark checked={props.value.length === 0} />
                     <BaseSelect.ItemText className="min-w-0 truncate">{placeholder ?? 'All'}</BaseSelect.ItemText>
                   </BaseSelect.Item>
                   <BaseSelect.Separator className="my-1 h-px bg-border" />
@@ -100,7 +88,7 @@ export function Select(props: SelectProps) {
               {options.map((o) => (
                 <BaseSelect.Item key={o.value} value={o.value} className={itemClass}>
                   {props.multiple ? (
-                    <Checkbox />
+                    <CheckMark />
                   ) : (
                     <span className="flex size-3 shrink-0 items-center justify-center">
                       <BaseSelect.ItemIndicator className="flex text-accent">

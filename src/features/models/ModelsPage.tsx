@@ -2,6 +2,7 @@ import { Pause, Play, PowerOff, RefreshCw } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
+import { TextSwap } from '../../components/TextSwap'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
 import {
@@ -89,7 +90,7 @@ export function ModelsPage() {
                   disabled={!hasRunning || unloadAll.isPending}
                 >
                   <PowerOff className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-                  {unloadAll.isPending ? 'unloading…' : 'unload all'}
+                  <TextSwap on={unloadAll.isPending} idle="unload all" active="unloading…" />
                 </button>
               </Tooltip>
             </div>

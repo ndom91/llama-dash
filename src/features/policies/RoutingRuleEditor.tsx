@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { Circle } from 'lucide-react'
 import type { RoutingRule } from '../../lib/api'
 import { cn } from '../../lib/cn'
@@ -238,8 +239,7 @@ function RoutingRuleCredentialSection({
               ) : null}
               <div className="flex items-center justify-between gap-3">
                 <label className="flex items-center gap-2 text-[11px] text-fg-faint">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={binding.required ?? false}
                     onChange={(event) => updateBinding(index, { required: event.target.checked })}
                   />

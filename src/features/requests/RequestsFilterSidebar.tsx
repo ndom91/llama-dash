@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { ChevronDown, Search, X } from 'lucide-react'
 import type { RefObject } from 'react'
 import {
@@ -141,9 +142,7 @@ export function RequestsFilterSidebar({
           </RequestsFilterField>
 
           <label className="mb-4 flex cursor-pointer items-center gap-2 rounded border border-border bg-surface-2 px-2.5 py-2 text-fg-dim transition-colors hover:border-border-strong hover:text-fg">
-            <input
-              type="checkbox"
-              className="accent-accent"
+            <Checkbox
               checked={showMcpRelays}
               onChange={(e) => updateSearch({ mcp: e.target.checked ? true : undefined })}
             />

@@ -48,6 +48,7 @@ import {
   uniqueSorted,
   withSelected,
 } from './requestsListUtils'
+import { useFreshRowIds } from './use-fresh-row-ids'
 import type { RequestsSearch } from './requestsSearch'
 
 const requestsRouteApi = getRouteApi('/requests/')
@@ -170,6 +171,7 @@ export function RequestsPage() {
     if (resolved.some((m, i) => m !== modelFilter[i])) updateSearch({ model: resolved })
   }, [models, modelFilter, updateSearch])
 
+  const freshRowIds = useFreshRowIds(allRows, filters)
   const rows = useMemo(() => {
     const sorted = [...displayed]
     const dir = sortDir === 'asc' ? 1 : -1
@@ -535,7 +537,11 @@ export function RequestsPage() {
                               <div
                                 key={r.id}
                                 tabIndex={-1}
-                                className={cn('vt-row clickable-row', vRow.index === selectedIdx && 'selected-row')}
+                                className={cn(
+                                  'vt-row clickable-row',
+                                  vRow.index === selectedIdx && 'selected-row',
+                                  freshRowIds.has(r.id) && 't-row-fresh',
+                                )}
                                 style={{
                                   position: 'absolute',
                                   top: 0,

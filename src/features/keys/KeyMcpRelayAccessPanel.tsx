@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { cn } from '../../lib/cn'
 import { useMcpRelays, useUpdateKeyMcpRelays } from '../../lib/queries'
 
@@ -46,12 +47,10 @@ export function KeyMcpRelayAccessPanel({ keyId, allowedMcpRelays, isRevoked }: P
               return (
                 <tr key={relay.id} className={cn(!enabled && 'opacity-40')}>
                   <td>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={enabled}
                       disabled={isRevoked || updateRelays.isPending}
                       onChange={() => toggleRelay(relay.id)}
-                      className="accent-accent size-3.5 cursor-pointer disabled:cursor-default"
                     />
                   </td>
                   <td className="mono" translate="no">

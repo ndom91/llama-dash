@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { ChartColumnStacked, Database, KeyRound, Monitor, ShieldCheck, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { NumberInput } from '../../components/NumberInput'
@@ -296,8 +297,7 @@ export function SettingsPage() {
                     text.
                   </span>
                   <label className="flex items-center gap-2 font-mono text-xs text-fg-dim">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={privacy?.maxStoredBodyBytes == null}
                       disabled={!privacy || isPrivacyMutating}
                       onChange={(event) =>

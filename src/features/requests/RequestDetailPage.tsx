@@ -2,7 +2,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { RouteError } from '../../components/RouteError'
+import { cn } from '../../lib/cn'
 import { requestQueryOptions, useRequest, useRequestPayloads } from '../../lib/queries'
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestDetailContent } from './RequestDetailContent'
 import { RequestDetailPending } from './RequestDetailPending'
 import { requestPayloadState } from './requestPayloadState'
@@ -21,6 +23,7 @@ export function RequestDetailPage({ id }: Props) {
   const { data, error, isFetching, isPlaceholderData } = useRequest(id)
   const payloads = useRequestPayloads(id)
   const req = data?.request
+  const reveal = useSkeletonReveal(!req)
   const prevId = data?.prevId ?? null
   const nextId = data?.nextId ?? null
   const swipe = useRequestSwipe((direction) => {
@@ -48,7 +51,7 @@ export function RequestDetailPage({ id }: Props) {
 
   return (
     <div className="content" {...swipe}>
-      <div className="page min-h-full">
+      <div className={cn('page min-h-full', reveal && 't-reveal')}>
         <RequestDetailContent
           req={req}
           prevId={prevId}

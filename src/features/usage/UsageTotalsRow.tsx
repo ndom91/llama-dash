@@ -1,4 +1,5 @@
 import type { ApiUsageReport } from '../../lib/api'
+import { NumberPopIn } from '../../components/NumberPopIn'
 import { UsageDelta } from './UsageDelta'
 import { usageTotalsCardClass, usageTotalsRowClass } from './usageTotalsStyles'
 import { formatTokens } from './usageUtils'
@@ -55,7 +56,9 @@ export function UsageTotalsRow({ report }: Props) {
         <div key={card.label} className={`${usageTotalsCardClass} relative`}>
           <div className="stat-card-label min-[769px]:pr-[145px]">{card.label}</div>
           <div className="stat-card-row flex-wrap">
-            <span className="stat-card-value">{card.value}</span>
+            <span className="stat-card-value">
+              <NumberPopIn value={card.value} />
+            </span>
             <span className="stat-card-unit">{card.unit}</span>
           </div>
           {report.comparisonIncomplete ? (

@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { Eye, Moon, Sun } from 'lucide-react'
 import type * as React from 'react'
@@ -338,12 +339,7 @@ function SignInForm({
         onAction={onResetPassword}
       />
       <label className="mt-4 flex cursor-pointer items-center gap-2 font-mono text-[11px] text-fg-muted">
-        <input
-          type="checkbox"
-          checked={remember}
-          onChange={(event) => setRemember(event.currentTarget.checked)}
-          className="size-3 cursor-pointer accent-accent"
-        />
+        <Checkbox checked={remember} onChange={(event) => setRemember(event.currentTarget.checked)} />
         remember this browser · 30 days
       </label>
       {error ? <ErrorBox error={error} /> : null}
@@ -511,8 +507,17 @@ function SubmitButton({ pending, label, pendingLabel }: { pending: boolean; labe
   )
 }
 
+// Each failed attempt clears the error before setting it again, so this remounts and the shake
+// replays on every failure.
 function ErrorBox({ error }: { error: string }) {
-  return <div className="mt-4 rounded border border-err bg-err-bg px-3 py-2 text-xs text-err">{error}</div>
+  return (
+    <div
+      role="alert"
+      className="t-input is-shaking mt-4 rounded border border-err bg-err-bg px-3 py-2 text-xs text-err"
+    >
+      {error}
+    </div>
+  )
 }
 
 function safeRedirect(value: string | undefined): string {

@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { cn } from '../../lib/cn'
@@ -113,13 +114,7 @@ export function KeyModelAccessPanel({ keyId, modelAccessMode, allowedModels, bre
             return (
               <tr key={m.id} className={cn(!enabled && 'opacity-40')}>
                 <td>
-                  <input
-                    type="checkbox"
-                    checked={enabled}
-                    disabled={!canToggle}
-                    onChange={() => toggleModel(m.id)}
-                    className="accent-accent size-3.5 cursor-pointer disabled:cursor-default"
-                  />
+                  <Checkbox checked={enabled} disabled={!canToggle} onChange={() => toggleModel(m.id)} />
                 </td>
                 <td className="mono" translate="no">
                   <Link to="/models/$id" params={{ id: m.id }} className={cn(!enabled && 'text-fg-dim')}>

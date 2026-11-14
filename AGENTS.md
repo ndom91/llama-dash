@@ -82,6 +82,9 @@ src/
     PageHeader.tsx          · reusable kicker + title + subtitle + actions
     Select.tsx              · base-ui select; single by default, `multiple` for multi-value filters
     ThemeToggle.tsx         · segmented light/dark/system theme control
+    Checkbox.tsx            · native checkbox with animated tick (`CheckMark` for decorative boxes)
+    TextSwap.tsx            · in-place cross-fade for pending button labels
+    NumberPopIn.tsx         · per-digit pop-in when a stat value changes (not on first render)
     TopBar.tsx, Tooltip.tsx, CopyableCode.tsx
   lib/
     api.ts                — typed client-side fetch wrappers for /api/*

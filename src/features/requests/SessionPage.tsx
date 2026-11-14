@@ -1,3 +1,4 @@
+import { Checkbox } from '../../components/Checkbox'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { ArrowDown } from 'lucide-react'
@@ -6,8 +7,10 @@ import { CopyButton } from '../../components/CopyButton'
 import { PageHeader } from '../../components/PageHeader'
 import { RouteError } from '../../components/RouteError'
 import { api } from '../../lib/api'
+import { cn } from '../../lib/cn'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
 import { useMediaQuery } from '../../lib/use-media-query'
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { SessionMobileDetail, SessionMobileSheet, SessionScrubber, type SessionSheetTab } from './SessionMobile'
 import { SessionExchangeSkeleton, SessionPagePending } from './SessionPagePending'
 import { SessionSplitTimeline } from './SessionSplitTimeline'
@@ -239,6 +242,8 @@ export function SessionPage({ id }: { id: string }) {
     }
   }, [exchanges, mobile])
 
+  const reveal = useSkeletonReveal(query.isPending)
+
   if (query.error && !query.data)
     return <RouteError kicker="dsh · sessions" title="Failed to load session" message={query.error.message} />
   if (query.isPending) return <SessionPagePending />
@@ -315,7 +320,12 @@ export function SessionPage({ id }: { id: string }) {
   }
   return (
     <div ref={scrollRef} className="content md:overflow-hidden">
-      <div className="page min-h-full min-w-0 md:h-full md:min-h-0 max-md:[&>.page-header]:flex-wrap max-md:[&_.page-header-action]:w-full">
+      <div
+        className={cn(
+          'page min-h-full min-w-0 md:h-full md:min-h-0 max-md:[&>.page-header]:flex-wrap max-md:[&_.page-header-action]:w-full',
+          reveal && 't-reveal',
+        )}
+      >
         {!mobile ? (
           <PageHeader
             kicker="dsh · requests · session"
@@ -724,8 +734,7 @@ function SessionRail({
         <div className="space-y-2">
           {controls.map(([key, label]) => (
             <label key={key} className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={filters[key]}
                 onChange={(event) => setFilters((previous) => ({ ...previous, [key]: event.target.checked }))}
               />

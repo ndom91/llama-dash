@@ -3,6 +3,7 @@ import { Play, Power } from 'lucide-react'
 import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot, stateTone } from '../../components/StatusDot'
+import { TextSwap } from '../../components/TextSwap'
 import type { ApiModelDetail } from '../../lib/api'
 import { useLoadModel, useModelReasoningEffort, useUnloadModel } from '../../lib/queries'
 import { ModelEventsPanel } from './ModelEventsPanel'
@@ -56,7 +57,7 @@ export function ModelDetailContent({ data }: Props) {
                   disabled={unloadModel.isPending}
                 >
                   <Power className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-                  {unloadModel.isPending ? 'unloading…' : 'unload'}
+                  <TextSwap on={unloadModel.isPending} idle="unload" active="unloading…" />
                 </button>
               ) : (
                 <button
@@ -66,7 +67,7 @@ export function ModelDetailContent({ data }: Props) {
                   disabled={loadModel.isPending}
                 >
                   <Play className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-                  {loadModel.isPending ? 'loading…' : 'load'}
+                  <TextSwap on={loadModel.isPending} idle="load" active="loading…" />
                 </button>
               )
             ) : null}

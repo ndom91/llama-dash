@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { CodeBlock } from '../../components/CodeBlock'
 import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
+import { TextSwap } from '../../components/TextSwap'
 import { useAttributionSettings, useUpdateAttributionSettings } from '../../lib/queries'
 
 type ExampleTab = (typeof EXAMPLE_TABS)[number]['id']
@@ -57,7 +58,7 @@ export function AttributionPage() {
                   }
                 >
                   <Save size={14} strokeWidth={2} />
-                  {update.isPending ? 'Saving…' : 'Save'}
+                  <TextSwap on={update.isPending} idle="Save" active="Saving…" />
                 </button>
               </div>
             ) : null
