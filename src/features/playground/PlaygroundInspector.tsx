@@ -165,7 +165,9 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
                     <div className="pg-event-card">
                       <div className="pg-event-meta">
                         <span className="pg-event-time">{formatClock(event.at)}</span>
-                        <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>{event.tag}</span>
+                        <span className={cn('pg-event-tag', `pg-event-tag-${event.tag.toLowerCase()}`)}>
+                          {event.tag}
+                        </span>
                       </div>
                       <div className="pg-event-text">{event.text}</div>
                     </div>
@@ -179,10 +181,7 @@ export function PlaygroundInspector({ model, inspector, apiKey }: Props) {
         ) : null}
 
         {tab === 'curl' ? (
-          <PlaygroundInspectorSection
-            label="curl"
-            action={curlCommand ? <CopyButton text={curlCommand} /> : null}
-          >
+          <PlaygroundInspectorSection label="curl" action={curlCommand ? <CopyButton text={curlCommand} /> : null}>
             {curlCommand ? (
               <pre className={inspectorPreClass}>{curlCommand}</pre>
             ) : (

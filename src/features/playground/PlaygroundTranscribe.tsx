@@ -86,7 +86,9 @@ export function PlaygroundTranscribe() {
           </label>
 
           <label className="flex items-center gap-3 border-r border-border pr-4" htmlFor="pg-tx-output">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">output</span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">
+              output
+            </span>
             <input
               id="pg-tx-output"
               name="response_format"

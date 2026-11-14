@@ -27,7 +27,8 @@ export function PlaygroundSpeechSegmentedPlayer({
 
   useEffect(() => {
     if (segments.length === 0) setActiveIndex(0)
-    else if (!segments.some((segment) => segment.index === activeIndex)) setActiveIndex(segments[segments.length - 1].index)
+    else if (!segments.some((segment) => segment.index === activeIndex))
+      setActiveIndex(segments[segments.length - 1].index)
   }, [activeIndex, segments])
 
   useEffect(() => {
@@ -58,7 +59,8 @@ export function PlaygroundSpeechSegmentedPlayer({
   }, [])
 
   if (!activeSegment) {
-    const emptyLabel = status === 'generating' ? 'Generating first audio segment...' : 'No playable audio segments were generated.'
+    const emptyLabel =
+      status === 'generating' ? 'Generating first audio segment...' : 'No playable audio segments were generated.'
     const runtimeLabel = getRuntimeLabel(null, estimatedAudioDurationSec)
     return (
       <div className="flex flex-wrap items-center gap-2 rounded border border-border bg-surface-1 px-3 py-2 font-mono text-[11px] text-fg-dim">
@@ -89,12 +91,13 @@ export function PlaygroundSpeechSegmentedPlayer({
         {activeSegment.input}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5" aria-label="Speech segments">
+      <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-1.5 border-0 p-0" aria-label="Speech segments">
         {Array.from({ length: totalSegments }, (_, index) => {
           const ready = index < segments.length
           const stillGenerating = !ready && status === 'generating'
           const button = (
             <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: segments are fixed positional slots
               key={index}
               type="button"
               className={cn(
@@ -122,6 +125,7 @@ export function PlaygroundSpeechSegmentedPlayer({
           )
           if (!stillGenerating) return button
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: segments are fixed positional slots
             <Tooltip key={index} label="Still generating">
               {button}
             </Tooltip>
@@ -130,7 +134,7 @@ export function PlaygroundSpeechSegmentedPlayer({
         {runtimeLabel ? (
           <span className="ml-2 font-mono text-[11px] text-fg-dim">Total runtime: {runtimeLabel}</span>
         ) : null}
-      </div>
+      </fieldset>
 
       <PlaygroundSpeechPreviewPlayer
         key={activeSegment.audioUrl}

@@ -87,7 +87,9 @@ export function PlaygroundMessage({
               <ChevronDown className="size-3 shrink-0" strokeWidth={2} />
             </span>
             {isReasoning && isLast ? (
-              <span className="t-shimmer" data-text="reasoning">reasoning</span>
+              <span className="t-shimmer" data-text="reasoning">
+                reasoning
+              </span>
             ) : (
               <span>reasoning</span>
             )}
