@@ -263,6 +263,54 @@ describe('handleProxyRequest auth/body ordering', () => {
     expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
   })
 
+  it('applies model checks to GET /props?model= and keeps other query params', async () => {
+    const rawKey = 'sk-props'
+    apiKeysMock.findKeyByHash.mockReturnValue({
+      ...makeKey(rawKey),
+      modelAccessMode: 'restricted',
+      allowedModels: '["allowed-model"]',
+    })
+    const props = (model: string) =>
+      handleProxyRequest(
+        new Request(`http://dash.test/props?model=${model}&autoload=false`, {
+          headers: { authorization: `Bearer ${rawKey}` },
+        }),
+      )
+
+    expect((await props('other-model')).status).toBe(403)
+    expect(forwardUpstreamAndLog).not.toHaveBeenCalled()
+
+    expect((await props('allowed-model')).status).toBe(200)
+    expect(lastForward().upstream).toBe('http://llama-swap.test/props?model=allowed-model&autoload=false')
+  })
+
+  it('treats versionless /v/ routes as their /v1/ endpoint but forwards the original path', async () => {
+    const rawKey = 'sk-versionless'
+    apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))
+    routingRulesMock.listRoutingRules.mockReturnValue([
+      makeRule({
+        match: { ...makeRule().match, endpoints: ['/v1/chat/completions'] },
+        action: { type: 'reject', reason: 'blocked by rule' },
+        target: { type: 'llama_swap' },
+        authMode: 'require_key',
+      }),
+    ])
+    const request = (path: string) =>
+      new Request(`http://dash.test${path}`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${rawKey}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'm', messages: [] }),
+      })
+
+    expect((await handleProxyRequest(request('/v/chat/completions'))).status).toBe(422)
+
+    routingRulesMock.listRoutingRules.mockReturnValue([])
+    expect((await handleProxyRequest(request('/v/chat/completions'))).status).toBe(200)
+    const forwarded = lastForward() as ForwardInput & { endpoint: string }
+    expect(forwarded.upstream).toBe('http://llama-swap.test/v/chat/completions')
+    expect(forwarded.endpoint).toBe('/v1/chat/completions')
+  })
+
   it('returns native infill upstream errors without OpenAI response wrapping', async () => {
     const rawKey = 'sk-infill-error'
     apiKeysMock.findKeyByHash.mockReturnValue(makeKey(rawKey))

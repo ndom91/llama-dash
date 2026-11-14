@@ -17,6 +17,7 @@ import { proxyRoutingNeedsBody } from './routing.ts'
 import type { RoutingOutcome, TransformResult } from './transforms.ts'
 import { emptyRoutingOutcome } from './transforms.ts'
 import { selectUpstream } from './upstream.ts'
+import { canonicalProxyEndpoint } from '../proxy-path.ts'
 import { REDACTED_INJECTED_CREDENTIAL } from './credential-placeholders.ts'
 
 export type ProxyContext = {
@@ -46,7 +47,7 @@ export function createProxyContext(request: Request): ProxyContext {
     startedAt: Date.now(),
     method,
     url,
-    endpoint: url.pathname,
+    endpoint: canonicalProxyEndpoint(url.pathname),
     defaultUpstream,
     upstream: defaultUpstream,
     reqHeaders: forwardableRequestHeaders(request.headers),
@@ -68,6 +69,14 @@ export async function prepareBodyForRoutingIfNeeded(ctx: ProxyContext, apiKeyId:
 
 export async function ensureProxyBody(ctx: ProxyContext) {
   ctx.body ??= await prepareProxyBody(ctx.request, ctx.method)
+}
+
+// Changes a query parameter of the forwarded request, keeping other params
+// (e.g. autoload=false on /props) as the client sent them.
+export function setProxyQueryParam(ctx: ProxyContext, key: string, value: string) {
+  ctx.url.searchParams.set(key, value)
+  ctx.defaultUpstream = inferenceBackend.defaultProxyUpstream(ctx.url.pathname, ctx.url.search)
+  ctx.upstream = ctx.defaultUpstream
 }
 
 export function setAuthContext(ctx: ProxyContext, auth: { keyId: string | null; keyRow: ApiKey | null }) {

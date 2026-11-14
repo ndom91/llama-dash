@@ -9,6 +9,7 @@ import {
   loggedRequestHeaders,
   prepareBodyForRoutingIfNeeded,
   setAuthContext,
+  setProxyQueryParam,
   type ProxyContext,
 } from './context.ts'
 import { toErrorBody } from './errors.ts'
@@ -20,6 +21,10 @@ import { config } from '../config.ts'
 import { errorMessage } from '../error-message.ts'
 
 const HARD_BODY_CAP = 20 * 1024 * 1024
+
+// llama-swap GET routes that pick the model from ?model= instead of a body
+// (modelGetRoutes in llama-swap; /v1/realtime has its own WebSocket handler).
+const QUERY_MODEL_ENDPOINTS = new Set(['/props', '/v1/audio/voices', '/sdapi/v1/loras'])
 
 export async function handleProxyRequest(request: Request): Promise<Response> {
   const ctx = createProxyContext(request)
@@ -40,14 +45,16 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     return rejectBodyTooLarge(ctx, err)
   }
 
+  const queryModel = queryModelOf(ctx)
+
   // Matched rule's auth mode decides whether a valid key is required.
   const routingDecision = resolveProxyRouting(
     ctx.endpoint,
-    ctx.body?.parsedBody ?? null,
+    ctx.body?.parsedBody ?? (queryModel ? { model: queryModel } : null),
     resolvedKeyId,
     request.headers,
   )
-  ctx.routingOutcome = routingOutcomeFromDecision(routingDecision, ctx.body?.reqModel ?? null)
+  ctx.routingOutcome = routingOutcomeFromDecision(routingDecision, ctx.body?.reqModel ?? queryModel)
 
   const authResult = enforceAuth(keyResolution, routingDecision.authMode)
   if (!authResult.ok) {
@@ -73,6 +80,29 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     await ensureProxyBody(ctx)
   } catch (err) {
     return rejectBodyTooLarge(ctx, err)
+  }
+
+  // Same model checks as a JSON body: rewrite rules, the key's allow-list, aliases.
+  if (queryModel) {
+    const transformResult = applyTransforms(
+      { model: queryModel },
+      { keyRow: ctx.keyRow, endpoint: ctx.endpoint, method: ctx.method, routingDecision },
+    )
+    ctx.routingOutcome = transformResult.routing
+    if (!transformResult.ok) {
+      logRejection(ctx, {
+        status: transformResult.status,
+        error: transformResult.body.error.message,
+        reqBody: null,
+        resBody: JSON.stringify(transformResult.body),
+        keyId: ctx.keyId,
+      })
+      return Response.json(transformResult.body, { status: transformResult.status })
+    }
+    const resolvedModel = transformResult.body?.model
+    if (typeof resolvedModel === 'string' && resolvedModel !== queryModel) {
+      setProxyQueryParam(ctx, 'model', resolvedModel)
+    }
   }
 
   if (ctx.body?.hasBody) {
@@ -154,7 +184,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
     hasBody: ctx.body?.hasBody ?? false,
     startedAt: ctx.startedAt,
     endpoint: ctx.endpoint,
-    reqModel: ctx.body?.reqModel ?? null,
+    reqModel: requestedModel(ctx),
     reqHeadersJson,
     reqBody,
     keyId: ctx.keyId,
@@ -196,7 +226,7 @@ function logRejection(
     keyId: string | null
   },
 ) {
-  const reqModel = ctx.body?.reqModel ?? null
+  const reqModel = requestedModel(ctx)
   writeProxyLog({
     startedAt: ctx.startedAt,
     status: input.status,
@@ -215,6 +245,15 @@ function logRejection(
     routing: ctx.routingOutcome,
     credentialInjectionJson: ctx.credentialInjectionJson,
   })
+}
+
+function queryModelOf(ctx: ProxyContext): string | null {
+  return QUERY_MODEL_ENDPOINTS.has(ctx.endpoint) ? ctx.url.searchParams.get('model') || null : null
+}
+
+// The model a request names, from its JSON body or, on GET routes, ?model=.
+function requestedModel(ctx: ProxyContext): string | null {
+  return ctx.body?.reqModel ?? queryModelOf(ctx)
 }
 
 function usesStoredCredentials(ctx: ProxyContext): boolean {

@@ -15,6 +15,11 @@ const ENDPOINT_ALLOWLIST = new Set([
   '/v1/realtime',
   '/v1/images/generations',
   '/audioapi/v1/tasks/run',
+  '/completion',
+  '/rerank',
+  '/reranking',
+  '/sdapi/v1/txt2img',
+  '/sdapi/v1/img2img',
 ])
 
 function metricLine(name: string, value: number, labels?: Record<string, string | number | boolean | null>): string {
