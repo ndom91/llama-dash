@@ -118,3 +118,6 @@ export const ModelDetailResponseSchema = v.object({
 })
 
 export type ApiModelDetail = v.InferOutput<typeof ModelDetailResponseSchema>
+
+/** Levels the model's chat template accepts. Null until the model is running. */
+export const ModelReasoningEffortSchema = v.object({ levels: v.nullable(v.array(v.string())) })

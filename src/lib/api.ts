@@ -41,6 +41,7 @@ import { ApiHealthSchema, InferencePauseResponseSchema } from './schemas/health'
 import {
   ModelActivityResponseSchema,
   ModelDetailResponseSchema,
+  ModelReasoningEffortSchema,
   ModelsResponseSchema,
   ModelTimelineResponseSchema,
 } from './schemas/model'
@@ -176,6 +177,8 @@ async function sendEmpty<T extends AnySchema>(url: string, schema: T, method: st
 export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
+  getModelReasoningEffort: (id: string) =>
+    getJson(`/api/models/${encodeURIComponent(id)}/reasoning-effort`, ModelReasoningEffortSchema),
   listRequests: (
     params: { limit?: number; cursor?: string; includeMcp?: boolean; minutes?: number[]; status?: 'ok' | 'err' } = {},
     options: ApiFetchOptions = {},

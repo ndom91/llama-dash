@@ -23,6 +23,7 @@ export const qk = {
   requestPayloadsRoot: ['request-payloads'] as const,
   requestPayloads: (id: string) => ['request-payloads', id] as const,
   modelDetail: (id: string) => ['models', id] as const,
+  modelReasoningEffort: (id: string, running: boolean) => ['models', id, 'reasoning-effort', running] as const,
   keys: ['keys'] as const,
   keyDetail: (id: string) => ['keys', id] as const,
   routingRules: ['routing-rules'] as const,

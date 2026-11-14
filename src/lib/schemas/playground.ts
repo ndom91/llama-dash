@@ -34,6 +34,8 @@ export const SamplingParamsSchema = v.object({
   stream: v.boolean(),
   responseFormat: v.picklist(['text', 'json']),
   logprobs: v.boolean(),
+  /** Sent as reasoning_effort when set. Null leaves the template default. */
+  reasoningEffort: v.nullable(v.string()),
 })
 
 export type SamplingParams = v.InferOutput<typeof SamplingParamsSchema>

@@ -52,6 +52,7 @@ function buildBody(opts: StreamRequestOptions): Record<string, unknown> {
   if (s.seed != null) body.seed = s.seed
   if (s.responseFormat === 'json') body.response_format = { type: 'json_object' }
   if (s.logprobs) body.logprobs = true
+  if (s.reasoningEffort) body.reasoning_effort = s.reasoningEffort
   return body
 }
 

@@ -183,6 +183,16 @@ export function useModelDetail(id: string): UseQueryResult<ApiModelDetail> {
   })
 }
 
+// Keyed on `running` so the levels load once the model starts.
+export function useModelReasoningEffort(id: string, running: boolean): UseQueryResult<Array<string> | null> {
+  return useQuery({
+    queryKey: qk.modelReasoningEffort(id, running),
+    queryFn: async () => (await api.getModelReasoningEffort(id)).levels,
+    enabled: id !== '' && running,
+    staleTime: Number.POSITIVE_INFINITY,
+  })
+}
+
 export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResult<Array<ApiRequest>> {
   return useQuery({
     queryKey: qk.requestsRecent(limit, includeMcp),

@@ -95,6 +95,11 @@ export type InferenceBackend = {
   resumeInference?(): Promise<boolean>
   /** Last known paused state, or null when unknown. */
   inferencePaused?(): boolean | null
+  /**
+   * Reasoning effort levels the model's chat template accepts. Callers must only
+   * ask for running models, because the lookup may otherwise start the model.
+   */
+  reasoningEffortLevels?(id: string): Promise<Array<string>>
   /** Starts following pause changes, including ones made outside llama-dash. */
   watchPauseState?(onChange: (paused: boolean | null) => void): void
 }

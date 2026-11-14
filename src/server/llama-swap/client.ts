@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import { InferenceHardwareSchema } from '../../lib/schemas/inference-hardware.ts'
 import { config } from '../config.ts'
 import {
+  LlamaServerPropsSchema,
   ModelsListResponseSchema,
   type OpenAiModel,
   PerformanceResponseSchema,
@@ -41,6 +42,11 @@ export const llamaSwap = {
   unloadAll: () => callJson('/api/models/unload', v.object({ msg: v.string() }), { method: 'POST' }),
   pause: () => callJson('/api/models/pause', PauseStateSchema, { method: 'POST' }),
   resume: () => callJson('/api/models/resume', PauseStateSchema, { method: 'POST' }),
+  // Only call for running models: /upstream/<id>/ starts a stopped model.
+  props: (id: string) =>
+    callJson(`/upstream/${encodeURIComponent(id)}/props`, LlamaServerPropsSchema, {
+      signal: AbortSignal.timeout(POLL_TIMEOUT_MS),
+    }),
   health: () => callText('/health'),
   version: () => callJson('/api/version', VersionResponseSchema),
   hardware: () => callJson('/api/hardware', InferenceHardwareSchema),

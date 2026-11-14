@@ -183,6 +183,10 @@ export function createLlamaSwapBackend(): InferenceBackend {
       return setInferencePaused((await llamaSwap.resume()).paused)
     },
     inferencePaused,
+    async reasoningEffortLevels(id) {
+      const props = await llamaSwap.props(id)
+      return props.chat_template_caps?.reasoning_effort_levels ?? []
+    },
     watchPauseState(onChange) {
       onInferencePausedChange(onChange)
       watchLlamaSwapPauseState(setInferencePaused)

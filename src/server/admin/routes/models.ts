@@ -88,6 +88,24 @@ export const modelRoutes: Route[] = [
     },
   },
   {
+    method: 'GET',
+    pattern: /^\/api\/models\/([^/]+)\/reasoning-effort$/,
+    handler: async (_request, match) => {
+      if (!inferenceBackend.reasoningEffortLevels) return json(200, { levels: null })
+      const id = decodeURIComponent(match[1])
+      const running = (await inferenceBackend.listRunning?.()) ?? []
+      // Asking a stopped model would load it, so its levels stay unknown until it runs.
+      if (!running.some((model) => model.model === id && model.state === 'ready')) {
+        return json(200, { levels: null })
+      }
+      try {
+        return json(200, { levels: await inferenceBackend.reasoningEffortLevels(id) })
+      } catch {
+        return json(200, { levels: null })
+      }
+    },
+  },
+  {
     method: 'POST',
     pattern: /^\/api\/models\/(pause|resume)$/,
     handler: async (_request, match) => {

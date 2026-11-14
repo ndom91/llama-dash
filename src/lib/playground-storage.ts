@@ -20,6 +20,7 @@ export const DEFAULT_SAMPLING: SamplingParams = {
   stream: true,
   responseFormat: 'text',
   logprobs: false,
+  reasoningEffort: null,
 }
 
 const PartialSamplingParamsSchema = v.partial(SamplingParamsSchema)

@@ -4,6 +4,7 @@ import { Tooltip } from '../../components/Tooltip'
 import type { SamplingParams } from '../../lib/schemas/playground'
 import { DEFAULT_SAMPLING } from '../../lib/use-playground-chat'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
+import { PlaygroundReasoningEffort } from './PlaygroundReasoningEffort'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
 import { PlaygroundSlider } from './PlaygroundSlider'
 import { PlaygroundToggle } from './PlaygroundToggle'
@@ -102,6 +103,13 @@ export function PlaygroundSession({
           ) : null}
         </select>
       </PlaygroundSessionSection>
+
+      <PlaygroundReasoningEffort
+        model={model}
+        running={models.some((m) => m.id === model && m.running)}
+        value={sampling.reasoningEffort}
+        onChange={(reasoningEffort) => setSampling({ reasoningEffort })}
+      />
 
       <PlaygroundSessionSection label="system prompt">
         <textarea

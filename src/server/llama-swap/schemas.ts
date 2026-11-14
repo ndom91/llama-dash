@@ -93,3 +93,12 @@ export const PerformanceResponseSchema = v.object({
   enabled: v.boolean(),
   sys_stats: v.optional(v.nullable(v.array(PerformanceSysStatSchema))),
 })
+
+// Subset of llama-server's /props. reasoning_effort_levels arrived in b12017.
+export const LlamaServerPropsSchema = v.object({
+  chat_template_caps: v.optional(
+    v.object({
+      reasoning_effort_levels: v.optional(v.array(v.string())),
+    }),
+  ),
+})

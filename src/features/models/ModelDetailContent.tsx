@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { PageHeader } from '../../components/PageHeader'
 import { StatusDot, stateTone } from '../../components/StatusDot'
 import type { ApiModelDetail } from '../../lib/api'
-import { useLoadModel, useUnloadModel } from '../../lib/queries'
+import { useLoadModel, useModelReasoningEffort, useUnloadModel } from '../../lib/queries'
 import { ModelEventsPanel } from './ModelEventsPanel'
 import { ModelRequestsPanel } from './ModelRequestsPanel'
 import { ModelStatsRow } from './ModelStatsRow'
@@ -30,6 +30,7 @@ export function ModelDetailContent({ data }: Props) {
   const contextLabel = formatContextLength(model.contextLength) ?? configMeta.ctxSize
   const capabilityBadges = getModelCapabilityBadges(model)
   const isSelector = model.kind === 'selector'
+  const { data: reasoningEffortLevels } = useModelReasoningEffort(model.id, model.running)
 
   return (
     <>
@@ -177,6 +178,12 @@ export function ModelDetailContent({ data }: Props) {
                   <dt>params</dt>
                   <dd>{model.capabilities.supportedParameters.join(', ') || '—'}</dd>
                 </div>
+                {reasoningEffortLevels && reasoningEffortLevels.length > 0 ? (
+                  <div>
+                    <dt>effort</dt>
+                    <dd>{reasoningEffortLevels.join(', ')}</dd>
+                  </div>
+                ) : null}
               </dl>
             </div>
           ) : null}
