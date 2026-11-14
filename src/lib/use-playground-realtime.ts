@@ -46,6 +46,7 @@ const CAPTURE_FRAME_MS = 20
 const LEVEL_UPDATE_MS = 80
 const EVENT_FLUSH_MS = 50
 const MAX_EVENTS = 400
+const MAX_TURNS = 50
 const WORKLET_NAME = 'llama-dash-realtime-capture'
 
 // Batches 128-frame render quanta into ~20 ms blocks for the main thread.
@@ -153,6 +154,8 @@ type Connection = {
   stream: MediaStream | null
   /** registerProcessor throws on a second load in the same AudioContext. */
   workletLoaded: boolean
+  /** Bumped by stopMic so a startMic still awaiting knows it was superseded. */
+  micGen: number
   nodes: Array<AudioNode>
   resampler: StreamResampler | null
   playhead: number
@@ -161,6 +164,8 @@ type Connection = {
   awaitingResponse: boolean
   commitAt: number | null
   silenced: Set<string>
+  /** The user interrupted before response.created named the pending response. */
+  cancelPending: boolean
   responses: Map<string, ResponseState>
   pendingUserTurnId: string | null
   itemTurns: Map<string, string>
@@ -442,8 +447,26 @@ function createRealtimeController(
 
   function addTurn(turn: Omit<RealtimeTurn, 'id' | 'createdAt'> & { id?: string }): string {
     const id = turn.id ?? nextTurnId()
-    ui.setTurns((prev) => [...prev, { ...turn, id, createdAt: Date.now() }])
+    ui.setTurns((prev) => {
+      const next = [...prev, { ...turn, id, createdAt: Date.now() }]
+      if (next.length <= MAX_TURNS) return next
+      // Each turn holds a WAV blob and a decoded waveform, so long sessions drop the oldest.
+      const dropped = next.slice(0, next.length - MAX_TURNS)
+      for (const old of dropped) releaseTurn(old)
+      return next.slice(-MAX_TURNS)
+    })
     return id
+  }
+
+  function releaseTurn(turn: RealtimeTurn) {
+    if (turn.audioUrl) {
+      URL.revokeObjectURL(turn.audioUrl)
+      urls.delete(turn.audioUrl)
+    }
+    if (!conn) return
+    for (const [itemId, turnId] of conn.itemTurns) {
+      if (turnId === turn.id) conn.itemTurns.delete(itemId)
+    }
   }
 
   function updateTurn(id: string, update: (turn: RealtimeTurn) => Partial<RealtimeTurn>) {
@@ -500,6 +523,7 @@ function createRealtimeController(
       outputRate: DEFAULT_OUTPUT_RATE,
       stream: null,
       workletLoaded: false,
+      micGen: 0,
       nodes: [],
       resampler: null,
       playhead: 0,
@@ -508,6 +532,7 @@ function createRealtimeController(
       awaitingResponse: false,
       commitAt: null,
       silenced: new Set(),
+      cancelPending: false,
       responses: new Map(),
       pendingUserTurnId: null,
       itemTurns: new Map(),
@@ -688,6 +713,13 @@ function createRealtimeController(
         logEvent('in', event.type)
         const responseId = event.response?.id ?? `response_${turnSeq + 1}`
         target.activeResponseId = responseId
+        // From here activeResponseId marks the assistant as busy.
+        target.awaitingResponse = false
+        if (target.cancelPending) {
+          target.cancelPending = false
+          target.silenced.add(responseId)
+          send(target, { type: 'response.cancel' })
+        }
         const turnId = addTurn({ ...emptyTurn('assistant'), pending: true })
         target.responses.set(responseId, {
           turnId,
@@ -740,7 +772,6 @@ function createRealtimeController(
           target.activeResponseId = null
           ui.setResponseActive(false)
         }
-        target.awaitingResponse = false
         target.silenced.delete(responseId)
         const response = target.responses.get(responseId)
         if (!response) return
@@ -841,6 +872,10 @@ function createRealtimeController(
     if (responseId && !target.silenced.has(responseId)) {
       target.silenced.add(responseId)
       send(target, { type: 'response.cancel' })
+    } else if (!responseId && target.awaitingResponse) {
+      // Cancelled once response.created names it, so it never plays over the new turn.
+      target.cancelPending = true
+      target.awaitingResponse = false
     }
   }
 
@@ -853,9 +888,11 @@ function createRealtimeController(
       return
     }
     ui.setMicState('starting')
+    const gen = target.micGen
+    const superseded = () => conn !== target || target.micGen !== gen
     try {
       const stream = await openMicStream()
-      if (conn !== target) {
+      if (superseded()) {
         for (const track of stream.getTracks()) track.stop()
         return
       }
@@ -873,7 +910,7 @@ function createRealtimeController(
           URL.revokeObjectURL(moduleUrl)
         }
       }
-      if (conn !== target) return
+      if (superseded()) return
 
       const source = target.ctx.createMediaStreamSource(stream)
       const worklet = new AudioWorkletNode(target.ctx, WORKLET_NAME, {
@@ -894,7 +931,7 @@ function createRealtimeController(
       ui.setMicState('live')
       logEvent('local', 'mic.live', `${label ?? 'microphone'} · ${target.ctx.sampleRate} Hz → ${target.inputRate} Hz`)
     } catch (err) {
-      if (conn !== target) return
+      if (superseded()) return
       const message = micErrorMessage(err)
       ui.setMicState('blocked')
       ui.setMicError(message)
@@ -923,6 +960,7 @@ function createRealtimeController(
   }
 
   function stopMic(target: Connection) {
+    target.micGen++
     for (const node of target.nodes) {
       if (node instanceof AudioWorkletNode) node.port.onmessage = null
       node.disconnect()
@@ -937,7 +975,8 @@ function createRealtimeController(
   // Applies a new input device or processing setting to a live session.
   function restartMic() {
     const target = conn
-    if (!target?.stream) return
+    // Also restarts a mic that is still starting or was blocked.
+    if (!target?.sessionReady) return
     cancelTurn()
     stopMic(target)
     ui.setInputLevel(0)

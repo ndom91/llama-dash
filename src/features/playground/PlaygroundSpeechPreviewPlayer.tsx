@@ -57,6 +57,7 @@ export function PlaygroundSpeechPreviewPlayer({
     let cancelled = false
 
     async function decodeWaveform() {
+      let ctx: AudioContext | null = null
       try {
         const res = await fetch(src)
         const buffer = await res.arrayBuffer()
@@ -64,17 +65,15 @@ export function PlaygroundSpeechPreviewPlayer({
           window.AudioContext ||
           (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
         if (!AudioCtx) return
-        const ctx = new AudioCtx()
+        ctx = new AudioCtx()
         const decoded = await ctx.decodeAudioData(buffer.slice(0))
-        if (cancelled) {
-          void ctx.close()
-          return
-        }
+        if (cancelled) return
         setBuffer(decoded)
         if (!durationHint && Number.isFinite(decoded.duration)) setDuration(decoded.duration)
-        void ctx.close()
       } catch {
         if (!cancelled) setBuffer(null)
+      } finally {
+        void ctx?.close()
       }
     }
 
