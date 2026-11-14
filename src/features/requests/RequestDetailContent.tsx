@@ -252,7 +252,7 @@ export function RequestDetailContent({ req, prevId, nextId, payloads, isMetadata
                 </div>
                 <div>
                   <dt>stream</dt>
-                  <dd>{req.streamed ? 'yes • SSE' : 'no'}</dd>
+                  <dd>{streamedLabel(req)}</dd>
                 </div>
                 <div>
                   <dt>key</dt>
@@ -733,4 +733,10 @@ function downloadRequestJsonl(req: ApiRequestDetail) {
 
 function getRequestDetailUrl() {
   return typeof window === 'undefined' ? '' : window.location.href
+}
+
+function streamedLabel(req: { streamed: boolean; endpoint: string }): string {
+  if (!req.streamed) return 'no'
+  if (req.endpoint === '/v1/realtime') return 'yes • WebSocket'
+  return 'yes • SSE'
 }

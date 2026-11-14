@@ -12,6 +12,7 @@ const ENDPOINT_ALLOWLIST = new Set([
   '/v1/models',
   '/v1/audio/transcriptions',
   '/v1/audio/speech',
+  '/v1/realtime',
   '/v1/images/generations',
   '/audioapi/v1/tasks/run',
 ])

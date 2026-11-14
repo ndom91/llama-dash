@@ -10,11 +10,18 @@ const serverEntry = await import('./dist/server/server.js')
 
 const staticHandler = serveStatic({ dir: clientDir })
 
-serve({
+const server = serve({
   port: parseInt(process.env.PORT || '3000', 10),
   hostname: process.env.HOST || '0.0.0.0',
   middleware: [staticHandler],
   async fetch(request) {
     return serverEntry.default.fetch(request)
   },
+})
+
+// The fetch handler can't accept WebSockets, so /v1/realtime upgrades are
+// handed to the hook that the server bundle registers.
+server.node?.server?.on('upgrade', (req, socket, head) => {
+  if (globalThis.__llamaDashUpgrade?.(req, socket, head)) return
+  socket.destroy()
 })

@@ -28,7 +28,14 @@ export type KeyResolution =
 // reported as `absent`/`invalid` rather than rejected here — the matched routing
 // rule's auth mode decides whether a valid key is actually required.
 export function resolveApiKey(request: Request): KeyResolution {
-  const token = gatewayAuthToken(request.headers) ?? bearerToken(request.headers.get('authorization'))
+  return resolveApiKeyToken(headerApiKeyToken(request.headers))
+}
+
+export function headerApiKeyToken(headers: Headers): string | null {
+  return gatewayAuthToken(headers) ?? bearerToken(headers.get('authorization'))
+}
+
+export function resolveApiKeyToken(token: string | null): KeyResolution {
   if (!token) return { status: 'absent' }
   return resolveToken(token)
 }

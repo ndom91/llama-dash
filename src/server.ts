@@ -32,6 +32,11 @@ startSystemTelemetry(typeof __GIT_COMMIT__ === 'string' ? __GIT_COMMIT__ : 'unkn
 const { startRequestLogMaintenance } = await import('./server/request-log-maintenance.ts')
 startRequestLogMaintenance()
 
+// srvx and Vite only pass fetch requests into this entry. Their Node servers call
+// this hook for WebSocket upgrades (see prod-server.mjs and vite.config.ts).
+const { handleRealtimeUpgrade } = await import('./server/proxy/realtime.ts')
+globalThis.__llamaDashUpgrade = handleRealtimeUpgrade
+
 const ssrHandler = createStartHandler(defaultStreamHandler)
 
 export default createServerEntry({
