@@ -257,3 +257,20 @@ it('retains streamed text if the completed event contains only a tool', () => {
   expect(parts.map((part) => part.kind)).toEqual(['message', 'tool'])
   expect(parts[0].text).toBe('Working')
 })
+
+it('ignores moving cache_control breakpoints when matching Claude Code history', () => {
+  const block = (text: string, cached = false) => ({
+    type: 'text',
+    text,
+    ...(cached ? { cache_control: { type: 'ephemeral' } } : {}),
+  })
+  const first = input([{ role: 'user', content: [block('question', true)] }])
+  const second = input([
+    { role: 'user', content: [block('question')] },
+    { role: 'assistant', content: [block('answer')] },
+    { role: 'user', content: [block('follow up', true)] },
+  ])
+  const result = diffTranscript(first, second, [{ kind: 'message', role: 'assistant', text: 'answer' }])
+  expect(result.replaced).toBeNull()
+  expect(result.parts).toEqual([{ kind: 'message', role: 'user', text: 'follow up' }])
+})

@@ -211,6 +211,11 @@ export function parseTranscriptInput(body: string | null): TranscriptInput {
   }
 }
 
+// Anthropic clients (Claude Code) move `cache_control` breakpoints to the newest
+// blocks on every turn, so the same message carries different markers across
+// requests. They are cache hints, not content.
+const VOLATILE_KEYS = new Set(['cache_control'])
+
 // A reset is only asserted when both snapshots are complete; a truncated prefix
 // cannot establish whether missing history was replaced.
 function sameValue(a: unknown, b: unknown): boolean {
@@ -225,8 +230,8 @@ function sameValue(a: unknown, b: unknown): boolean {
     } else {
       const l = left as Record<string, unknown>,
         r = right as Record<string, unknown>
-      const keys = Object.keys(l)
-      if (keys.length !== Object.keys(r).length) return false
+      const keys = Object.keys(l).filter((key) => !VOLATILE_KEYS.has(key))
+      if (keys.length !== Object.keys(r).filter((key) => !VOLATILE_KEYS.has(key)).length) return false
       for (const key of keys) {
         if (!Object.hasOwn(r, key)) return false
         pending.push([l[key], r[key]])
