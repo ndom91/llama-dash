@@ -2174,10 +2174,12 @@ a {
 }
 .t-digit {
   display: inline-block;
-  will-change: transform, opacity, filter;
 }
+/* will-change only once a value has changed, so idle stat cards do not each hold a
+   compositor layer per digit. */
 .t-digit-group.is-animating .t-digit {
   animation: t-digit-pop-in var(--digit-dur) var(--digit-ease) both;
+  will-change: transform, opacity, filter;
 }
 .t-digit-group.is-animating .t-digit[data-stagger="1"] {
   animation-delay: var(--digit-stagger);

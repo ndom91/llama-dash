@@ -67,7 +67,7 @@ src/
     playground/            · playground tabs, rails, and media tools
     attribution/           · attribution settings page + setup examples
     policies/              · routing and request-limit editing panels
-    requests/              · request list/detail pages, payload helpers, `RequestsFilterSidebar`, and `requestsSearch.ts` (/requests search-param type + validator)
+    requests/              · request list/detail pages, payload helpers, `use-fresh-row-ids.ts` (live-row highlight), `RequestsFilterSidebar`, and `requestsSearch.ts` (/requests search-param type + validator)
     playground/            · also the Realtime voice tab (`PlaygroundRealtime*.tsx`, hook in `src/lib/use-playground-realtime.ts`, pure audio helpers in `src/lib/realtime-audio.ts`)
     usage/                 · usage page: period switch, input/output chart, breakdown panels, and route/data loading skeletons
     policies/              · routing, credentials, and MCP relays (shared `PolicyPanel` shell)
@@ -96,6 +96,7 @@ src/
     series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
     nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
     is-typing-target.ts   — shared "is the user typing" guard for global key handlers
+    use-skeleton-reveal.ts — true once content replaces a skeleton this component showed (drives `.t-reveal`)
     format.ts             — shared compact-number, version, duration, and rate formatters
     use-copy-to-clipboard.ts — shared copy hook; "copied" feedback only on successful writes
     schemas/              — valibot schemas (single source of truth for API types; import per file, no barrel), incl. `playground.ts`

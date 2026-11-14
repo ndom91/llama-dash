@@ -6,6 +6,7 @@ import { Tooltip } from '../../components/Tooltip'
 import type { ApiModel } from '../../lib/api'
 import { clickableRowFocusClass, clickableRowProps } from '../../lib/clickable-row-props'
 import { cn } from '../../lib/cn'
+import { TextSwap } from '../../components/TextSwap'
 import { formatCapabilityLabel, getModelCapabilityBadges } from './modelUtils'
 
 type Props = {
@@ -89,9 +90,13 @@ export function ModelRow({ model, loading, unloading, onLoad, onUnload }: Props)
               }}
             >
               <ActionIcon className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-              <span className={cn('copy-text-swap', pending && 'copy-text-swap-done')} aria-hidden="true">
-                <span className="copy-text-swap-from">{model.running ? 'unload' : 'load'}</span>
-                <span className="copy-text-swap-to">{unloading ? 'unloading…' : 'loading…'}</span>
+              {/* The button's aria-label names the action, so the visible label stays hidden. */}
+              <span aria-hidden="true">
+                <TextSwap
+                  on={pending}
+                  idle={model.running ? 'unload' : 'load'}
+                  active={unloading ? 'unloading…' : 'loading…'}
+                />
               </span>
             </button>
           </Tooltip>
