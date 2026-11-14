@@ -1,4 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import { cn } from '../../lib/cn'
+import type { RealtimeLevelSource } from '../../lib/use-playground-realtime'
 
 // RMS levels are small; a square-root scale makes quiet speech visible.
 const FULL_SCALE = 0.3
@@ -8,13 +10,18 @@ function levelToFraction(level: number): number {
 }
 
 type Props = {
-  level: number
+  source: RealtimeLevelSource
+  /** Shows an empty meter, e.g. while the mic is off. */
+  muted?: boolean
   threshold: number | null
   active: boolean
 }
 
-export function PlaygroundRealtimeLevelMeter({ level, threshold, active }: Props) {
-  const fill = levelToFraction(level)
+const serverLevel = () => 0
+
+export function PlaygroundRealtimeLevelMeter({ source, muted = false, threshold, active }: Props) {
+  const level = useSyncExternalStore(source.subscribe, source.get, serverLevel)
+  const fill = muted ? 0 : levelToFraction(level)
   return (
     <div className="relative h-1.5 w-28 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
       <div

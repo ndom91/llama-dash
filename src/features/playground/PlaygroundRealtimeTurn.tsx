@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react'
-import { useCallback } from 'react'
+import { memo, useCallback } from 'react'
 import { cn } from '../../lib/cn'
 import { buildRealtimeFilename } from '../../lib/realtime-audio'
 import type { RealtimeTurn } from '../../lib/use-playground-realtime'
@@ -11,7 +11,8 @@ type Props = {
   model: string
 }
 
-export function PlaygroundRealtimeTurn({ turn, model }: Props) {
+// Memoized: streaming deltas replace only the changed turn object.
+export const PlaygroundRealtimeTurn = memo(function PlaygroundRealtimeTurn({ turn, model }: Props) {
   const audioUrl = turn.audioUrl
   const download = useCallback(() => {
     if (!audioUrl || turn.role === 'error') return
@@ -85,4 +86,4 @@ export function PlaygroundRealtimeTurn({ turn, model }: Props) {
       </div>
     </div>
   )
-}
+})

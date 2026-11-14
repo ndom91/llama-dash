@@ -2,14 +2,19 @@ import { Mic, MicOff, Send, Square } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
-import type { RealtimeMicState, RealtimeStatus, RealtimeTurnMode } from '../../lib/use-playground-realtime'
+import type {
+  RealtimeLevelSource,
+  RealtimeMicState,
+  RealtimeStatus,
+  RealtimeTurnMode,
+} from '../../lib/use-playground-realtime'
 import { PlaygroundRealtimeLevelMeter } from './PlaygroundRealtimeLevelMeter'
 
 type Props = {
   status: RealtimeStatus
   mode: RealtimeTurnMode
   micState: RealtimeMicState
-  inputLevel: number
+  inputLevel: RealtimeLevelSource
   vadThreshold: number
   talking: boolean
   listening: boolean
@@ -117,7 +122,8 @@ export function PlaygroundRealtimeTalkBar({
         )}
 
         <PlaygroundRealtimeLevelMeter
-          level={micLive ? inputLevel : 0}
+          source={inputLevel}
+          muted={!micLive}
           threshold={mode === 'hands-free' && micLive ? vadThreshold : null}
           active={talking}
         />

@@ -1,4 +1,4 @@
-import type { RealtimeInputDevice } from '../../lib/use-playground-realtime'
+import type { RealtimeInputDevice, RealtimeLevelSource } from '../../lib/use-playground-realtime'
 import { PlaygroundKVRow } from './PlaygroundKVRow'
 import { PlaygroundRealtimeLevelMeter } from './PlaygroundRealtimeLevelMeter'
 import { PlaygroundSessionSection } from './PlaygroundSessionSection'
@@ -11,7 +11,7 @@ type Props = {
   voiceProcessing: boolean
   setVoiceProcessing: (value: boolean) => void
   micLabel: string | null
-  inputLevel: number
+  inputLevel: RealtimeLevelSource
 }
 
 export function PlaygroundRealtimeMicrophone({
@@ -55,7 +55,7 @@ export function PlaygroundRealtimeMicrophone({
       </p>
       {micLabel ? (
         <div className="flex min-w-0 items-center gap-2 pt-1 font-mono text-[11px] text-fg-dim">
-          <PlaygroundRealtimeLevelMeter level={inputLevel} threshold={null} active />
+          <PlaygroundRealtimeLevelMeter source={inputLevel} threshold={null} active />
           <span className="truncate" translate="no">
             {micLabel}
           </span>

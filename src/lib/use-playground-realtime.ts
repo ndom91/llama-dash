@@ -83,6 +83,31 @@ registerProcessor('${WORKLET_NAME}', LlamaDashRealtimeCapture)
 export type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'error'
 
 export type RealtimeInputDevice = { deviceId: string; label: string }
+
+/** Mic level read by the meters directly, so level updates don't re-render the tab. */
+export type RealtimeLevelSource = {
+  get: () => number
+  subscribe: (onChange: () => void) => () => void
+}
+
+function createLevelStore(): RealtimeLevelSource & { set: (level: number) => void } {
+  let level = 0
+  const listeners = new Set<() => void>()
+  return {
+    get: () => level,
+    subscribe(onChange) {
+      listeners.add(onChange)
+      return () => {
+        listeners.delete(onChange)
+      }
+    },
+    set(next) {
+      if (next === level) return
+      level = next
+      for (const listener of listeners) listener()
+    },
+  }
+}
 export type RealtimeTurnMode = 'push-to-talk' | 'hands-free'
 export type RealtimeMicState = 'off' | 'starting' | 'live' | 'blocked'
 export type RealtimeMicSupport = 'unknown' | 'ok' | 'insecure' | 'unsupported'
@@ -203,7 +228,7 @@ type Ui = {
   setTiming: Dispatch<SetStateAction<RealtimeTiming>>
   setTurns: Dispatch<SetStateAction<Array<RealtimeTurn>>>
   setEvents: Dispatch<SetStateAction<Array<RealtimeEventEntry>>>
-  setInputLevel: Dispatch<SetStateAction<number>>
+  setInputLevel: (level: number) => void
   setTalking: Dispatch<SetStateAction<boolean>>
   setResponseActive: Dispatch<SetStateAction<boolean>>
   setAssistantSpeaking: Dispatch<SetStateAction<boolean>>
@@ -243,7 +268,7 @@ export function usePlaygroundRealtime() {
   const [timing, setTiming] = useState<RealtimeTiming>(EMPTY_TIMING)
   const [turns, setTurns] = useState<Array<RealtimeTurn>>([])
   const [events, setEvents] = useState<Array<RealtimeEventEntry>>([])
-  const [inputLevel, setInputLevel] = useState(0)
+  const [inputLevel] = useState(createLevelStore)
   const [talking, setTalking] = useState(false)
   const [responseActive, setResponseActive] = useState(false)
   const [assistantSpeaking, setAssistantSpeaking] = useState(false)
@@ -295,7 +320,7 @@ export function usePlaygroundRealtime() {
         setTiming,
         setTurns,
         setEvents,
-        setInputLevel,
+        setInputLevel: inputLevel.set,
         setTalking,
         setResponseActive,
         setAssistantSpeaking,

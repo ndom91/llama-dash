@@ -7,6 +7,7 @@ import {
   DEFAULT_VAD_SILENCE_MS,
   DEFAULT_VAD_THRESHOLD,
   type RealtimeInputDevice,
+  type RealtimeLevelSource,
   type RealtimeStatus,
   type RealtimeTurnMode,
 } from '../../lib/use-playground-realtime'
@@ -41,7 +42,7 @@ type Props = {
   voiceProcessing: boolean
   setVoiceProcessing: (value: boolean) => void
   micLabel: string | null
-  inputLevel: number
+  inputLevel: RealtimeLevelSource
 }
 
 export function PlaygroundRealtimeSettings({

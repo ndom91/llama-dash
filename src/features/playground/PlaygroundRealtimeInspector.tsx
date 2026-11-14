@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { Tabs } from '../../components/Tabs'
 import { Tooltip } from '../../components/Tooltip'
@@ -34,7 +34,13 @@ type Props = {
   onClearEvents: () => void
 }
 
-export function PlaygroundRealtimeInspector({ events, timing, session, connected, onClearEvents }: Props) {
+export const PlaygroundRealtimeInspector = memo(function PlaygroundRealtimeInspector({
+  events,
+  timing,
+  session,
+  connected,
+  onClearEvents,
+}: Props) {
   const [tab, setTab] = useState<InspectorTab>('events')
   const sessionJson = useMemo(() => (session ? JSON.stringify(session, null, 2) : ''), [session])
   const uptime = useUptime(connected ? timing.sessionStartedAt : null)
@@ -156,7 +162,7 @@ export function PlaygroundRealtimeInspector({ events, timing, session, connected
       </div>
     </aside>
   )
-}
+})
 
 function useUptime(startedAt: number | null): string | null {
   const [now, setNow] = useState(() => Date.now())
