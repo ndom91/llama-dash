@@ -99,7 +99,7 @@ function SkeletonSessionSection({
   action?: boolean
 }) {
   return (
-    <section className="border-b border-dashed border-border py-3 last:border-b-0">
+    <section className="py-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <SkeletonLine width={labelWidth} height={9} />
         {action ? <SkeletonLine width={20} height={20} className="rounded-sm" /> : null}

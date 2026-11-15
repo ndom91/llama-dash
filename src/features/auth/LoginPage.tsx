@@ -286,7 +286,7 @@ function MetaLine({
 }) {
   const cls = valueClassName ?? 'text-accent'
   return (
-    <div className="flex justify-between border-b border-dashed border-border pt-1">
+    <div className="flex justify-between pt-1">
       <span>{label}</span>
       {href ? (
         <a href={href} target="_blank" rel="noreferrer" className={cn(cls, 'transition-opacity hover:opacity-80')}>

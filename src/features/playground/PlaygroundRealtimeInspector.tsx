@@ -83,7 +83,7 @@ export const PlaygroundRealtimeInspector = memo(function PlaygroundRealtimeInspe
                 {events.map((event) => (
                   <li
                     key={event.id}
-                    className="grid grid-cols-[84px_12px_minmax(0,1fr)] gap-x-2 border-b border-dashed border-border py-1.5 font-mono text-[11px] last:border-b-0"
+                    className="grid grid-cols-[84px_12px_minmax(0,1fr)] gap-x-2 py-1.5 font-mono text-[11px]"
                   >
                     <span className="tabular-nums text-fg-faint">{formatRealtimeClock(event.at)}</span>
                     <span className="text-fg-dim">

@@ -46,7 +46,7 @@ export function SessionPagePending() {
           <aside className="space-y-4 border-l border-border bg-surface-0 p-4 max-lg:hidden">
             <SkeletonLine width={70} height={10} />
             {['client', 'model', 'requests', 'tokens', 'cache', 'input', 'cost'].map((item) => (
-              <div key={item} className="flex justify-between gap-3 border-b border-dashed border-border py-2">
+              <div key={item} className="flex justify-between gap-3 py-2">
                 <SkeletonLine width={70} height={10} />
                 <SkeletonLine width={100} height={10} />
               </div>

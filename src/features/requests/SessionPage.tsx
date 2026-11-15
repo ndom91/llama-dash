@@ -672,10 +672,7 @@ function SessionRail({
           ],
           ['api key', requests.find((r) => r.keyName)?.keyName ?? '—'],
         ].map(([label, value]) => (
-          <div
-            key={label}
-            className="flex justify-between gap-3 border-b border-dashed border-border py-1.5 last:border-0"
-          >
+          <div key={label} className="flex justify-between gap-3 py-1.5">
             <span className="text-accent">{label}</span>
             <span
               className={`min-w-0 truncate text-right ${label === 'input captured' && inputsCaptured < mainExchanges.length ? 'text-warn' : 'text-fg'}`}
