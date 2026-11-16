@@ -334,7 +334,9 @@ export function RequestsPage() {
     (e: KeyboardEvent) => {
       if (
         e.defaultPrevented ||
-        (e.target as HTMLElement).closest?.('[data-request-histogram], [data-request-timeframe]')
+        (e.target as HTMLElement).closest?.(
+          '[data-request-histogram], [data-request-timeframe], [data-date-time-picker]',
+        )
       )
         return
       if (isTypingTarget(e)) {

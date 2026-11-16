@@ -2,6 +2,7 @@ import { Popover } from '@base-ui/react/popover'
 import { CalendarClock, Check, ChevronDown } from 'lucide-react'
 import { Fragment, useId, useState } from 'react'
 import { cn } from '../../lib/cn'
+import { DateTimePicker } from '../../components/DateTimePicker'
 import {
   localDateTime,
   parseLocalDateTime,
@@ -105,42 +106,26 @@ export function RequestsTimeframePicker({ value, onChange }: Props) {
                   {Intl.DateTimeFormat().resolvedOptions().timeZone}. Repeated times during clock changes use the first
                   occurrence. End time is exclusive.
                 </p>
-                <label className="flex flex-col gap-1 text-xs" htmlFor={`${id}-from`}>
-                  Start
-                  <input
-                    id={`${id}-from`}
-                    name="from"
-                    type="datetime-local"
-                    required
-                    min="1970-01-01T00:00"
-                    value={from}
-                    aria-describedby={error ? `${id}-error` : undefined}
-                    aria-invalid={error ? true : undefined}
-                    onChange={(e) => {
-                      setFrom(e.target.value)
-                      setError(null)
-                    }}
-                    className="h-9 min-w-0 rounded border border-border-strong bg-surface-1 px-2 text-fg focus-visible:outline-2 focus-visible:outline-accent"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-xs" htmlFor={`${id}-to`}>
-                  End
-                  <input
-                    id={`${id}-to`}
-                    name="to"
-                    type="datetime-local"
-                    required
-                    min="1970-01-01T00:00"
-                    value={to}
-                    aria-describedby={error ? `${id}-error` : undefined}
-                    aria-invalid={error ? true : undefined}
-                    onChange={(e) => {
-                      setTo(e.target.value)
-                      setError(null)
-                    }}
-                    className="h-9 min-w-0 rounded border border-border-strong bg-surface-1 px-2 text-fg focus-visible:outline-2 focus-visible:outline-accent"
-                  />
-                </label>
+                <DateTimePicker
+                  label="Start"
+                  value={from}
+                  describedBy={error ? `${id}-error` : undefined}
+                  invalid={!!error}
+                  onChange={(next) => {
+                    setFrom(next)
+                    setError(null)
+                  }}
+                />
+                <DateTimePicker
+                  label="End"
+                  value={to}
+                  describedBy={error ? `${id}-error` : undefined}
+                  invalid={!!error}
+                  onChange={(next) => {
+                    setTo(next)
+                    setError(null)
+                  }}
+                />
                 {error ? (
                   <p id={`${id}-error`} role="alert" className="text-xs text-err">
                     {error}
