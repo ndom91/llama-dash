@@ -17,7 +17,18 @@ export const RequestCursorSchema = v.tuple([
   v.pipe(v.string(), v.regex(/^[a-zA-Z0-9_]+$/)),
 ])
 
-export const RequestTimeframeSchema = v.picklist(['all', '1h', '3h', '24h', '7d', 'custom'])
+export const RequestTimeframeSchema = v.picklist([
+  'all',
+  '15m',
+  '1h',
+  '3h',
+  '24h',
+  '7d',
+  '30d',
+  'today',
+  'yesterday',
+  'custom',
+])
 export type RequestTimeframe = v.InferOutput<typeof RequestTimeframeSchema>
 export type RequestTimeFilter = v.InferOutput<typeof RequestTimeFilterSchema>
 export const RequestTimeFilterSchema = v.pipe(

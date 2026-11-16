@@ -2587,3 +2587,14 @@ button.session-entry-line:hover .session-entry-summary > span { color: var(--fg)
 .session-entry-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-entry-meta { min-width: 0; max-width: 50%; margin-left: auto; flex: none; overflow: hidden; color: var(--fg-dim); text-overflow: ellipsis; white-space: nowrap; }
 .session-entry-body { min-width: 0; margin-top: 4px; border-left: 1px solid var(--border-strong); padding-left: 14px; }
+
+/* The designer's hatched calendar preview distinguishes a draft from an applied range. */
+.request-range-preview {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 2px,
+    var(--border-strong) 2px,
+    var(--border-strong) 4px
+  );
+}

@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { requestApiTimeFilter } from './request-timeframe'
 import { clearShellContext } from './shell-context-cache'
 import { JsonValidatorCache } from './json-validator-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
@@ -194,9 +195,10 @@ function requestFilterParams(f?: import('./request-query-data').RequestListQuery
       if (value) q.set(key, value)
     if (f.includeMcp) q.set('includeMcp', 'true')
     if (f.ranges?.length) q.set('ranges', JSON.stringify(f.ranges))
-    if (f.timeframe) q.set('timeframe', f.timeframe)
-    if (f.from !== undefined) q.set('from', String(f.from))
-    if (f.to !== undefined) q.set('to', String(f.to))
+    const time = requestApiTimeFilter(f)
+    if (time.timeframe) q.set('timeframe', time.timeframe)
+    if (time.from !== undefined) q.set('from', String(time.from))
+    if (time.to !== undefined) q.set('to', String(time.to))
     if (f.sortKey) q.set('sortKey', f.sortKey)
     if (f.sortDir) q.set('sortDir', f.sortDir)
     if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)

@@ -3,20 +3,44 @@ export type { RequestInterval, RequestTimeFilter, RequestTimeframe } from './sch
 
 export const DEFAULT_REQUEST_TIMEFRAME = '3h'
 export const REQUEST_TIMEFRAMES = [
-  { value: '1h', label: 'Last 60 minutes' },
-  { value: '3h', label: 'Last 3 hours' },
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: 'all', label: 'All retained history' },
-  { value: 'custom', label: 'Custom range' },
+  { value: '15m', label: 'Last 15 minutes', shortcut: '15m' },
+  { value: '1h', label: 'Last hour', shortcut: '1h' },
+  { value: '3h', label: 'Last 3 hours', shortcut: '3h' },
+  { value: '24h', label: 'Last 24 hours', shortcut: '24h' },
+  { value: '7d', label: 'Last 7 days', shortcut: '7d' },
+  { value: '30d', label: 'Last 30 days', shortcut: '30d' },
+  { value: 'today', label: 'Today', shortcut: '' },
+  { value: 'yesterday', label: 'Yesterday', shortcut: '' },
+  { value: 'all', label: 'All retained', shortcut: '' },
+  { value: 'custom', label: 'Custom', shortcut: '' },
 ] as const
-const WINDOWS = { '1h': 3_600_000, '3h': 10_800_000, '24h': 86_400_000, '7d': 604_800_000 }
+const WINDOWS = {
+  '15m': 900_000,
+  '1h': 3_600_000,
+  '3h': 10_800_000,
+  '24h': 86_400_000,
+  '7d': 604_800_000,
+  '30d': 2_592_000_000,
+}
 
 export function requestTimeBounds(filter: RequestTimeFilter, now = Date.now()) {
   const preset = filter.timeframe ?? 'all'
   if (preset === 'all') return { from: undefined, to: undefined }
   if (preset === 'custom') return { from: filter.from, to: filter.to }
+  if (preset === 'today' || preset === 'yesterday') {
+    const date = new Date(now)
+    const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+    return preset === 'today'
+      ? { from: midnight, to: now + 1 }
+      : { from: new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1).getTime(), to: midnight }
+  }
   return { from: now - WINDOWS[preset], to: now + 1 }
+}
+
+/** Resolve calendar-day presets in the browser, so API results don't depend on the server's time zone. */
+export function requestApiTimeFilter(filter: RequestTimeFilter, now = Date.now()): RequestTimeFilter {
+  if (filter.timeframe !== 'today' && filter.timeframe !== 'yesterday') return filter
+  return { timeframe: 'custom', ...requestTimeBounds(filter, now) }
 }
 
 export function requestMatchesTimeframe(startedAt: string, filter: RequestTimeFilter, now = Date.now()) {

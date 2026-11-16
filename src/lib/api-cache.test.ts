@@ -92,3 +92,45 @@ it('clears validators explicitly after validated JSON mutations but not failed o
   await api.listRequests({ cursor: 'json-mutation' })
   expect(new Headers(fetch.mock.lastCall?.[1]?.headers).has('if-none-match')).toBe(false)
 })
+
+it('sends browser-resolved calendar-day bounds consistently to list, count and chart endpoints', async () => {
+  const { requestTimeBounds } = await import('./request-timeframe')
+  const now = new Date(2026, 10, 16, 20, 20).getTime()
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(now)
+  const fetch = vi.fn(async (url: string) =>
+    response(
+      url.startsWith('/api/requests/count')
+        ? { count: 0 }
+        : url.startsWith('/api/requests/histogram')
+          ? { buckets: [], bucketMs: 60000, from: 0, to: now, earliestRetainedAt: null }
+          : list(),
+    ),
+  )
+  vi.stubGlobal('fetch', fetch)
+  const filters = {
+    timeframe: 'yesterday' as const,
+    modelFilter: [],
+    keyFilter: [],
+    hostFilter: [],
+    routingFilter: 'all' as const,
+    search: '',
+    clientFilter: '',
+    endUserFilter: '',
+    sessionFilter: '',
+    includeMcp: false,
+  }
+  try {
+    await api.listRequests({ filters })
+    await api.requestCount(filters, 'all')
+    await api.requestHistogram({ filters })
+    const bounds = requestTimeBounds(filters, now)
+    for (const [url] of fetch.mock.calls) {
+      const params = new URL(url, 'http://localhost').searchParams
+      expect(params.get('timeframe')).toBe('custom')
+      expect(params.get('from')).toBe(String(bounds.from))
+      expect(params.get('to')).toBe(String(bounds.to))
+    }
+  } finally {
+    clock.mockRestore()
+  }
+})

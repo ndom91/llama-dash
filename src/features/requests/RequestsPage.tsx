@@ -334,9 +334,7 @@ export function RequestsPage() {
     (e: KeyboardEvent) => {
       if (
         e.defaultPrevented ||
-        (e.target as HTMLElement).closest?.(
-          '[data-request-histogram], [data-request-timeframe], [data-date-time-picker]',
-        )
+        (e.target as HTMLElement).closest?.('[data-request-histogram], [data-request-timeframe]')
       )
         return
       if (isTypingTarget(e)) {
@@ -445,6 +443,7 @@ export function RequestsPage() {
           action={
             <RequestsTimeframePicker
               value={{ timeframe, from, to }}
+              earliestRetainedAt={histogramData?.earliestRetainedAt}
               onChange={(value) => {
                 setSelectedIdx(-1)
                 scrollRef.current?.scrollTo({ top: 0 })

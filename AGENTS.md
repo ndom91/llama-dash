@@ -81,7 +81,6 @@ src/
     StatusCell.tsx          · status code + stream badge
     PageHeader.tsx          · reusable kicker + title + subtitle + actions
     Select.tsx              · base-ui select; single by default, `multiple` for multi-value filters
-    DateTimePicker.tsx      · Base UI popover with themed DayPicker calendar and 24-hour Number Field controls (`Calendar.tsx`, `TimeField.tsx`); edits local wall-clock strings
     ThemeToggle.tsx         · segmented light/dark/system theme control
     Checkbox.tsx            · native checkbox with animated tick (`CheckMark` for decorative boxes)
     TextSwap.tsx            · in-place cross-fade for pending button labels
@@ -353,7 +352,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     existing unattributed request rows and rollups are not retroactively reclassified.
     Inference rows have a two-day minimum retention for exact rolling 24-hour usage and
     its preceding comparison; separately configured payload retention is unchanged.
-    The request page defaults to the last 3 hours; its picker also offers other rolling presets, explicit all-history links, and custom local-time ranges with themed calendars and 24-hour controls. Nested calendar edits stay in the range draft until Apply range; daylight-saving gaps and reversed ranges are rejected.
+    The request page defaults to the last 3 hours; its picker also offers other rolling presets, explicit all-history links, and custom local-time ranges in a unified Base UI popover with a DayPicker range calendar, compact date/time fields, keyboard preset navigation, and timezone tooltip. Custom edits stay in the draft until Apply; future/expired days, daylight-saving gaps and reversed ranges are rejected. Today/Yesterday resolve in the browser zone before API serialization.
     The request histogram selects absolute intervals, including disjoint selections;
     `/api/requests` applies these and all request-list filters before cursor pagination; live cache updates honor the same filters. Sorting applies across retained history with stable sort-value/ID cursors. The virtualized list loads pages incrementally, while a separate live count reports all matches.
     Request list supports routing, attribution, and client-host filters (model, key, and host
