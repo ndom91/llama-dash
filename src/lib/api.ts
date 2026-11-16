@@ -49,6 +49,7 @@ import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
   RequestMetadataResponseSchema,
+  RequestFilterOptionsSchema,
   RequestPayloadsSchema,
   RequestsListResponseSchema,
   RequestSessionSchema,
@@ -180,7 +181,14 @@ export const api = {
   getModelReasoningEffort: (id: string) =>
     getJson(`/api/models/${encodeURIComponent(id)}/reasoning-effort`, ModelReasoningEffortSchema),
   listRequests: (
-    params: { limit?: number; cursor?: string; includeMcp?: boolean; minutes?: number[]; status?: 'ok' | 'err' } = {},
+    params: {
+      limit?: number
+      cursor?: string
+      includeMcp?: boolean
+      minutes?: number[]
+      status?: 'ok' | 'err'
+      filters?: import('./request-query-data').RequestListQuery
+    } = {},
     options: ApiFetchOptions = {},
   ) => {
     const q = new URLSearchParams()
@@ -189,9 +197,29 @@ export const api = {
     if (params.includeMcp) q.set('includeMcp', 'true')
     if (params.minutes?.length) q.set('minutes', params.minutes.join(','))
     if (params.status) q.set('status', params.status)
+    if (params.filters) {
+      const f = params.filters
+      for (const [key, values] of [
+        ['model', f.modelFilter],
+        ['key', f.keyFilter],
+        ['host', f.hostFilter],
+      ] as const)
+        for (const value of values) q.append(key, value)
+      for (const [key, value] of [
+        ['q', f.search],
+        ['client', f.clientFilter],
+        ['endUser', f.endUserFilter],
+        ['session', f.sessionFilter],
+      ] as const)
+        if (value) q.set(key, value)
+      if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)
+      q.set('skipMcpCount', 'true')
+    }
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
+  requestFilterOptions: (options: ApiFetchOptions = {}) =>
+    getJson('/api/requests/filter-options', RequestFilterOptionsSchema, options),
   getRequestSession: (
     id: string,
     cursor?: string,

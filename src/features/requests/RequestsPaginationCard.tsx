@@ -37,7 +37,7 @@ export function RequestsPaginationCard({
       ) : isFetchNextPageError ? (
         <div>Could not load older requests.</div>
       ) : hasLocalFilters ? (
-        <div>Filters apply to loaded requests.</div>
+        <div>Showing matching requests.</div>
       ) : null}
       {exhausted ? (
         <Tooltip label="No more older requests available to load" side="top">

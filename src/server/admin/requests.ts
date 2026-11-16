@@ -1,10 +1,29 @@
-import { and, asc, desc, eq, getTableColumns, gt, gte, inArray, lt, or, type SQL } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  notInArray,
+  or,
+  type SQL,
+  type SQLWrapper,
+  sql,
+} from 'drizzle-orm'
+import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../features/requests/requestsListUtils.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
 import { requestSummaryColumns } from './request-summary-columns.ts'
+
+let caseFoldRegistered = false
 
 const INFERENCE_REQUEST_SQL = "request_class = 'inference'"
 
@@ -145,7 +164,48 @@ export function listRecentRequests(opts: {
   includeMcp?: boolean
   minutes?: number[]
   status?: 'ok' | 'err'
+  search?: string
+  models?: string[]
+  keys?: string[]
+  routing?: 'routed' | 'unrouted'
+  hosts?: string[]
+  client?: string
+  endUser?: string
+  session?: string
 }): Array<ApiRequest> {
+  if (!caseFoldRegistered && (opts.search || opts.client || opts.endUser || opts.session)) {
+    // SQLite's built-in lower() is ASCII-only; match the browser's Unicode case folding.
+    sqliteDb.function('llama_dash_lower', { deterministic: true }, (value: string | number | null) =>
+      String(value ?? '').toLowerCase(),
+    )
+    caseFoldRegistered = true
+  }
+  const contains = (column: SQLWrapper, value: string) =>
+    sql`instr(llama_dash_lower(${column}), ${value.toLowerCase()}) > 0`
+  const keyMap = getApiKeyNameMap()
+  const keyIds = [...keyMap]
+    .filter(([, name]) =>
+      opts.keys?.some((key) => requestMatchesKeyFilter({ keyName: name, routingAuthMode: null }, key)),
+    )
+    .map(([id]) => id)
+  const noKey = (mode: string | null) =>
+    opts.keys?.some((key) => requestMatchesKeyFilter({ keyName: null, routingAuthMode: mode }, key))
+  const missingKey = keyMap.size
+    ? or(isNull(schema.requests.keyId), notInArray(schema.requests.keyId, [...keyMap.keys()]))
+    : sql`1 = 1`
+  const keyFilter = opts.keys?.length
+    ? or(
+        keyIds.length ? inArray(schema.requests.keyId, keyIds) : undefined,
+        noKey('passthrough') ? and(missingKey, eq(schema.requests.routingAuthMode, 'passthrough')) : undefined,
+        noKey(null)
+          ? and(
+              missingKey,
+              or(isNull(schema.requests.routingAuthMode), sql`${schema.requests.routingAuthMode} != 'passthrough'`),
+            )
+          : undefined,
+        sql`0`,
+      )
+    : undefined
   const where = and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
     opts.includeMcp ? undefined : inferenceRequest(),
@@ -164,6 +224,39 @@ export function listRecentRequests(opts: {
           ),
         )
       : undefined,
+    opts.models?.length ? inArray(schema.requests.model, opts.models) : undefined,
+    keyFilter,
+    opts.routing === 'routed'
+      ? sql`${schema.requests.routingActionType} is not null`
+      : opts.routing === 'unrouted'
+        ? isNull(schema.requests.routingActionType)
+        : undefined,
+    opts.hosts?.length
+      ? or(
+          opts.hosts.includes(REQUEST_HOST_FILTER_NONE) ? isNull(schema.requests.clientHost) : undefined,
+          inArray(
+            schema.requests.clientHost,
+            opts.hosts.filter((v) => v !== REQUEST_HOST_FILTER_NONE),
+          ),
+        )
+      : undefined,
+    opts.client ? contains(schema.requests.clientName, opts.client) : undefined,
+    opts.endUser ? contains(schema.requests.endUserId, opts.endUser) : undefined,
+    opts.session ? contains(schema.requests.sessionId, opts.session) : undefined,
+    opts.search
+      ? or(
+          ...[
+            schema.requests.endpoint,
+            schema.requests.method,
+            schema.requests.model,
+            schema.requests.clientName,
+            schema.requests.clientHost,
+            schema.requests.endUserId,
+            schema.requests.sessionId,
+            schema.requests.statusCode,
+          ].map((column) => contains(column, opts.search!)),
+        )
+      : undefined,
   )
   const rows = db
     .select({
@@ -176,9 +269,24 @@ export function listRecentRequests(opts: {
     .limit(opts.limit)
     .all()
 
-  const keyMap = getApiKeyNameMap()
-
   return rows.map((r) => toRequestRow(r, r.keyId ? (keyMap.get(r.keyId) ?? null) : null))
+}
+
+export function requestFilterOptions() {
+  const models = db
+    .selectDistinct({ value: schema.requests.model })
+    .from(schema.requests)
+    .all()
+    .map((r) => r.value)
+    .filter((v): v is string => !!v)
+  const hosts = db
+    .selectDistinct({ value: schema.requests.clientHost })
+    .from(schema.requests)
+    .all()
+    .map((r) => r.value)
+    .filter((v): v is string => !!v)
+  const keys = [...new Set(getApiKeyNameMap().values())].filter(Boolean)
+  return { models: models.sort(), hosts: hosts.sort(), keys: keys.sort() }
 }
 
 export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number[]; status?: 'ok' | 'err' }): number {

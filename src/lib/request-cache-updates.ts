@@ -1,6 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { InferOutput } from 'valibot'
+import { applyRequestFilters, isMcpRelayRequest } from '../features/requests/requestsListUtils'
 import { qk } from './query-keys'
+import type { RequestListQuery } from './request-query-data'
 import { REQUESTS_PAGE_SIZE, type RequestsList } from './request-query-data'
 import type { ApiRequest, RequestPayloadsSchema } from './schemas/request'
 
@@ -26,6 +28,15 @@ export function trimInactiveRequestPayloads(client: QueryClient) {
 }
 
 export function updateRequestsListCache(client: QueryClient, request: ApiRequest) {
+  client.setQueryData<{ models: string[]; keys: string[]; hosts: string[] }>(['requests', 'filter-options'], (old) => {
+    if (!old) return old
+    const add = (values: string[], value: string | null) =>
+      value && !values.includes(value) ? [...values, value].sort() : values
+    const models = add(old.models, request.model)
+    const keys = add(old.keys, request.keyName)
+    const hosts = add(old.hosts, request.clientHost)
+    return models === old.models && keys === old.keys && hosts === old.hosts ? old : { models, keys, hosts }
+  })
   const minute = Math.floor(Date.parse(request.startedAt) / 60_000) * 60_000
   const keys = [
     qk.requestsList,
@@ -35,10 +46,13 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
       .filter((query) => {
         const minutes = query.queryKey[2]
         const status = query.queryKey[3]
+        const filters = query.queryKey[4] as RequestListQuery | undefined
         if (typeof minutes !== 'string' || (minutes && !minutes.split(',').includes(String(minute)))) return false
-        if (status === 'err') return request.statusCode >= 400
-        if (status === 'ok') return request.statusCode >= 200 && request.statusCode < 400
-        return true
+        if (status === 'err' && request.statusCode < 400) return false
+        if (status === 'ok' && (request.statusCode < 200 || request.statusCode >= 400)) return false
+        if (!filters) return true
+        if (!filters.includeMcp && isMcpRelayRequest(request)) return false
+        return applyRequestFilters([request], { ...filters, statusFilter: 'all' }).length > 0
       })
       .map((query) => query.queryKey),
   ]

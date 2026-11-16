@@ -16,8 +16,13 @@ import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
-import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
-import type { ApiRequest } from '../../lib/schemas/request'
+import {
+  requestQueryOptions,
+  useAttributionSettings,
+  useRequestFilterOptions,
+  useRequestHistogram,
+  useRequestsList,
+} from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
@@ -29,11 +34,8 @@ import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import { formatCostUsd } from './requestDetailUtils'
 import { shouldLoadNextRequestPage } from './requestPagination'
 import {
-  applyRequestFilters,
   colWidthsFor,
   formatWhen,
-  isMcpRelayRequest,
-  isProxyRequestKey,
   REQUEST_HOST_FILTER_NONE,
   REQUEST_KEY_FILTER_NONE,
   REQUEST_KEY_FILTER_PROXY,
@@ -49,7 +51,6 @@ import {
   type StatusFilter,
   sortVal,
   toOption,
-  uniqueSorted,
   withSelected,
 } from './requestsListUtils'
 import type { RequestsSearch } from './requestsSearch'
@@ -68,6 +69,7 @@ export function RequestsPage() {
   const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
+  const { data: filterOptions } = useRequestFilterOptions()
 
   const search = routeSearch.q ?? ''
   const modelFilter = routeSearch.model ?? NO_VALUES
@@ -81,8 +83,6 @@ export function RequestsPage() {
   const sessionFilter = routeSearch.session ?? ''
   const [searchDraft, setSearchDraft] = useState(search)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  // These filters apply to loaded pages only. Automatically filling a sparse
-  // filtered viewport would otherwise walk the entire request history.
   const hasLocalFilters =
     searchDraft !== '' ||
     modelFilter.length > 0 ||
@@ -106,15 +106,17 @@ export function RequestsPage() {
     }),
     [statusFilter, modelFilter, keyFilter, routingFilter, clientFilter, hostFilter, endUserFilter, sessionFilter],
   )
-  const matchesFilteredPage = useCallback(
-    (requests: ApiRequest[]) =>
-      applyRequestFilters(requests, { ...filters, search: searchDraft }).some(
-        (request) => showMcpRelays || !isMcpRelayRequest(request),
-      ),
-    [filters, searchDraft, showMcpRelays],
+  const [debouncedAttribution, setDebouncedAttribution] = useState({ clientFilter, endUserFilter, sessionFilter })
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedAttribution({ clientFilter, endUserFilter, sessionFilter }), 180)
+    return () => window.clearTimeout(timer)
+  }, [clientFilter, endUserFilter, sessionFilter])
+  const queryFilters = useMemo(
+    () => ({ ...filters, ...debouncedAttribution, search, includeMcp: showMcpRelays }),
+    [filters, debouncedAttribution, search, showMcpRelays],
   )
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
-    useRequestsList(selectedMinutes, statusFilter, hasLocalFilters ? matchesFilteredPage : undefined)
+    useRequestsList(selectedMinutes, statusFilter, queryFilters)
 
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
@@ -151,41 +153,29 @@ export function RequestsPage() {
 
   const allRows = useMemo(() => data?.pages.flatMap((p) => p.requests) ?? [], [data])
 
-  const models = useMemo(() => uniqueSorted(allRows, (r) => r.model), [allRows])
-
-  const keyNames = useMemo(() => uniqueSorted(allRows, (r) => r.keyName), [allRows])
-  const hasProxyRequests = useMemo(() => allRows.some(isProxyRequestKey), [allRows])
-
-  const hosts = useMemo(() => uniqueSorted(allRows, (r) => r.clientHost), [allRows])
+  const models = filterOptions?.models ?? NO_VALUES
+  const keyNames = filterOptions?.keys ?? NO_VALUES
+  const hosts = filterOptions?.hosts ?? NO_VALUES
 
   const modelOptions = useMemo(() => withSelected(models.map(toOption), modelFilter), [models, modelFilter])
   const keyOptions = useMemo(
     () =>
       withSelected(
         [
-          ...(hasProxyRequests ? [{ value: REQUEST_KEY_FILTER_PROXY, label: 'proxy' }] : []),
+          { value: REQUEST_KEY_FILTER_PROXY, label: 'proxy' },
           { value: REQUEST_KEY_FILTER_NONE, label: 'No key' },
           ...keyNames.map((k) => ({ value: requestKeyNameFilterValue(k), label: k })),
         ],
         keyFilter,
       ),
-    [hasProxyRequests, keyNames, keyFilter],
+    [keyNames, keyFilter],
   )
   const hostOptions = useMemo(
     () => withSelected([{ value: REQUEST_HOST_FILTER_NONE, label: 'No host' }, ...hosts.map(toOption)], hostFilter),
     [hosts, hostFilter],
   )
 
-  const filtered = useMemo(
-    () => applyRequestFilters(allRows, { ...filters, search: searchDraft }),
-    [allRows, filters, searchDraft],
-  )
-
-  const mcpCount = useMemo(() => filtered.filter(isMcpRelayRequest).length, [filtered])
-  const displayed = useMemo(
-    () => (showMcpRelays ? filtered : filtered.filter((r) => !isMcpRelayRequest(r))),
-    [filtered, showMcpRelays],
-  )
+  const displayed = allRows
 
   useEffect(() => {
     if (modelFilter.length === 0 || models.length === 0) return
@@ -194,7 +184,7 @@ export function RequestsPage() {
     if (resolved.some((m, i) => m !== modelFilter[i])) updateSearch({ model: resolved })
   }, [models, modelFilter, updateSearch])
 
-  const freshRowIds = useFreshRowIds(allRows, filters)
+  const freshRowIds = useFreshRowIds(allRows, queryFilters)
   const reveal = useSkeletonReveal(isLoading && selectedMinutes.length === 0)
   const rows = useMemo(() => {
     const sorted = [...displayed]
@@ -385,7 +375,7 @@ export function RequestsPage() {
     })
   }
 
-  if (error) {
+  if (error && !data) {
     return <RouteError kicker="dsh · requests" title="Failed to load requests" message={error.message} />
   }
 
@@ -405,7 +395,7 @@ export function RequestsPage() {
           }
         />
 
-        {isLoading && selectedMinutes.length === 0 ? (
+        {isLoading && selectedMinutes.length === 0 && !hasLocalFilters && statusFilter === 'all' ? (
           <RequestsPageSkeleton />
         ) : (
           <div
@@ -422,7 +412,6 @@ export function RequestsPage() {
               onSearchDraftChange={setSearchDraft}
               filters={filters}
               showMcpRelays={showMcpRelays}
-              mcpCount={mcpCount}
               modelOptions={modelOptions}
               keyOptions={keyOptions}
               hostOptions={hostOptions}
@@ -481,6 +470,7 @@ export function RequestsPage() {
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
                     {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
+                    {sortKey !== 'startedAt' || sortDir !== 'desc' ? ' · sorting loaded rows' : ''}
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim max-[600px]:hidden">
                     ↑↓ navigate · ⏎ open · / search
@@ -491,11 +481,7 @@ export function RequestsPage() {
                 ) : rows.length === 0 ? (
                   <div className="empty-state">
                     {hasFilters || allRows.length > 0 ? (
-                      hasNextPage ? (
-                        'no loaded requests match filters'
-                      ) : (
-                        'no requests match filters'
-                      )
+                      'no requests match filters'
                     ) : (
                       <>
                         no requests yet. call <code translate="no">/v1/*</code> to populate.

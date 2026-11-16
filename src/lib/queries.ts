@@ -12,7 +12,7 @@ import {
 import { toast } from 'sonner'
 import type { InferOutput } from 'valibot'
 import { qk } from './query-keys'
-import { REQUESTS_MAX_PAGE_SIZE, REQUESTS_PAGE_SIZE, type RequestsList, type RequestsPage } from './request-query-data'
+import { REQUESTS_PAGE_SIZE, type RequestListQuery, type RequestsList, type RequestsPage } from './request-query-data'
 
 export { qk } from './query-keys'
 export { REQUESTS_PAGE_SIZE } from './request-query-data'
@@ -207,33 +207,36 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
 export function useRequestsList(
   minutes: number[] = [],
   status: 'all' | 'ok' | 'err' = 'all',
-  matchesFilteredPage?: (requests: ApiRequest[]) => boolean,
+  filters?: RequestListQuery,
 ): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
     queryKey:
-      minutes.length || status !== 'all' ? [...qk.requestsFilteredList, minutes.join(','), status] : qk.requestsList,
+      filters || minutes.length || status !== 'all'
+        ? [...qk.requestsFilteredList, minutes.join(','), status, filters]
+        : qk.requestsList,
     queryFn: ({ pageParam, signal }) =>
       api.listRequests(
         {
           limit: pageParam.limit,
           cursor: pageParam.cursor,
-          includeMcp: true,
+          includeMcp: filters?.includeMcp ?? true,
           minutes,
           status: status === 'all' ? undefined : status,
+          filters,
         },
         { signal },
       ),
     initialPageParam: { limit: REQUESTS_PAGE_SIZE, cursor: undefined as string | undefined },
-    getNextPageParam: (last: RequestsPage, _pages, lastParam) =>
-      last.nextCursor == null
-        ? undefined
-        : {
-            cursor: last.nextCursor,
-            limit:
-              matchesFilteredPage && !matchesFilteredPage(last.requests)
-                ? Math.min(lastParam.limit * 2, REQUESTS_MAX_PAGE_SIZE)
-                : REQUESTS_PAGE_SIZE,
-          },
+    getNextPageParam: (last: RequestsPage) =>
+      last.nextCursor == null ? undefined : { cursor: last.nextCursor, limit: REQUESTS_PAGE_SIZE },
+  })
+}
+
+export function useRequestFilterOptions() {
+  return useQuery({
+    queryKey: ['requests', 'filter-options'],
+    queryFn: ({ signal }) => api.requestFilterOptions({ signal }),
+    refetchInterval: FALLBACK_POLL_MS,
   })
 }
 
@@ -269,6 +272,12 @@ export function useRequest(id: string): UseQueryResult<RequestDetailResult> {
     placeholderData: () => {
       const list = qc.getQueryData<RequestsList>(qk.requestsList)
       let summary = list?.pages.flatMap((page) => page.requests).find((request) => request.id === id)
+      if (!summary) {
+        for (const [, filtered] of qc.getQueriesData<RequestsList>({ queryKey: qk.requestsFilteredList })) {
+          summary = filtered?.pages.flatMap((page) => page.requests).find((request) => request.id === id)
+          if (summary) break
+        }
+      }
       if (!summary) {
         for (const [, recent] of qc.getQueriesData<Array<ApiRequest>>({ queryKey: qk.requestsRecentRoot })) {
           summary = recent?.find((request) => request.id === id)

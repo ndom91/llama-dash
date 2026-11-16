@@ -93,6 +93,39 @@ it('inserts live requests only into matching status and minute lists', () => {
   client.clear()
 })
 
+it('only adds live rows that match the full server filter and MCP visibility', () => {
+  const client = new QueryClient()
+  const filters = {
+    search: '',
+    modelFilter: ['target'],
+    keyFilter: [],
+    routingFilter: 'all',
+    clientFilter: 'claude',
+    hostFilter: [],
+    endUserFilter: '',
+    sessionFilter: '',
+    includeMcp: false,
+  }
+  const key = ['requests', 'filtered-list', '', 'err', filters]
+  client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [{ limit: 50 }] })
+  const base = {
+    ...row(1),
+    startedAt: new Date().toISOString(),
+    statusCode: 500,
+    model: 'target',
+    clientName: 'Claude Code',
+  }
+  updateRequestsListCache(client, { ...base, model: 'other' })
+  updateRequestsListCache(client, { ...base, requestClass: 'mcp_relay' })
+  updateRequestsListCache(client, { ...base, statusCode: 200 })
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(key)?.pages[0].requests).toHaveLength(0)
+  updateRequestsListCache(client, base)
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(key)?.pages[0].requests.map((r) => r.id)).toEqual(
+    [base.id],
+  )
+  client.clear()
+})
+
 it('resyncs live data without invalidating completed metadata or captured payloads', () => {
   const client = new QueryClient()
   for (const key of [

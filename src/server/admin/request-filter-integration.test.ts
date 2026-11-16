@@ -19,8 +19,8 @@ it('sends status and selected minutes through the client and route before pagina
       startedAt: base + i,
       statusCode: 200,
     })),
-    { id: 'req_a1', startedAt: base + 100, statusCode: 500 },
-    { id: 'req_a2', startedAt: base + 200, statusCode: 404 },
+    { id: 'req_a1', startedAt: base + 100, statusCode: 500, model: 'target', clientName: 'Claude' },
+    { id: 'req_a2', startedAt: base + 200, statusCode: 404, model: 'target', clientName: 'Claude' },
     { id: 'req_a3', startedAt: base + 60_000, statusCode: 500 },
   ])
   const { requestRoutes } = await import('./routes/requests')
@@ -41,6 +41,25 @@ it('sends status and selected minutes through the client and route before pagina
     expect(requestUrl.searchParams.get('status')).toBe('err')
     expect(requestUrl.searchParams.get('minutes')).toBe(String(base))
     unmount()
+    const filters = {
+      search: '',
+      modelFilter: ['target'],
+      keyFilter: [],
+      routingFilter: 'all' as const,
+      clientFilter: 'claude',
+      hostFilter: [],
+      endUserFilter: '',
+      sessionFilter: '',
+      includeMcp: false,
+    }
+    const filtered = renderHook(() => useRequestsList([], 'all', filters), { wrapper })
+    await waitFor(() => expect(filtered.result.current.isSuccess).toBe(true))
+    expect(filtered.result.current.data?.pages[0].requests.map((row) => row.id)).toEqual(['req_a2', 'req_a1'])
+    expect(filtered.result.current.hasNextPage).toBe(false)
+    const filterUrl = new URL(fetchMock.mock.calls.at(-1)![0], 'http://dash.test')
+    expect(filterUrl.searchParams.get('model')).toBe('target')
+    expect(filterUrl.searchParams.get('client')).toBe('claude')
+    filtered.unmount()
   } finally {
     client.clear()
     vi.unstubAllGlobals()

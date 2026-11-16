@@ -71,6 +71,12 @@ export const RequestsListResponseSchema = v.object({
   mcpHiddenCount: v.optional(v.number()),
 })
 
+export const RequestFilterOptionsSchema = v.object({
+  models: v.array(v.string()),
+  keys: v.array(v.string()),
+  hosts: v.array(v.string()),
+})
+
 export const RequestPayloadsSchema = v.pick(ApiRequestDetailSchema, [
   'requestHeaders',
   'requestBody',

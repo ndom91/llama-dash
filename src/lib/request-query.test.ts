@@ -82,6 +82,18 @@ afterEach(() => {
 })
 
 describe('request detail loading', () => {
+  it('reuses summaries from a globally filtered request list', () => {
+    const { client, wrapper } = setup()
+    client.setQueryData(['requests', 'filtered-list', '', 'all', { modelFilter: ['test-model'] }], {
+      pages: [{ requests: [summary('req_filtered')], nextCursor: null }],
+      pageParams: [{ limit: 50 }],
+    })
+    vi.spyOn(api, 'getRequestMetadata').mockReturnValue(new Promise(() => {}))
+    const { result } = renderHook(() => useRequest('req_filtered'), { wrapper })
+    expect(result.current.data?.request.id).toBe('req_filtered')
+    expect(result.current.isPlaceholderData).toBe(true)
+  })
+
   it('shows a paginated list summary immediately without storing it as complete detail', async () => {
     const { client, wrapper } = setup()
     client.setQueryData(qk.requestsList, {

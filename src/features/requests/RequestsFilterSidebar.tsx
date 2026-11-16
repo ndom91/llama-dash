@@ -1,6 +1,6 @@
-import { Checkbox } from '../../components/Checkbox'
 import { ChevronDown, Search, X } from 'lucide-react'
 import type { RefObject } from 'react'
+import { Checkbox } from '../../components/Checkbox'
 import {
   ResponsiveDisclosure,
   ResponsiveDisclosurePanel,
@@ -8,7 +8,6 @@ import {
 } from '../../components/ResponsiveDisclosure'
 import { Select, type SelectOption } from '../../components/Select'
 import type { AttributionSettings } from '../../lib/api'
-import { formatCompactNumber } from '../../lib/format'
 import { RequestsAttributionFilterInput } from './RequestsAttributionFilterInput'
 import { RequestsFilterField } from './RequestsFilterField'
 import type { RequestListFilters, RoutingFilter, StatusFilter } from './requestsListUtils'
@@ -22,7 +21,6 @@ type Props = {
   onSearchDraftChange: (value: string) => void
   filters: RequestListFilters
   showMcpRelays: boolean
-  mcpCount: number
   modelOptions: readonly SelectOption[]
   keyOptions: readonly SelectOption[]
   hostOptions: readonly SelectOption[]
@@ -40,7 +38,6 @@ export function RequestsFilterSidebar({
   onSearchDraftChange,
   filters,
   showMcpRelays,
-  mcpCount,
   modelOptions,
   keyOptions,
   hostOptions,
@@ -148,9 +145,6 @@ export function RequestsFilterSidebar({
             />
             <span className="flex min-w-0 flex-1 items-center justify-between gap-2 text-fg">
               <span className="truncate">Show MCP reqs</span>
-              <span className="shrink-0 text-fg-faint">
-                {`${formatCompactNumber(mcpCount)} ${showMcpRelays ? 'visible' : 'hidden'}`}
-              </span>
             </span>
           </label>
 

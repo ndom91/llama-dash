@@ -7,10 +7,16 @@ import {
   getRequestStats,
   listRecentRequests,
   listRequestSession,
+  requestFilterOptions,
 } from '../requests.ts'
 import { clamp, error, json, type Route } from './types.ts'
 
 export const requestRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/filter-options$/,
+    handler: async () => json(200, requestFilterOptions()),
+  },
   {
     method: 'GET',
     pattern: /^\/api\/requests\/([a-zA-Z0-9_]+)\/session$/,
@@ -61,6 +67,17 @@ export const requestRoutes: Route[] = [
       const includeMcp = url.searchParams.get('includeMcp') === 'true'
       const status = url.searchParams.get('status')
       if (status !== null && status !== 'ok' && status !== 'err') return error(400, 'Invalid status filter')
+      const routing = url.searchParams.get('routing')
+      if (routing !== null && routing !== 'routed' && routing !== 'unrouted')
+        return error(400, 'Invalid routing filter')
+      const models = url.searchParams.getAll('model')
+      const keys = url.searchParams.getAll('key')
+      const hosts = url.searchParams.getAll('host')
+      if ([models, keys, hosts].some((values) => values.length > 100 || values.some((value) => value.length > 1024)))
+        return error(400, 'Invalid request filter')
+      const textFilter = (name: string) => url.searchParams.get(name) || undefined
+      if (['q', 'client', 'endUser', 'session'].some((name) => (url.searchParams.get(name)?.length ?? 0) > 1024))
+        return error(400, 'Invalid request filter')
       const rawMinutes = url.searchParams.get('minutes')
       const minutes = rawMinutes?.split(',').map(Number)
       if (
@@ -73,18 +90,27 @@ export const requestRoutes: Route[] = [
         return error(400, 'Invalid minute filter')
       }
       const rows = listRecentRequests({
-        limit,
+        limit: limit + 1,
         cursor: cursor ?? undefined,
         includeMcp,
         minutes,
         status: status ?? undefined,
+        routing: routing ?? undefined,
+        models,
+        keys,
+        hosts,
+        search: textFilter('q'),
+        client: textFilter('client'),
+        endUser: textFilter('endUser'),
+        session: textFilter('session'),
       })
       return json(200, {
-        requests: rows,
-        nextCursor: rows.length === limit ? rows[rows.length - 1].id : null,
-        mcpHiddenCount: includeMcp
-          ? 0
-          : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes, status: status ?? undefined }),
+        requests: rows.slice(0, limit),
+        nextCursor: rows.length > limit ? rows[limit - 1].id : null,
+        mcpHiddenCount:
+          includeMcp || url.searchParams.get('skipMcpCount') === 'true'
+            ? 0
+            : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes, status: status ?? undefined }),
       })
     },
   },
