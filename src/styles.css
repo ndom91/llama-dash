@@ -2588,13 +2588,8 @@ button.session-entry-line:hover .session-entry-summary > span { color: var(--fg)
 .session-entry-meta { min-width: 0; max-width: 50%; margin-left: auto; flex: none; overflow: hidden; color: var(--fg-dim); text-overflow: ellipsis; white-space: nowrap; }
 .session-entry-body { min-width: 0; margin-top: 4px; border-left: 1px solid var(--border-strong); padding-left: 14px; }
 
-/* The designer's hatched calendar preview distinguishes a draft from an applied range. */
+/* A continuous draft band avoids per-cell pattern seams and keeps date numerals clear. */
 .request-range-preview {
-  background-image: repeating-linear-gradient(
-    135deg,
-    transparent,
-    transparent 2px,
-    var(--border-strong) 2px,
-    var(--border-strong) 4px
-  );
+  background-color: color-mix(in oklab, var(--accent) 10%, transparent);
+  box-shadow: inset 0 1px var(--border-strong), inset 0 -1px var(--border-strong);
 }
