@@ -15,6 +15,7 @@ import { StatusCell } from '../../components/StatusCell'
 import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { isTypingTarget } from '../../lib/is-typing-target'
+import { mergeRequestIntervals, requestMatchesIntervals, type RequestInterval } from '../../lib/request-timeframe'
 import { isLeaderPending } from '../../lib/nav-leader'
 import {
   requestQueryOptions,
@@ -69,8 +70,7 @@ export function RequestsPage() {
   const to = routeSearch.to
   const showMcpRelays = routeSearch.mcp === true
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
-  const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
-  const { data: histogram } = useRequestHistogram()
+  const selectedRanges = routeSearch.ranges ?? NO_RANGES
   const { data: attribution } = useAttributionSettings()
   const { data: filterOptions } = useRequestFilterOptions()
 
@@ -125,12 +125,31 @@ export function RequestsPage() {
       timeframe,
       from,
       to,
+      ranges: selectedRanges,
     }),
-    [filters, debouncedAttribution, search, showMcpRelays, sortKey, sortDir, timeframe, from, to],
+    [filters, debouncedAttribution, search, showMcpRelays, sortKey, sortDir, timeframe, from, to, selectedRanges],
   )
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
-    useRequestsList(selectedMinutes, statusFilter, queryFilters)
+    useRequestsList([], statusFilter, queryFilters)
 
+  const histogramFilters = useMemo(
+    () => ({ ...queryFilters, ranges: undefined, sortKey: undefined, sortDir: undefined }),
+    [queryFilters],
+  )
+  const {
+    data: histogramData,
+    isError: histogramError,
+    refetch: refetchHistogram,
+  } = useRequestHistogram(histogramFilters, statusFilter)
+  const histogram = histogramData?.buckets
+  const bucketMs = histogramData?.bucketMs ?? 60_000
+  const selectedBuckets = useMemo(
+    () =>
+      histogram
+        ?.filter((b) => selectedRanges.length && requestMatchesIntervals(b.timestamp, selectedRanges))
+        .map((b) => b.timestamp) ?? [],
+    [histogram, selectedRanges],
+  )
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
       navigate({
@@ -149,6 +168,15 @@ export function RequestsPage() {
     [navigate],
   )
 
+  const setSelectedRanges = useCallback(
+    (ranges: RequestInterval[]) => updateSearch({ ranges: ranges.length ? ranges : undefined }),
+    [updateSearch],
+  )
+  const selectBuckets = useCallback(
+    (timestamps: number[]) =>
+      setSelectedRanges(mergeRequestIntervals(timestamps.map((from) => ({ from, to: from + bucketMs })))),
+    [bucketMs, setSelectedRanges],
+  )
   const [selectedIdx, setSelectedIdx] = useState(-1)
   const [hoveredRequestId, setHoveredRequestId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -198,7 +226,7 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const freshRowIds = useFreshRowIds(allRows, queryFilters)
-  const reveal = useSkeletonReveal(isLoading && selectedMinutes.length === 0)
+  const reveal = useSkeletonReveal(isLoading && selectedRanges.length === 0)
   const rows = displayed
 
   const prefetchId = hoveredRequestId ?? rows[selectedIdx]?.id
@@ -361,13 +389,13 @@ export function RequestsPage() {
     hostFilter.length > 0 ||
     endUserFilter !== '' ||
     sessionFilter !== '' ||
-    selectedMinutes.length > 0 ||
+    selectedRanges.length > 0 ||
     timeframe !== 'all'
 
   const clearFilters = () => {
     setSearchDraft('')
-    setSelectedMinutes([])
     updateSearch({
+      ranges: undefined,
       timeframe: undefined,
       from: undefined,
       to: undefined,
@@ -401,10 +429,9 @@ export function RequestsPage() {
               <RequestsTimeframePicker
                 value={{ timeframe, from, to }}
                 onChange={(value) => {
-                  setSelectedMinutes([])
                   setSelectedIdx(-1)
                   scrollRef.current?.scrollTo({ top: 0 })
-                  updateSearch(value)
+                  updateSearch({ ...value, ranges: undefined })
                 }}
               />
               <span className="live-badge">
@@ -415,7 +442,7 @@ export function RequestsPage() {
           }
         />
 
-        {isLoading && selectedMinutes.length === 0 && !hasLocalFilters && statusFilter === 'all' ? (
+        {isLoading && selectedRanges.length === 0 && !hasLocalFilters && statusFilter === 'all' ? (
           <RequestsPageSkeleton />
         ) : (
           <div
@@ -442,6 +469,25 @@ export function RequestsPage() {
             />
 
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 border-l border-border bg-surface-0 max-[900px]:border-l-0">
+              {histogramError ? (
+                <div
+                  role="status"
+                  className="flex items-center gap-3 border-b border-border px-4 py-2 text-xs text-fg-muted"
+                >
+                  Traffic chart could not refresh.
+                  <button type="button" className="btn btn-xs" onClick={() => void refetchHistogram()}>
+                    Retry chart
+                  </button>
+                </div>
+              ) : null}
+              {histogramData?.earliestRetainedAt != null &&
+              (timeframe === 'all' ||
+                (histogramData.from !== undefined && histogramData.from < histogramData.earliestRetainedAt)) ? (
+                <p className="m-0 border-b border-border px-4 py-2 font-mono text-[11px] text-fg-dim">
+                  Only retained logs are available. Earliest request:{' '}
+                  {new Date(histogramData.earliestRetainedAt).toLocaleString()}.
+                </p>
+              ) : null}
               {histogram && histogram.length > 0 ? (
                 <ResponsiveDisclosure
                   render={<section />}
@@ -450,36 +496,42 @@ export function RequestsPage() {
                 >
                   <div className="histogram-header panel-head bg-transparent px-4">
                     <ResponsiveDisclosureTrigger className="responsive-disclosure-trigger flex items-center gap-2 min-[768px]:hidden">
-                      <span className="panel-title">Traffic · last 60m</span>
-                      {selectedMinutes.length > 0 ? (
-                        <span className="panel-sub">{selectedMinutes.length} selected</span>
+                      <span className="panel-title">Traffic</span>
+                      {selectedRanges.length > 0 ? (
+                        <span className="panel-sub">{selectedRanges.length} selected ranges</span>
                       ) : null}
                       <ChevronDown className="responsive-disclosure-chevron size-4 text-fg-dim" aria-hidden="true" />
                     </ResponsiveDisclosureTrigger>
                     <div className="max-[767px]:hidden">
-                      <span className="panel-title">req/s</span>
+                      <span className="panel-title">Requests</span>
                       <span className="panel-sub" style={{ marginLeft: 8 }}>
-                        last 60m · bucket 1m
+                        {Math.round(bucketMs / 60_000)}m buckets ·{' '}
+                        {timeframe === 'all' ? 'retained history' : timeframe === 'custom' ? 'custom range' : timeframe}
                       </span>
                     </div>
-                    {selectedMinutes.length > 0 ? (
+                    {selectedRanges.length > 0 ? (
                       <button
                         type="button"
                         className="btn btn-ghost btn-xs ml-auto !inline-flex items-center"
                         aria-label="Clear time filter"
-                        onClick={() => setSelectedMinutes([])}
+                        onClick={() => setSelectedRanges([])}
                       >
                         <X className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" /> <span>clear</span>
                       </button>
                     ) : null}
                   </div>
                   <ResponsiveDisclosurePanel>
-                    <RequestsHistogram buckets={histogram} selected={selectedMinutes} onSelect={setSelectedMinutes} />
+                    <RequestsHistogram
+                      buckets={histogram}
+                      selected={selectedBuckets}
+                      onSelect={selectBuckets}
+                      bucketMs={bucketMs}
+                    />
                     <div className="histogram-labels px-4 pb-3">
-                      <span>-60m</span>
-                      <span>-40m</span>
-                      <span>-20m</span>
-                      <span>now</span>
+                      <span>
+                        {histogramData?.from !== undefined ? new Date(histogramData.from).toLocaleString() : ''}
+                      </span>
+                      <span>{timeframe === 'custom' && to !== undefined ? new Date(to).toLocaleString() : 'now'}</span>
                     </div>
                   </ResponsiveDisclosurePanel>
                 </ResponsiveDisclosure>
@@ -715,3 +767,5 @@ export function RequestsPage() {
 }
 
 const NO_VALUES: readonly string[] = []
+
+const NO_RANGES: RequestInterval[] = []

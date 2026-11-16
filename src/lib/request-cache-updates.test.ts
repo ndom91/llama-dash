@@ -171,3 +171,37 @@ it('keeps live rows and cursors in the active global sort order', () => {
   expect(JSON.parse(data.pages[0].nextCursor)).toEqual(['durationMs', 'asc', 49, row(49).id])
   client.clear()
 })
+
+it('honors fixed timeframes and disjoint interval boundaries for live rows', () => {
+  const client = new QueryClient()
+  const key = [
+    ...qk.requestsFilteredList,
+    '',
+    'all',
+    {
+      search: '',
+      includeMcp: true,
+      modelFilter: [],
+      keyFilter: [],
+      routingFilter: 'all',
+      clientFilter: '',
+      hostFilter: [],
+      endUserFilter: '',
+      sessionFilter: '',
+      timeframe: 'custom',
+      from: 1000,
+      to: 5000,
+      ranges: [
+        { from: 1000, to: 2000 },
+        { from: 3000, to: 5000 },
+      ],
+    },
+  ]
+  client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [undefined] })
+  for (const n of [999, 1000, 2000, 3000, 5000])
+    updateRequestsListCache(client, { ...row(n), startedAt: new Date(n).toISOString() })
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(key)!.pages[0].requests.map((r) => r.id)).toEqual(
+    [row(3000).id, row(1000).id],
+  )
+  client.clear()
+})

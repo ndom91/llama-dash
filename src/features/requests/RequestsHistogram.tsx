@@ -4,6 +4,7 @@ import type { ApiHistogramBucket } from '../../lib/api'
 import { isTypingTarget } from '../../lib/is-typing-target'
 
 type Props = {
+  bucketMs?: number
   buckets: Array<ApiHistogramBucket>
   selected: number[]
   onSelect: (minutes: number[]) => void
@@ -24,7 +25,7 @@ function barAtPosition(chart: HTMLElement, x: number, clamp = true): HTMLElement
   return bars.find((bar) => x <= bar.getBoundingClientRect().right) ?? bars.at(-1)
 }
 
-export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
+export function RequestsHistogram({ buckets, selected, onSelect, bucketMs = 60_000 }: Props) {
   const instructionsId = useId()
   const chartRef = useRef<HTMLDivElement>(null)
   const anchor = useRef<number | null>(null)
@@ -127,7 +128,7 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
       }}
     >
       <span id={instructionsId} className="sr-only">
-        Select a minute. Shift selects a range; Control or Command toggles individual minutes.
+        Select a time bucket. Shift selects a range; Control or Command toggles individual buckets.
       </span>
       {buckets.map((b) => {
         const ok = b.total - b.errors
@@ -135,8 +136,13 @@ export function RequestsHistogram({ buckets, selected, onSelect }: Props) {
         const errH = b.errors > 0 ? Math.max(Math.sqrt(b.errors / maxTotal) * 72, 3) : 0
         const empty = b.total === 0
         const isSelected = active.includes(b.timestamp)
-        const time = new Date(b.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        const label = `${time} · ${b.total} requests${b.errors ? ` (${b.errors} err)` : ''}`
+        const time = new Date(b.timestamp).toLocaleString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        const label = `${time} · ${Math.round(bucketMs / 60_000)}m · ${b.total} requests${b.errors ? ` (${b.errors} err)` : ''}`
         return (
           <div key={b.timestamp} className="histogram-bar">
             <Tooltip label={label} side="top">

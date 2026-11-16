@@ -21,7 +21,6 @@ export { REQUESTS_PAGE_SIZE } from './request-query-data'
 import {
   type ApiGpuSnapshot,
   type ApiHealth,
-  type ApiHistogramBucket,
   type ApiKeyCreated,
   type ApiKeyDetail,
   type ApiKeyItem,
@@ -146,10 +145,11 @@ export function useUsageSummary(): UseQueryResult<ApiUsageSummary> {
   })
 }
 
-export function useRequestHistogram(): UseQueryResult<Array<ApiHistogramBucket>> {
+export function useRequestHistogram(filters?: RequestListQuery, status: 'all' | 'ok' | 'err' = 'all') {
   return useQuery({
-    queryKey: qk.requestHistogram,
-    queryFn: ({ signal }) => api.requestHistogram({}, { signal }).then((r) => r.buckets),
+    queryKey: [...qk.requestHistogram, filters, status],
+    queryFn: ({ signal }) =>
+      api.requestHistogram({ filters, status: status === 'all' ? undefined : status }, { signal }),
     refetchInterval: FALLBACK_POLL_MS,
   })
 }

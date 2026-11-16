@@ -175,6 +175,35 @@ async function sendEmpty<T extends AnySchema>(url: string, schema: T, method: st
   return data
 }
 
+function requestFilterParams(f?: import('./request-query-data').RequestListQuery) {
+  const q = new URLSearchParams()
+  if (f) {
+    for (const [key, values] of [
+      ['model', f.modelFilter],
+      ['key', f.keyFilter],
+      ['host', f.hostFilter],
+    ] as const)
+      for (const value of values) q.append(key, value)
+    for (const [key, value] of [
+      ['q', f.search],
+      ['client', f.clientFilter],
+      ['endUser', f.endUserFilter],
+      ['session', f.sessionFilter],
+    ] as const)
+      if (value) q.set(key, value)
+    if (f.includeMcp) q.set('includeMcp', 'true')
+    if (f.ranges?.length) q.set('ranges', JSON.stringify(f.ranges))
+    if (f.timeframe) q.set('timeframe', f.timeframe)
+    if (f.from !== undefined) q.set('from', String(f.from))
+    if (f.to !== undefined) q.set('to', String(f.to))
+    if (f.sortKey) q.set('sortKey', f.sortKey)
+    if (f.sortDir) q.set('sortDir', f.sortDir)
+    if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)
+    q.set('skipMcpCount', 'true')
+  }
+  return q
+}
+
 export const api = {
   listModels: () => getJson('/api/models', ModelsResponseSchema),
   getModelDetail: (id: string) => getJson(`/api/models/${encodeURIComponent(id)}`, ModelDetailResponseSchema),
@@ -191,35 +220,12 @@ export const api = {
     } = {},
     options: ApiFetchOptions = {},
   ) => {
-    const q = new URLSearchParams()
+    const q = requestFilterParams(params.filters)
     if (params.limit != null) q.set('limit', String(params.limit))
     if (params.cursor != null) q.set('cursor', params.cursor)
     if (params.includeMcp) q.set('includeMcp', 'true')
     if (params.minutes?.length) q.set('minutes', params.minutes.join(','))
     if (params.status) q.set('status', params.status)
-    if (params.filters) {
-      const f = params.filters
-      for (const [key, values] of [
-        ['model', f.modelFilter],
-        ['key', f.keyFilter],
-        ['host', f.hostFilter],
-      ] as const)
-        for (const value of values) q.append(key, value)
-      for (const [key, value] of [
-        ['q', f.search],
-        ['client', f.clientFilter],
-        ['endUser', f.endUserFilter],
-        ['session', f.sessionFilter],
-      ] as const)
-        if (value) q.set(key, value)
-      if (f.timeframe) q.set('timeframe', f.timeframe)
-      if (f.from !== undefined) q.set('from', String(f.from))
-      if (f.to !== undefined) q.set('to', String(f.to))
-      if (f.sortKey) q.set('sortKey', f.sortKey)
-      if (f.sortDir) q.set('sortDir', f.sortDir)
-      if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)
-      q.set('skipMcpCount', 'true')
-    }
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
   },
@@ -279,8 +285,17 @@ export const api = {
   getUsagePanelSettings: () => getJson('/api/settings/usage', UsagePanelSettingsSchema),
   updateUsagePanelSettings: (body: UpdateUsagePanelSettingsBody) =>
     sendJson('/api/settings/usage', UsagePanelSettingsSchema, { method: 'PATCH', body }),
-  requestHistogram: (params: { window?: number; bucket?: number } = {}, options: ApiFetchOptions = {}) => {
-    const q = new URLSearchParams()
+  requestHistogram: (
+    params: {
+      window?: number
+      bucket?: number
+      filters?: import('./request-query-data').RequestListQuery
+      status?: 'ok' | 'err'
+    } = {},
+    options: ApiFetchOptions = {},
+  ) => {
+    const q = requestFilterParams(params.filters)
+    if (params.status) q.set('status', params.status)
     if (params.window != null) q.set('window', String(params.window))
     if (params.bucket != null) q.set('bucket', String(params.bucket))
     const suffix = q.toString() ? `?${q.toString()}` : ''

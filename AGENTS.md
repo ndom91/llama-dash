@@ -214,7 +214,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
    - `/api/requests` — cursor-paginated list with server-side filters, global sorting with sort-value/ID cursors, URL-backed timeframe presets and fixed local-time custom ranges, and matching MCP hidden count (omitted when skipped); `/api/requests/filter-options` supplies model, key, and host choices
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
-   - `/api/requests/histogram` — bucketed req/s histogram
+   - `/api/requests/histogram` — filtered, timeframe-aware request histogram (at most 240 epoch-aligned buckets; interval selections narrow the table)
    - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata (with adjacent navigation) and captured headers/bodies; metadata excludes payload columns at the SQL level. There is no bare `/api/requests/:id` route.
    - `/api/usage?days=1|7|30|90` — rolling 24-hour usage or the last N UTC days vs the preceding window, with totals, per-day series, and configured breakdowns
    - `/api/usage/summary` — generated-token totals for rolling 24h/today/7d/30d with comparison windows and sparkline series

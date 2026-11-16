@@ -5,6 +5,8 @@ import {
   localDateTime,
   parseLocalDateTime,
   requestMatchesTimeframe,
+  mergeRequestIntervals,
+  requestMatchesIntervals,
   requestTimeBounds,
   RequestTimeFilterSchema,
 } from './request-timeframe'
@@ -39,4 +41,18 @@ it('round-trips local input and rejects nonexistent calendar dates', () => {
   expect(localDateTime(time)).toBe('2026-11-16T13:30')
   expect(parseLocalDateTime('2026-02-30T12:00')).toBeNull()
   expect(parseLocalDateTime('bad')).toBeNull()
+})
+
+it('merges adjacent selections while retaining disjoint ranges and exclusive ends', () => {
+  const ranges = mergeRequestIntervals([
+    { from: 10, to: 20 },
+    { from: 0, to: 10 },
+    { from: 30, to: 40 },
+  ])
+  expect(ranges).toEqual([
+    { from: 0, to: 20 },
+    { from: 30, to: 40 },
+  ])
+  expect(requestMatchesIntervals(20, ranges)).toBe(false)
+  expect(requestMatchesIntervals(30, ranges)).toBe(true)
 })

@@ -52,3 +52,27 @@ export function parseLocalDateTime(value: string): number | null {
   const time = new Date(value).getTime()
   return Number.isFinite(time) && time >= 0 && localDateTime(time) === value ? time : null
 }
+
+export const RequestIntervalSchema = v.pipe(
+  v.object({
+    from: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(8_639_999_999_999_999)),
+    to: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(8_640_000_000_000_000)),
+  }),
+  v.check((range) => range.from < range.to, 'Invalid interval'),
+)
+export const RequestIntervalsSchema = v.pipe(v.array(RequestIntervalSchema), v.maxLength(240))
+export type RequestInterval = v.InferOutput<typeof RequestIntervalSchema>
+
+export function mergeRequestIntervals(ranges: readonly RequestInterval[]): RequestInterval[] {
+  const merged: RequestInterval[] = []
+  for (const range of [...ranges].sort((a, b) => a.from - b.from)) {
+    const last = merged.at(-1)
+    if (last && range.from <= last.to) last.to = Math.max(last.to, range.to)
+    else merged.push({ ...range })
+  }
+  return merged
+}
+
+export function requestMatchesIntervals(time: number, ranges: readonly RequestInterval[] = []) {
+  return ranges.length === 0 || ranges.some((range) => time >= range.from && time < range.to)
+}

@@ -118,6 +118,10 @@ export type ApiHistogramBucket = v.InferOutput<typeof ApiHistogramBucketSchema>
 
 export const HistogramResponseSchema = v.object({
   buckets: v.array(ApiHistogramBucketSchema),
+  bucketMs: v.optional(v.number()),
+  from: v.optional(v.number()),
+  to: v.optional(v.number()),
+  earliestRetainedAt: v.optional(v.nullable(v.number())),
 })
 
 export const RequestSessionSchema = v.object({

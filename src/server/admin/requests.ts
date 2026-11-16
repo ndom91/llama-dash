@@ -16,7 +16,7 @@ import {
   sql,
 } from 'drizzle-orm'
 import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../lib/request-filters.ts'
-import { requestTimeBounds, type RequestTimeFilter } from '../../lib/request-timeframe.ts'
+import { requestTimeBounds, type RequestTimeFilter, type RequestInterval } from '../../lib/request-timeframe.ts'
 import { parseRequestCursor, type RequestSort } from '../../lib/request-sort.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
@@ -162,6 +162,7 @@ export function summarizeRecentRequests(where: SQL | undefined): ApiKeyStats {
 
 export type RequestSearchOptions = RequestSort &
   RequestTimeFilter & {
+    ranges?: RequestInterval[]
     cursor?: string
     includeMcp?: boolean
     minutes?: number[]
@@ -221,6 +222,16 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
       : opts.status === 'ok'
         ? and(gte(schema.requests.statusCode, 200), lt(schema.requests.statusCode, 400))
         : undefined,
+    opts.ranges?.length
+      ? or(
+          ...opts.ranges.map((range) =>
+            and(
+              gte(schema.requests.startedAt, new Date(range.from)),
+              lt(schema.requests.startedAt, new Date(range.to)),
+            ),
+          ),
+        )
+      : undefined,
     opts.minutes?.length
       ? or(
           ...opts.minutes.map((minute) =>
@@ -613,6 +624,48 @@ export function getRequestStats(): ApiRequestStats {
   }
   statsCache = { at: now, value }
   return value
+}
+
+export function getFilteredRequestHistogram(opts: RequestSearchOptions) {
+  const now = Date.now()
+  const bounds = requestTimeBounds(opts, now)
+  const requestClass = opts.includeMcp ? undefined : 'inference'
+  const earliest =
+    db
+      .select({ time: sql<number | null>`min(${schema.requests.startedAt})` })
+      .from(schema.requests)
+      .where(requestClass ? eq(schema.requests.requestClass, requestClass) : undefined)
+      .get()?.time ?? null
+  const from = bounds.from ?? Math.min(earliest ?? now - 3_600_000, now - 60_000)
+  const to = bounds.to ?? now + 1
+  // Epoch-aligned buckets stay stable across refreshes. Round up to a whole minute
+  // and leave room for a partial bucket on each edge (at most 240 bars).
+  const bucketMs = Math.max(60_000, Math.ceil((to - from) / (238 * 60_000)) * 60_000)
+  const first = Math.floor(from / bucketMs)
+  const last = Math.ceil(to / bucketMs) - 1
+  const bucket = sql<number>`cast(${schema.requests.startedAt} / ${bucketMs} as integer)`
+  const rows = db
+    .select({
+      bucket,
+      total: sql<number>`count(*)`,
+      errors: sql<number>`sum(case when ${schema.requests.statusCode} >= 400 then 1 else 0 end)`,
+    })
+    .from(schema.requests)
+    .where(
+      requestWhere(
+        { ...opts, timeframe: 'custom', from, to, cursor: undefined, ranges: undefined, minutes: undefined },
+        requestClass,
+      ),
+    )
+    .groupBy(bucket)
+    .all()
+  const counts = new Map(rows.map((row) => [row.bucket, row]))
+  const buckets = Array.from({ length: last - first + 1 }, (_, i) => ({
+    timestamp: (first + i) * bucketMs,
+    total: counts.get(first + i)?.total ?? 0,
+    errors: counts.get(first + i)?.errors ?? 0,
+  }))
+  return { buckets, bucketMs, from, to, earliestRetainedAt: earliest }
 }
 
 export function getRequestHistogram(windowMs = 3_600_000, bucketMs = 60_000): Array<ApiHistogramBucket> {
