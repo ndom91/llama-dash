@@ -19,17 +19,14 @@ export function RequestsPaginationCard({
   const button = (
     <button
       type="button"
-      className="btn btn-ghost btn-sm mt-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+      className={`btn btn-ghost btn-sm mt-2 ${exhausted ? 'cursor-not-allowed opacity-50' : ''}`}
       aria-disabled={exhausted || isFetching}
+      aria-busy={isFetchingNextPage}
       onClick={() => {
         if (!exhausted && !isFetching) onLoadMore()
       }}
     >
-      {isFetchingNextPage
-        ? 'Loading older requests…'
-        : isFetchNextPageError
-          ? 'Retry loading older requests'
-          : 'Load older requests'}
+      {isFetchNextPageError ? 'Retry loading older requests' : 'Load older requests'}
     </button>
   )
 

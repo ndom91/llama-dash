@@ -39,6 +39,16 @@ it('stops loading and explains when the last page is exhausted', async () => {
 
   view.rerender(
     <TooltipProvider>
+      <RequestsPaginationCard {...props} isFetching isFetchingNextPage />
+    </TooltipProvider>,
+  )
+  const loadingButton = screen.getByRole('button', { name: 'Load older requests' })
+  expect(loadingButton.getAttribute('aria-busy')).toBe('true')
+  fireEvent.click(loadingButton)
+  expect(onLoadMore).toHaveBeenCalledTimes(1)
+
+  view.rerender(
+    <TooltipProvider>
       <RequestsPaginationCard {...props} hasNextPage={false} />
     </TooltipProvider>,
   )
