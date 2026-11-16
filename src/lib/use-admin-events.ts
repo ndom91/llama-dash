@@ -17,6 +17,7 @@ import { appendSystemTelemetryPoint } from './system-telemetry-cache'
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
+const REQUEST_AGGREGATES_INVALIDATE_MS = 5_000
 // Ignore quick alt-tabs; only resync after the tab was hidden long enough for
 // the browser to throttle or drop the event stream.
 const RESYNC_AFTER_HIDDEN_MS = 10_000
@@ -57,6 +58,7 @@ export function useAdminEvents() {
     let events: EventSource
     let hasOpened = false
     let hiddenAt: number | null = null
+    let requestAggregatesTimer: ReturnType<typeof setTimeout> | null = null
     let requestStatsTimer: ReturnType<typeof setTimeout> | null = null
 
     const scheduleRequestStatsInvalidation = () => {
@@ -64,7 +66,6 @@ export function useAdminEvents() {
       requestStatsTimer = setTimeout(() => {
         requestStatsTimer = null
         queryClient.invalidateQueries({ queryKey: qk.requestStats })
-        queryClient.invalidateQueries({ queryKey: qk.requestHistogram })
         queryClient.invalidateQueries({ queryKey: qk.modelActivity })
       }, REQUEST_STATS_INVALIDATE_MS)
     }
@@ -72,6 +73,11 @@ export function useAdminEvents() {
     const updateRequests = (event: MessageEvent) => {
       const data = parseEventData(RequestCompletedEventSchema, event)
       scheduleRequestStatsInvalidation()
+      if (!requestAggregatesTimer)
+        requestAggregatesTimer = setTimeout(() => {
+          requestAggregatesTimer = null
+          queryClient.invalidateQueries({ queryKey: qk.requestHistogram })
+        }, REQUEST_AGGREGATES_INVALIDATE_MS)
       if (!data) {
         invalidateRequestLists(queryClient)
         return
@@ -147,6 +153,7 @@ export function useAdminEvents() {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       events.close()
       if (requestStatsTimer) clearTimeout(requestStatsTimer)
+      if (requestAggregatesTimer) clearTimeout(requestAggregatesTimer)
     }
   }, [queryClient])
 }

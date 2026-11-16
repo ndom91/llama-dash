@@ -248,7 +248,7 @@ export function RequestsPage() {
   )
 
   const errCount = useMemo(() => displayed.filter((r) => r.statusCode >= 400).length, [displayed])
-  const maxDuration = useMemo(() => Math.max(0, ...rows.map((r) => r.durationMs)), [rows])
+  const maxDuration = useMemo(() => rows.reduce((max, row) => Math.max(max, row.durationMs), 0), [rows])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
   const dropCacheCost = useMediaQuery('(max-width: 1280px)')

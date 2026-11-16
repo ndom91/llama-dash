@@ -58,7 +58,11 @@ export const requests = sqliteTable(
       .where(
         sql`${table.requestHeaders} is not null or ${table.requestBody} is not null or ${table.responseHeaders} is not null or ${table.responseBody} is not null`,
       ),
-    index('idx_requests_class_started_at').on(table.requestClass, table.startedAt),
+    index('idx_requests_class_started_at').on(table.requestClass, table.startedAt, table.id, table.statusCode),
+    index('idx_requests_class_duration_id').on(table.requestClass, table.durationMs, table.id),
+    index('idx_requests_class_status_id').on(table.requestClass, table.statusCode, table.id),
+    index('idx_requests_class_tokens_id').on(table.requestClass, sql`coalesce(${table.totalTokens}, 0)`, table.id),
+    index('idx_requests_client_host').on(table.clientHost),
     index('idx_requests_class_id').on(table.requestClass, table.id),
     index('idx_requests_key_id_id').on(table.keyId, table.id),
     index('idx_requests_key_started_at').on(table.keyId, table.startedAt),
