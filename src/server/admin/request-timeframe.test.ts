@@ -20,7 +20,7 @@ it('bounds long-range charts and shares time, class and filter semantics with th
     })),
   )
   try {
-    const { getFilteredRequestHistogram, listRecentRequests } = await import('./requests')
+    const { getFilteredRequestHistogram, listRecentRequests, countMatchingRequests } = await import('./requests')
     const { requestRoutes } = await import('./routes/requests')
     for (const includeMcp of [false, true]) {
       const opts = {
@@ -32,6 +32,7 @@ it('bounds long-range charts and shares time, class and filter semantics with th
         includeMcp,
       }
       const histogram = getFilteredRequestHistogram(opts)
+      expect(countMatchingRequests(opts)).toBe(listRecentRequests({ ...opts, limit: 2000 }).length)
       expect(histogram.buckets.length).toBeLessThanOrEqual(240)
       const rows = listRecentRequests({ ...opts, limit: 2000 })
       expect(histogram.buckets.reduce((sum, b) => sum + b.total, 0)).toBe(rows.length)
@@ -47,6 +48,9 @@ it('bounds long-range charts and shares time, class and filter semantics with th
             ranges.some((range) => Date.parse(r.startedAt) >= range.from && Date.parse(r.startedAt) < range.to),
           )
           .map((r) => r.id),
+      )
+      expect(countMatchingRequests({ ...opts, ranges, cursor: 'req_any' })).toBe(
+        listRecentRequests({ ...opts, ranges, limit: 2000 }).length,
       )
       // Selecting chart ranges must not shrink the context chart itself.
       expect(getFilteredRequestHistogram({ ...opts, ranges }).buckets).toEqual(histogram.buckets)

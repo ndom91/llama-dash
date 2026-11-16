@@ -341,6 +341,16 @@ export function requestFilterOptions() {
   return { models: models.sort(), hosts: hosts.sort(), keys: keys.sort() }
 }
 
+export function countMatchingRequests(opts: RequestSearchOptions): number {
+  return (
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.requests)
+      .where(requestWhere({ ...opts, cursor: undefined }, opts.includeMcp ? undefined : 'inference'))
+      .get()?.count ?? 0
+  )
+}
+
 export function countRecentMcpRequests(opts: RequestSearchOptions): number {
   const row = db
     .select({ count: sql<number>`count(*)` })

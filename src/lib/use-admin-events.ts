@@ -77,6 +77,7 @@ export function useAdminEvents() {
         requestAggregatesTimer = setTimeout(() => {
           requestAggregatesTimer = null
           queryClient.invalidateQueries({ queryKey: qk.requestHistogram })
+          queryClient.invalidateQueries({ queryKey: qk.requestCount })
         }, REQUEST_AGGREGATES_INVALIDATE_MS)
       if (!data) {
         invalidateRequestLists(queryClient)

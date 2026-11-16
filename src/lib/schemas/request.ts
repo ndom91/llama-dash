@@ -71,6 +71,8 @@ export const RequestsListResponseSchema = v.object({
   mcpHiddenCount: v.optional(v.number()),
 })
 
+export const RequestCountResponseSchema = v.object({ count: v.pipe(v.number(), v.integer(), v.minValue(0)) })
+
 export const RequestFilterOptionsSchema = v.object({
   models: v.array(v.string()),
   keys: v.array(v.string()),

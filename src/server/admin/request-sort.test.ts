@@ -65,6 +65,7 @@ it('paginates every global sort through ties, null tokens, pruning and live arri
     const invalid: Record<string, string>[] = [
       { sortKey: 'invalid' },
       { sortDir: 'invalid' },
+      { sortDir: 'asc' },
       { ...sort, cursor: 'req_old' },
       { ...sort, cursor: JSON.stringify(['durationMs', 'asc', 1, 'req_1']) },
       { ...sort, cursor: JSON.stringify(['durationMs', 'desc', 'bad', 'req_1']) },

@@ -56,7 +56,8 @@ it.skipIf(process.env.REQUEST_BENCHMARK !== '1')(
       })()
       sqlite.pragma('wal_checkpoint(TRUNCATE)')
       sqlite.exec('analyze')
-      const { listRecentRequests, getFilteredRequestHistogram, requestFilterOptions } = await import('./requests')
+      const { listRecentRequests, getFilteredRequestHistogram, requestFilterOptions, countMatchingRequests } =
+        await import('./requests')
       const cases: [string, () => unknown][] = [
         ['time desc', () => listRecentRequests({ limit: 51, sortKey: 'startedAt', sortDir: 'desc' })],
         ['duration desc', () => listRecentRequests({ limit: 51, sortKey: 'durationMs', sortDir: 'desc' })],
@@ -93,6 +94,8 @@ it.skipIf(process.env.REQUEST_BENCHMARK !== '1')(
         ],
         ['all-history chart', () => getFilteredRequestHistogram({ timeframe: 'all' })],
         ['filter options', requestFilterOptions],
+        ['all-match count', () => countMatchingRequests({ timeframe: 'all' })],
+        ['no-match text count', () => countMatchingRequests({ timeframe: 'all', search: 'no-matching-request' })],
       ]
       const measure = (phase: string) => {
         const results = cases.map(([name, run]) => {

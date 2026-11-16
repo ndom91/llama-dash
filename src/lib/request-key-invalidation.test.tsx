@@ -14,6 +14,8 @@ it.each(['rename', 'delete'] as const)('invalidates request caches after key %s'
     [...qk.requestsFilteredList, '', 'all'],
     qk.requestsRecent(10),
     qk.requestFilterOptions,
+    qk.requestCount,
+    qk.requestHistogram,
   ]
   for (const key of keys) client.setQueryData(key, {})
   const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children)

@@ -1,18 +1,7 @@
 import * as v from 'valibot'
+import { RequestCursorSchema, type RequestSort, type SortKey } from './schemas/request-search'
+export type { RequestSort, SortKey, SortDir } from './schemas/request-search'
 import type { ApiRequest } from './schemas/request'
-
-export const RequestSortKeySchema = v.picklist(['startedAt', 'durationMs', 'statusCode', 'totalTokens'])
-export const RequestSortDirSchema = v.picklist(['asc', 'desc'])
-export type SortKey = v.InferOutput<typeof RequestSortKeySchema>
-export type SortDir = v.InferOutput<typeof RequestSortDirSchema>
-export type RequestSort = { sortKey?: SortKey; sortDir?: SortDir }
-
-const CursorSchema = v.tuple([
-  RequestSortKeySchema,
-  RequestSortDirSchema,
-  v.pipe(v.number(), v.finite()),
-  v.pipe(v.string(), v.regex(/^[a-zA-Z0-9_]+$/)),
-])
 
 export function requestSortValue(row: ApiRequest, key: SortKey): number {
   return key === 'startedAt' ? Date.parse(row.startedAt) : (row[key] ?? 0)
@@ -25,7 +14,7 @@ export function requestCursor(row: ApiRequest, sort: RequestSort = {}): string {
 
 export function parseRequestCursor(cursor: string, sort: RequestSort) {
   try {
-    const [key, dir, value, id] = v.parse(CursorSchema, JSON.parse(cursor))
+    const [key, dir, value, id] = v.parse(RequestCursorSchema, JSON.parse(cursor))
     return key === sort.sortKey && dir === (sort.sortDir ?? 'desc') ? { value, id } : null
   } catch {
     return null

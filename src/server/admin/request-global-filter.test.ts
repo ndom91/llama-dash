@@ -54,7 +54,7 @@ it('filters the full retained log with client-equivalent semantics and accurate 
   ])
   sqlite.prepare("update requests set routing_auth_mode = 'passthrough' where id = 'req_a1'").run()
   try {
-    const { listRecentRequests, requestFilterOptions } = await import('./requests')
+    const { listRecentRequests, requestFilterOptions, countMatchingRequests } = await import('./requests')
     const { requestRoutes } = await import('./routes/requests')
     const all = listRecentRequests({ limit: 500, includeMcp: true })
     expect(requestFilterOptions()).toEqual({ models: ['other', 'target'], hosts: ['host-a'], keys: ['voice'] })
@@ -114,6 +114,9 @@ it('filters the full retained log with client-equivalent semantics and accurate 
       },
     ]
     for (const { filters, sql } of cases) {
+      expect(countMatchingRequests({ includeMcp: true, ...sql })).toBe(
+        applyRequestFilters(all, { ...defaults, ...filters }).length,
+      )
       expect(listRecentRequests({ limit: 500, includeMcp: true, ...sql }).map((r) => r.id)).toEqual(
         applyRequestFilters(all, { ...defaults, ...filters }).map((r) => r.id),
       )

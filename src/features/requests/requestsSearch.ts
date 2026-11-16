@@ -1,10 +1,12 @@
 import * as v from 'valibot'
 import {
   RequestIntervalsSchema,
-  type RequestInterval,
   RequestTimeFilterSchema,
+  RequestSortKeySchema,
+  RequestSortDirSchema,
+  type RequestInterval,
   type RequestTimeFilter,
-} from '../../lib/request-timeframe'
+} from '../../lib/schemas/request-search'
 import type { RoutingFilter, SortDir, SortKey, StatusFilter } from './requestsListUtils'
 
 export type RequestsSearch = RequestTimeFilter & {
@@ -25,8 +27,8 @@ export type RequestsSearch = RequestTimeFilter & {
 
 const STATUS_VALUES: ReadonlyArray<StatusFilter> = ['all', 'ok', 'err']
 const ROUTING_VALUES: ReadonlyArray<RoutingFilter> = ['all', 'routed', 'unrouted']
-const SORT_KEY_VALUES: ReadonlyArray<SortKey> = ['startedAt', 'durationMs', 'statusCode', 'totalTokens']
-const SORT_DIR_VALUES: ReadonlyArray<SortDir> = ['asc', 'desc']
+const SORT_KEY_VALUES = RequestSortKeySchema.options
+const SORT_DIR_VALUES = RequestSortDirSchema.options
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' && v.length > 0 ? v : undefined

@@ -45,6 +45,12 @@ The database grows from 183.2 to 198.4 MiB with the added indexes. Write overhea
 was not benchmarked; each insertion maintains four extra indexes and a wider
 class/time index.
 
+The separate match-count endpoint was measured after it was added: 1.19 ms for
+all retained inference requests and 149.50 ms for a text filter with no matches
+on the same synthetic database. Counts are independent of page loading and sort
+changes. Active count and chart queries refresh at most once per five-second
+burst of request events, with a 60-second polling fallback.
+
 ## Changes and limits
 
 - Class/value/ID indexes remove full-history temporary sorts for duration,

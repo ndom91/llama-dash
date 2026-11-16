@@ -205,3 +205,42 @@ it('honors fixed timeframes and disjoint interval boundaries for live rows', () 
   )
   client.clear()
 })
+
+it('expires rolling-window rows when a fresh matching request arrives', () => {
+  const client = new QueryClient()
+  const now = Date.now()
+  const key = [
+    ...qk.requestsFilteredList,
+    '',
+    'all',
+    {
+      search: '',
+      includeMcp: true,
+      modelFilter: [],
+      keyFilter: [],
+      routingFilter: 'all',
+      clientFilter: '',
+      hostFilter: [],
+      endUserFilter: '',
+      sessionFilter: '',
+      timeframe: '1h',
+    },
+  ]
+  client.setQueryData(key, {
+    pages: [
+      {
+        requests: [
+          { ...row(1), startedAt: new Date(now - 7_200_000).toISOString() },
+          { ...row(2), startedAt: new Date(now - 1_800_000).toISOString() },
+        ],
+        nextCursor: null,
+      },
+    ],
+    pageParams: [undefined],
+  })
+  updateRequestsListCache(client, { ...row(3), startedAt: new Date(now).toISOString() })
+  expect(client.getQueryData<{ pages: { requests: ApiRequest[] }[] }>(key)!.pages[0].requests.map((r) => r.id)).toEqual(
+    [row(3).id, row(2).id],
+  )
+  client.clear()
+})

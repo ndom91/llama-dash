@@ -214,6 +214,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/pause`, `/api/models/resume` — llama-swap v268+ pause (unload all, reject inference); state follows llama-swap's `/api/events` `pauseChanged` messages and is reported as `paused` on `/api/health`
    - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
    - `/api/requests` — cursor-paginated list with server-side filters, global sorting with sort-value/ID cursors, URL-backed timeframe presets and fixed local-time custom ranges, and matching MCP hidden count (omitted when skipped); `/api/requests/filter-options` supplies model, key, and host choices
+   - `/api/requests/count` — separate count of all matches for the active filters/timeframe, excluding pagination and sorting
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — filtered, timeframe-aware request histogram (at most 240 epoch-aligned buckets; interval selections narrow the table)
    - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata (with adjacent navigation) and captured headers/bodies; metadata excludes payload columns at the SQL level. There is no bare `/api/requests/:id` route.
@@ -351,8 +352,8 @@ paths (proxy will grow middleware; admin will grow CRUD).
     existing unattributed request rows and rollups are not retroactively reclassified.
     Inference rows have a two-day minimum retention for exact rolling 24-hour usage and
     its preceding comparison; separately configured payload retention is unchanged.
-    The request histogram selects absolute one-minute intervals, including disjoint selections;
-    `/api/requests` applies these and all request-list filters before cursor pagination; live cache updates honor the same filters. Sorting remains limited to loaded rows.
+    The request histogram selects absolute intervals, including disjoint selections;
+    `/api/requests` applies these and all request-list filters before cursor pagination; live cache updates honor the same filters. Sorting applies across retained history with stable sort-value/ID cursors. The virtualized list loads pages incrementally, while a separate live count reports all matches.
     Request list supports routing, attribution, and client-host filters (model, key, and host
     are multi-select; legacy single-value URLs still parse), and session IDs
     deep-link back into the filtered request log. Request/response bodies are stored

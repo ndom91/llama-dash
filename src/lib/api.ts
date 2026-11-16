@@ -52,6 +52,7 @@ import {
   RequestFilterOptionsSchema,
   RequestPayloadsSchema,
   RequestsListResponseSchema,
+  RequestCountResponseSchema,
   RequestSessionSchema,
 } from './schemas/request'
 import {
@@ -228,6 +229,15 @@ export const api = {
     if (params.status) q.set('status', params.status)
     const suffix = q.toString() ? `?${q.toString()}` : ''
     return getJson(`/api/requests${suffix}`, RequestsListResponseSchema, { priority: 'high', ...options })
+  },
+  requestCount: (
+    filters: import('./request-query-data').RequestListQuery,
+    status: 'all' | 'ok' | 'err',
+    options: ApiFetchOptions = {},
+  ) => {
+    const q = requestFilterParams(filters)
+    if (status !== 'all') q.set('status', status)
+    return getJson(`/api/requests/count?${q}`, RequestCountResponseSchema, { priority: 'low', ...options })
   },
   requestFilterOptions: (options: ApiFetchOptions = {}) =>
     getJson('/api/requests/filter-options', RequestFilterOptionsSchema, options),

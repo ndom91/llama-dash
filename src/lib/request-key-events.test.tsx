@@ -29,6 +29,8 @@ it('invalidates request and key caches when another client changes key names', (
     [...qk.requestsFilteredList, '', 'all'],
     qk.requestsRecent(10),
     qk.requestFilterOptions,
+    qk.requestCount,
+    qk.requestHistogram,
   ]
   for (const key of keys) client.setQueryData(key, {})
   const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children)

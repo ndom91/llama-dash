@@ -32,14 +32,21 @@ export function RequestsTimeframePicker({ value, onChange }: Props) {
         setOpen(next)
       }}
     >
-      <Popover.Trigger className="btn h-8 gap-2 font-mono text-xs" aria-label={`Timeframe: ${label}`}>
+      <Popover.Trigger
+        data-request-timeframe
+        className="btn h-8 gap-2 font-mono text-xs"
+        aria-label={`Timeframe: ${label}`}
+      >
         <CalendarClock size={14} aria-hidden="true" />
         <span>{label}</span>
         <ChevronDown size={12} aria-hidden="true" />
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
-          <Popover.Popup className="w-80 max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-3 text-fg shadow-lg outline-none">
+          <Popover.Popup
+            data-request-timeframe
+            className="w-80 max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-3 text-fg shadow-lg outline-none"
+          >
             <Popover.Title className="mb-2 font-mono text-xs font-medium">Timeframe</Popover.Title>
             <div className="flex flex-col gap-1">
               {REQUEST_TIMEFRAMES.map((preset) => (

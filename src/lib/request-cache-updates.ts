@@ -64,7 +64,10 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
     client.setQueryData<RequestsList>(key, (old) => {
       if (!old?.pages.length || old.pages.some((page) => page.requests.some((row) => row.id === request.id))) return old
       const sort = key[4] as RequestListQuery | undefined
-      const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => compareRequests(a, b, sort))
+      const retained = old.pages
+        .flatMap((page) => page.requests)
+        .filter((row) => !sort || requestMatchesTimeframe(row.startedAt, sort))
+      const rows = [request, ...retained].sort((a, b) => compareRequests(a, b, sort))
       const capacity = old.pages.length * REQUESTS_PAGE_SIZE
       const pages = old.pages.map((page, index) => {
         const requests = rows.slice(index * REQUESTS_PAGE_SIZE, (index + 1) * REQUESTS_PAGE_SIZE)
@@ -83,6 +86,8 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
 }
 
 export function invalidateRequestLists(client: QueryClient) {
+  void client.invalidateQueries({ queryKey: qk.requestCount })
+  void client.invalidateQueries({ queryKey: qk.requestHistogram })
   void client.invalidateQueries({ queryKey: qk.requestsList })
   void client.invalidateQueries({ queryKey: qk.requestsFilteredList })
   void client.invalidateQueries({ queryKey: qk.requestsRecentRoot })
@@ -106,7 +111,6 @@ export function resyncLiveQueries(client: QueryClient) {
     qk.health,
     qk.gpu,
     qk.requestStats,
-    qk.requestHistogram,
   ]) {
     void client.invalidateQueries({ queryKey })
   }

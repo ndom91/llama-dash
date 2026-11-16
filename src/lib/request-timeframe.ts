@@ -1,4 +1,5 @@
-import * as v from 'valibot'
+import type { RequestInterval, RequestTimeFilter } from './schemas/request-search'
+export type { RequestInterval, RequestTimeFilter, RequestTimeframe } from './schemas/request-search'
 
 export const REQUEST_TIMEFRAMES = [
   { value: 'all', label: 'All retained history' },
@@ -8,24 +9,7 @@ export const REQUEST_TIMEFRAMES = [
   { value: '7d', label: 'Last 7 days' },
   { value: 'custom', label: 'Custom range' },
 ] as const
-export const RequestTimeframeSchema = v.picklist(['all', '1h', '3h', '24h', '7d', 'custom'])
-export type RequestTimeframe = v.InferOutput<typeof RequestTimeframeSchema>
-export type RequestTimeFilter = { timeframe?: RequestTimeframe; from?: number; to?: number }
 const WINDOWS = { '1h': 3_600_000, '3h': 10_800_000, '24h': 86_400_000, '7d': 604_800_000 }
-export const RequestTimeFilterSchema = v.pipe(
-  v.object({
-    timeframe: v.optional(RequestTimeframeSchema),
-    from: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(8_639_999_999_999_999))),
-    to: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(8_640_000_000_000_000))),
-  }),
-  v.check(
-    (value) =>
-      value.timeframe === 'custom'
-        ? value.from !== undefined && value.to !== undefined && value.from < value.to
-        : value.from === undefined && value.to === undefined,
-    'Invalid time range',
-  ),
-)
 
 export function requestTimeBounds(filter: RequestTimeFilter, now = Date.now()) {
   const preset = filter.timeframe ?? 'all'
@@ -52,16 +36,6 @@ export function parseLocalDateTime(value: string): number | null {
   const time = new Date(value).getTime()
   return Number.isFinite(time) && time >= 0 && localDateTime(time) === value ? time : null
 }
-
-export const RequestIntervalSchema = v.pipe(
-  v.object({
-    from: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(8_639_999_999_999_999)),
-    to: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(8_640_000_000_000_000)),
-  }),
-  v.check((range) => range.from < range.to, 'Invalid interval'),
-)
-export const RequestIntervalsSchema = v.pipe(v.array(RequestIntervalSchema), v.maxLength(240))
-export type RequestInterval = v.InferOutput<typeof RequestIntervalSchema>
 
 export function mergeRequestIntervals(ranges: readonly RequestInterval[]): RequestInterval[] {
   const merged: RequestInterval[] = []

@@ -2,6 +2,7 @@ import { requestCursor } from '../../../lib/request-sort.ts'
 import { parseRequestSearch } from '../request-search.ts'
 import {
   countRecentMcpRequests,
+  countMatchingRequests,
   getAdjacentIds,
   getFilteredRequestHistogram,
   getRequestHistogram,
@@ -15,6 +16,15 @@ import {
 import { clamp, error, json, type Route } from './types.ts'
 
 export const requestRoutes: Route[] = [
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/count$/,
+    handler: async (request) => {
+      const filters = parseRequestSearch(new URL(request.url).searchParams)
+      if (filters instanceof Response) return filters
+      return json(200, { count: countMatchingRequests(filters) })
+    },
+  },
   {
     method: 'GET',
     pattern: /^\/api\/requests\/filter-options$/,

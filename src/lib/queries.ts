@@ -234,6 +234,16 @@ export function useRequestsList(
   })
 }
 
+export function useRequestCount(filters: RequestListQuery, status: 'all' | 'ok' | 'err') {
+  // Sort order and page boundaries cannot affect a match count.
+  const { sortKey: _sortKey, sortDir: _sortDir, ...matching } = filters
+  return useQuery({
+    queryKey: [...qk.requestCount, matching, status],
+    queryFn: ({ signal }) => api.requestCount(matching, status, { signal }),
+    refetchInterval: FALLBACK_POLL_MS,
+  })
+}
+
 export function useRequestFilterOptions() {
   return useQuery({
     queryKey: qk.requestFilterOptions,

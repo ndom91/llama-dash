@@ -1,6 +1,11 @@
 import * as v from 'valibot'
-import { parseRequestCursor, RequestSortDirSchema, RequestSortKeySchema } from '../../lib/request-sort.ts'
-import { RequestIntervalsSchema, RequestTimeFilterSchema } from '../../lib/request-timeframe.ts'
+import { parseRequestCursor } from '../../lib/request-sort.ts'
+import {
+  RequestIntervalsSchema,
+  RequestTimeFilterSchema,
+  RequestSortDirSchema,
+  RequestSortKeySchema,
+} from '../../lib/schemas/request-search.ts'
 import type { RequestSearchOptions } from './requests.ts'
 import { error } from './routes/types.ts'
 
@@ -17,6 +22,7 @@ export function parseRequestSearch(params: URLSearchParams): RequestSearchOption
   const sortKey = v.safeParse(v.optional(RequestSortKeySchema), params.get('sortKey') ?? undefined)
   const sortDir = v.safeParse(v.optional(RequestSortDirSchema), params.get('sortDir') ?? undefined)
   if (!sortKey.success || !sortDir.success) return error(400, 'Invalid request sort')
+  if (!sortKey.output && sortDir.output) return error(400, 'Sort direction requires a sort key')
   const sort = { sortKey: sortKey.output, sortDir: sortDir.output }
   if (
     cursor &&

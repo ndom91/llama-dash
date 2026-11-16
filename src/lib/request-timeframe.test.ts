@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { RequestTimeFilterSchema } from './schemas/request-search'
 import { expect, it } from 'vitest'
 import { validateRequestsSearch } from '../features/requests/requestsSearch'
 import {
@@ -8,7 +9,6 @@ import {
   mergeRequestIntervals,
   requestMatchesIntervals,
   requestTimeBounds,
-  RequestTimeFilterSchema,
 } from './request-timeframe'
 
 it('keeps all-history unbounded and resolves rolling windows at query time', () => {

@@ -27,6 +27,7 @@ import {
 import { useMediaQuery } from '../../lib/use-media-query'
 import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
+import { RequestsMatchCount } from './RequestsMatchCount'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsPaginationCard } from './RequestsPaginationCard'
@@ -321,7 +322,11 @@ export function RequestsPage() {
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest?.('[data-request-histogram]')) return
+      if (
+        e.defaultPrevented ||
+        (e.target as HTMLElement).closest?.('[data-request-histogram], [data-request-timeframe]')
+      )
+        return
       if (isTypingTarget(e)) {
         setSelectedIdx(-1)
         if (e.key === 'Escape') (e.target as HTMLElement).blur()
@@ -547,9 +552,12 @@ export function RequestsPage() {
               <section className="panel !rounded-none !border-x-0 !border-t-0 !bg-surface-1 flex min-h-0 flex-1 flex-col">
                 <div className="panel-head bg-transparent px-4">
                   <span className="panel-title">Log</span>
-                  <span className="panel-sub">
-                    {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
-                  </span>
+                  <RequestsMatchCount
+                    filters={queryFilters}
+                    status={statusFilter}
+                    loadedCount={displayed.length}
+                    errorCount={errCount}
+                  />
                   <span className="ml-auto font-mono text-[11px] text-fg-dim max-[600px]:hidden">
                     ↑↓ navigate · ⏎ open · / search
                   </span>
