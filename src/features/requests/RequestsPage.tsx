@@ -22,6 +22,7 @@ import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
+import { RequestsPaginationCard } from './RequestsPaginationCard'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import { formatCostUsd } from './requestDetailUtils'
@@ -491,21 +492,15 @@ export function RequestsPage() {
                         no requests yet. call <code translate="no">/v1/*</code> to populate.
                       </>
                     )}
-                    {hasNextPage ? (
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm mx-auto mt-3 block"
-                        disabled={isFetching}
-                        onClick={() => {
-                          void fetchNextPage({ cancelRefetch: false })
-                        }}
-                      >
-                        {isFetchingNextPage
-                          ? 'Loading older requests…'
-                          : isFetchNextPageError
-                            ? 'Retry loading older requests'
-                            : 'Load older requests'}
-                      </button>
+                    {hasNextPage || (hasLocalFilters && allRows.length > 0) ? (
+                      <RequestsPaginationCard
+                        hasLocalFilters={hasLocalFilters}
+                        hasNextPage={!!hasNextPage}
+                        isFetching={isFetching}
+                        isFetchingNextPage={isFetchingNextPage}
+                        isFetchNextPageError={isFetchNextPageError}
+                        onLoadMore={() => void fetchNextPage({ cancelRefetch: false })}
+                      />
                     ) : null}
                   </div>
                 ) : (
@@ -678,23 +673,15 @@ export function RequestsPage() {
                             )
                           })}
                         </div>
-                        {hasNextPage && (hasLocalFilters || isFetchNextPageError) ? (
-                          <div className="empty-state" style={{ paddingBlock: 8 }}>
-                            {hasLocalFilters ? <div>Filters apply to loaded requests.</div> : null}
-                            {isFetchNextPageError ? <div>Could not load older requests.</div> : null}
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-sm mx-auto mt-3 block"
-                              disabled={isFetching}
-                              onClick={() => void fetchNextPage({ cancelRefetch: false })}
-                            >
-                              {isFetchingNextPage
-                                ? 'Loading older requests…'
-                                : isFetchNextPageError
-                                  ? 'Retry loading older requests'
-                                  : 'Load older requests'}
-                            </button>
-                          </div>
+                        {hasLocalFilters || (hasNextPage && isFetchNextPageError) ? (
+                          <RequestsPaginationCard
+                            hasLocalFilters={hasLocalFilters}
+                            hasNextPage={!!hasNextPage}
+                            isFetching={isFetching}
+                            isFetchingNextPage={isFetchingNextPage}
+                            isFetchNextPageError={isFetchNextPageError}
+                            onLoadMore={() => void fetchNextPage({ cancelRefetch: false })}
+                          />
                         ) : isFetchingNextPage ? (
                           <div className="empty-state" style={{ paddingBlock: 8 }} role="status">
                             Loading older requests…
