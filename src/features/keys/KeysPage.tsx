@@ -53,6 +53,7 @@ export function KeysPage() {
           title="API Keys"
           subtitle="manage proxy authentication and rate limits"
           variant="integrated"
+          className={created ? '!border-b-0' : undefined}
           action={
             <button type="button" className="btn btn-primary btn-sm" onClick={openCreate}>
               <Plus size={14} strokeWidth={2} />
@@ -62,13 +63,15 @@ export function KeysPage() {
         />
 
         {created ? (
-          <KeyCreatedBanner
-            rawKey={created.rawKey}
-            message="Key created — copy it now, it won't be shown again"
-            icon={<SuccessCheck className="text-ok" />}
-            className="mx-6 mt-3 max-md:mx-3"
-            onDismiss={() => setCreated(null)}
-          />
+          <div className="border-b border-border py-3">
+            <KeyCreatedBanner
+              rawKey={created.rawKey}
+              message="Key created — copy it now, it won't be shown again"
+              icon={<SuccessCheck className="text-ok" />}
+              className="mx-6 max-md:mx-3"
+              onDismiss={() => setCreated(null)}
+            />
+          </div>
         ) : null}
         {renderCreate ? (
           <CreateKeyForm
