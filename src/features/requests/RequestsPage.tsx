@@ -17,6 +17,7 @@ import { cn } from '../../lib/cn'
 import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
 import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
+import type { ApiRequest } from '../../lib/schemas/request'
 import { useMediaQuery } from '../../lib/use-media-query'
 import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
@@ -65,8 +66,6 @@ export function RequestsPage() {
   const showMcpRelays = routeSearch.mcp === true
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
-  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
-    useRequestsList(selectedMinutes, statusFilter)
   const { data: histogram } = useRequestHistogram()
   const { data: attribution } = useAttributionSettings()
 
@@ -93,6 +92,29 @@ export function RequestsPage() {
     hostFilter.length > 0 ||
     endUserFilter !== '' ||
     sessionFilter !== ''
+
+  const filters = useMemo<RequestListFilters>(
+    () => ({
+      statusFilter,
+      modelFilter,
+      keyFilter,
+      routingFilter,
+      clientFilter,
+      hostFilter,
+      endUserFilter,
+      sessionFilter,
+    }),
+    [statusFilter, modelFilter, keyFilter, routingFilter, clientFilter, hostFilter, endUserFilter, sessionFilter],
+  )
+  const matchesFilteredPage = useCallback(
+    (requests: ApiRequest[]) =>
+      applyRequestFilters(requests, { ...filters, search: searchDraft }).some(
+        (request) => showMcpRelays || !isMcpRelayRequest(request),
+      ),
+    [filters, searchDraft, showMcpRelays],
+  )
+  const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
+    useRequestsList(selectedMinutes, statusFilter, hasLocalFilters ? matchesFilteredPage : undefined)
 
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
@@ -154,19 +176,6 @@ export function RequestsPage() {
     [hosts, hostFilter],
   )
 
-  const filters = useMemo<RequestListFilters>(
-    () => ({
-      statusFilter,
-      modelFilter,
-      keyFilter,
-      routingFilter,
-      clientFilter,
-      hostFilter,
-      endUserFilter,
-      sessionFilter,
-    }),
-    [statusFilter, modelFilter, keyFilter, routingFilter, clientFilter, hostFilter, endUserFilter, sessionFilter],
-  )
   const filtered = useMemo(
     () => applyRequestFilters(allRows, { ...filters, search: searchDraft }),
     [allRows, filters, searchDraft],

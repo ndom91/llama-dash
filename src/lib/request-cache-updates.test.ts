@@ -1,7 +1,7 @@
 import { QueryClient, QueryObserver } from '@tanstack/react-query'
 import { expect, it } from 'vitest'
 import { qk, REQUESTS_PAGE_SIZE } from './queries'
-import { resyncLiveQueries, updateRequestsListCache, trimInactiveRequestPayloads } from './request-cache-updates'
+import { resyncLiveQueries, trimInactiveRequestPayloads, updateRequestsListCache } from './request-cache-updates'
 import type { ApiRequest } from './schemas/request'
 
 const row = (n: number) => ({ id: `req_${String(n).padStart(6, '0')}`, requestClass: 'inference' }) as ApiRequest
@@ -15,7 +15,7 @@ it('bounds live insertions, rebalances pages, and preserves pagination continuit
       { requests: first, nextCursor: first.at(-1)!.id },
       { requests: second, nextCursor: second.at(-1)!.id },
     ],
-    pageParams: [undefined, first.at(-1)!.id],
+    pageParams: [{ limit: 50 }, { cursor: first.at(-1)!.id, limit: 50 }],
   })
   for (let n = 101; n <= 1000; n++) updateRequestsListCache(client, row(n))
   const data = client.getQueryData<{ pages: { requests: ApiRequest[]; nextCursor: string }[]; pageParams: unknown[] }>(
@@ -24,10 +24,31 @@ it('bounds live insertions, rebalances pages, and preserves pagination continuit
   expect(data.pages.map((page) => page.requests.length)).toEqual([50, 50])
   expect(data.pages[0].requests[0].id).toBe(row(1000).id)
   expect(data.pages[1].requests.at(-1)!.id).toBe(row(901).id)
-  expect(data.pageParams[1]).toBe(data.pages[0].nextCursor)
+  expect(data.pageParams[1]).toEqual({ cursor: data.pages[0].nextCursor, limit: 50 })
   expect(data.pages[1].nextCursor).toBe(row(901).id)
   updateRequestsListCache(client, row(1000))
   expect(client.getQueryData(qk.requestsList)).toBe(data)
+  client.clear()
+})
+
+it('preserves larger page sizes and cursors when a live request arrives', () => {
+  const client = new QueryClient()
+  const first = Array.from({ length: 50 }, (_, i) => row(250 - i))
+  const second = Array.from({ length: 100 }, (_, i) => row(200 - i))
+  client.setQueryData(qk.requestsList, {
+    pages: [
+      { requests: first, nextCursor: first.at(-1)!.id },
+      { requests: second, nextCursor: second.at(-1)!.id },
+    ],
+    pageParams: [{ limit: 50 }, { cursor: first.at(-1)!.id, limit: 100 }],
+  })
+  updateRequestsListCache(client, row(251))
+  const data = client.getQueryData<{ pages: { requests: ApiRequest[]; nextCursor: string }[]; pageParams: unknown[] }>(
+    qk.requestsList,
+  )!
+  expect(data.pages.map((page) => page.requests.length)).toEqual([50, 100])
+  expect(data.pageParams[1]).toEqual({ cursor: data.pages[0].nextCursor, limit: 100 })
+  expect(data.pages[1].requests.at(-1)?.id).toBe(row(102).id)
   client.clear()
 })
 

@@ -1,22 +1,23 @@
 import {
   keepPreviousData,
   queryOptions,
+  type UseInfiniteQueryResult,
+  type UseMutationResult,
+  type UseQueryResult,
   useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
-  type UseInfiniteQueryResult,
-  type UseMutationResult,
-  type UseQueryResult,
 } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import type { InferOutput } from 'valibot'
 import { qk } from './query-keys'
-import { REQUESTS_PAGE_SIZE, type RequestsList, type RequestsPage } from './request-query-data'
+import { REQUESTS_MAX_PAGE_SIZE, REQUESTS_PAGE_SIZE, type RequestsList, type RequestsPage } from './request-query-data'
+
 export { qk } from './query-keys'
 export { REQUESTS_PAGE_SIZE } from './request-query-data'
+
 import {
-  api,
   type ApiGpuSnapshot,
   type ApiHealth,
   type ApiHistogramBucket,
@@ -24,8 +25,8 @@ import {
   type ApiKeyDetail,
   type ApiKeyItem,
   type ApiModel,
-  type ApiModelDetail,
   type ApiModelActivity,
+  type ApiModelDetail,
   type ApiModelEvent,
   type ApiRequest,
   type ApiRequestStats,
@@ -33,22 +34,23 @@ import {
   type ApiUsageReport,
   type ApiUsageSummary,
   type AttributionSettings,
+  api,
   type McpRelay,
   type ModelAccessMode,
   type PrivacySettings,
   type RoutingRule,
-  type UpstreamCredential,
   type UpdateUsagePanelSettingsBody,
+  type UpstreamCredential,
   type UsagePanelSettings,
   type UsagePeriodDays,
 } from './api'
 import type { CreateApiKeyBody } from './schemas/api-key'
-import { type ApiSystemTelemetry, isLiveAppendRange, type SystemTelemetryRange } from './schemas/system'
-import type { SystemThresholds, UpdateSystemThresholdsBody } from './schemas/system-thresholds'
-import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateMcpRelayBody } from './schemas/mcp-relay'
+import type { RequestMetadataResponseSchema } from './schemas/request'
 import type { CreateRoutingRuleBody, UpdateRoutingRuleBody } from './schemas/routing-rule'
 import type { UpdateAttributionSettingsBody, UpdatePrivacySettingsBody } from './schemas/settings'
+import { type ApiSystemTelemetry, isLiveAppendRange, type SystemTelemetryRange } from './schemas/system'
+import type { SystemThresholds, UpdateSystemThresholdsBody } from './schemas/system-thresholds'
 import type { CreateUpstreamCredentialBody, UpstreamCredentialListResponse } from './schemas/upstream-credential'
 
 export const POLL_MS = 5_000
@@ -205,6 +207,7 @@ export function useRecentRequests(limit = 10, includeMcp = false): UseQueryResul
 export function useRequestsList(
   minutes: number[] = [],
   status: 'all' | 'ok' | 'err' = 'all',
+  matchesFilteredPage?: (requests: ApiRequest[]) => boolean,
 ): UseInfiniteQueryResult<RequestsList> {
   return useInfiniteQuery({
     queryKey:
@@ -212,16 +215,25 @@ export function useRequestsList(
     queryFn: ({ pageParam, signal }) =>
       api.listRequests(
         {
-          limit: REQUESTS_PAGE_SIZE,
-          cursor: pageParam ?? undefined,
+          limit: pageParam.limit,
+          cursor: pageParam.cursor,
           includeMcp: true,
           minutes,
           status: status === 'all' ? undefined : status,
         },
         { signal },
       ),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
+    initialPageParam: { limit: REQUESTS_PAGE_SIZE, cursor: undefined as string | undefined },
+    getNextPageParam: (last: RequestsPage, _pages, lastParam) =>
+      last.nextCursor == null
+        ? undefined
+        : {
+            cursor: last.nextCursor,
+            limit:
+              matchesFilteredPage && !matchesFilteredPage(last.requests)
+                ? Math.min(lastParam.limit * 2, REQUESTS_MAX_PAGE_SIZE)
+                : REQUESTS_PAGE_SIZE,
+          },
   })
 }
 
