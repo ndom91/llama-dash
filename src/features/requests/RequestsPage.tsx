@@ -72,7 +72,8 @@ export function RequestsPage() {
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const selectedRanges = routeSearch.ranges ?? NO_RANGES
   const { data: attribution } = useAttributionSettings()
-  const { data: filterOptions } = useRequestFilterOptions()
+  const filterOptionsQuery = useRequestFilterOptions()
+  const filterOptions = filterOptionsQuery.data
 
   const search = routeSearch.q ?? ''
   const modelFilter = routeSearch.model ?? NO_VALUES
@@ -459,6 +460,12 @@ export function RequestsPage() {
               onSearchDraftChange={setSearchDraft}
               filters={filters}
               showMcpRelays={showMcpRelays}
+              filterOptionsStatus={{
+                failed: filterOptionsQuery.isError,
+                cached: filterOptions !== undefined,
+                pending: filterOptionsQuery.isFetching,
+                onRetry: () => void filterOptionsQuery.refetch(),
+              }}
               modelOptions={modelOptions}
               keyOptions={keyOptions}
               hostOptions={hostOptions}

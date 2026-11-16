@@ -21,6 +21,7 @@ type Props = {
   onSearchDraftChange: (value: string) => void
   filters: RequestListFilters
   showMcpRelays: boolean
+  filterOptionsStatus: { failed: boolean; cached: boolean; pending: boolean; onRetry: () => void }
   modelOptions: readonly SelectOption[]
   keyOptions: readonly SelectOption[]
   hostOptions: readonly SelectOption[]
@@ -38,6 +39,7 @@ export function RequestsFilterSidebar({
   onSearchDraftChange,
   filters,
   showMcpRelays,
+  filterOptionsStatus,
   modelOptions,
   keyOptions,
   hostOptions,
@@ -62,6 +64,26 @@ export function RequestsFilterSidebar({
       </ResponsiveDisclosureTrigger>
       <ResponsiveDisclosurePanel id="request-filters">
         <div className="max-[900px]:pt-4">
+          {filterOptionsStatus.failed ? (
+            <div
+              role="status"
+              className="mb-4 rounded border border-border-strong bg-surface-2 p-2.5 text-xs text-fg-muted"
+            >
+              <p className="m-0 mb-2">
+                {filterOptionsStatus.cached
+                  ? 'Could not refresh filter choices. Showing previous choices.'
+                  : 'Could not load model, key, and host choices.'}
+              </p>
+              <button
+                type="button"
+                className="btn btn-xs"
+                disabled={filterOptionsStatus.pending}
+                onClick={filterOptionsStatus.onRetry}
+              >
+                Retry choices
+              </button>
+            </div>
+          ) : null}
           <RequestsFilterField label="Search">
             <div className="relative min-w-0">
               <Search
