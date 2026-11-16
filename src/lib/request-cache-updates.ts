@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { InferOutput } from 'valibot'
-import { applyRequestFilters, isMcpRelayRequest } from '../features/requests/requestsListUtils'
 import { qk } from './query-keys'
+import { applyRequestFilters, isMcpRelayRequest } from './request-filters'
 import type { RequestListQuery } from './request-query-data'
 import { REQUESTS_PAGE_SIZE, type RequestsList } from './request-query-data'
 import type { ApiRequest, RequestPayloadsSchema } from './schemas/request'
@@ -28,7 +28,7 @@ export function trimInactiveRequestPayloads(client: QueryClient) {
 }
 
 export function updateRequestsListCache(client: QueryClient, request: ApiRequest) {
-  client.setQueryData<{ models: string[]; keys: string[]; hosts: string[] }>(['requests', 'filter-options'], (old) => {
+  client.setQueryData<{ models: string[]; keys: string[]; hosts: string[] }>(qk.requestFilterOptions, (old) => {
     if (!old) return old
     const add = (values: string[], value: string | null) =>
       value && !values.includes(value) ? [...values, value].sort() : values
@@ -60,21 +60,15 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
     client.setQueryData<RequestsList>(key, (old) => {
       if (!old?.pages.length || old.pages.some((page) => page.requests.some((row) => row.id === request.id))) return old
       const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => b.id.localeCompare(a.id))
-      const limits = old.pages.map((_, index) => old.pageParams[index]?.limit ?? REQUESTS_PAGE_SIZE)
-      const capacity = limits.reduce((sum, limit) => sum + limit, 0)
-      let offset = 0
+      const capacity = old.pages.length * REQUESTS_PAGE_SIZE
       const pages = old.pages.map((page, index) => {
-        const requests = rows.slice(offset, offset + limits[index])
-        offset += limits[index]
+        const requests = rows.slice(index * REQUESTS_PAGE_SIZE, (index + 1) * REQUESTS_PAGE_SIZE)
         const hasMore = index < old.pages.length - 1 || rows.length > capacity || page.nextCursor !== null
         return { ...page, requests, nextCursor: hasMore ? (requests.at(-1)?.id ?? null) : null }
       })
       return {
         pages,
-        pageParams: pages.map((_, index) => ({
-          cursor: index === 0 ? undefined : (pages[index - 1].nextCursor ?? undefined),
-          limit: limits[index],
-        })),
+        pageParams: pages.map((_, index) => (index === 0 ? undefined : (pages[index - 1].nextCursor ?? undefined))),
       }
     })
 }
@@ -85,11 +79,18 @@ export function invalidateRequestLists(client: QueryClient) {
   void client.invalidateQueries({ queryKey: qk.requestsRecentRoot })
 }
 
+export function invalidateRequestKeyNames(client: QueryClient) {
+  invalidateRequestLists(client)
+  void client.invalidateQueries({ queryKey: qk.requestFilterOptions })
+  void client.invalidateQueries({ queryKey: qk.keys })
+}
+
 export function resyncLiveQueries(client: QueryClient) {
   invalidateRequestLists(client)
   for (const queryKey of [
     qk.models,
     qk.keys,
+    qk.requestFilterOptions,
     qk.modelTimeline,
     qk.modelActivity,
     qk.systemStatus,

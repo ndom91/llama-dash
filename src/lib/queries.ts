@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner'
 import type { InferOutput } from 'valibot'
 import { qk } from './query-keys'
+import { invalidateRequestKeyNames } from './request-cache-updates'
 import { REQUESTS_PAGE_SIZE, type RequestListQuery, type RequestsList, type RequestsPage } from './request-query-data'
 
 export { qk } from './query-keys'
@@ -217,8 +218,8 @@ export function useRequestsList(
     queryFn: ({ pageParam, signal }) =>
       api.listRequests(
         {
-          limit: pageParam.limit,
-          cursor: pageParam.cursor,
+          limit: REQUESTS_PAGE_SIZE,
+          cursor: pageParam,
           includeMcp: filters?.includeMcp ?? true,
           minutes,
           status: status === 'all' ? undefined : status,
@@ -226,15 +227,14 @@ export function useRequestsList(
         },
         { signal },
       ),
-    initialPageParam: { limit: REQUESTS_PAGE_SIZE, cursor: undefined as string | undefined },
-    getNextPageParam: (last: RequestsPage) =>
-      last.nextCursor == null ? undefined : { cursor: last.nextCursor, limit: REQUESTS_PAGE_SIZE },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })
 }
 
 export function useRequestFilterOptions() {
   return useQuery({
-    queryKey: ['requests', 'filter-options'],
+    queryKey: qk.requestFilterOptions,
     queryFn: ({ signal }) => api.requestFilterOptions({ signal }),
     refetchInterval: FALLBACK_POLL_MS,
   })
@@ -450,7 +450,7 @@ export function useRenameApiKey(): UseMutationResult<{ ok: true }, Error, { id: 
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) => api.renameKey(id, name),
     onSuccess: () => {
-      invalidateKeys(qc, [qk.keys])
+      invalidateRequestKeyNames(qc)
     },
     onError: (e) => {
       toastMutationError('Rename failed', e)
@@ -553,7 +553,7 @@ export function useDeleteApiKey(): UseMutationResult<{ ok: true }, Error, string
     mutationFn: (id: string) => api.deleteKey(id),
     onSuccess: () => {
       toast.success('API key deleted')
-      invalidateKeys(qc, [qk.keys])
+      invalidateRequestKeyNames(qc)
     },
     onError: (e) => {
       toastMutationError('Delete failed', e)

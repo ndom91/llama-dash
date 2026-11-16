@@ -15,7 +15,7 @@ import {
   type SQLWrapper,
   sql,
 } from 'drizzle-orm'
-import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../features/requests/requestsListUtils.ts'
+import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../lib/request-filters.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
@@ -158,8 +158,7 @@ export function summarizeRecentRequests(where: SQL | undefined): ApiKeyStats {
   }
 }
 
-export function listRecentRequests(opts: {
-  limit: number
+export type RequestSearchOptions = {
   cursor?: string
   includeMcp?: boolean
   minutes?: number[]
@@ -172,7 +171,9 @@ export function listRecentRequests(opts: {
   client?: string
   endUser?: string
   session?: string
-}): Array<ApiRequest> {
+}
+
+function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'mcp_relay' | undefined) {
   if (!caseFoldRegistered && (opts.search || opts.client || opts.endUser || opts.session)) {
     // SQLite's built-in lower() is ASCII-only; match the browser's Unicode case folding.
     sqliteDb.function('llama_dash_lower', { deterministic: true }, (value: string | number | null) =>
@@ -206,9 +207,9 @@ export function listRecentRequests(opts: {
         sql`0`,
       )
     : undefined
-  const where = and(
+  return and(
     opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
-    opts.includeMcp ? undefined : inferenceRequest(),
+    requestClass ? eq(schema.requests.requestClass, requestClass) : undefined,
     opts.status === 'err'
       ? gte(schema.requests.statusCode, 400)
       : opts.status === 'ok'
@@ -258,6 +259,11 @@ export function listRecentRequests(opts: {
         )
       : undefined,
   )
+}
+
+export function listRecentRequests(opts: RequestSearchOptions & { limit: number }): Array<ApiRequest> {
+  const keyMap = getApiKeyNameMap()
+  const where = requestWhere(opts, opts.includeMcp ? undefined : 'inference')
   const rows = db
     .select({
       ...requestSummaryColumns,
@@ -289,23 +295,13 @@ export function requestFilterOptions() {
   return { models: models.sort(), hosts: hosts.sort(), keys: keys.sort() }
 }
 
-export function countRecentMcpRequests(opts: { cursor?: string; minutes?: number[]; status?: 'ok' | 'err' }): number {
-  const row = sqliteDb
-    .prepare(
-      `select count(*) as count
-       from requests
-         where request_class = 'mcp_relay'
-        ${opts.status === 'err' ? 'and status_code >= 400' : opts.status === 'ok' ? 'and status_code >= 200 and status_code < 400' : ''}
-        ${opts.cursor ? 'and id < ?' : ''}
-        ${opts.minutes?.length ? `and (${opts.minutes.map(() => '(started_at >= ? and started_at < ?)').join(' or ')})` : ''}`,
-    )
-    .get(
-      ...(opts.cursor ? [opts.cursor] : []),
-      ...(opts.minutes?.flatMap((minute) => [minute, minute + 60_000]) ?? []),
-    ) as {
-    count: number
-  }
-  return row.count
+export function countRecentMcpRequests(opts: RequestSearchOptions): number {
+  const row = db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.requests)
+    .where(requestWhere(opts, 'mcp_relay'))
+    .get()
+  return row?.count ?? 0
 }
 
 type RequestMetadataSource = Omit<

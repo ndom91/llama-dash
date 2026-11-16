@@ -92,6 +92,7 @@ src/
     query-keys.ts         — dependency-light shared query keys and cache prefixes
     query-client.ts       — per-root QueryClient factory and payload retention policy wiring
     request-query-data.ts — schema-derived request-list pagination types and page size
+    request-filters.ts    — shared request filter types, key conventions, and live-row matching
     use-admin-events.ts   — EventSource bridge that invalidates query caches from /api/events
     series-color.ts       — accent-derived identity ramp; stable per-entity step assignment
     nav-leader.ts         — `g`-leader pending-state tracker (collision guard + CSS affordance)
@@ -211,7 +212,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/models/pause`, `/api/models/resume` — llama-swap v268+ pause (unload all, reject inference); state follows llama-swap's `/api/events` `pauseChanged` messages and is reported as `paused` on `/api/health`
    - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
-   - `/api/requests` — cursor-paginated list with server-side filters; `/api/requests/filter-options` supplies model, key, and host choices
+   - `/api/requests` — cursor-paginated list with server-side filters and matching MCP hidden count (omitted when skipped); `/api/requests/filter-options` supplies model, key, and host choices
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — bucketed req/s histogram
    - `/api/requests/:id/metadata`, `/api/requests/:id/payloads` — independently loaded detail metadata (with adjacent navigation) and captured headers/bodies; metadata excludes payload columns at the SQL level. There is no bare `/api/requests/:id` route.

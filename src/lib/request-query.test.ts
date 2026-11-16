@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, type ApiRequest } from './api'
+import { type ApiRequest, api } from './api'
 import { qk, requestQueryOptions, useRequest, useRequestPayloads } from './queries'
 
 function summary(id: string): ApiRequest {
@@ -86,7 +86,7 @@ describe('request detail loading', () => {
     const { client, wrapper } = setup()
     client.setQueryData(['requests', 'filtered-list', '', 'all', { modelFilter: ['test-model'] }], {
       pages: [{ requests: [summary('req_filtered')], nextCursor: null }],
-      pageParams: [{ limit: 50 }],
+      pageParams: [undefined],
     })
     vi.spyOn(api, 'getRequestMetadata').mockReturnValue(new Promise(() => {}))
     const { result } = renderHook(() => useRequest('req_filtered'), { wrapper })

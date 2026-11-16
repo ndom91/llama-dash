@@ -6,7 +6,7 @@ import {
   REQUEST_KEY_FILTER_NONE,
   REQUEST_KEY_FILTER_PROXY,
   requestKeyNameFilterValue,
-} from '../../features/requests/requestsListUtils'
+} from '../../lib/request-filters'
 import * as schema from '../db/schema'
 import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
 
@@ -49,6 +49,8 @@ it('filters the full retained log with client-equivalent semantics and accurate 
       statusCode: 200,
     },
     { id: 'req_a1', startedAt: 1_800_002, keyId: 'deleted_key', model: null, clientHost: null },
+    { id: 'req_mcp2', startedAt: 1_800_003, requestClass: 'mcp_relay', model: 'target' },
+    { id: 'req_mcp1', startedAt: 1_800_004, requestClass: 'mcp_relay', model: 'other' },
   ])
   sqlite.prepare("update requests set routing_auth_mode = 'passthrough' where id = 'req_a1'").run()
   try {
@@ -92,6 +94,20 @@ it('filters the full retained log with client-equivalent semantics and accurate 
       },
       { filters: { keyFilter: [REQUEST_KEY_FILTER_NONE] }, sql: { keys: [REQUEST_KEY_FILTER_NONE] } },
       { filters: { search: 'ÉXAMPLE%_' }, sql: { search: 'ÉXAMPLE%_' } },
+      { filters: { search: '404' }, sql: { search: '404' } },
+      { filters: { search: 'POST' }, sql: { search: 'POST' } },
+      {
+        filters: { modelFilter: ['target', 'other'], keyFilter: [REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY] },
+        sql: { models: ['target', 'other'], keys: [REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY] },
+      },
+      {
+        filters: { hostFilter: [REQUEST_HOST_FILTER_NONE, 'host-a'] },
+        sql: { hosts: [REQUEST_HOST_FILTER_NONE, 'host-a'] },
+      },
+      {
+        filters: { routingFilter: 'unrouted' as const, statusFilter: 'ok' as const },
+        sql: { routing: 'unrouted' as const, status: 'ok' as const },
+      },
       {
         filters: { routingFilter: 'routed' as const, statusFilter: 'err' as const },
         sql: { routing: 'routed' as const, status: 'err' as const },
@@ -104,6 +120,8 @@ it('filters the full retained log with client-equivalent semantics and accurate 
     }
     const route = requestRoutes.find((entry) => entry.pattern.test('/api/requests'))!
     const get = async (url: string) => (await route.handler(new Request(url), [] as unknown as RegExpMatchArray)).json()
+    expect((await get('http://dash.test/api/requests?model=target')).mcpHiddenCount).toBe(1)
+    expect((await get('http://dash.test/api/requests?model=target&skipMcpCount=true')).mcpHiddenCount).toBeUndefined()
     const first = await get('http://dash.test/api/requests?limit=1&model=target&key=key%3Avoice')
     expect(first.requests.map((r: { id: string }) => r.id)).toEqual(['req_a3'])
     expect(first.nextCursor).toBe('req_a3')

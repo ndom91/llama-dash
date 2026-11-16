@@ -1,14 +1,14 @@
-import { useQueryClient } from '@tanstack/react-query'
 import type { QueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import * as v from 'valibot'
 import type { BaseIssue, BaseSchema } from 'valibot'
+import * as v from 'valibot'
 import { qk } from './query-keys'
+import { invalidateRequestKeyNames, invalidateRequestLists, resyncLiveQueries, updateRequestsListCache } from './request-cache-updates'
 import { GpuSnapshotSchema } from './schemas/gpu'
-import { appendSystemTelemetryPoint } from './system-telemetry-cache'
+import { type ApiRequest, ApiRequestSchema } from './schemas/request'
 import { SystemTelemetryEventSchema } from './schemas/system'
-import { ApiRequestSchema, type ApiRequest } from './schemas/request'
-import { invalidateRequestLists, resyncLiveQueries, updateRequestsListCache } from './request-cache-updates'
+import { appendSystemTelemetryPoint } from './system-telemetry-cache'
 
 const RequestCompletedEventSchema = v.object({ request: ApiRequestSchema })
 const REQUEST_STATS_INVALIDATE_MS = 1_000
@@ -81,6 +81,10 @@ export function useAdminEvents() {
       queryClient.invalidateQueries({ queryKey: qk.systemStatus })
     }
 
+    const invalidateKeyNames = () => {
+      invalidateRequestKeyNames(queryClient)
+    }
+
     const updateGpu = (event: MessageEvent) => {
       const data = parseEventData(GpuSnapshotSchema, event)
       if (data) queryClient.setQueryData(qk.gpu, data)
@@ -108,6 +112,7 @@ export function useAdminEvents() {
       })
       events.addEventListener('request.completed', updateRequests)
       events.addEventListener('model.changed', invalidateModels)
+      events.addEventListener('key.names.changed', invalidateKeyNames)
       events.addEventListener('gpu.updated', updateGpu)
       events.addEventListener('system.changed', invalidateSystem)
       events.addEventListener('system.telemetry', updateTelemetry)

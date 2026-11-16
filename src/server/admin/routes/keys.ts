@@ -10,8 +10,9 @@ import {
   rotateApiKey,
   updateApiKey,
 } from '../api-keys.ts'
+import { publishAdminEvent } from '../events.ts'
 import { getKeyModelBreakdown, getKeyRequests, getKeyStats } from '../key-detail.ts'
-import { error, json, parseBody, readJsonBody, type Route } from './types.ts'
+import { error, json, parseBody, type Route, readJsonBody } from './types.ts'
 
 export const keyRoutes: Route[] = [
   {
@@ -72,6 +73,7 @@ export const keyRoutes: Route[] = [
         systemPrompt: body.systemPrompt,
       })
       if (!ok) return error(404, `Key ${match[1]} not found`)
+      if (body.name !== undefined) publishAdminEvent('key.names.changed')
       return json(200, { ok: true })
     },
   },
@@ -99,6 +101,7 @@ export const keyRoutes: Route[] = [
     handler: async (_request, match) => {
       const ok = deleteApiKey(match[1])
       if (!ok) return error(404, `Key ${match[1]} not found`)
+      publishAdminEvent('key.names.changed')
       return json(200, { ok: true })
     },
   },

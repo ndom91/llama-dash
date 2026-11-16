@@ -15,7 +15,7 @@ it('bounds live insertions, rebalances pages, and preserves pagination continuit
       { requests: first, nextCursor: first.at(-1)!.id },
       { requests: second, nextCursor: second.at(-1)!.id },
     ],
-    pageParams: [{ limit: 50 }, { cursor: first.at(-1)!.id, limit: 50 }],
+    pageParams: [undefined, first.at(-1)!.id],
   })
   for (let n = 101; n <= 1000; n++) updateRequestsListCache(client, row(n))
   const data = client.getQueryData<{ pages: { requests: ApiRequest[]; nextCursor: string }[]; pageParams: unknown[] }>(
@@ -24,31 +24,10 @@ it('bounds live insertions, rebalances pages, and preserves pagination continuit
   expect(data.pages.map((page) => page.requests.length)).toEqual([50, 50])
   expect(data.pages[0].requests[0].id).toBe(row(1000).id)
   expect(data.pages[1].requests.at(-1)!.id).toBe(row(901).id)
-  expect(data.pageParams[1]).toEqual({ cursor: data.pages[0].nextCursor, limit: 50 })
+  expect(data.pageParams[1]).toBe(data.pages[0].nextCursor)
   expect(data.pages[1].nextCursor).toBe(row(901).id)
   updateRequestsListCache(client, row(1000))
   expect(client.getQueryData(qk.requestsList)).toBe(data)
-  client.clear()
-})
-
-it('preserves larger page sizes and cursors when a live request arrives', () => {
-  const client = new QueryClient()
-  const first = Array.from({ length: 50 }, (_, i) => row(250 - i))
-  const second = Array.from({ length: 100 }, (_, i) => row(200 - i))
-  client.setQueryData(qk.requestsList, {
-    pages: [
-      { requests: first, nextCursor: first.at(-1)!.id },
-      { requests: second, nextCursor: second.at(-1)!.id },
-    ],
-    pageParams: [{ limit: 50 }, { cursor: first.at(-1)!.id, limit: 100 }],
-  })
-  updateRequestsListCache(client, row(251))
-  const data = client.getQueryData<{ pages: { requests: ApiRequest[]; nextCursor: string }[]; pageParams: unknown[] }>(
-    qk.requestsList,
-  )!
-  expect(data.pages.map((page) => page.requests.length)).toEqual([50, 100])
-  expect(data.pageParams[1]).toEqual({ cursor: data.pages[0].nextCursor, limit: 100 })
-  expect(data.pages[1].requests.at(-1)?.id).toBe(row(102).id)
   client.clear()
 })
 
@@ -107,7 +86,7 @@ it('only adds live rows that match the full server filter and MCP visibility', (
     includeMcp: false,
   }
   const key = ['requests', 'filtered-list', '', 'err', filters]
-  client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [{ limit: 50 }] })
+  client.setQueryData(key, { pages: [{ requests: [], nextCursor: null }], pageParams: [undefined] })
   const base = {
     ...row(1),
     startedAt: new Date().toISOString(),

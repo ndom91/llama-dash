@@ -7,6 +7,7 @@ import {
   getRequestStats,
   listRecentRequests,
   listRequestSession,
+  type RequestSearchOptions,
   requestFilterOptions,
 } from '../requests.ts'
 import { clamp, error, json, type Route } from './types.ts'
@@ -89,8 +90,7 @@ export const requestRoutes: Route[] = [
       ) {
         return error(400, 'Invalid minute filter')
       }
-      const rows = listRecentRequests({
-        limit: limit + 1,
+      const filters: RequestSearchOptions = {
         cursor: cursor ?? undefined,
         includeMcp,
         minutes,
@@ -103,14 +103,14 @@ export const requestRoutes: Route[] = [
         client: textFilter('client'),
         endUser: textFilter('endUser'),
         session: textFilter('session'),
-      })
+      }
+      const rows = listRecentRequests({ ...filters, limit: limit + 1 })
+      const mcpHiddenCount =
+        url.searchParams.get('skipMcpCount') === 'true' ? undefined : includeMcp ? 0 : countRecentMcpRequests(filters)
       return json(200, {
         requests: rows.slice(0, limit),
         nextCursor: rows.length > limit ? rows[limit - 1].id : null,
-        mcpHiddenCount:
-          includeMcp || url.searchParams.get('skipMcpCount') === 'true'
-            ? 0
-            : countRecentMcpRequests({ cursor: cursor ?? undefined, minutes, status: status ?? undefined }),
+        ...(mcpHiddenCount === undefined ? {} : { mcpHiddenCount }),
       })
     },
   },
