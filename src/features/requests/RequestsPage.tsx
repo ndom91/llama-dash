@@ -1,4 +1,3 @@
-import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { useQueryClient } from '@tanstack/react-query'
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -19,12 +18,14 @@ import { isTypingTarget } from '../../lib/is-typing-target'
 import { isLeaderPending } from '../../lib/nav-leader'
 import { requestQueryOptions, useAttributionSettings, useRequestHistogram, useRequestsList } from '../../lib/queries'
 import { useMediaQuery } from '../../lib/use-media-query'
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { RequestsFilterSidebar } from './RequestsFilterSidebar'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import { formatCostUsd } from './requestDetailUtils'
+import { shouldLoadNextRequestPage } from './requestPagination'
 import {
   applyRequestFilters,
   colWidthsFor,
@@ -49,8 +50,8 @@ import {
   uniqueSorted,
   withSelected,
 } from './requestsListUtils'
-import { useFreshRowIds } from './use-fresh-row-ids'
 import type { RequestsSearch } from './requestsSearch'
+import { useFreshRowIds } from './use-fresh-row-ids'
 
 const requestsRouteApi = getRouteApi('/requests/')
 const MOBILE_COL_WIDTHS = [92, 144, 120, 160, 96, 70, 70, 70, 75, 110]
@@ -80,6 +81,17 @@ export function RequestsPage() {
   const sessionFilter = routeSearch.session ?? ''
   const [searchDraft, setSearchDraft] = useState(search)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  // These filters apply to loaded pages only. Automatically filling a sparse
+  // filtered viewport would otherwise walk the entire request history.
+  const hasLocalFilters =
+    searchDraft !== '' ||
+    modelFilter.length > 0 ||
+    keyFilter.length > 0 ||
+    routingFilter !== 'all' ||
+    clientFilter !== '' ||
+    hostFilter.length > 0 ||
+    endUserFilter !== '' ||
+    sessionFilter !== ''
 
   const updateSearch = useCallback(
     (patch: Partial<RequestsSearch>) => {
@@ -234,12 +246,26 @@ export function RequestsPage() {
   const showTokIn = visibleCols.has('tokIn')
   const showTokOut = visibleCols.has('tokOut')
 
-  const fetchNextRef = useRef({ hasNextPage, isFetching, fetchNextPage, rowCount: rows.length })
-  fetchNextRef.current = { hasNextPage, isFetching, fetchNextPage, rowCount: rows.length }
+  const fetchNextRef = useRef({
+    hasNextPage,
+    isFetching,
+    isFetchNextPageError,
+    hasLocalFilters,
+    fetchNextPage,
+    rowCount: rows.length,
+  })
+  fetchNextRef.current = {
+    hasNextPage,
+    isFetching,
+    isFetchNextPageError,
+    hasLocalFilters,
+    fetchNextPage,
+    rowCount: rows.length,
+  }
 
   const loadNextIfNearEnd = useCallback((lastIndex: number | undefined) => {
     const next = fetchNextRef.current
-    if (lastIndex !== undefined && lastIndex >= next.rowCount - 20 && next.hasNextPage && !next.isFetching) {
+    if (shouldLoadNextRequestPage({ ...next, lastIndex })) {
       void next.fetchNextPage({ cancelRefetch: false })
     }
   }, [])
@@ -455,7 +481,11 @@ export function RequestsPage() {
                 ) : rows.length === 0 ? (
                   <div className="empty-state">
                     {hasFilters || allRows.length > 0 ? (
-                      'no requests match filters'
+                      hasNextPage ? (
+                        'no loaded requests match filters'
+                      ) : (
+                        'no requests match filters'
+                      )
                     ) : (
                       <>
                         no requests yet. call <code translate="no">/v1/*</code> to populate.
@@ -470,7 +500,11 @@ export function RequestsPage() {
                           void fetchNextPage({ cancelRefetch: false })
                         }}
                       >
-                        {isFetchingNextPage ? 'Loading older requests…' : 'Load older requests'}
+                        {isFetchingNextPage
+                          ? 'Loading older requests…'
+                          : isFetchNextPageError
+                            ? 'Retry loading older requests'
+                            : 'Load older requests'}
                       </button>
                     ) : null}
                   </div>
@@ -644,9 +678,26 @@ export function RequestsPage() {
                             )
                           })}
                         </div>
-                        {isFetchingNextPage ? (
+                        {hasNextPage && (hasLocalFilters || isFetchNextPageError) ? (
                           <div className="empty-state" style={{ paddingBlock: 8 }}>
-                            loading more…
+                            {hasLocalFilters ? <div>Filters apply to loaded requests.</div> : null}
+                            {isFetchNextPageError ? <div>Could not load older requests.</div> : null}
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm mx-auto mt-3 block"
+                              disabled={isFetching}
+                              onClick={() => void fetchNextPage({ cancelRefetch: false })}
+                            >
+                              {isFetchingNextPage
+                                ? 'Loading older requests…'
+                                : isFetchNextPageError
+                                  ? 'Retry loading older requests'
+                                  : 'Load older requests'}
+                            </button>
+                          </div>
+                        ) : isFetchingNextPage ? (
+                          <div className="empty-state" style={{ paddingBlock: 8 }} role="status">
+                            Loading older requests…
                           </div>
                         ) : null}
                       </div>
