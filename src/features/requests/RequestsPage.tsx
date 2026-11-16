@@ -12,10 +12,14 @@ import {
 } from '../../components/ResponsiveDisclosure'
 import { RouteError } from '../../components/RouteError'
 import { StatusCell } from '../../components/StatusCell'
-import { StatusDot } from '../../components/StatusDot'
 import { cn } from '../../lib/cn'
 import { isTypingTarget } from '../../lib/is-typing-target'
-import { mergeRequestIntervals, requestMatchesIntervals, type RequestInterval } from '../../lib/request-timeframe'
+import {
+  DEFAULT_REQUEST_TIMEFRAME,
+  mergeRequestIntervals,
+  requestMatchesIntervals,
+  type RequestInterval,
+} from '../../lib/request-timeframe'
 import { isLeaderPending } from '../../lib/nav-leader'
 import {
   requestQueryOptions,
@@ -66,7 +70,7 @@ export function RequestsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const routeSearch = requestsRouteApi.useSearch()
-  const timeframe = routeSearch.timeframe ?? 'all'
+  const timeframe = routeSearch.timeframe ?? DEFAULT_REQUEST_TIMEFRAME
   const from = routeSearch.from
   const to = routeSearch.to
   const showMcpRelays = routeSearch.mcp === true
@@ -160,7 +164,13 @@ export function RequestsPage() {
           const next: Record<string, unknown> = { ...prev, ...patch }
           for (const k of Object.keys(patch)) {
             const v = next[k]
-            if (v === undefined || v === '' || v === 'all' || (Array.isArray(v) && v.length === 0)) delete next[k]
+            if (
+              v === undefined ||
+              v === '' ||
+              (v === 'all' && k !== 'timeframe') ||
+              (Array.isArray(v) && v.length === 0)
+            )
+              delete next[k]
           }
           return next as RequestsSearch
         },
@@ -396,7 +406,7 @@ export function RequestsPage() {
     endUserFilter !== '' ||
     sessionFilter !== '' ||
     selectedRanges.length > 0 ||
-    timeframe !== 'all'
+    timeframe !== DEFAULT_REQUEST_TIMEFRAME
 
   const clearFilters = () => {
     setSearchDraft('')
@@ -431,20 +441,14 @@ export function RequestsPage() {
           subtitle="proxied API calls across retained history"
           variant="integrated"
           action={
-            <div className="flex flex-wrap items-center gap-3">
-              <RequestsTimeframePicker
-                value={{ timeframe, from, to }}
-                onChange={(value) => {
-                  setSelectedIdx(-1)
-                  scrollRef.current?.scrollTo({ top: 0 })
-                  updateSearch({ ...value, ranges: undefined })
-                }}
-              />
-              <span className="live-badge">
-                <StatusDot tone={timeframe === 'custom' ? 'idle' : 'ok'} live={timeframe !== 'custom'} />
-                {timeframe === 'custom' ? 'fixed range' : 'live'}
-              </span>
-            </div>
+            <RequestsTimeframePicker
+              value={{ timeframe, from, to }}
+              onChange={(value) => {
+                setSelectedIdx(-1)
+                scrollRef.current?.scrollTo({ top: 0 })
+                updateSearch({ ...value, ranges: undefined })
+              }}
+            />
           }
         />
 

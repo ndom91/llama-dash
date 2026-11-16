@@ -1,12 +1,13 @@
 import type { RequestInterval, RequestTimeFilter } from './schemas/request-search'
 export type { RequestInterval, RequestTimeFilter, RequestTimeframe } from './schemas/request-search'
 
+export const DEFAULT_REQUEST_TIMEFRAME = '3h'
 export const REQUEST_TIMEFRAMES = [
-  { value: 'all', label: 'All retained history' },
   { value: '1h', label: 'Last 60 minutes' },
   { value: '3h', label: 'Last 3 hours' },
   { value: '24h', label: 'Last 24 hours' },
   { value: '7d', label: 'Last 7 days' },
+  { value: 'all', label: 'All retained history' },
   { value: 'custom', label: 'Custom range' },
 ] as const
 const WINDOWS = { '1h': 3_600_000, '3h': 10_800_000, '24h': 86_400_000, '7d': 604_800_000 }

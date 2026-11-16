@@ -352,6 +352,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     existing unattributed request rows and rollups are not retroactively reclassified.
     Inference rows have a two-day minimum retention for exact rolling 24-hour usage and
     its preceding comparison; separately configured payload retention is unchanged.
+    The request page defaults to the last 3 hours; its picker also offers other rolling presets, explicit all-history links, and custom local-time ranges.
     The request histogram selects absolute intervals, including disjoint selections;
     `/api/requests` applies these and all request-list filters before cursor pagination; live cache updates honor the same filters. Sorting applies across retained history with stable sort-value/ID cursors. The virtualized list loads pages incrementally, while a separate live count reports all matches.
     Request list supports routing, attribution, and client-host filters (model, key, and host

@@ -1,11 +1,12 @@
 import { Popover } from '@base-ui/react/popover'
-import { CalendarClock, ChevronDown } from 'lucide-react'
-import { useId, useState } from 'react'
+import { CalendarClock, Check, ChevronDown } from 'lucide-react'
+import { Fragment, useId, useState } from 'react'
 import { cn } from '../../lib/cn'
 import {
   localDateTime,
   parseLocalDateTime,
   REQUEST_TIMEFRAMES,
+  DEFAULT_REQUEST_TIMEFRAME,
   type RequestTimeFilter,
 } from '../../lib/request-timeframe'
 
@@ -18,14 +19,15 @@ export function RequestsTimeframePicker({ value, onChange }: Props) {
   const [to, setTo] = useState('')
   const [error, setError] = useState<string | null>(null)
   const id = useId()
-  const label = REQUEST_TIMEFRAMES.find((p) => p.value === (value.timeframe ?? 'all'))!.label
+  const selected = custom ? 'custom' : (value.timeframe ?? DEFAULT_REQUEST_TIMEFRAME)
+  const label = REQUEST_TIMEFRAMES.find((p) => p.value === (value.timeframe ?? DEFAULT_REQUEST_TIMEFRAME))!.label
   return (
     <Popover.Root
       open={open}
       onOpenChange={(next) => {
         if (next) {
           setCustom(value.timeframe === 'custom')
-          setFrom(localDateTime(value.from ?? Date.now() - 3_600_000))
+          setFrom(localDateTime(value.from ?? Date.now() - 10_800_000))
           setTo(localDateTime(value.to ?? Date.now()))
           setError(null)
         }
@@ -34,7 +36,7 @@ export function RequestsTimeframePicker({ value, onChange }: Props) {
     >
       <Popover.Trigger
         data-request-timeframe
-        className="btn h-8 gap-2 font-mono text-xs"
+        className="btn h-8 gap-2 font-mono text-xs data-[popup-open]:border-accent"
         aria-label={`Timeframe: ${label}`}
       >
         <CalendarClock size={14} aria-hidden="true" />
@@ -45,36 +47,43 @@ export function RequestsTimeframePicker({ value, onChange }: Props) {
         <Popover.Positioner side="bottom" align="end" sideOffset={6} className="z-50">
           <Popover.Popup
             data-request-timeframe
-            className="w-80 max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-3 text-fg shadow-lg outline-none"
+            className={cn(
+              'max-w-[var(--available-width)] max-h-[var(--available-height)] overflow-y-auto rounded border border-border-strong bg-surface-2 p-1 font-mono text-xs text-fg shadow-lg outline-none',
+              custom ? 'w-80' : 'w-60',
+            )}
           >
-            <Popover.Title className="mb-2 font-mono text-xs font-medium">Timeframe</Popover.Title>
-            <div className="flex flex-col gap-1">
+            <Popover.Title className="sr-only">Timeframe</Popover.Title>
+            <div className="flex flex-col">
               {REQUEST_TIMEFRAMES.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  aria-pressed={custom ? preset.value === 'custom' : preset.value === (value.timeframe ?? 'all')}
-                  className={cn(
-                    'rounded px-2 py-2 text-left text-xs hover:bg-surface-3 focus-visible:outline-2 focus-visible:outline-accent',
-                    (custom ? preset.value === 'custom' : preset.value === (value.timeframe ?? 'all')) &&
-                      'bg-surface-3 font-medium',
-                  )}
-                  onClick={() => {
-                    if (preset.value === 'custom') {
-                      setCustom(true)
-                      return
-                    }
-                    onChange({ timeframe: preset.value, from: undefined, to: undefined })
-                    setOpen(false)
-                  }}
-                >
-                  {preset.label}
-                </button>
+                <Fragment key={preset.value}>
+                  {preset.value === 'all' ? <hr className="my-1 border-0 border-t border-border" /> : null}
+                  <button
+                    type="button"
+                    aria-pressed={selected === preset.value}
+                    className={cn(
+                      'flex min-h-9 cursor-pointer items-center justify-between gap-3 rounded-sm px-2.5 text-left text-fg-muted hover:bg-surface-3 hover:text-fg focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2',
+                      selected === preset.value && 'bg-surface-3 text-fg',
+                    )}
+                    onClick={() => {
+                      if (preset.value === 'custom') {
+                        setCustom(true)
+                        return
+                      }
+                      onChange({ timeframe: preset.value, from: undefined, to: undefined })
+                      setOpen(false)
+                    }}
+                  >
+                    <span>{preset.label}</span>
+                    <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden="true">
+                      {selected === preset.value ? <Check size={12} strokeWidth={2.5} className="text-accent" /> : null}
+                    </span>
+                  </button>
+                </Fragment>
               ))}
             </div>
             {custom ? (
               <form
-                className="mt-3 flex flex-col gap-3 border-t border-border pt-3"
+                className="mt-1 flex flex-col gap-3 border-t border-border p-2.5 pt-3"
                 aria-label="Custom time range"
                 onSubmit={(event) => {
                   event.preventDefault()

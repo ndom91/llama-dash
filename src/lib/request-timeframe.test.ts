@@ -20,6 +20,18 @@ it('keeps all-history unbounded and resolves rolling windows at query time', () 
   expect(requestMatchesTimeframe(new Date(2000).toISOString(), filter)).toBe(false)
 })
 
+it('defaults request-page links to three hours while preserving explicit all-history and custom ranges', () => {
+  expect(validateRequestsSearch({}).timeframe).toBe('3h')
+  expect(validateRequestsSearch({ timeframe: 'invalid' }).timeframe).toBe('3h')
+  expect(validateRequestsSearch({ timeframe: 'all' }).timeframe).toBe('all')
+  expect(requestTimeBounds(validateRequestsSearch({}), 20_000_000)).toEqual({ from: 9_200_000, to: 20_000_001 })
+  expect(validateRequestsSearch({ timeframe: 'custom', from: 1000, to: 2000 })).toMatchObject({
+    timeframe: 'custom',
+    from: 1000,
+    to: 2000,
+  })
+})
+
 it('validates fixed range links without silently accepting partial or reversed ranges', () => {
   expect(validateRequestsSearch({ timeframe: 'custom', from: '1000', to: '2000' })).toMatchObject({
     timeframe: 'custom',

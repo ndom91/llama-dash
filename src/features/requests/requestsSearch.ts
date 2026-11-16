@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { DEFAULT_REQUEST_TIMEFRAME } from '../../lib/request-timeframe'
 import {
   RequestIntervalsSchema,
   RequestTimeFilterSchema,
@@ -58,6 +59,7 @@ export function validateRequestsSearch(search: Record<string, unknown>): Request
   return {
     ranges: ranges.success && ranges.output.length ? ranges.output : undefined,
     ...(time.success ? time.output : {}),
+    timeframe: time.success ? (time.output.timeframe ?? DEFAULT_REQUEST_TIMEFRAME) : DEFAULT_REQUEST_TIMEFRAME,
     q: asString(search.q),
     status: asEnum(search.status, STATUS_VALUES),
     model: asStringList(search.model),
