@@ -49,7 +49,6 @@ import {
   type SortDir,
   type SortKey,
   type StatusFilter,
-  sortVal,
   toOption,
   withSelected,
 } from './requestsListUtils'
@@ -112,8 +111,8 @@ export function RequestsPage() {
     return () => window.clearTimeout(timer)
   }, [clientFilter, endUserFilter, sessionFilter])
   const queryFilters = useMemo(
-    () => ({ ...filters, ...debouncedAttribution, search, includeMcp: showMcpRelays }),
-    [filters, debouncedAttribution, search, showMcpRelays],
+    () => ({ ...filters, ...debouncedAttribution, search, includeMcp: showMcpRelays, sortKey, sortDir }),
+    [filters, debouncedAttribution, search, showMcpRelays, sortKey, sortDir],
   )
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
     useRequestsList(selectedMinutes, statusFilter, queryFilters)
@@ -186,18 +185,7 @@ export function RequestsPage() {
 
   const freshRowIds = useFreshRowIds(allRows, queryFilters)
   const reveal = useSkeletonReveal(isLoading && selectedMinutes.length === 0)
-  const rows = useMemo(() => {
-    const sorted = [...displayed]
-    const dir = sortDir === 'asc' ? 1 : -1
-    sorted.sort((a, b) => {
-      const av = sortVal(a, sortKey)
-      const bv = sortVal(b, sortKey)
-      if (av < bv) return -1 * dir
-      if (av > bv) return 1 * dir
-      return 0
-    })
-    return sorted
-  }, [displayed, sortKey, sortDir])
+  const rows = displayed
 
   const prefetchId = hoveredRequestId ?? rows[selectedIdx]?.id
   useEffect(() => {
@@ -336,6 +324,9 @@ export function RequestsPage() {
   }, [])
 
   const toggleSort = (key: SortKey) => {
+    setSelectedIdx(-1)
+    setHoveredRequestId(null)
+    scrollRef.current?.scrollTo({ top: 0 })
     if (sortKey === key) {
       const nextDir: SortDir = sortDir === 'asc' ? 'desc' : 'asc'
       updateSearch({ sortDir: nextDir, sortKey: key })
@@ -470,7 +461,6 @@ export function RequestsPage() {
                   <span className="panel-title">Log</span>
                   <span className="panel-sub">
                     {displayed.length} rows{errCount > 0 ? ` · ${errCount} errors` : ''}
-                    {sortKey !== 'startedAt' || sortDir !== 'desc' ? ' · sorting loaded rows' : ''}
                   </span>
                   <span className="ml-auto font-mono text-[11px] text-fg-dim max-[600px]:hidden">
                     ↑↓ navigate · ⏎ open · / search

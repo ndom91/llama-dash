@@ -212,6 +212,8 @@ export const api = {
         ['session', f.sessionFilter],
       ] as const)
         if (value) q.set(key, value)
+      if (f.sortKey) q.set('sortKey', f.sortKey)
+      if (f.sortDir) q.set('sortDir', f.sortDir)
       if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)
       q.set('skipMcpCount', 'true')
     }

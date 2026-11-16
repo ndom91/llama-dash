@@ -16,6 +16,7 @@ import {
   sql,
 } from 'drizzle-orm'
 import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../lib/request-filters.ts'
+import { parseRequestCursor, type RequestSort } from '../../lib/request-sort.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
 import { db, schema, sqliteDb } from '../db/index.ts'
@@ -158,7 +159,7 @@ export function summarizeRecentRequests(where: SQL | undefined): ApiKeyStats {
   }
 }
 
-export type RequestSearchOptions = {
+export type RequestSearchOptions = RequestSort & {
   cursor?: string
   includeMcp?: boolean
   minutes?: number[]
@@ -208,7 +209,7 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
       )
     : undefined
   return and(
-    opts.cursor != null ? lt(schema.requests.id, opts.cursor) : undefined,
+    requestCursorWhere(opts),
     requestClass ? eq(schema.requests.requestClass, requestClass) : undefined,
     opts.status === 'err'
       ? gte(schema.requests.statusCode, 400)
@@ -261,6 +262,32 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
   )
 }
 
+function requestSortColumn(opts: RequestSort) {
+  switch (opts.sortKey) {
+    case 'startedAt':
+      return schema.requests.startedAt
+    case 'durationMs':
+      return schema.requests.durationMs
+    case 'statusCode':
+      return schema.requests.statusCode
+    case 'totalTokens':
+      return sql`coalesce(${schema.requests.totalTokens}, 0)`
+    default:
+      return schema.requests.id
+  }
+}
+
+function requestCursorWhere(opts: RequestSearchOptions) {
+  if (!opts.cursor) return undefined
+  if (!opts.sortKey) return lt(schema.requests.id, opts.cursor)
+  const cursor = parseRequestCursor(opts.cursor, opts)
+  if (!cursor) throw new Error('Invalid request cursor')
+  const column = requestSortColumn(opts)
+  return opts.sortDir === 'asc'
+    ? sql`(${column}, ${schema.requests.id}) > (${cursor.value}, ${cursor.id})`
+    : sql`(${column}, ${schema.requests.id}) < (${cursor.value}, ${cursor.id})`
+}
+
 export function listRecentRequests(opts: RequestSearchOptions & { limit: number }): Array<ApiRequest> {
   const keyMap = getApiKeyNameMap()
   const where = requestWhere(opts, opts.includeMcp ? undefined : 'inference')
@@ -271,7 +298,10 @@ export function listRecentRequests(opts: RequestSearchOptions & { limit: number 
     })
     .from(schema.requests)
     .where(where)
-    .orderBy(desc(schema.requests.id))
+    .orderBy(
+      (opts.sortDir === 'asc' ? asc : desc)(requestSortColumn(opts)),
+      (opts.sortDir === 'asc' ? asc : desc)(schema.requests.id),
+    )
     .limit(opts.limit)
     .all()
 

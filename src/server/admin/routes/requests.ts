@@ -1,3 +1,10 @@
+import * as v from 'valibot'
+import {
+  parseRequestCursor,
+  requestCursor,
+  RequestSortKeySchema,
+  RequestSortDirSchema,
+} from '../../../lib/request-sort.ts'
 import {
   countRecentMcpRequests,
   getAdjacentIds,
@@ -65,6 +72,15 @@ export const requestRoutes: Route[] = [
       const url = new URL(request.url)
       const limit = clamp(parseInt(url.searchParams.get('limit') ?? '50', 10), 1, 500)
       const cursor = url.searchParams.get('cursor')
+      const sortKey = v.safeParse(v.optional(RequestSortKeySchema), url.searchParams.get('sortKey') ?? undefined)
+      const sortDir = v.safeParse(v.optional(RequestSortDirSchema), url.searchParams.get('sortDir') ?? undefined)
+      if (!sortKey.success || !sortDir.success) return error(400, 'Invalid request sort')
+      const sort = { sortKey: sortKey.output, sortDir: sortDir.output }
+      if (
+        cursor &&
+        (cursor.length > 512 || (sort.sortKey ? !parseRequestCursor(cursor, sort) : !/^[a-zA-Z0-9_]+$/.test(cursor)))
+      )
+        return error(400, 'Invalid request cursor')
       const includeMcp = url.searchParams.get('includeMcp') === 'true'
       const status = url.searchParams.get('status')
       if (status !== null && status !== 'ok' && status !== 'err') return error(400, 'Invalid status filter')
@@ -91,6 +107,7 @@ export const requestRoutes: Route[] = [
         return error(400, 'Invalid minute filter')
       }
       const filters: RequestSearchOptions = {
+        ...sort,
         cursor: cursor ?? undefined,
         includeMcp,
         minutes,
@@ -109,7 +126,7 @@ export const requestRoutes: Route[] = [
         url.searchParams.get('skipMcpCount') === 'true' ? undefined : includeMcp ? 0 : countRecentMcpRequests(filters)
       return json(200, {
         requests: rows.slice(0, limit),
-        nextCursor: rows.length > limit ? rows[limit - 1].id : null,
+        nextCursor: rows.length > limit ? requestCursor(rows[limit - 1], sort) : null,
         ...(mcpHiddenCount === undefined ? {} : { mcpHiddenCount }),
       })
     },

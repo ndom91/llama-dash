@@ -142,3 +142,32 @@ it('bounds retained payload count/bytes without evicting the active request', ()
   expect(client.getQueryData(key)).toBeUndefined()
   client.clear()
 })
+
+it('keeps live rows and cursors in the active global sort order', () => {
+  const client = new QueryClient()
+  const sort = { sortKey: 'durationMs' as const, sortDir: 'asc' as const }
+  const key = [
+    ...qk.requestsFilteredList,
+    '',
+    'all',
+    {
+      ...sort,
+      search: '',
+      includeMcp: true,
+      modelFilter: [],
+      keyFilter: [],
+      routingFilter: 'all',
+      clientFilter: '',
+      hostFilter: [],
+      endUserFilter: '',
+      sessionFilter: '',
+    },
+  ]
+  const first = Array.from({ length: 50 }, (_, i) => ({ ...row(i + 1), durationMs: i + 1 }))
+  client.setQueryData(key, { pages: [{ requests: first, nextCursor: 'existing' }], pageParams: [undefined] })
+  updateRequestsListCache(client, { ...row(100), durationMs: 3.5, startedAt: new Date().toISOString() })
+  const data = client.getQueryData<{ pages: { requests: ApiRequest[]; nextCursor: string }[] }>(key)!
+  expect(data.pages[0].requests.slice(0, 5).map((r) => r.durationMs)).toEqual([1, 2, 3, 3.5, 4])
+  expect(JSON.parse(data.pages[0].nextCursor)).toEqual(['durationMs', 'asc', 49, row(49).id])
+  client.clear()
+})

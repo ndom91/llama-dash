@@ -4,6 +4,7 @@ import { qk } from './query-keys'
 import { applyRequestFilters, isMcpRelayRequest } from './request-filters'
 import type { RequestListQuery } from './request-query-data'
 import { REQUESTS_PAGE_SIZE, type RequestsList } from './request-query-data'
+import { compareRequests, requestCursor } from './request-sort'
 import type { ApiRequest, RequestPayloadsSchema } from './schemas/request'
 
 export function trimInactiveRequestPayloads(client: QueryClient) {
@@ -59,12 +60,17 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
   for (const key of keys)
     client.setQueryData<RequestsList>(key, (old) => {
       if (!old?.pages.length || old.pages.some((page) => page.requests.some((row) => row.id === request.id))) return old
-      const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => b.id.localeCompare(a.id))
+      const sort = key[4] as RequestListQuery | undefined
+      const rows = [request, ...old.pages.flatMap((page) => page.requests)].sort((a, b) => compareRequests(a, b, sort))
       const capacity = old.pages.length * REQUESTS_PAGE_SIZE
       const pages = old.pages.map((page, index) => {
         const requests = rows.slice(index * REQUESTS_PAGE_SIZE, (index + 1) * REQUESTS_PAGE_SIZE)
         const hasMore = index < old.pages.length - 1 || rows.length > capacity || page.nextCursor !== null
-        return { ...page, requests, nextCursor: hasMore ? (requests.at(-1)?.id ?? null) : null }
+        return {
+          ...page,
+          requests,
+          nextCursor: hasMore && requests.length ? requestCursor(requests[requests.length - 1], sort) : null,
+        }
       })
       return {
         pages,

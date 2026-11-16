@@ -1,5 +1,4 @@
 import type { SelectOption } from '../../components/Select'
-import type { ApiRequest } from '../../lib/api'
 import { isProxyRequestKey } from '../../lib/request-filters'
 
 export const REQUESTS_ROW_HEIGHT = 37
@@ -48,8 +47,7 @@ export function colWidthsFor(visible: ReadonlySet<RequestsColKey>): (number | st
 
 export const REQUESTS_COL_WIDTHS = colWidthsFor(new Set(REQUESTS_ALL_COLS))
 
-export type SortKey = 'startedAt' | 'durationMs' | 'statusCode' | 'totalTokens'
-export type SortDir = 'asc' | 'desc'
+export type { SortKey, SortDir } from '../../lib/request-sort'
 
 export type { RequestListFilters, RoutingFilter, StatusFilter } from '../../lib/request-filters'
 export {
@@ -63,19 +61,6 @@ export {
 export function requestKeyLabel(r: { keyName: string | null; routingAuthMode: string | null }): string {
   if (isProxyRequestKey(r)) return 'proxy'
   return r.keyName ?? 'system'
-}
-
-export function sortVal(r: ApiRequest, key: SortKey): number | string {
-  switch (key) {
-    case 'startedAt':
-      return r.startedAt
-    case 'durationMs':
-      return r.durationMs
-    case 'statusCode':
-      return r.statusCode
-    case 'totalTokens':
-      return r.totalTokens ?? 0
-  }
 }
 
 export function formatWhen(iso: string): string {
