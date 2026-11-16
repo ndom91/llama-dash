@@ -4,6 +4,7 @@ import { qk } from './query-keys'
 import { applyRequestFilters, isMcpRelayRequest } from './request-filters'
 import type { RequestListQuery } from './request-query-data'
 import { REQUESTS_PAGE_SIZE, type RequestsList } from './request-query-data'
+import { requestMatchesTimeframe } from './request-timeframe'
 import { compareRequests, requestCursor } from './request-sort'
 import type { ApiRequest, RequestPayloadsSchema } from './schemas/request'
 
@@ -52,6 +53,7 @@ export function updateRequestsListCache(client: QueryClient, request: ApiRequest
         if (status === 'err' && request.statusCode < 400) return false
         if (status === 'ok' && (request.statusCode < 200 || request.statusCode >= 400)) return false
         if (!filters) return true
+        if (!requestMatchesTimeframe(request.startedAt, filters)) return false
         if (!filters.includeMcp && isMcpRelayRequest(request)) return false
         return applyRequestFilters([request], { ...filters, statusFilter: 'all' }).length > 0
       })

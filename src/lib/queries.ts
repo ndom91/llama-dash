@@ -227,6 +227,8 @@ export function useRequestsList(
         },
         { signal },
       ),
+    refetchInterval:
+      filters?.timeframe && filters.timeframe !== 'all' && filters.timeframe !== 'custom' ? FALLBACK_POLL_MS : false,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last: RequestsPage) => last.nextCursor ?? undefined,
   })

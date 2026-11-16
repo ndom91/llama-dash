@@ -1,3 +1,4 @@
+import { RequestTimeFilterSchema } from '../../../lib/request-timeframe.ts'
 import * as v from 'valibot'
 import {
   parseRequestCursor,
@@ -72,6 +73,12 @@ export const requestRoutes: Route[] = [
       const url = new URL(request.url)
       const limit = clamp(parseInt(url.searchParams.get('limit') ?? '50', 10), 1, 500)
       const cursor = url.searchParams.get('cursor')
+      const time = v.safeParse(RequestTimeFilterSchema, {
+        timeframe: url.searchParams.get('timeframe') ?? undefined,
+        from: url.searchParams.has('from') ? Number(url.searchParams.get('from')) : undefined,
+        to: url.searchParams.has('to') ? Number(url.searchParams.get('to')) : undefined,
+      })
+      if (!time.success) return error(400, 'Invalid time range')
       const sortKey = v.safeParse(v.optional(RequestSortKeySchema), url.searchParams.get('sortKey') ?? undefined)
       const sortDir = v.safeParse(v.optional(RequestSortDirSchema), url.searchParams.get('sortDir') ?? undefined)
       if (!sortKey.success || !sortDir.success) return error(400, 'Invalid request sort')
@@ -108,6 +115,7 @@ export const requestRoutes: Route[] = [
       }
       const filters: RequestSearchOptions = {
         ...sort,
+        ...time.output,
         cursor: cursor ?? undefined,
         includeMcp,
         minutes,

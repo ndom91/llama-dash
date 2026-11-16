@@ -29,6 +29,7 @@ import { RequestsFilterSidebar } from './RequestsFilterSidebar'
 import { RequestsHistogram } from './RequestsHistogram'
 import { RequestsPageSkeleton } from './RequestsPageSkeleton'
 import { RequestsPaginationCard } from './RequestsPaginationCard'
+import { RequestsTimeframePicker } from './RequestsTimeframePicker'
 import { RequestsSortHeader } from './RequestsSortHeader'
 import { RequestsVirtualColgroup } from './RequestsVirtualColgroup'
 import { formatCostUsd } from './requestDetailUtils'
@@ -63,6 +64,9 @@ export function RequestsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const routeSearch = requestsRouteApi.useSearch()
+  const timeframe = routeSearch.timeframe ?? 'all'
+  const from = routeSearch.from
+  const to = routeSearch.to
   const showMcpRelays = routeSearch.mcp === true
   const statusFilter: StatusFilter = routeSearch.status ?? 'all'
   const [selectedMinutes, setSelectedMinutes] = useState<number[]>([])
@@ -111,8 +115,18 @@ export function RequestsPage() {
     return () => window.clearTimeout(timer)
   }, [clientFilter, endUserFilter, sessionFilter])
   const queryFilters = useMemo(
-    () => ({ ...filters, ...debouncedAttribution, search, includeMcp: showMcpRelays, sortKey, sortDir }),
-    [filters, debouncedAttribution, search, showMcpRelays, sortKey, sortDir],
+    () => ({
+      ...filters,
+      ...debouncedAttribution,
+      search,
+      includeMcp: showMcpRelays,
+      sortKey,
+      sortDir,
+      timeframe,
+      from,
+      to,
+    }),
+    [filters, debouncedAttribution, search, showMcpRelays, sortKey, sortDir, timeframe, from, to],
   )
   const { data, error, isLoading, hasNextPage, fetchNextPage, isFetching, isFetchingNextPage, isFetchNextPageError } =
     useRequestsList(selectedMinutes, statusFilter, queryFilters)
@@ -347,12 +361,16 @@ export function RequestsPage() {
     hostFilter.length > 0 ||
     endUserFilter !== '' ||
     sessionFilter !== '' ||
-    selectedMinutes.length > 0
+    selectedMinutes.length > 0 ||
+    timeframe !== 'all'
 
   const clearFilters = () => {
     setSearchDraft('')
     setSelectedMinutes([])
     updateSearch({
+      timeframe: undefined,
+      from: undefined,
+      to: undefined,
       q: undefined,
       status: undefined,
       model: undefined,
@@ -376,13 +394,24 @@ export function RequestsPage() {
         <PageHeader
           kicker="req · log"
           title="Request log"
-          subtitle="proxied API calls, newest first"
+          subtitle="proxied API calls across retained history"
           variant="integrated"
           action={
-            <span className="live-badge requests-live-badge">
-              <StatusDot tone="ok" live />
-              live
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <RequestsTimeframePicker
+                value={{ timeframe, from, to }}
+                onChange={(value) => {
+                  setSelectedMinutes([])
+                  setSelectedIdx(-1)
+                  scrollRef.current?.scrollTo({ top: 0 })
+                  updateSearch(value)
+                }}
+              />
+              <span className="live-badge">
+                <StatusDot tone={timeframe === 'custom' ? 'idle' : 'ok'} live={timeframe !== 'custom'} />
+                {timeframe === 'custom' ? 'fixed range' : 'live'}
+              </span>
+            </div>
           }
         />
 

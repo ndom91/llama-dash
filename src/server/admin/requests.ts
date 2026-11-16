@@ -16,6 +16,7 @@ import {
   sql,
 } from 'drizzle-orm'
 import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../lib/request-filters.ts'
+import { requestTimeBounds, type RequestTimeFilter } from '../../lib/request-timeframe.ts'
 import { parseRequestCursor, type RequestSort } from '../../lib/request-sort.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
 import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/schemas/request'
@@ -159,20 +160,21 @@ export function summarizeRecentRequests(where: SQL | undefined): ApiKeyStats {
   }
 }
 
-export type RequestSearchOptions = RequestSort & {
-  cursor?: string
-  includeMcp?: boolean
-  minutes?: number[]
-  status?: 'ok' | 'err'
-  search?: string
-  models?: string[]
-  keys?: string[]
-  routing?: 'routed' | 'unrouted'
-  hosts?: string[]
-  client?: string
-  endUser?: string
-  session?: string
-}
+export type RequestSearchOptions = RequestSort &
+  RequestTimeFilter & {
+    cursor?: string
+    includeMcp?: boolean
+    minutes?: number[]
+    status?: 'ok' | 'err'
+    search?: string
+    models?: string[]
+    keys?: string[]
+    routing?: 'routed' | 'unrouted'
+    hosts?: string[]
+    client?: string
+    endUser?: string
+    session?: string
+  }
 
 function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'mcp_relay' | undefined) {
   if (!caseFoldRegistered && (opts.search || opts.client || opts.endUser || opts.session)) {
@@ -208,7 +210,10 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
         sql`0`,
       )
     : undefined
+  const bounds = requestTimeBounds(opts)
   return and(
+    bounds.from !== undefined ? gte(schema.requests.startedAt, new Date(bounds.from)) : undefined,
+    bounds.to !== undefined ? lt(schema.requests.startedAt, new Date(bounds.to)) : undefined,
     requestCursorWhere(opts),
     requestClass ? eq(schema.requests.requestClass, requestClass) : undefined,
     opts.status === 'err'

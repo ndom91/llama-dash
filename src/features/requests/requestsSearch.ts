@@ -1,6 +1,8 @@
+import * as v from 'valibot'
+import { RequestTimeFilterSchema, type RequestTimeFilter } from '../../lib/request-timeframe'
 import type { RoutingFilter, SortDir, SortKey, StatusFilter } from './requestsListUtils'
 
-export type RequestsSearch = {
+export type RequestsSearch = RequestTimeFilter & {
   q?: string
   status?: StatusFilter
   model?: string[]
@@ -39,7 +41,13 @@ function asTrue(v: unknown): true | undefined {
 }
 
 export function validateRequestsSearch(search: Record<string, unknown>): RequestsSearch {
+  const time = v.safeParse(RequestTimeFilterSchema, {
+    timeframe: search.timeframe,
+    from: search.from === undefined ? undefined : Number(search.from),
+    to: search.to === undefined ? undefined : Number(search.to),
+  })
   return {
+    ...(time.success ? time.output : {}),
     q: asString(search.q),
     status: asEnum(search.status, STATUS_VALUES),
     model: asStringList(search.model),

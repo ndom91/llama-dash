@@ -212,6 +212,9 @@ export const api = {
         ['session', f.sessionFilter],
       ] as const)
         if (value) q.set(key, value)
+      if (f.timeframe) q.set('timeframe', f.timeframe)
+      if (f.from !== undefined) q.set('from', String(f.from))
+      if (f.to !== undefined) q.set('to', String(f.to))
       if (f.sortKey) q.set('sortKey', f.sortKey)
       if (f.sortDir) q.set('sortDir', f.sortDir)
       if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)

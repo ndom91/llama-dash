@@ -26,6 +26,12 @@ it('paginates every global sort through ties, null tokens, pruning and live arri
     const get = (params: URLSearchParams) =>
       route.handler(new Request(`http://dash.test/api/requests?${params}`), [] as unknown as RegExpMatchArray)
     const all = listRecentRequests({ limit: 500 })
+    const time = { timeframe: 'custom' as const, from: 1_801_000, to: 1_803_000 }
+    expect(listRecentRequests({ ...time, limit: 500 }).map((r) => r.id)).toEqual(
+      all.filter((r) => Date.parse(r.startedAt) >= time.from && Date.parse(r.startedAt) < time.to).map((r) => r.id),
+    )
+    expect((await get(new URLSearchParams({ timeframe: 'custom', from: '20', to: '10' }))).status).toBe(400)
+
     for (const sortKey of ['startedAt', 'durationMs', 'statusCode', 'totalTokens'] satisfies SortKey[]) {
       for (const sortDir of ['asc', 'desc'] satisfies SortDir[]) {
         const sort = { sortKey, sortDir }
