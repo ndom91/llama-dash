@@ -79,6 +79,8 @@ export function RequestsRangeCalendar({ draft, custom, now, earliest, hovered, o
         weekStartsOn={1}
         modifiers={{
           endpoint: (day) => day.getTime() === from?.getTime() || day.getTime() === to?.getTime(),
+          previewTarget: (day) =>
+            !!preview && day.getTime() === hovered?.getTime() && day.getTime() !== from?.getTime(),
           preview: (day) =>
             !!preview &&
             day.getTime() >= preview[0] &&
@@ -87,6 +89,7 @@ export function RequestsRangeCalendar({ draft, custom, now, earliest, hovered, o
         }}
         modifiersClassNames={{
           preview: 'request-range-preview',
+          previewTarget: 'request-range-preview-target',
           endpoint:
             'request-range-endpoint [&>button]:bg-accent [&>button]:hover:bg-accent [&>button]:font-medium [&>button]:text-accent-on',
         }}

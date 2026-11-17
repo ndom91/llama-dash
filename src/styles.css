@@ -2593,3 +2593,11 @@ button.session-entry-line:hover .session-entry-summary > span { color: var(--fg)
   background-color: color-mix(in oklab, var(--accent) 10%, transparent);
   box-shadow: inset 0 1px var(--border-strong), inset 0 -1px var(--border-strong);
 }
+
+/* The prospective endpoint echoes a selected day without implying confirmation. */
+.request-range-preview-target > button {
+  background-color: color-mix(in oklab, var(--accent) 22%, var(--bg-1));
+  box-shadow: inset 0 0 0 1px var(--accent);
+  color: var(--fg);
+  font-weight: 500;
+}

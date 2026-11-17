@@ -14,7 +14,8 @@ preset and its resolved window, omitting clocks for ranges longer than seven day
 
 Preset dates/times are read-only previews. Clicking a calendar day starts a custom
 draft and clears its end. Hovering or focusing another day previews the range
-with a continuous tinted band and thin top/bottom edges; clicking completes it
+with a continuous tinted band and thin top/bottom edges. The prospective endpoint
+has a stronger tint and accent outline for both hover and keyboard focus; clicking completes it
 and focuses To time. A completed endpoint click starts over. Future days and days outside retained history are unavailable.
 The compact date fields accept `Nov 16, 2026`; time fields accept 24-hour `HH:mm`.
 Apply validates and writes epoch-millisecond bounds to the URL. Cancel, Escape

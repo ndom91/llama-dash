@@ -51,7 +51,10 @@ it('previews a draft range, focuses its end time, and applies only on confirmati
   expect(screen.getByRole('button', { name: 'Apply' })).toHaveProperty('disabled', true)
   fireEvent.mouseEnter(day(15))
   expect(day(13).closest('td')?.classList.contains('request-range-preview')).toBe(true)
+  expect(day(15).closest('td')?.classList.contains('request-range-preview-target')).toBe(true)
+  expect(day(13).closest('td')?.classList.contains('request-range-preview-target')).toBe(false)
   fireEvent.click(day(16))
+  expect(day(15).closest('td')?.classList.contains('request-range-preview-target')).toBe(false)
   expect(day(12).closest('td')?.classList.contains('request-range-endpoint')).toBe(true)
   expect(day(16).closest('td')?.classList.contains('request-range-endpoint')).toBe(true)
   expect(day(13).closest('td')?.getAttribute('aria-selected')).toBe('true')
@@ -80,6 +83,19 @@ it('restarts on an endpoint and discards edits when cancelled or escaped', async
   fireEvent.keyDown(screen.getByLabelText('From date'), { key: 'Escape' })
   await waitFor(() => expect(screen.queryByRole('grid')).toBeNull())
   expect(onChange).not.toHaveBeenCalled()
+})
+
+it('moves the prospective endpoint with focus or backward hover and clears it when leaving the calendar', async () => {
+  await open()
+  fireEvent.click(day(12))
+  fireEvent.focus(day(14))
+  expect(day(14).closest('td')?.classList.contains('request-range-preview-target')).toBe(true)
+  fireEvent.mouseEnter(day(10))
+  expect(day(10).closest('td')?.classList.contains('request-range-preview-target')).toBe(true)
+  expect(day(14).closest('td')?.classList.contains('request-range-preview-target')).toBe(false)
+  expect(day(12).closest('td')?.classList.contains('request-range-endpoint')).toBe(true)
+  fireEvent.mouseLeave(screen.getByRole('group', { name: 'Range calendar' }))
+  expect(day(10).closest('td')?.classList.contains('request-range-preview-target')).toBe(false)
 })
 
 it('disables future/expired days and blocks invalid or out-of-retention text edits', async () => {
