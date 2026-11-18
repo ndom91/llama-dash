@@ -69,24 +69,16 @@ export function SessionContextDialog({ ref, context }: Props) {
               </form>
             </div>
           </header>
-          <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface-1 px-4 py-1.5 font-mono text-[11px] text-fg-dim">
-            <span className="min-w-0 flex-1 truncate">
-              {[
-                context.kind === 'tools' ? context.label : null,
-                `~${formatCompactNumber(Math.ceil(context.text.length / 4))} tok`,
-                formatBytes(stats.bytes),
-                `${stats.lines.toLocaleString()} ${stats.lines === 1 ? 'line' : 'lines'}`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </span>
-            <span className="shrink-0 max-md:hidden">
-              <kbd className="rounded-sm border border-border-strong bg-surface-2 px-1 text-[10px] text-fg-muted">
-                esc
-              </kbd>{' '}
-              to close
-            </span>
-          </div>
+          <p className="m-0 shrink-0 truncate border-b border-border bg-surface-1 px-4 py-1.5 font-mono text-[11px] text-fg-dim">
+            {[
+              context.kind === 'tools' ? context.label : null,
+              `~${formatCompactNumber(Math.ceil(context.text.length / 4))} tok`,
+              formatBytes(stats.bytes),
+              `${stats.lines.toLocaleString()} ${stats.lines === 1 ? 'line' : 'lines'}`,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
           {/* Tool schemas can reach several MB; RequestTextView virtualizes large text. */}
           <RequestTextView
             text={context.text}
