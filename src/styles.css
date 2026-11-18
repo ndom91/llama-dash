@@ -1116,6 +1116,17 @@
 .jh-bool { color: var(--info); }
 .jh-punct { color: var(--fg-dim); }
 
+/* Line-level markdown highlighting (RequestMarkdownLine). */
+.mdh-punct { color: var(--fg-faint); }
+.mdh-heading { color: var(--accent); font-weight: 600; }
+.mdh-list { color: var(--accent); }
+.mdh-quote { color: var(--fg-dim); font-style: italic; }
+.mdh-strong { color: var(--fg); font-weight: 600; }
+.mdh-code { color: var(--series-2); background: color-mix(in srgb, var(--fg) 7%, transparent); border-radius: 3px; }
+.mdh-link { color: var(--series-3); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--series-3) 40%, transparent); text-underline-offset: 2px; }
+.mdh-tag { color: var(--series-4); }
+.mdh-fence { color: var(--fg-muted); background: color-mix(in srgb, var(--fg) 4%, transparent); }
+
 /* SSE event stream rendering — used when req.streamed is true. Each event is
    a small block with `event: <name>` header and a highlighted `data: {...}`
    JSON body. Dims `ping` events and `[DONE]` sentinels since they carry no

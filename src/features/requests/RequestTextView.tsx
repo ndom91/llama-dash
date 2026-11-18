@@ -2,6 +2,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useMemo, useRef } from 'react'
 import { cn } from '../../lib/cn'
 import { RequestJsonLine } from './RequestJsonLine'
+import { markdownFenceRows, RequestMarkdownLine } from './RequestMarkdownLine'
 import { splitTextRows } from './textRows'
 
 const VIRTUALIZE_ROW_THRESHOLD = 300
@@ -11,13 +12,24 @@ const LINE_HEIGHT = 18
 type Props = {
   text: string
   highlightJson?: boolean
+  highlightMarkdown?: boolean
   embedded?: boolean
   className?: string
 }
 
-export function RequestTextView({ text, highlightJson = false, embedded = false, className }: Props) {
+export function RequestTextView({
+  text,
+  highlightJson = false,
+  highlightMarkdown = false,
+  embedded = false,
+  className,
+}: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const { rows, hasChunks } = useMemo(() => splitTextRows(text), [text])
+  const fenceRows = useMemo(
+    () => (highlightMarkdown ? markdownFenceRows(text, rows) : null),
+    [highlightMarkdown, text, rows],
+  )
   const virtualized = hasChunks || rows.length > VIRTUALIZE_ROW_THRESHOLD || text.length > VIRTUALIZE_CHAR_THRESHOLD
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -47,6 +59,7 @@ export function RequestTextView({ text, highlightJson = false, embedded = false,
     const row = rows[index]
     const value = text.slice(row.start, row.end)
     if (highlightJson && !row.chunked) return <RequestJsonLine line={value} />
+    if (fenceRows && !row.chunked) return <RequestMarkdownLine line={value} inFence={fenceRows[index] === 1} />
     return value || '\u00a0'
   }
 

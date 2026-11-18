@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { BellRing, ScrollText, Wrench, X } from 'lucide-react'
 import { type Ref, useId, useMemo, useRef } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber } from '../../lib/format'
@@ -35,7 +35,10 @@ export function SessionContextDialog({ ref, context }: Props) {
     >
       {context && stats ? (
         <>
-          <header className="flex shrink-0 items-start gap-4 border-b border-border bg-surface-1 py-3 pr-3 pl-4">
+          <header className="flex shrink-0 items-center gap-3 border-b border-border-strong bg-surface-2 py-3 pr-3 pl-4">
+            <span className="grid size-9 shrink-0 place-items-center rounded border border-border-strong bg-surface-1 text-fg-dim">
+              <KindIcon kind={context.kind} />
+            </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-fg-dim">
                 <span>context · {context.kind}</span>
@@ -45,36 +48,63 @@ export function SessionContextDialog({ ref, context }: Props) {
                   </span>
                 ) : null}
               </div>
-              <h2 id={titleId} className="m-0 mt-1 truncate text-[15px] font-semibold text-fg">
+              <h2 id={titleId} className="m-0 mt-0.5 truncate text-[15px] font-semibold text-fg">
                 {contextTitle(context)}
               </h2>
-              <p className="m-0 mt-1 font-mono text-[11px] text-fg-dim">
-                {[
-                  context.kind === 'tools' ? context.label : null,
-                  `~${formatCompactNumber(Math.ceil(context.text.length / 4))} tok`,
-                  formatBytes(stats.bytes),
-                  `${stats.lines.toLocaleString()} ${stats.lines === 1 ? 'line' : 'lines'}`,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1">
-              <CopyButton text={context.text} variant="button" ariaLabel="Copy context" />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <CopyButton
+                text={context.text}
+                ariaLabel="Copy context"
+                className="btn btn-sm h-7 bg-surface-3 hover:bg-surface-4"
+              />
               <form method="dialog">
-                <button type="submit" className="btn btn-ghost btn-sm" aria-label="Close">
-                  <kbd className="font-mono text-[10px] text-fg-faint">esc</kbd>
+                <button
+                  type="submit"
+                  className="btn btn-sm h-7 w-7 justify-center bg-surface-3 px-0 hover:bg-surface-4"
+                  aria-label="Close"
+                >
                   <X className="size-3.5" strokeWidth={2} aria-hidden="true" />
                 </button>
               </form>
             </div>
           </header>
+          <div className="flex shrink-0 items-center gap-3 border-b border-border bg-surface-1 px-4 py-1.5 font-mono text-[11px] text-fg-dim">
+            <span className="min-w-0 flex-1 truncate">
+              {[
+                context.kind === 'tools' ? context.label : null,
+                `~${formatCompactNumber(Math.ceil(context.text.length / 4))} tok`,
+                formatBytes(stats.bytes),
+                `${stats.lines.toLocaleString()} ${stats.lines === 1 ? 'line' : 'lines'}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+            <span className="shrink-0 max-md:hidden">
+              <kbd className="rounded-sm border border-border-strong bg-surface-2 px-1 text-[10px] text-fg-muted">
+                esc
+              </kbd>{' '}
+              to close
+            </span>
+          </div>
           {/* Tool schemas can reach several MB; RequestTextView virtualizes large text. */}
-          <RequestTextView text={context.text} highlightJson={context.kind === 'tools'} className="flex-1 pl-4" />
+          <RequestTextView
+            text={context.text}
+            highlightJson={context.kind === 'tools'}
+            highlightMarkdown={context.kind !== 'tools'}
+            className="flex-1 pl-4"
+          />
         </>
       ) : null}
     </dialog>
   )
+}
+
+const KIND_ICONS = { system: ScrollText, tools: Wrench, reminder: BellRing }
+
+function KindIcon({ kind }: { kind: TranscriptContext['kind'] }) {
+  const Icon = KIND_ICONS[kind]
+  return <Icon className="size-4" strokeWidth={1.75} aria-hidden="true" />
 }
 
 function isOutside(event: React.PointerEvent<HTMLDialogElement>): boolean {
