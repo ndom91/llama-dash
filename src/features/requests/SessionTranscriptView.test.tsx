@@ -35,7 +35,7 @@ it('opens, copies, and dismisses context details from the backdrop', async () =>
     />,
   )
   fireEvent.click(screen.getByRole('button', { name: /system · system prompt/ }))
-  const dialog = screen.getByRole('dialog', { name: 'system prompt' })
+  const dialog = screen.getByRole('dialog', { name: 'System prompt' })
   expect(dialog.getAttribute('closedby')).toBe('any')
   expect(dialog.className).toContain('m-auto')
   fireEvent.click(screen.getByRole('button', { name: 'Copy context' }))

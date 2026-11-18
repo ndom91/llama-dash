@@ -3,8 +3,8 @@ import { Eye } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
-import { RequestTextView } from './RequestTextView'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
+import { SessionContextDialog } from './SessionContextDialog'
 import { SessionEntry } from './SessionEntry'
 import { SessionToolCard } from './SessionToolCard'
 import { SessionMessageClamp } from './SessionMessageClamp'
@@ -319,14 +319,7 @@ export function ContextPills({
   onOpen: (item: TranscriptContext) => void
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
-  const pressedOutside = useRef(false)
   const [selected, setSelected] = useState<TranscriptContext | null>(null)
-  const outside = (event: React.PointerEvent<HTMLDialogElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect()
-    return (
-      event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom
-    )
-  }
   return (
     <div className="mb-4 space-y-2">
       <div className="font-mono text-[10px] uppercase tracking-wider text-fg-faint">Context</div>
@@ -356,38 +349,7 @@ export function ContextPills({
           </button>
         ))}
       </div>
-      <dialog
-        ref={dialog}
-        closedby="any"
-        onPointerDown={(event) => {
-          if (!('closedBy' in HTMLDialogElement.prototype)) pressedOutside.current = outside(event)
-        }}
-        onPointerUp={(event) => {
-          if (!('closedBy' in HTMLDialogElement.prototype) && pressedOutside.current && outside(event)) {
-            event.currentTarget.close()
-          }
-          pressedOutside.current = false
-        }}
-        aria-label={selected?.label ?? 'Context'}
-        className="session-context-dialog fixed inset-0 m-auto max-h-[80dvh] w-[min(90vw,700px)] max-w-[calc(100%-2rem)] overflow-hidden rounded border border-border bg-surface-0 p-0 text-fg backdrop:bg-surface-0/80"
-      >
-        <div className="flex items-center justify-between gap-4 border-b border-border p-4">
-          <h2 className="m-0 text-sm font-semibold">{selected?.label}</h2>
-          <div className="flex shrink-0 items-center gap-2">
-            <CopyButton
-              text={selected?.text ?? ''}
-              variant="icon"
-              ariaLabel="Copy context"
-              className="btn btn-sm h-7 w-7 justify-center"
-            />
-            <button type="button" className="btn btn-sm" onClick={() => dialog.current?.close()}>
-              Close
-            </button>
-          </div>
-        </div>
-        {/* Tool schemas can reach several MB; a single <pre> of that size freezes layout. */}
-        {selected ? <RequestTextView text={selected.text} className="max-h-[65vh] p-4" /> : null}
-      </dialog>
+      <SessionContextDialog ref={dialog} context={selected} />
     </div>
   )
 }
