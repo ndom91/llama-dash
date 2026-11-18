@@ -3,6 +3,7 @@ import { Eye } from 'lucide-react'
 import { memo, useRef, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { formatCompactNumber, formatDuration } from '../../lib/format'
+import { RequestTextView } from './RequestTextView'
 import { SessionAssistantMessage } from './SessionAssistantMessage'
 import { SessionEntry } from './SessionEntry'
 import { SessionToolCard } from './SessionToolCard'
@@ -384,9 +385,8 @@ export function ContextPills({
             </button>
           </div>
         </div>
-        <pre className="m-0 max-h-[65vh] overflow-auto whitespace-pre-wrap break-words p-4 font-mono text-xs">
-          {selected?.text}
-        </pre>
+        {/* Tool schemas can reach several MB; a single <pre> of that size freezes layout. */}
+        {selected ? <RequestTextView text={selected.text} className="max-h-[65vh] p-4" /> : null}
       </dialog>
     </div>
   )
