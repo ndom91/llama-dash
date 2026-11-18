@@ -238,7 +238,12 @@ export function RequestsPage() {
   }, [models, modelFilter, updateSearch])
 
   const freshRowIds = useFreshRowIds(allRows, queryFilters)
-  const reveal = useSkeletonReveal(isLoading && selectedRanges.length === 0)
+  // Every filter change is a new query key, so isLoading flips back to true. Only the first load
+  // gets the page skeleton; later loads keep the sidebar mounted and skip the reveal fade.
+  const [hasLoaded, setHasLoaded] = useState(false)
+  if (data && !hasLoaded) setHasLoaded(true)
+  const showPageSkeleton = isLoading && !hasLoaded
+  const reveal = useSkeletonReveal(showPageSkeleton)
   const rows = displayed
 
   const prefetchId = hoveredRequestId ?? rows[selectedIdx]?.id
@@ -453,7 +458,7 @@ export function RequestsPage() {
           }
         />
 
-        {isLoading && selectedRanges.length === 0 && !hasLocalFilters && statusFilter === 'all' ? (
+        {showPageSkeleton ? (
           <RequestsPageSkeleton />
         ) : (
           <div
