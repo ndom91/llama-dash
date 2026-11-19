@@ -16,11 +16,11 @@ export type RequestsColKey =
   | 'duration'
 
 const ALL_COL_WIDTHS: Record<RequestsColKey, number | string> = {
-  t: 132,
-  endpoint: '18%',
+  t: 92,
+  endpoint: 'auto',
   apiKey: '12%',
-  model: '20%',
-  status: 70,
+  model: 'auto',
+  status: 96,
   tokIn: 80,
   tokOut: 80,
   cache: 80,

@@ -63,8 +63,7 @@ import type { RequestsSearch } from './requestsSearch'
 import { useFreshRowIds } from './use-fresh-row-ids'
 
 const requestsRouteApi = getRouteApi('/requests/')
-const MOBILE_COL_WIDTHS = [92, 144, 120, 160, 96, 70, 70, 70, 75, 110]
-const MOBILE_TABLE_WIDTH = MOBILE_COL_WIDTHS.reduce((sum, width) => sum + width, 0)
+const MOBILE_TABLE_WIDTH = 600
 
 export function RequestsPage() {
   const navigate = useNavigate()
@@ -268,13 +267,12 @@ export function RequestsPage() {
   const maxDuration = useMemo(() => rows.reduce((max, row) => Math.max(max, row.durationMs), 0), [rows])
 
   // responsive column visibility — table-layout:fixed so colgroup must match cells
-  const dropCacheCost = useMediaQuery('(max-width: 1280px)')
-  const dropTokens = useMediaQuery('(max-width: 1100px)')
-  const dropApiKey = useMediaQuery('(max-width: 900px)')
+  const dropCacheCost = useMediaQuery('(max-width: 1600px)')
+  const dropTokens = useMediaQuery('(max-width: 1280px)')
+  const dropApiKey = useMediaQuery('(max-width: 1400px)')
   const mobile = useMediaQuery('(max-width: 768px)')
   const visibleCols = useMemo(() => {
     const set = new Set<RequestsColKey>(REQUESTS_ALL_COLS)
-    if (mobile) return set
     if (dropApiKey) set.delete('apiKey')
     if (dropCacheCost) {
       set.delete('cache')
@@ -285,8 +283,8 @@ export function RequestsPage() {
       set.delete('tokOut')
     }
     return set
-  }, [dropApiKey, dropCacheCost, dropTokens, mobile])
-  const colWidths = useMemo(() => (mobile ? MOBILE_COL_WIDTHS : colWidthsFor(visibleCols)), [mobile, visibleCols])
+  }, [dropApiKey, dropCacheCost, dropTokens])
+  const colWidths = useMemo(() => colWidthsFor(visibleCols), [visibleCols])
   const showApiKey = visibleCols.has('apiKey')
   const showCache = visibleCols.has('cache')
   const showCost = visibleCols.has('cost')

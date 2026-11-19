@@ -20,11 +20,12 @@ it('keeps all-history unbounded and resolves rolling windows at query time', () 
   expect(requestMatchesTimeframe(new Date(2000).toISOString(), filter)).toBe(false)
 })
 
-it('defaults request-page links to three hours while preserving explicit all-history and custom ranges', () => {
-  expect(validateRequestsSearch({}).timeframe).toBe('3h')
-  expect(validateRequestsSearch({ timeframe: 'invalid' }).timeframe).toBe('3h')
+it('defaults request-page links to one hour while preserving explicit presets and custom ranges', () => {
+  expect(validateRequestsSearch({}).timeframe).toBe('1h')
+  expect(validateRequestsSearch({ timeframe: 'invalid' }).timeframe).toBe('1h')
+  expect(validateRequestsSearch({ timeframe: '3h' }).timeframe).toBe('3h')
   expect(validateRequestsSearch({ timeframe: 'all' }).timeframe).toBe('all')
-  expect(requestTimeBounds(validateRequestsSearch({}), 20_000_000)).toEqual({ from: 9_200_000, to: 20_000_001 })
+  expect(requestTimeBounds(validateRequestsSearch({}), 20_000_000)).toEqual({ from: 16_400_000, to: 20_000_001 })
   expect(validateRequestsSearch({ timeframe: 'custom', from: 1000, to: 2000 })).toMatchObject({
     timeframe: 'custom',
     from: 1000,

@@ -1,7 +1,7 @@
 import type { RequestInterval, RequestTimeFilter } from './schemas/request-search'
 export type { RequestInterval, RequestTimeFilter, RequestTimeframe } from './schemas/request-search'
 
-export const DEFAULT_REQUEST_TIMEFRAME = '3h'
+export const DEFAULT_REQUEST_TIMEFRAME = '1h'
 export const REQUEST_TIMEFRAMES = [
   { value: '15m', label: 'Last 15 minutes', shortcut: '15m' },
   { value: '1h', label: 'Last hour', shortcut: '1h' },
