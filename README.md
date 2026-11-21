@@ -3,11 +3,25 @@
   &nbsp;llama-dash
 </h1>
 
+llama-dash is a dashboard and API gateway for your self-hosted [llama-swap](https://github.com/mostlygeek/llama-swap) + llama.cpp stack. Manage models, inspect requests, and control client access from one place.
+
 <img alt="Dark - Dashboard" src="./.github/assets/dashboard_001.png" />
 
-llama-dash turns a self-hosted local inference box into an observable, policy-controlled AI gateway: one UI for model state, request history, API keys, routing rules, proxy metrics, and client setup. The implemented inference backend is currently [llama-swap](https://github.com/mostlygeek/llama-swap) over llama.cpp.
+[Quick start](#quick-start-docker-compose) · [Manual setup](#manual-setup) · [Client setup](#client-setup) · [Documentation](https://llama-dash.dev/docs)
 
-It is the single public entrypoint for OpenAI-compatible and Anthropic-compatible clients. llama-dash owns proxy policy, logging, auth, routing, and backend normalization, your selected inference backend owns local model processes and inference when traffic is routed to local models.
+## What it does
+
+- Monitor traffic, token usage, cost estimates, and CPU/GPU health.
+- Inspect request history with filters, sorting, shareable time ranges, payloads, and timing details. Usage rollups outlive raw request logs.
+- Load and unload models, inspect capabilities and history, pause inference (llama-swap v268+), and edit validated configuration.
+- Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
+- Route requests to local models, peers, or direct upstreams. Rewrite model names, reject requests, inject credentials or system prompts, and limit request sizes.
+- Test chat, image, speech, transcription, and realtime voice models in the playground.
+
+<details>
+<summary>Supported APIs and monitoring details</summary>
+
+OpenAI-compatible and Anthropic-compatible clients connect through llama-dash. It handles auth, routing, policy, and logging; llama-swap manages local model processes and inference.
 
 ```text
 OpenAI SDK / Claude Code / Continue / Open WebUI
@@ -21,17 +35,28 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   llama.cpp models · peers      OpenAI · Anthropic
 ```
 
-## ✨ What it does
+The proxy also supports these llama.cpp and llama-swap routes:
 
-- Monitor traffic, token usage, models, and CPU/GPU health in one dashboard.
-- Browse request history with server-side filters and global sorting, shareable timeframes (last 3 hours by default, other rolling presets, Today/Yesterday, all retained history, or a custom local-time range in a unified calendar picker with keyboard navigation and editable 24-hour times) with a matching traffic chart and total match count, timing, attribution, token counts, and cost estimates. Usage rollups persist beyond raw request retention. [Request query benchmarks](docs/2026_11_16_request_query_performance.md) document the retained-history performance checks.
-- Load and unload models, pause all inference (llama-swap v268+), inspect capabilities (including llama-server reasoning effort levels) and history, and edit validated llama-swap configuration.
-- Proxy OpenAI and Anthropic clients to local models, peers, or direct upstreams; llama.cpp and llama-swap routes outside `/v1` are supported too: native `/completion`, `/infill`, `/rerank` and `/props`, versionless `/v/*` aliases, the Automatic1111 `/sdapi/v1/*` image API, the `/audiocpp` and `/comfyui` UI passthroughs, `/v1/audio/speech`, and the `/v1/realtime` WebSocket for voice sessions.
-- Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
-- Route or reject requests, rewrite models, inject credentials and system prompts, and set request size limits.
-- Test chat, image, speech, transcription, and realtime voice models in the playground.
-- View logs and system status: live CPU/GPU/memory telemetry with up to 24 hours of in-memory history, configurable alert thresholds, a unified-memory breakdown per loaded model, recent system events, and runtime/database posture (including `models.dev` pricing catalog status). Manage retention, and export Prometheus metrics at `/metrics`.
-- Navigate with keyboard shortcuts, including `g d` for the dashboard and `g r` for requests.
+| API | Routes |
+| --- | --- |
+| Native llama.cpp | `/completion`, `/infill`, `/rerank`, `/props` |
+| Versionless aliases | `/v/*` |
+| Automatic1111 images | `/sdapi/v1/*` |
+| Audio and ComfyUI passthroughs | `/audiocpp/*`, `/comfyui/*` |
+| Speech and realtime voice | `/v1/audio/speech`, `/v1/realtime` (WebSocket) |
+
+Request history includes attribution, token counts, estimated costs, a matching traffic chart, and a total match count. Filters run server-side and sorting covers all retained history. See the [request query benchmarks](docs/2026_11_16_request_query_performance.md) for performance checks.
+
+The time picker defaults to the last 3 hours, with rolling presets, Today/Yesterday, all history, and custom local-time ranges. It includes a calendar, keyboard navigation, and editable 24-hour times.
+
+System monitoring includes up to 24 hours of in-memory CPU/GPU/memory history, configurable alert thresholds, a unified-memory breakdown per loaded model, and recent events. You can view live logs, inspect runtime/database and `models.dev` pricing status, manage retention, and export Prometheus metrics at `/metrics`.
+
+Model capabilities include llama-server reasoning effort levels. Keyboard shortcuts include `g d` for the dashboard and `g r` for requests.
+
+</details>
+
+<details>
+<summary>Screenshots</summary>
 
 <table>
   <tr>
@@ -92,12 +117,13 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   </tr>
 </table>
 
+</details>
 
-## ⚡ Quick start (Docker Compose)
+## Quick start (Docker Compose)
 
-Choose the compose file that matches your GPU vendor. Both setups pull the published `ghcr.io/ndom91/llama-dash:latest` image, use `./config/config.yaml` for llama-swap config, mount `./models/` for model files, and expose llama-dash on `http://localhost:3000`.
+The bundled stack runs llama-dash and llama-swap, with the dashboard and client API at `http://localhost:3000`. Choose AMD/Vulkan or NVIDIA/CUDA below. Both use the published `ghcr.io/ndom91/llama-dash:latest` image.
 
-Clone the repository for its Compose files and example configuration, then create the local environment and llama-swap config:
+### 1. Copy the configuration
 
 ```bash
 git clone https://github.com/ndom91/llama-dash.git
@@ -106,45 +132,56 @@ cp .env.example .env
 cp config/config.example.yaml config/config.yaml
 ```
 
-Set `BETTER_AUTH_SECRET` in `.env` to the output of `openssl rand -base64 33`. The compose files load `.env` via `env_file` and won't start without it. `CREDENTIAL_ENCRYPTION_KEY` is only needed if you later store upstream provider credentials.
+### 2. Set the secret and model
 
-Place a GGUF model in `./models/`, then set the matching path and model ID in `config/config.yaml`. The supplied example expects `./models/llama-3.gguf` and declares it as `llama3`.
+- Set `BETTER_AUTH_SECRET` in `.env` to the output of `openssl rand -base64 33`. Compose loads `.env` and won't start without this secret.
+- Place a GGUF model in `./models/` and update its path and model ID in `config/config.yaml`. The example expects `./models/llama-3.gguf` with the ID `llama3`.
+- If you plan to store upstream provider credentials, also set `CREDENTIAL_ENCRYPTION_KEY` in `.env`.
 
-### AMD / Vulkan
+### 3. Start the stack
+
+#### AMD / Vulkan
 
 ```bash
 docker compose -f docker-compose.amd.yaml pull
 docker compose -f docker-compose.amd.yaml up -d
 ```
 
-`docker-compose.amd.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-vulkan` image, passes through `/dev/dri`, and also mounts `/dev/dri` into llama-dash so AMD GPU stats work in the dashboard. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+Uses llama-swap's `unified-vulkan` image. The stack passes `/dev/dri` to both services for inference and dashboard GPU stats.
 
-### NVIDIA / CUDA
+#### NVIDIA / CUDA
+
+Requires the NVIDIA Container Toolkit on the host.
 
 ```bash
 docker compose -f docker-compose.nvidia.yaml pull
 docker compose -f docker-compose.nvidia.yaml up -d
 ```
 
-`docker-compose.nvidia.yaml` runs llama-swap's [unified](https://github.com/mostlygeek/llama-swap#unified-container-recommended) `ghcr.io/mostlygeek/llama-swap:unified-cuda13` image and requests `gpus: all` for the llama-swap service. This requires the NVIDIA Container Toolkit on the host. `unified-cuda13` supports Turing (RTX 20xx, GTX 16xx) and newer GPUs; for Pascal cards such as the GTX 10xx or P40, change the image to `unified-cuda`. The config directory is mounted into both services so llama-dash can atomically save `config.yaml` and llama-swap can reload it through `-watch-config`.
+Uses llama-swap's `unified-cuda13` image with `gpus: all`. It supports Turing (RTX 20xx, GTX 16xx) and newer GPUs. For Pascal cards such as the GTX 10xx or P40, change the llama-swap image to `ghcr.io/mostlygeek/llama-swap:unified-cuda`.
 
-Set `LLAMA_DASH_IMAGE_TAG` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin llama-dash to a specific build. Contributors can build locally instead by adding `-f docker-compose.build.yaml` and `--build` to either command, for example:
+### 4. Open the dashboard
+
+Open `http://localhost:3000`, create the first dashboard user, then load your model from **Models**. llama-dash runs database migrations automatically at startup.
+
+<details>
+<summary>Image versions, local builds, and config reloads</summary>
+
+Set `LLAMA_DASH_IMAGE_TAG` in `.env` to a [published image tag](https://github.com/ndom91/llama-dash/pkgs/container/llama-dash), such as a commit SHA tag, to pin a specific build.
+
+To build locally, add `-f docker-compose.build.yaml` and `--build` to either vendor's `up` command:
 
 ```bash
 docker compose -f docker-compose.amd.yaml -f docker-compose.build.yaml up -d --build
 ```
 
-Open `http://localhost:3000`, create the first dashboard user, then load your configured model from **Models**. llama-dash runs database migrations automatically when it starts.
+Both setups use llama-swap's [unified containers](https://github.com/mostlygeek/llama-swap#unified-container-recommended) and share the `./config/` directory between services. This lets llama-dash save `config.yaml` atomically and llama-swap reload it with `-watch-config`. Model files are mounted from `./models/`.
 
-## 🏗️ Manual setup
+</details>
 
-### Requirements
+## Manual setup
 
-- Node 24+
-- pnpm
-- A reachable [llama-swap](https://github.com/mostlygeek/llama-swap) instance
-
-### Install
+For an existing llama-swap instance, install **Node 24+** and **pnpm**, then run these commands from the repository:
 
 ```bash
 cp .env.example .env   # edit INFERENCE_BASE_URL to point at your instance
@@ -153,14 +190,13 @@ pnpm db:migrate        # creates data/dash.db
 pnpm dev               # http://localhost:5173
 ```
 
-## 🏔️ Environment
+See the [environment variables reference](https://llama-dash.dev/docs/reference/environment-variables) for all variables, defaults, and deployment notes.
 
-Copy `.env.example` to `.env` and fill in the values.
+## Client setup
 
-See the [environment variables reference](https://llama-dash.dev/docs/reference/environment-variables)
-for the complete list of variables, defaults, and deployment notes.
+The **Endpoints** page has connection examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, and Open WebUI.
 
-## ✴️ Claude Code / Anthropic passthrough
+### Claude Code / Anthropic passthrough
 
 Route any Anthropic SDK, including Claude Code, through llama-dash for logging,
 filtering, per-request inspection, and Anthropic subscription passthrough.
@@ -175,10 +211,10 @@ the key in `x-llama-dash-api-key`. For Claude Code, set
 `"ANTHROPIC_CUSTOM_HEADERS": "x-llama-dash-api-key: sk-..."` in `env`. The header
 is never forwarded upstream.
 
-## 🤖 Acknowledgements
+## Acknowledgements
 
 This project was developed with significant assistance from LLMs. Architecture decisions, implementation, and documentation were all shaped through human-AI collaboration.
 
-## 📝 License
+## License
 
 MIT
