@@ -9,19 +9,6 @@ llama-dash is a dashboard and API gateway for your self-hosted [llama-swap](http
 
 [Quick start](#quick-start-docker-compose) · [Manual setup](#manual-setup) · [Client setup](#client-setup) · [Documentation](https://llama-dash.dev/docs)
 
-## What it does
-
-- Monitor traffic, token usage, cost estimates, and CPU/GPU health.
-- Inspect request history with filters, sorting, shareable time ranges, payloads, and timing details. Usage rollups outlive raw request logs.
-- Load and unload models, inspect capabilities and history, pause inference (llama-swap v268+), and edit validated configuration.
-- Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
-- Route requests to local models, peers, or direct upstreams. Rewrite model names, reject requests, inject credentials or system prompts, and limit request sizes.
-- Test chat, image, speech, transcription, and realtime voice models in the playground.
-
-<details>
-<summary>Supported APIs and monitoring details</summary>
-
-OpenAI-compatible and Anthropic-compatible clients connect through llama-dash. It handles auth, routing, policy, and logging; llama-swap manages local model processes and inference.
 
 ```text
 OpenAI SDK / Claude Code / Continue / Open WebUI
@@ -35,28 +22,17 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
   llama.cpp models · peers      OpenAI · Anthropic
 ```
 
-The proxy also supports these llama.cpp and llama-swap routes:
+## What it does
 
-| API | Routes |
-| --- | --- |
-| Native llama.cpp | `/completion`, `/infill`, `/rerank`, `/props` |
-| Versionless aliases | `/v/*` |
-| Automatic1111 images | `/sdapi/v1/*` |
-| Audio and ComfyUI passthroughs | `/audiocpp/*`, `/comfyui/*` |
-| Speech and realtime voice | `/v1/audio/speech`, `/v1/realtime` (WebSocket) |
+- Monitor traffic, token usage, cost estimates, and CPU/GPU health.
+- Inspect request history with filters, sorting, shareable time ranges, payloads, and timing details. Usage rollups outlive raw request logs.
+- Load and unload models, inspect capabilities and history, pause inference (llama-swap v268+), and edit validated configuration.
+- Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
+- Route requests to local models, peers, or direct upstreams. Rewrite model names, reject requests, inject credentials or system prompts, and limit request sizes.
+- Test chat, image, speech, transcription, and realtime voice models in the playground.
 
-Request history includes attribution, token counts, estimated costs, a matching traffic chart, and a total match count. Filters run server-side and sorting covers all retained history. See the [request query benchmarks](docs/2026_11_16_request_query_performance.md) for performance checks.
 
-The time picker defaults to the last 3 hours, with rolling presets, Today/Yesterday, all history, and custom local-time ranges. It includes a calendar, keyboard navigation, and editable 24-hour times.
 
-System monitoring includes up to 24 hours of in-memory CPU/GPU/memory history, configurable alert thresholds, a unified-memory breakdown per loaded model, and recent events. You can view live logs, inspect runtime/database and `models.dev` pricing status, manage retention, and export Prometheus metrics at `/metrics`.
-
-Model capabilities include llama-server reasoning effort levels. Keyboard shortcuts include `g d` for the dashboard and `g r` for requests.
-
-</details>
-
-<details>
-<summary>Screenshots</summary>
 
 <table>
   <tr>
@@ -117,7 +93,6 @@ Model capabilities include llama-server reasoning effort levels. Keyboard shortc
   </tr>
 </table>
 
-</details>
 
 ## Quick start (Docker Compose)
 
@@ -196,20 +171,7 @@ See the [environment variables reference](https://llama-dash.dev/docs/reference/
 
 The **Endpoints** page has connection examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, and Open WebUI.
 
-### Claude Code / Anthropic passthrough
-
-Route any Anthropic SDK, including Claude Code, through llama-dash for logging,
-filtering, per-request inspection, and Anthropic subscription passthrough.
-
-See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code)
-for client setup, routing rules, subscription OAuth, and provider-key flows. For
-remote MCP servers, see the [MCP relays guide](https://llama-dash.dev/docs/clients/mcp-relays).
-
-On passthrough routes the client's `Authorization` header belongs to the
-upstream provider. To attribute those requests to a llama-dash API key, also send
-the key in `x-llama-dash-api-key`. For Claude Code, set
-`"ANTHROPIC_CUSTOM_HEADERS": "x-llama-dash-api-key: sk-..."` in `env`. The header
-is never forwarded upstream.
+See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code) for proxy setup.
 
 ## Acknowledgements
 
