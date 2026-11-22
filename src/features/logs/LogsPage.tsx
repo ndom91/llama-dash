@@ -264,13 +264,6 @@ function LlamaSwapLogsPage() {
                 {virtualizer.getVirtualItems().map((vi) => {
                   const line = filtered[vi.index]
                   const { level, rest } = parseLogLevel(line.text)
-                  // The gutter timestamp is *arrival* time, captured once per SSE
-                  // event and stamped onto every line split out of it, so long
-                  // runs share a value. Collapsing repeats was tried and reverted:
-                  // the initial backlog arrives as a single event, so hundreds of
-                  // consecutive lines would render with empty gutters and the
-                  // whole block lost its left edge. The repetition is the lesser
-                  // problem — de-emphasis carries the hierarchy instead.
                   return (
                     <div
                       key={vi.key}
@@ -286,9 +279,17 @@ function LlamaSwapLogsPage() {
                         transform: `translateY(${vi.start}px)`,
                       }}
                     >
-                      <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim max-md:mr-0 max-md:w-auto">
-                        {formatLogTime(line.ts)}
-                      </span>
+                      <Tooltip
+                        label={
+                          line.ts === null
+                            ? 'No wall-clock timestamp in this log message'
+                            : new Date(line.ts).toLocaleString()
+                        }
+                      >
+                        <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim max-md:mr-0 max-md:w-auto">
+                          {formatLogTime(line.ts)}
+                        </span>
+                      </Tooltip>
                       <span className="mr-3 inline-block w-[78px] shrink-0 select-none text-fg-dim max-md:mr-0 max-md:w-auto">
                         {SOURCE_LABEL[line.source]}
                       </span>

@@ -13,6 +13,9 @@
 #   not used by llama-dash.
 # Keep `performance` enabled: llama-dash's System page reads /api/performance.
 captureBuffer: 0
+# Keep wall-clock timestamps in llama-swap's own log history for the Logs viewer.
+# Raw model output is unchanged; llama.cpp uptime is not wall-clock time.
+logTimeFormat: rfc3339nano
 helpagent:
   disable: true
 

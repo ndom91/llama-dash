@@ -1,3 +1,5 @@
+import { parseLogTimestamp } from '../../lib/log-timestamps'
+
 export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG' | 'TRACE'
 
 export const SOURCE_LABEL = {
@@ -45,6 +47,7 @@ const CHAR_LEVEL: Record<string, LogLevel> = {
  * parsed one.
  */
 export function parseLogLevel(text: string): { level: LogLevel | null; rest: string } {
+  text = parseLogTimestamp(text).rest
   const m = text.match(LEVEL_RE)
   if (!m) {
     const upstream = text.match(UPSTREAM_LEVEL_RE)
@@ -60,7 +63,8 @@ export function parseLogLevel(text: string): { level: LogLevel | null; rest: str
   return { level, rest: text.slice(m[0].length) }
 }
 
-export function formatLogTime(ts: number) {
+export function formatLogTime(ts: number | null) {
+  if (ts === null) return '—'
   const d = new Date(ts)
   const hh = String(d.getHours()).padStart(2, '0')
   const mm = String(d.getMinutes()).padStart(2, '0')

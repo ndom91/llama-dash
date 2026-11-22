@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseLogLevel } from './logsUtils'
+import { formatLogTime, parseLogLevel } from './logsUtils'
 
 describe('parseLogLevel', () => {
   describe('llama-swap bracketed levels', () => {
@@ -20,6 +20,13 @@ describe('parseLogLevel', () => {
 
     it('is case-insensitive', () => {
       expect(parseLogLevel('[warn] x').level).toBe('WARN')
+    })
+
+    it('parses the level after an embedded wall-clock timestamp without repeating the timestamp', () => {
+      expect(parseLogLevel('2026-11-22T14:17:13.670123456+01:00 [WARN] warning')).toEqual({
+        level: 'WARN',
+        rest: 'warning',
+      })
     })
   })
 
@@ -64,5 +71,15 @@ describe('parseLogLevel', () => {
     it('handles an empty line', () => {
       expect(parseLogLevel('')).toEqual({ level: null, rest: '' })
     })
+  })
+})
+
+describe('formatLogTime', () => {
+  it('shows an explicit placeholder when the source has no timestamp', () => {
+    expect(formatLogTime(null)).toBe('—')
+  })
+
+  it('formats the timestamp in local time with milliseconds', () => {
+    expect(formatLogTime(new Date(2026, 10, 22, 14, 17, 13, 670).getTime())).toBe('14:17:13.670')
   })
 })

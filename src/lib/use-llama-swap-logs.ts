@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { parseLogTimestamp } from './log-timestamps'
 
 export type LogLine = {
   id: number
   source: 'upstream' | 'proxy'
   text: string
-  ts: number
+  ts: number | null
 }
 
 const MAX_LINES = 10_000
@@ -34,11 +35,10 @@ export function useLlamaSwapLogs() {
         const raw: string = logData.data ?? ''
         if (!raw) return
 
-        const ts = Date.now()
         const newLines = raw
           .split('\n')
           .filter((t: string) => t.length > 0)
-          .map((text: string) => ({ id: nextId++, source, text, ts }) as LogLine)
+          .map((text: string) => ({ id: nextId++, source, text, ts: parseLogTimestamp(text).ts }))
         if (newLines.length === 0) return
 
         setLines((prev) => {
