@@ -6,6 +6,7 @@ export type LogLine = {
   source: 'upstream' | 'proxy'
   text: string
   ts: number | null
+  isReceiptTime: boolean
 }
 
 const MAX_LINES = 10_000
@@ -21,8 +22,14 @@ export function useLlamaSwapLogs() {
 
   useEffect(() => {
     const es = new EventSource('/api/log-events')
+    const seenSources = new Set<LogLine['source']>()
 
-    es.onopen = () => setConnected(true)
+    es.onopen = () => {
+      // Reconnects replay history again; don't append it to the previous stream.
+      seenSources.clear()
+      setLines([])
+      setConnected(true)
+    }
     es.onerror = () => setConnected(false)
 
     es.onmessage = (ev) => {
@@ -32,13 +39,27 @@ export function useLlamaSwapLogs() {
 
         const logData = typeof envelope.data === 'string' ? JSON.parse(envelope.data) : envelope.data
         const source: 'upstream' | 'proxy' = logData.source === 'proxy' ? 'proxy' : 'upstream'
-        const raw: string = logData.data ?? ''
-        if (!raw) return
+        const raw: unknown = logData.data
+        if (typeof raw !== 'string' || !raw) return
 
+        // llama-swap replays each source's history in its first batch. There is
+        // no explicit history marker, so conservatively leave that batch untimed
+        // even when the source was empty and its first batch is actually live.
+        const receivedAt = seenSources.has(source) ? Date.now() : null
+        seenSources.add(source)
         const newLines = raw
           .split('\n')
           .filter((t: string) => t.length > 0)
-          .map((text: string) => ({ id: nextId++, source, text, ts: parseLogTimestamp(text).ts }))
+          .map((text: string) => {
+            const ts = parseLogTimestamp(text).ts
+            return {
+              id: nextId++,
+              source,
+              text,
+              ts: ts ?? receivedAt,
+              isReceiptTime: ts === null && receivedAt !== null,
+            }
+          })
         if (newLines.length === 0) return
 
         setLines((prev) => {

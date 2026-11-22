@@ -374,8 +374,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
     The raw llama-swap log stream is split onto `/api/log-events` and is only
     subscribed while the Logs page is mounted.
     The Logs viewer reads per-line RFC3339/RFC3339Nano wall-clock prefixes
-    (`logTimeFormat: rfc3339nano` in llama-swap); missing timestamps show `—`
-    rather than receipt time. Raw model output is not timestamped by this option.
+    (`logTimeFormat: rfc3339nano` in llama-swap). Each source's first batch is
+    conservatively treated as history and shows `—` without an embedded timestamp;
+    subsequent untimestamped batches use browser receipt time, identified in the
+    tooltip. If a source has no history, its first live batch also remains untimed.
+    Reconnects replace the previous stream and reset this tracking. Raw model output
+    is not timestamped by `logTimeFormat`.
     JSON serialization and native SHA-256 validators are created together;
     conditional dispatch never rereads/rebuilds the response body. Captured payloads
     use `no-store` and skip ETags.

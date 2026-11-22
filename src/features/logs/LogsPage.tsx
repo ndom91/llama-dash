@@ -283,7 +283,7 @@ function LlamaSwapLogsPage() {
                         label={
                           line.ts === null
                             ? 'No wall-clock timestamp in this log message'
-                            : new Date(line.ts).toLocaleString()
+                            : `${line.isReceiptTime ? 'Received by this browser: ' : 'Message timestamp: '}${new Date(line.ts).toLocaleString()}`
                         }
                       >
                         <span className="mr-3 inline-block w-[88px] shrink-0 select-none tabular-nums text-fg-dim max-md:mr-0 max-md:w-auto">

@@ -113,7 +113,7 @@ cp config/config.example.yaml config/config.yaml
 - Place a GGUF model in `./models/` and update its path and model ID in `config/config.yaml`. The example expects `./models/llama-3.gguf` with the ID `llama3`.
 - If you plan to store upstream provider credentials, also set `CREDENTIAL_ENCRYPTION_KEY` in `.env`.
 
-The example enables `logTimeFormat: rfc3339nano` so the Logs viewer can read original wall-clock timestamps from llama-swap's own messages, including replayed history. Existing configs can add this top-level option. Messages without a supported timestamp show `—`; this setting does not timestamp raw model output such as llama.cpp's process-uptime logs.
+The example enables `logTimeFormat: rfc3339nano` so the Logs viewer can read original wall-clock timestamps from llama-swap's own messages, including replayed history. Existing configs can add this top-level option. This setting does not timestamp raw model output such as llama.cpp's process-uptime logs. Without an embedded timestamp, each source's initial batch shows `—` and subsequent live batches show browser receipt time, identified in the timestamp tooltip. Since llama-swap does not mark the history boundary, a source with no history also leaves its first live batch untimed. Reconnecting reloads history and resets this tracking.
 
 ### 3. Start the stack
 
