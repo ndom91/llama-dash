@@ -1,3 +1,5 @@
+import type { ComponentType } from 'react'
+import { ClaudeCodeIcon, HomeAssistantIcon, OpencodeIcon } from './ClientIcons'
 import { ENDPOINT_TYPES, type EndpointType, endpointTypeInfo } from './endpointTypes'
 import { EMBEDDINGS_SNIPPETS } from './snippetsEmbeddings'
 import { IMAGE_SNIPPETS } from './snippetsImage'
@@ -8,13 +10,16 @@ import { TRANSCRIBE_SNIPPETS } from './snippetsTranscribe'
 
 export type EndpointClient = 'curl' | 'python' | 'typescript' | 'claudecode' | 'opencode' | 'homeassistant'
 
-export const ENDPOINT_CLIENTS: ReadonlyArray<{ id: EndpointClient; label: string; icon: string }> = [
+/** A short mono tag, or an svg icon where the client has a recognisable mark. */
+export type ClientIcon = string | ComponentType<{ className?: string }>
+
+export const ENDPOINT_CLIENTS: ReadonlyArray<{ id: EndpointClient; label: string; icon: ClientIcon }> = [
   { id: 'curl', label: 'curl', icon: '$_' },
   { id: 'python', label: 'Python', icon: 'py' },
   { id: 'typescript', label: 'TypeScript', icon: 'ts' },
-  { id: 'claudecode', label: 'Claude Code', icon: '✳' },
-  { id: 'opencode', label: 'opencode', icon: 'oc' },
-  { id: 'homeassistant', label: 'Home Assistant', icon: '⌂' },
+  { id: 'claudecode', label: 'Claude Code', icon: ClaudeCodeIcon },
+  { id: 'opencode', label: 'opencode', icon: OpencodeIcon },
+  { id: 'homeassistant', label: 'Home Assistant', icon: HomeAssistantIcon },
 ]
 
 export const ENDPOINT_CLIENT_IDS = ENDPOINT_CLIENTS.map((c) => c.id)

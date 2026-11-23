@@ -1,9 +1,10 @@
 import { Tooltip } from '../../components/Tooltip'
 import { cn } from '../../lib/cn'
+import type { ClientIcon } from './snippets'
 
 type Props = {
   label: string
-  icon: string
+  icon: ClientIcon
   selected: boolean
   available: boolean
   /** Type labels this client has examples for, shown when it is unavailable. */
@@ -25,9 +26,13 @@ export function ClientChip({ label, icon, selected, available, supportedTypes, o
         !available && 'pointer-events-none border-dashed border-border text-fg-faint',
       )}
     >
-      <span aria-hidden className="text-[10px] text-fg-dim">
-        {icon}
-      </span>
+      {typeof icon === 'string' ? (
+        <span aria-hidden className="text-[10px] text-fg-dim">
+          {icon}
+        </span>
+      ) : (
+        <Icon icon={icon} />
+      )}
       {label}
     </button>
   )
@@ -40,4 +45,8 @@ export function ClientChip({ label, icon, selected, available, supportedTypes, o
       <span className="inline-flex cursor-not-allowed">{chip}</span>
     </Tooltip>
   )
+}
+
+function Icon({ icon: Svg }: { icon: Exclude<ClientIcon, string> }) {
+  return <Svg className="size-3 shrink-0 text-fg-dim" />
 }
