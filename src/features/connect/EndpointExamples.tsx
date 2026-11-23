@@ -5,13 +5,13 @@ import { ClientChip } from './ClientChip'
 import { CodeExample } from './CodeExample'
 import { EndpointModelPicker } from './EndpointModelPicker'
 import { ENDPOINT_TYPES, type EndpointType, endpointTypeInfo, modelsForType, placeholderModel } from './endpointTypes'
-import type { EndpointsSearch } from './endpointsSearch'
+import type { ConnectSearch } from './connectSearch'
 import { MissingModelHint } from './MissingModelHint'
 import { RequestTypeCard } from './RequestTypeCard'
 import { StepLabel } from './StepLabel'
 import { clientSupports, ENDPOINT_CLIENTS, firstClientFor, typesForClient } from './snippets'
 
-const route = getRouteApi('/endpoints')
+const route = getRouteApi('/connect')
 
 type Props = {
   baseUrl: string
@@ -42,7 +42,7 @@ export function EndpointExamples({ baseUrl, apiKey }: Props) {
   const model =
     search.model && typeModelIds.includes(search.model) ? search.model : (typeModelIds[0] ?? placeholderModel(type))
 
-  const update = (next: EndpointsSearch) => {
+  const update = (next: ConnectSearch) => {
     void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true })
   }
 

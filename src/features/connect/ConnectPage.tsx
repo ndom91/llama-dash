@@ -5,7 +5,7 @@ import { cn } from '../../lib/cn'
 import { useApiKeys } from '../../lib/queries'
 import { EndpointExamples } from './EndpointExamples'
 
-export function EndpointsPage() {
+export function ConnectPage() {
   const { data: keys, isPending: keysPending } = useApiKeys()
   const [selectedKeyIdx, setSelectedKeyIdx] = useState(0)
 
@@ -23,8 +23,8 @@ export function EndpointsPage() {
     <div className="content [scrollbar-gutter:stable]">
       <div className="page flex-1 bg-surface-1">
         <PageHeader
-          kicker="dsh · endpoints"
-          title="Endpoints"
+          kicker="dsh · connect"
+          title="Connect"
           subtitle="connect clients to llama-dash"
           variant="integrated"
         />

@@ -171,7 +171,7 @@ See the [environment variables reference](https://llama-dash.dev/docs/reference/
 
 ## Client setup
 
-The **Endpoints** page has connection examples per request type (text, image, speech, transcribe, realtime, embeddings). Each type card lists the models that support it, based on llama-swap capability metadata. Pick a client (curl, Python, TypeScript, Claude Code, opencode, Home Assistant) and a model, and the snippet fills in your base URL and key. The selection lives in the URL, so links are shareable.
+The **Connect** page has connection examples per request type (text, image, speech, transcribe, realtime, embeddings). Each type card lists the models that support it, based on llama-swap capability metadata. Pick a client (curl, Python, TypeScript, Claude Code, opencode, Home Assistant) and a model, and the snippet fills in your base URL and key. The selection lives in the URL, so links are shareable.
 
 See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code) for proxy setup.
 

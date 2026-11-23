@@ -1,12 +1,12 @@
-# Endpoints page: request-type cards and client chips
+# Connect page: request-type cards and client chips
 
-The Endpoints page picks an example in two steps: a request-type card, then a
+The Connect page picks an example in two steps: a request-type card, then a
 client chip, plus a model picker. The selection is persisted in
 `?type=&client=&model=`.
 
 ## Model to type mapping
 
-`src/features/endpoints/endpointTypes.ts` derives support from the
+`src/features/connect/endpointTypes.ts` derives support from the
 `capabilities` llama-swap reports on `/v1/models`:
 
 | Type       | Rule                                                            |
@@ -28,7 +28,7 @@ hint naming the `capabilities` entry to add.
 
 ## Client availability
 
-`src/features/endpoints/snippets.ts` is the single source of truth: a client
+`src/features/connect/snippets.ts` is the single source of truth: a client
 supports a type exactly when that type's snippet map has an entry for it.
 
 | Client         | Types                                        |

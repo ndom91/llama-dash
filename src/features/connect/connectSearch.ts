@@ -1,7 +1,7 @@
 import { ENDPOINT_TYPE_IDS, type EndpointType } from './endpointTypes'
 import { ENDPOINT_CLIENT_IDS, type EndpointClient } from './snippets'
 
-export type EndpointsSearch = {
+export type ConnectSearch = {
   type?: EndpointType
   client?: EndpointClient
   model?: string
@@ -12,7 +12,7 @@ function oneOf<T extends string>(value: unknown, allowed: ReadonlyArray<T>): T |
 }
 
 /** Unknown values are dropped, so a stale link falls back to the defaults. */
-export function validateEndpointsSearch(search: Record<string, unknown>): EndpointsSearch {
+export function validateConnectSearch(search: Record<string, unknown>): ConnectSearch {
   return {
     type: oneOf(search.type, ENDPOINT_TYPE_IDS),
     client: oneOf(search.client, ENDPOINT_CLIENT_IDS),

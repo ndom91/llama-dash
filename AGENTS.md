@@ -55,13 +55,13 @@ src/
     keys.$id.tsx            · /keys/:id detail (stats, model breakdown, requests)
     attribution.tsx         · /attribution header mapping + client setup examples
     policies.tsx            · /policies model aliases + request limits
-    endpoints.tsx           · /endpoints client connection examples
+    connect.tsx             · /connect client connection examples
     logs.tsx                · /logs raw log viewer (`?q=` pre-fills the search)
     login.tsx               · /login Better Auth username/password + passkey form
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
     dashboard/             · dashboard panels + metrics helpers
-    endpoints/             · request-type cards, client chips, model picker; `endpointTypes.ts` maps model capabilities to types, `snippets.ts` is the client availability registry (one `snippets<Type>.ts` per type), `endpointsSearch.ts` validates `?type&client&model`
+    connect/               · request-type cards, client chips, model picker; `endpointTypes.ts` maps model capabilities to types, `snippets.ts` is the client availability registry (one `snippets<Type>.ts` per type), `connectSearch.ts` validates `?type&client&model`
     keys/                  · keys list/detail panels and forms
     models/                · models list/detail panels and helpers
     playground/            · playground tabs, rails, and media tools
@@ -154,7 +154,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
 - `src/server/metrics.ts` — Prometheus text metrics for proxy requests, tokens, latency window gauges, queue depth/drops, upstream reachability, running models, and GPU gauges at `/metrics`.
 - `Dockerfile`, `prod-server.mjs`, `docker-compose.amd.yaml`, `docker-compose.nvidia.yaml` — production container packaging for llama-dash by itself or bundled with llama-swap. Compose pulls the GHCR image by default; `docker-compose.build.yaml` is the local-build override.
 - `.github/workflows/publish-docker.yml` — publishes multi-platform (`linux/amd64`, `linux/arm64`) GHCR images from `main` and version tags.
-- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/endpoints`.
+- `src/routes/*` — thin TanStack Start route entrypoints for `/`, `/login`, `/models`, `/models/:id`, `/requests`, `/logs`, `/system`, `/playground`, `/config`, `/settings`, `/keys`, `/keys/:id`, `/attribution`, `/policies`, `/connect`.
 - `src/features/*` — feature-local page components and helpers grouped by route area (`dashboard`, `requests`, `keys`, `models`, `playground`, etc.).
 - `src/lib/queries.ts` — TanStack Query hooks with SSE-driven cache invalidation for request, model, GPU, and system changes plus slow ETag polling fallback.
 
@@ -270,7 +270,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, direct upstream target controls, credential vault
-    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (request-type cards for text, image, speech,
+    with dependency warnings, and MCP relay management with Claude Code snippets), Connect (request-type cards for text, image, speech,
     transcribe, realtime, and embeddings, each listing the models whose capability metadata supports it;
     client chips for curl, Python, TS, Claude Code, opencode, and Home Assistant, dashed and disabled
     where a client has no example for the type; a model picker filtered to the type; selection

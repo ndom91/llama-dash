@@ -46,7 +46,7 @@ type NavTarget =
   | '/settings'
   | '/keys'
   | '/attribution'
-  | '/endpoints'
+  | '/connect'
   | '/policies'
 
 type NavItem = {
@@ -88,7 +88,7 @@ const SECTIONS: ReadonlyArray<NavSection> = [
       { to: '/attribution', label: 'Attribution', leader: 'a', Icon: Fingerprint },
       // 'p' belongs to Playground (used daily); Policies takes its second letter.
       { to: '/policies', label: 'Policies', leader: 'o', Icon: Shield },
-      { to: '/endpoints', label: 'Endpoints', leader: 'e', Icon: Link2 },
+      { to: '/connect', label: 'Connect', leader: 'n', Icon: Link2 },
       // ',' is the conventional preferences key; 's' goes to System, which an
       // operator visits far more often than a configure-once page.
       { to: '/settings', label: 'Settings', leader: ',', Icon: SlidersHorizontal },

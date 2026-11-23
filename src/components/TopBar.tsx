@@ -20,7 +20,7 @@ function resolveTitle(pathname: string): string {
   if (normalized.startsWith('/keys/')) return 'API Key Detail'
   if (normalized === '/config') return 'Config'
   if (normalized === '/settings') return 'Settings'
-  if (normalized === '/endpoints') return 'Endpoints'
+  if (normalized === '/connect') return 'Connect'
   if (normalized === '/policies') return 'Policies'
   if (normalized === '/system') return 'System'
   return 'llama-dash'
