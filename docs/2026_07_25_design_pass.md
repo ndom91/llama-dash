@@ -99,7 +99,7 @@ real bindings.
 | --- | --- | --- | --- |
 | `g d` Dashboard | `g r` Requests | `g l` Logs | `g s` System |
 | `g m` Models | `g p` Playground | `g c` Config | `g k` API Keys |
-| `g a` Attribution | `g o` Policies | `g e` Endpoints | `g ,` Settings |
+| `g a` Attribution | `g o` Policies | `g n` Connect | `g ,` Settings |
 
 `h` is deliberately unassigned so request detail's existing `H` never collides.
 
