@@ -88,13 +88,7 @@ export function EndpointsPage() {
               · {modalityLabel} · {clientLabel}
             </span>
           </div>
-          <Tabs
-            items={ENDPOINT_MODALITIES}
-            value={modality}
-            onChange={setModality}
-            variant="accent"
-            ariaLabel="Endpoint modality"
-          />
+          <Tabs items={ENDPOINT_MODALITIES} value={modality} onChange={setModality} ariaLabel="Endpoint modality" />
           <Tabs items={clients} value={client} onChange={setPreferredClient} ariaLabel="Endpoint client" />
           <div className="p-4">
             <CodeExample
