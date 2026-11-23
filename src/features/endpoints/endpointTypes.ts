@@ -1,3 +1,12 @@
+import {
+  AudioWaveform,
+  Binary,
+  Captions,
+  Image as ImageIcon,
+  type LucideIcon,
+  MessageSquareText,
+  Volume2,
+} from 'lucide-react'
 import type { ApiModel } from '../../lib/schemas/model'
 import { isRealtimeAudioModel } from '../playground/playgroundRealtimeUtils'
 
@@ -6,7 +15,7 @@ export type EndpointType = 'text' | 'image' | 'speech' | 'transcribe' | 'realtim
 export type EndpointTypeInfo = {
   id: EndpointType
   label: string
-  glyph: string
+  icon: LucideIcon
   method: 'POST' | 'WS'
   path: string
   /** llama-swap `capabilities` entry that makes a model show up for this type. */
@@ -28,7 +37,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'text',
     label: 'Text',
-    glyph: '¶',
+    icon: MessageSquareText,
     method: 'POST',
     path: '/v1/chat/completions',
     configHint: 'capabilities: { in: [text], out: [text] }',
@@ -37,7 +46,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'image',
     label: 'Image',
-    glyph: '▣',
+    icon: ImageIcon,
     method: 'POST',
     path: '/v1/images/generations',
     configHint: 'capabilities: { out: [image] }',
@@ -46,7 +55,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'speech',
     label: 'Speech',
-    glyph: '◖',
+    icon: Volume2,
     method: 'POST',
     path: '/v1/audio/speech',
     configHint: 'capabilities: { out: [audio] }',
@@ -55,7 +64,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'transcribe',
     label: 'Transcribe',
-    glyph: '◗',
+    icon: Captions,
     method: 'POST',
     path: '/v1/audio/transcriptions',
     configHint: 'capabilities: { in: [audio], out: [text] }',
@@ -64,7 +73,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'realtime',
     label: 'Realtime',
-    glyph: '⇄',
+    icon: AudioWaveform,
     method: 'WS',
     path: '/v1/realtime',
     configHint: 'capabilities: { in: [audio], out: [audio] }',
@@ -73,7 +82,7 @@ export const ENDPOINT_TYPES: ReadonlyArray<EndpointTypeInfo> = [
   {
     id: 'embeddings',
     label: 'Embeddings',
-    glyph: '⌗',
+    icon: Binary,
     method: 'POST',
     path: '/v1/embeddings',
     configHint: 'capabilities: { embeddings: true }',

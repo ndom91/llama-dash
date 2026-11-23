@@ -29,9 +29,11 @@ export function RequestTypeCard({ info, modelIds, loading, selected, onSelect }:
     >
       {selected ? <span aria-hidden className="absolute inset-x-0 top-0 h-0.5 bg-accent" /> : null}
       <span className="flex items-center gap-2 text-[13px] font-semibold text-fg">
-        <span aria-hidden className={cn('font-mono text-xs', selected ? 'text-accent' : 'text-fg-dim')}>
-          {info.glyph}
-        </span>
+        <info.icon
+          aria-hidden
+          className={cn('size-3.5 shrink-0', selected ? 'text-accent' : 'text-fg-dim')}
+          strokeWidth={2}
+        />
         {info.label}
       </span>
       <span className="truncate font-mono text-[11px] text-fg-dim">
