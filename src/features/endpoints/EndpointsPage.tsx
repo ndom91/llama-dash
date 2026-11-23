@@ -18,7 +18,7 @@ export function EndpointsPage() {
   const keyDisplay = hasKeys ? `${activeKeys[selectedKeyIdx]?.keyPrefix}…` : 'sk-your-key-here'
 
   return (
-    <div className="content">
+    <div className="content [scrollbar-gutter:stable]">
       <div className="page flex-1 bg-surface-1">
         <PageHeader
           kicker="dsh · endpoints"
