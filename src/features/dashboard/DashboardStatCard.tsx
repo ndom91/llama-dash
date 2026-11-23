@@ -27,11 +27,10 @@ export function DashboardStatCard({ label, value, unit, sparkline, tone = 'neutr
         <span className={tone === 'err' ? 'stat-card-value text-err' : 'stat-card-value'}>{value}</span>
         <span className="stat-card-unit">{unit}</span>
       </div>
-      {sparkline ? (
-        <div className="opacity-90">
-          <Sparkline data={sparkline} height={32} color={TONE_COLOR[tone]} />
-        </div>
-      ) : null}
+      {/* Fixed-height slot so the card keeps its loaded height before data arrives. */}
+      <div className="h-8 opacity-90">
+        {sparkline ? <Sparkline data={sparkline} height={32} color={TONE_COLOR[tone]} /> : null}
+      </div>
     </div>
   )
 }

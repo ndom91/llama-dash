@@ -37,11 +37,8 @@ export function DashboardUsageCard({ label, window, against, days }: Props) {
           />
         ) : null}
       </div>
-      {window ? (
-        <div className="opacity-90">
-          <Sparkline data={window.series} height={32} />
-        </div>
-      ) : null}
+      {/* Fixed-height slot so the card keeps its loaded height before data arrives. */}
+      <div className="h-8 opacity-90">{window ? <Sparkline data={window.series} height={32} /> : null}</div>
     </Link>
   )
 }
