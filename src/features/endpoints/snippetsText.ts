@@ -2,7 +2,7 @@ import type { SnippetMap } from './snippets'
 
 export const TEXT_SNIPPETS: SnippetMap = {
   curl: ({ baseUrl, apiKey, model }) => ({
-    filename: 'terminal',
+    filename: 'chat.sh',
     lang: 'bash',
     code: `curl ${baseUrl}/v1/chat/completions \\
   -H "Authorization: Bearer ${apiKey}" \\
@@ -68,6 +68,7 @@ rest_command:
   }),
   claudecode: ({ baseUrl, apiKey, model }) => ({
     filename: '~/.claude/settings.json',
+    path: '/v1/messages',
     lang: 'json',
     code: `{
   "env": {

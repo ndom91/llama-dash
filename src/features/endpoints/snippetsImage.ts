@@ -2,7 +2,7 @@ import type { SnippetMap } from './snippets'
 
 export const IMAGE_SNIPPETS: SnippetMap = {
   curl: ({ baseUrl, apiKey, model }) => ({
-    filename: 'terminal',
+    filename: 'image.sh',
     lang: 'bash',
     code: `curl ${baseUrl}/v1/images/generations \\
   -H "Authorization: Bearer ${apiKey}" \\

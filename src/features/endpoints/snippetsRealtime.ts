@@ -6,18 +6,6 @@ const realtimeUrl = ({ baseUrl, model }: SnippetContext) =>
   `${baseUrl.replace(/^http/, 'ws')}/v1/realtime?model=${encodeURIComponent(model)}`
 
 export const REALTIME_SNIPPETS: SnippetMap = {
-  curl: (ctx) => ({
-    filename: 'terminal',
-    lang: 'bash',
-    code: `# curl can't hold a WebSocket open; websocat can.
-# Paste the three JSON lines below once connected.
-websocat -H "Authorization: Bearer ${ctx.apiKey}" \\
-  "${realtimeUrl(ctx)}"
-
-{"type":"session.update","session":{"type":"realtime","output_modalities":["text"]}}
-{"type":"conversation.item.create","item":{"type":"message","role":"user","content":[{"type":"input_text","text":"Hello!"}]}}
-{"type":"response.create"}`,
-  }),
   python: (ctx) => ({
     filename: 'realtime.py',
     lang: 'python',

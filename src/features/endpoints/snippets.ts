@@ -1,76 +1,62 @@
-import type { ApiModel } from '../../lib/schemas/model'
-import { isRealtimeAudioModel } from '../playground/playgroundRealtimeUtils'
+import { ENDPOINT_TYPES, type EndpointType, endpointTypeInfo } from './endpointTypes'
+import { EMBEDDINGS_SNIPPETS } from './snippetsEmbeddings'
 import { IMAGE_SNIPPETS } from './snippetsImage'
 import { REALTIME_SNIPPETS } from './snippetsRealtime'
 import { SPEECH_SNIPPETS } from './snippetsSpeech'
 import { TEXT_SNIPPETS } from './snippetsText'
 import { TRANSCRIBE_SNIPPETS } from './snippetsTranscribe'
 
-export type EndpointModality = 'text' | 'image' | 'speech' | 'transcribe' | 'realtime'
+export type EndpointClient = 'curl' | 'python' | 'typescript' | 'claudecode' | 'opencode' | 'homeassistant'
 
-export type EndpointClient = 'curl' | 'python' | 'typescript' | 'homeassistant' | 'claudecode' | 'opencode'
-
-export const ENDPOINT_MODALITIES: Array<{ id: EndpointModality; label: string }> = [
-  { id: 'text', label: 'Text' },
-  { id: 'image', label: 'Image' },
-  { id: 'speech', label: 'Speech' },
-  { id: 'transcribe', label: 'Transcribe' },
-  { id: 'realtime', label: 'Realtime' },
+export const ENDPOINT_CLIENTS: ReadonlyArray<{ id: EndpointClient; label: string; icon: string }> = [
+  { id: 'curl', label: 'curl', icon: '$_' },
+  { id: 'python', label: 'Python', icon: 'py' },
+  { id: 'typescript', label: 'TypeScript', icon: 'ts' },
+  { id: 'claudecode', label: 'Claude Code', icon: '✳' },
+  { id: 'opencode', label: 'opencode', icon: 'oc' },
+  { id: 'homeassistant', label: 'Home Assistant', icon: '⌂' },
 ]
 
-const CLIENT_LABELS: Record<EndpointClient, string> = {
-  curl: 'curl',
-  python: 'Python',
-  typescript: 'TypeScript',
-  homeassistant: 'Home Assistant',
-  claudecode: 'Claude Code',
-  opencode: 'opencode',
-}
-
-export type EndpointSnippet = { code: string; filename: string; lang: string }
+export const ENDPOINT_CLIENT_IDS = ENDPOINT_CLIENTS.map((c) => c.id)
 
 export type SnippetContext = { baseUrl: string; apiKey: string; model: string }
 
+export type EndpointSnippet = {
+  code: string
+  filename: string
+  lang: string
+  /** Overrides the type's default path, e.g. Claude Code speaks /v1/messages. */
+  path?: string
+}
+
 export type SnippetMap = Partial<Record<EndpointClient, (ctx: SnippetContext) => EndpointSnippet>>
 
-const SNIPPETS: Record<EndpointModality, SnippetMap> = {
+// Single source of truth for client availability: a client supports a type
+// exactly when that type's map has an example for it.
+const SNIPPETS: Record<EndpointType, SnippetMap> = {
   text: TEXT_SNIPPETS,
   image: IMAGE_SNIPPETS,
   speech: SPEECH_SNIPPETS,
   transcribe: TRANSCRIBE_SNIPPETS,
   realtime: REALTIME_SNIPPETS,
+  embeddings: EMBEDDINGS_SNIPPETS,
 }
 
-/** Clients that have an example for the modality, in the map's order. */
-export function clientsForModality(modality: EndpointModality): Array<{ id: EndpointClient; label: string }> {
-  return (Object.keys(SNIPPETS[modality]) as Array<EndpointClient>).map((id) => ({ id, label: CLIENT_LABELS[id] }))
+export function clientSupports(client: EndpointClient, type: EndpointType): boolean {
+  return SNIPPETS[type][client] != null
 }
 
-export function endpointSnippet(modality: EndpointModality, client: EndpointClient, ctx: SnippetContext) {
-  return SNIPPETS[modality][client]?.(ctx) ?? null
+export function typesForClient(client: EndpointClient): Array<string> {
+  return ENDPOINT_TYPES.filter((t) => clientSupports(client, t.id)).map((t) => t.label)
 }
 
-type ModelPredicate = (model: ApiModel) => boolean
-
-const hasInput = (model: ApiModel, modality: string) => model.capabilities.inputModalities.includes(modality)
-const hasOutput = (model: ApiModel, modality: string) => model.capabilities.outputModalities.includes(modality)
-
-const MODEL_MATCHERS: Record<EndpointModality, { matches: ModelPredicate; placeholder: string }> = {
-  text: { matches: () => true, placeholder: 'your-model' },
-  image: { matches: (m) => hasOutput(m, 'image'), placeholder: 'your-image-model' },
-  speech: { matches: (m) => hasOutput(m, 'audio') && !hasInput(m, 'audio'), placeholder: 'your-tts-model' },
-  transcribe: { matches: (m) => hasInput(m, 'audio') && !hasOutput(m, 'audio'), placeholder: 'your-stt-model' },
-  realtime: { matches: isRealtimeAudioModel, placeholder: 'your-realtime-model' },
+export function firstClientFor(type: EndpointType): EndpointClient {
+  return ENDPOINT_CLIENTS.find((c) => clientSupports(c.id, type))?.id ?? 'curl'
 }
 
-/**
- * Picks a local model that reports the modality, preferring a running one.
- * Text keeps the old behaviour: only a running model, else a placeholder.
- */
-export function exampleModelFor(models: ReadonlyArray<ApiModel> | undefined, modality: EndpointModality): string {
-  const { matches, placeholder } = MODEL_MATCHERS[modality]
-  const candidates = (models ?? []).filter((model) => model.kind === 'local' && matches(model))
-  const running = candidates.find((model) => model.running)
-  if (modality === 'text') return running?.id ?? placeholder
-  return (running ?? candidates[0])?.id ?? placeholder
+export function endpointSnippet(type: EndpointType, client: EndpointClient, ctx: SnippetContext) {
+  const snippet = SNIPPETS[type][client]?.(ctx)
+  if (!snippet) return null
+  const info = endpointTypeInfo(type)
+  return { ...snippet, method: info.method, path: snippet.path ?? info.path }
 }

@@ -61,7 +61,7 @@ src/
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
     dashboard/             · dashboard panels + metrics helpers
-    endpoints/             · endpoint examples (`snippets.ts` modality/client registry, one `snippets<Modality>.ts` per modality)
+    endpoints/             · request-type cards, client chips, model picker; `endpointTypes.ts` maps model capabilities to types, `snippets.ts` is the client availability registry (one `snippets<Type>.ts` per type), `endpointsSearch.ts` validates `?type&client&model`
     keys/                  · keys list/detail panels and forms
     models/                · models list/detail panels and helpers
     playground/            · playground tabs, rails, and media tools
@@ -270,9 +270,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, direct upstream target controls, credential vault
-    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (modality tabs for text, image, speech,
-    transcribe, and realtime above client tabs for curl, Python, TS, Home Assistant, Claude Code,
-    and opencode; each modality lists only the clients it has examples for).
+    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (request-type cards for text, image, speech,
+    transcribe, realtime, and embeddings, each listing the models whose capability metadata supports it;
+    client chips for curl, Python, TS, Claude Code, opencode, and Home Assistant, dashed and disabled
+    where a client has no example for the type; a model picker filtered to the type; selection
+    persisted in `?type=&client=&model=`).
     Request details reuse list/recent summaries as observer-only placeholders
     while payloads load. Request-list hover and keyboard selection prefetch after
     a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.

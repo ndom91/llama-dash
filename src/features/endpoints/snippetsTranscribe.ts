@@ -2,7 +2,7 @@ import type { SnippetMap } from './snippets'
 
 export const TRANSCRIBE_SNIPPETS: SnippetMap = {
   curl: ({ baseUrl, apiKey, model }) => ({
-    filename: 'terminal',
+    filename: 'transcribe.sh',
     lang: 'bash',
     code: `curl ${baseUrl}/v1/audio/transcriptions \\
   -H "Authorization: Bearer ${apiKey}" \\
@@ -44,7 +44,7 @@ const transcript = await client.audio.transcriptions.create({
 console.log(transcript.text);`,
   }),
   homeassistant: ({ baseUrl, apiKey, model }) => ({
-    filename: 'Home Assistant',
+    filename: 'home-assistant-stt.yaml',
     lang: 'yaml',
     code: `# Speech-to-text through an OpenAI-compatible STT integration,
 # for example "OpenAI Whisper API" from HACS:

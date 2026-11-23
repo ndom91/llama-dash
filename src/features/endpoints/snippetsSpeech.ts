@@ -4,7 +4,7 @@ import type { SnippetMap } from './snippets'
 // per model, so every example points at where to list them.
 export const SPEECH_SNIPPETS: SnippetMap = {
   curl: ({ baseUrl, apiKey, model }) => ({
-    filename: 'terminal',
+    filename: 'speech.sh',
     lang: 'bash',
     code: `# List voices: llama.cpp models report them in /props?model=…,
 # other backends in /v1/audio/voices?model=…
@@ -59,7 +59,7 @@ const response = await client.audio.speech.create({
 await writeFile("speech.wav", Buffer.from(await response.arrayBuffer()));`,
   }),
   homeassistant: ({ baseUrl, apiKey, model }) => ({
-    filename: 'Home Assistant',
+    filename: 'home-assistant-tts.yaml',
     lang: 'yaml',
     code: `# Text-to-speech through an OpenAI-compatible TTS integration,
 # for example "OpenAI TTS" from HACS:
