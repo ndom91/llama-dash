@@ -1,4 +1,6 @@
+import { SkeletonLine } from '../../components/skeleton/SkeletonFrame'
 import { cn } from '../../lib/cn'
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import type { EndpointTypeInfo } from './endpointTypes'
 
 const MAX_CHIPS = 2
@@ -15,6 +17,7 @@ export function RequestTypeCard({ info, modelIds, loading, selected, onSelect }:
   const empty = !loading && modelIds.length === 0
   const shown = modelIds.slice(0, MAX_CHIPS)
   const hidden = modelIds.length - shown.length
+  const reveal = useSkeletonReveal(loading)
 
   return (
     <button
@@ -39,12 +42,21 @@ export function RequestTypeCard({ info, modelIds, loading, selected, onSelect }:
       <span className="truncate font-mono text-[11px] text-fg-dim">
         {info.method} {info.path}
       </span>
-      <span className="mt-1 flex h-4 min-w-0 items-center gap-1">
-        {empty ? <ModelChip>no model loaded</ModelChip> : null}
-        {shown.map((id) => (
-          <ModelChip key={id}>{id}</ModelChip>
-        ))}
-        {hidden > 0 ? <span className="shrink-0 font-mono text-[10px] text-fg-dim">+{hidden}</span> : null}
+      <span aria-hidden={loading} className={cn('mt-1 flex h-4 min-w-0 items-center gap-1', reveal && 't-reveal')}>
+        {loading ? (
+          <>
+            <SkeletonLine width={72} height={15} className="shrink-0 rounded-sm" />
+            <SkeletonLine width={52} height={15} className="shrink-0 rounded-sm" />
+          </>
+        ) : (
+          <>
+            {empty ? <ModelChip>no model loaded</ModelChip> : null}
+            {shown.map((id) => (
+              <ModelChip key={id}>{id}</ModelChip>
+            ))}
+            {hidden > 0 ? <span className="shrink-0 font-mono text-[10px] text-fg-dim">+{hidden}</span> : null}
+          </>
+        )}
       </span>
     </button>
   )

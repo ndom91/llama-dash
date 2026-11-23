@@ -84,6 +84,7 @@ export function EndpointExamples({ baseUrl, apiKey }: Props) {
         <EndpointModelPicker
           className="ml-auto"
           modelIds={typeModelIds}
+          loading={!modelsLoaded}
           value={model}
           onChange={(next) => update({ model: next })}
         />

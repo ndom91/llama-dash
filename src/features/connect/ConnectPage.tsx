@@ -3,6 +3,7 @@ import { CopyableCode } from '../../components/CopyableCode'
 import { PageHeader } from '../../components/PageHeader'
 import { cn } from '../../lib/cn'
 import { useApiKeys } from '../../lib/queries'
+import { useSkeletonReveal } from '../../lib/use-skeleton-reveal'
 import { EndpointExamples } from './EndpointExamples'
 
 export function ConnectPage() {
@@ -17,6 +18,7 @@ export function ConnectPage() {
   const hasKeys = activeKeys.length > 0
   // Keep the panel mounted while keys load so it doesn't pop in and reflow the grid.
   const showKeyPanel = keysPending || hasKeys
+  const revealKeys = useSkeletonReveal(keysPending)
   const keyDisplay = hasKeys ? `${activeKeys[selectedKeyIdx]?.keyPrefix}…` : 'sk-your-key-here'
 
   return (
@@ -51,7 +53,10 @@ export function ConnectPage() {
               </div>
               <div className="p-4 flex flex-col gap-3">
                 <select
-                  className="select-native w-full cursor-pointer rounded border border-border bg-surface-3 px-2 py-1.5 font-mono text-xs text-fg disabled:cursor-default disabled:text-fg-dim"
+                  className={cn(
+                    'select-native w-full cursor-pointer rounded border border-border bg-surface-3 px-2 py-1.5 font-mono text-xs text-fg disabled:cursor-default disabled:text-fg-dim',
+                    revealKeys && 't-reveal',
+                  )}
                   value={keysPending ? '' : selectedKeyIdx}
                   onChange={(e) => setSelectedKeyIdx(Number(e.target.value))}
                   disabled={keysPending}
