@@ -342,6 +342,11 @@ paths (proxy will grow middleware; admin will grow CRUD).
    rules only trigger such a pre-enforcement read once the caller is authenticated
    (or the proxy runs open), so unauthenticated requests are still rejected without
    buffering a body.
+   Multipart bodies (audio transcription uploads) are buffered within the same
+   10 MiB limit; `model` and `stream` are read from their text parts
+   (`src/server/proxy/multipart.ts`) so routing, allow-lists, aliases, and
+   logging see the model. The original bytes are forwarded unchanged unless the
+   model is rewritten, in which case only that value is replaced.
    In-memory caches for aliases and settings, invalidated on admin writes.
    System-prompt injection branches
    by endpoint: `/v1/chat/completions` prepends a `system` message to

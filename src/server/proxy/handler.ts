@@ -106,7 +106,7 @@ export async function handleProxyRequest(request: Request): Promise<Response> {
   }
 
   if (ctx.body?.hasBody) {
-    if (ctx.body.parsedBody && !ctx.body.isMultipart) {
+    if (ctx.body.parsedBody) {
       const transformResult = applyTransforms(ctx.body.parsedBody, {
         keyRow: ctx.keyRow,
         endpoint: ctx.endpoint,

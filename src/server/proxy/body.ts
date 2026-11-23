@@ -1,3 +1,5 @@
+import { type MultipartTextField, readMultipartTextFields, replaceMultipartBytes } from './multipart.ts'
+
 // Prefix scanned for routing fields when the full body fails to JSON.parse.
 const ROUTING_FALLBACK_PREFIX_BYTES = 16 * 1024
 export const MAX_PROXY_BODY_BYTES = 10 * 1024 * 1024
@@ -6,6 +8,8 @@ export type PreparedProxyBody = {
   parsedBody: Record<string, unknown> | null
   bodyText: string | null
   isMultipart: boolean
+  multipartBytes: Uint8Array | null
+  multipartModelField: MultipartTextField | null
   preserveContentLength: boolean
 }
 
@@ -19,7 +23,9 @@ export type ProxyBodyTransformResult = {
   mutated: boolean
 }
 
-export type ProxyForwardBody = ReadableStream<Uint8Array> | ArrayBuffer | string | undefined
+export type ProxyForwardBody = ReadableStream<Uint8Array> | Uint8Array | ArrayBuffer | string | undefined
+
+const MULTIPART_ROUTING_FIELDS = new Set(['model', 'stream'])
 
 export async function prepareProxyBody(request: Request, method: string): Promise<ProxyBodySnapshot> {
   const hasBody = method !== 'GET' && method !== 'HEAD'
@@ -32,24 +38,15 @@ export async function prepareProxyBody(request: Request, method: string): Promis
         parsedBody: null,
         bodyText: null,
         isMultipart: false,
+        multipartBytes: null,
+        multipartModelField: null,
         preserveContentLength: false,
       },
       hasBody,
     )
   }
 
-  if (isMultipart) {
-    assertContentLengthWithinLimit(request.headers)
-    return snapshot(
-      {
-        parsedBody: null,
-        bodyText: null,
-        isMultipart: true,
-        preserveContentLength: true,
-      },
-      hasBody,
-    )
-  }
+  if (isMultipart) return snapshot(await prepareMultipartBody(request, contentType), hasBody)
 
   const { text, prefix } = await readBody(request, MAX_PROXY_BODY_BYTES)
   let parsedBody: Record<string, unknown> | null = null
@@ -64,6 +61,8 @@ export async function prepareProxyBody(request: Request, method: string): Promis
       parsedBody,
       bodyText: text,
       isMultipart: false,
+      multipartBytes: null,
+      multipartModelField: null,
       preserveContentLength: false,
     },
     hasBody,
@@ -75,6 +74,7 @@ export function applyProxyBodyTransform(
   transform: ProxyBodyTransformResult,
 ): ProxyBodySnapshot {
   if (!transform.body) return body
+  if (body.isMultipart) return applyMultipartModel(body, transform.body)
   return snapshot(
     {
       ...body,
@@ -87,7 +87,7 @@ export function applyProxyBodyTransform(
 
 export function getProxyForwardBody(body: ProxyBodySnapshot, request: Request): ProxyForwardBody {
   if (!body.hasBody) return undefined
-  if (body.isMultipart) return request.body ?? undefined
+  if (body.isMultipart) return body.multipartBytes ?? request.body ?? undefined
   return body.bodyText || undefined
 }
 
@@ -98,6 +98,8 @@ export function getProxyLoggedBody(body: ProxyBodySnapshot): string | null {
 export function applyProxyBodyHeaders(body: ProxyBodySnapshot, headers: Record<string, string>) {
   if (!body.isMultipart && body.bodyText) {
     headers['content-length'] = String(Buffer.byteLength(body.bodyText, 'utf8'))
+  } else if (body.isMultipart && body.multipartBytes && !body.preserveContentLength) {
+    headers['content-length'] = String(body.multipartBytes.byteLength)
   }
 }
 
@@ -117,6 +119,50 @@ function snapshot(body: PreparedProxyBody, hasBody: boolean): ProxyBodySnapshot 
 
 function extractModel(parsedBody: Record<string, unknown> | null): string | null {
   return parsedBody && typeof parsedBody.model === 'string' ? parsedBody.model : null
+}
+
+// Buffered (within the same hard limit as JSON) so the model can be read for
+// routing, allow-lists, aliases, and logging. The bytes are forwarded as-is
+// unless the model is rewritten.
+async function prepareMultipartBody(request: Request, contentType: string): Promise<PreparedProxyBody> {
+  assertContentLengthWithinLimit(request.headers)
+  const bytes = await readLimitedBytes(request, MAX_PROXY_BODY_BYTES)
+  const fields = readMultipartTextFields(bytes, contentType, MULTIPART_ROUTING_FIELDS)
+  return {
+    parsedBody: fields ? multipartRoutingBody(fields) : null,
+    bodyText: null,
+    isMultipart: true,
+    multipartBytes: bytes,
+    multipartModelField: fields?.get('model') ?? null,
+    preserveContentLength: true,
+  }
+}
+
+function multipartRoutingBody(fields: Map<string, MultipartTextField>): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  const model = fields.get('model')
+  const stream = fields.get('stream')
+  if (model) body.model = model.value
+  if (stream) body.stream = stream.value === 'true'
+  return body
+}
+
+function applyMultipartModel(body: ProxyBodySnapshot, transformed: Record<string, unknown>): ProxyBodySnapshot {
+  const field = body.multipartModelField
+  const model = transformed.model
+  if (!field || !body.multipartBytes || typeof model !== 'string' || model === field.value) {
+    return snapshot({ ...body, parsedBody: transformed }, body.hasBody)
+  }
+  return snapshot(
+    {
+      ...body,
+      parsedBody: transformed,
+      multipartBytes: replaceMultipartBytes(body.multipartBytes, field, model),
+      multipartModelField: null,
+      preserveContentLength: false,
+    },
+    body.hasBody,
+  )
 }
 
 async function readBody(request: Request, maxBytes: number): Promise<{ text: string; prefix: string }> {
