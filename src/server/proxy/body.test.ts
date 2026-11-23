@@ -6,7 +6,6 @@ import {
   getProxyLoggedBody,
   MAX_PROXY_BODY_BYTES,
   prepareProxyBody,
-  restoreProxyBodyContentLength,
 } from './body'
 
 describe('prepareProxyBody', () => {
@@ -47,10 +46,9 @@ describe('prepareProxyBody', () => {
     const body = await prepareProxyBody(request, 'POST')
 
     expect(body.isMultipart).toBe(true)
-    expect(body.preserveContentLength).toBe(true)
     expect(body.parsedBody).toEqual({ model: 'lfm3-audio-2b', stream: false })
     expect(body.reqModel).toBe('lfm3-audio-2b')
-    expect(Buffer.from(getProxyForwardBody(body, request) as Uint8Array).equals(raw)).toBe(true)
+    expect(Buffer.from(getProxyForwardBody(body) as Uint8Array).equals(raw)).toBe(true)
     expect(getProxyLoggedBody(body)).toBeNull()
   })
 
@@ -76,9 +74,8 @@ describe('prepareProxyBody', () => {
     const transformed = applyProxyBodyTransform(body, { mutated: true, body: { model: 'real-model' } })
     const headers: Record<string, string> = {}
     applyProxyBodyHeaders(transformed, headers)
-    restoreProxyBodyContentLength(transformed, request, headers)
 
-    const forwarded = Buffer.from(getProxyForwardBody(transformed, request) as Uint8Array)
+    const forwarded = Buffer.from(getProxyForwardBody(transformed) as Uint8Array)
     expect(forwarded.equals(Buffer.from(raw.toString('latin1').replace('alias', 'real-model'), 'latin1'))).toBe(true)
     expect(headers['content-length']).toBe(String(forwarded.byteLength))
     expect(transformed.reqModel).toBe('real-model')
@@ -91,31 +88,19 @@ describe('prepareProxyBody', () => {
     const body = await prepareProxyBody(request, 'POST')
 
     expect(body.isMultipart).toBe(true)
-    expect(body.preserveContentLength).toBe(true)
     expect(body.parsedBody).toBeNull()
-    expect(Buffer.from(getProxyForwardBody(body, request) as Uint8Array).equals(raw)).toBe(true)
+    expect(Buffer.from(getProxyForwardBody(body) as Uint8Array).equals(raw)).toBe(true)
     expect(getProxyLoggedBody(body)).toBeNull()
   })
 
-  it('restores content length for untouched multipart stream forwarding', async () => {
-    const bodyStream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode('--dash\r\nmalformed'))
-        controller.close()
-      },
-    })
-    const request = new Request('http://dash.test/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: { 'content-type': 'multipart/form-data; boundary=dash', 'content-length': '18' },
-      body: bodyStream,
-      ...({ duplex: 'half' } as RequestInit),
-    })
-    const body = await prepareProxyBody(request, 'POST')
+  it('reports the original content length for untouched multipart bodies', async () => {
+    const raw = multipartBody([{ name: 'model', value: 'lfm3-audio-2b' }])
+    const body = await prepareProxyBody(multipartRequest(raw), 'POST')
     const headers: Record<string, string> = {}
 
-    restoreProxyBodyContentLength(body, request, headers)
+    applyProxyBodyHeaders(body, headers)
 
-    expect(headers['content-length']).toBe('18')
+    expect(headers['content-length']).toBe(String(raw.byteLength))
   })
 
   it('serializes transformed JSON bodies and updates content length', async () => {
@@ -133,7 +118,7 @@ describe('prepareProxyBody', () => {
     applyProxyBodyHeaders(transformed, headers)
 
     expect(transformed.reqModel).toBe('after')
-    expect(getProxyForwardBody(transformed, request)).toBe('{"model":"after","messages":[]}')
+    expect(getProxyForwardBody(transformed)).toBe('{"model":"after","messages":[]}')
     expect(headers['content-length']).toBe(String(Buffer.byteLength(transformed.bodyText ?? '', 'utf8')))
   })
 

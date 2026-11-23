@@ -10,7 +10,6 @@ export type PreparedProxyBody = {
   isMultipart: boolean
   multipartBytes: Uint8Array | null
   multipartModelField: MultipartTextField | null
-  preserveContentLength: boolean
 }
 
 export type ProxyBodySnapshot = PreparedProxyBody & {
@@ -40,7 +39,6 @@ export async function prepareProxyBody(request: Request, method: string): Promis
         isMultipart: false,
         multipartBytes: null,
         multipartModelField: null,
-        preserveContentLength: false,
       },
       hasBody,
     )
@@ -63,7 +61,6 @@ export async function prepareProxyBody(request: Request, method: string): Promis
       isMultipart: false,
       multipartBytes: null,
       multipartModelField: null,
-      preserveContentLength: false,
     },
     hasBody,
   )
@@ -85,9 +82,9 @@ export function applyProxyBodyTransform(
   )
 }
 
-export function getProxyForwardBody(body: ProxyBodySnapshot, request: Request): ProxyForwardBody {
+export function getProxyForwardBody(body: ProxyBodySnapshot): ProxyForwardBody {
   if (!body.hasBody) return undefined
-  if (body.isMultipart) return body.multipartBytes ?? request.body ?? undefined
+  if (body.isMultipart) return body.multipartBytes ?? undefined
   return body.bodyText || undefined
 }
 
@@ -98,19 +95,9 @@ export function getProxyLoggedBody(body: ProxyBodySnapshot): string | null {
 export function applyProxyBodyHeaders(body: ProxyBodySnapshot, headers: Record<string, string>) {
   if (!body.isMultipart && body.bodyText) {
     headers['content-length'] = String(Buffer.byteLength(body.bodyText, 'utf8'))
-  } else if (body.isMultipart && body.multipartBytes && !body.preserveContentLength) {
+  } else if (body.multipartBytes) {
     headers['content-length'] = String(body.multipartBytes.byteLength)
   }
-}
-
-export function restoreProxyBodyContentLength(
-  body: ProxyBodySnapshot,
-  request: Request,
-  headers: Record<string, string>,
-) {
-  if (!body.preserveContentLength) return
-  const contentLength = request.headers.get('content-length')
-  if (contentLength) headers['content-length'] = contentLength
 }
 
 function snapshot(body: PreparedProxyBody, hasBody: boolean): ProxyBodySnapshot {
@@ -134,7 +121,6 @@ async function prepareMultipartBody(request: Request, contentType: string): Prom
     isMultipart: true,
     multipartBytes: bytes,
     multipartModelField: fields?.get('model') ?? null,
-    preserveContentLength: true,
   }
 }
 
@@ -159,7 +145,6 @@ function applyMultipartModel(body: ProxyBodySnapshot, transformed: Record<string
       parsedBody: transformed,
       multipartBytes: replaceMultipartBytes(body.multipartBytes, field, model),
       multipartModelField: null,
-      preserveContentLength: false,
     },
     body.hasBody,
   )

@@ -8,7 +8,6 @@ import {
   getProxyForwardBody,
   getProxyLoggedBody,
   prepareProxyBody,
-  restoreProxyBodyContentLength,
   type ProxyForwardBody,
   type ProxyBodySnapshot,
 } from './body.ts'
@@ -92,7 +91,6 @@ export function finalizeRoutingAndBody(ctx: ProxyContext) {
   ctx.upstream = selectUpstream(ctx.defaultUpstream, ctx.routingOutcome, ctx.endpoint, ctx.url.search)
   if (!ctx.body?.hasBody) return
   applyProxyBodyHeaders(ctx.body, ctx.reqHeaders)
-  restoreProxyBodyContentLength(ctx.body, ctx.request, ctx.reqHeaders)
 }
 
 export function loggedRequestHeaders(ctx: ProxyContext): string {
@@ -107,7 +105,7 @@ export function loggedRequestBody(ctx: ProxyContext): string | null {
 }
 
 export function forwardBody(ctx: ProxyContext): ProxyForwardBody {
-  return ctx.body ? getProxyForwardBody(ctx.body, ctx.request) : undefined
+  return ctx.body ? getProxyForwardBody(ctx.body) : undefined
 }
 
 // llama-dash's own API key header identifies the caller to the proxy only; it
