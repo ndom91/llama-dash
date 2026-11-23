@@ -6,7 +6,7 @@ import { useApiKeys } from '../../lib/queries'
 import { EndpointExamples } from './EndpointExamples'
 
 export function EndpointsPage() {
-  const { data: keys } = useApiKeys()
+  const { data: keys, isPending: keysPending } = useApiKeys()
   const [selectedKeyIdx, setSelectedKeyIdx] = useState(0)
 
   // Read the origin after mount: SSR has no window, and hydration keeps the
@@ -15,6 +15,8 @@ export function EndpointsPage() {
   useEffect(() => setBaseUrl(window.location.origin), [])
   const activeKeys = useMemo(() => (keys ?? []).filter((k) => !k.disabledAt), [keys])
   const hasKeys = activeKeys.length > 0
+  // Keep the panel mounted while keys load so it doesn't pop in and reflow the grid.
+  const showKeyPanel = keysPending || hasKeys
   const keyDisplay = hasKeys ? `${activeKeys[selectedKeyIdx]?.keyPrefix}…` : 'sk-your-key-here'
 
   return (
@@ -27,7 +29,7 @@ export function EndpointsPage() {
           variant="integrated"
         />
 
-        <div className={cn('grid gap-0', hasKeys && 'grid-cols-1 md:grid-cols-2')}>
+        <div className={cn('grid gap-0', showKeyPanel && 'grid-cols-1 md:grid-cols-2')}>
           <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1">
             <div className="panel-head bg-transparent px-6 max-md:px-3">
               <span className="panel-title">Base URL</span>
@@ -41,7 +43,7 @@ export function EndpointsPage() {
             </div>
           </section>
 
-          {hasKeys ? (
+          {showKeyPanel ? (
             <section className="panel flex flex-col !rounded-none !border-x-0 !bg-surface-1 md:border-l md:border-l-border">
               <div className="panel-head bg-transparent px-6 max-md:px-3">
                 <span className="panel-title">API Key</span>
@@ -49,15 +51,21 @@ export function EndpointsPage() {
               </div>
               <div className="p-4 flex flex-col gap-3">
                 <select
-                  className="select-native w-full cursor-pointer rounded border border-border bg-surface-3 px-2 py-1.5 font-mono text-xs text-fg"
-                  value={selectedKeyIdx}
+                  className="select-native w-full cursor-pointer rounded border border-border bg-surface-3 px-2 py-1.5 font-mono text-xs text-fg disabled:cursor-default disabled:text-fg-dim"
+                  value={keysPending ? '' : selectedKeyIdx}
                   onChange={(e) => setSelectedKeyIdx(Number(e.target.value))}
+                  disabled={keysPending}
+                  aria-busy={keysPending}
                 >
-                  {activeKeys.map((k, i) => (
-                    <option key={k.id} value={i}>
-                      {k.name} ({k.keyPrefix}…)
-                    </option>
-                  ))}
+                  {keysPending ? (
+                    <option value="">loading keys…</option>
+                  ) : (
+                    activeKeys.map((k, i) => (
+                      <option key={k.id} value={i}>
+                        {k.name} ({k.keyPrefix}…)
+                      </option>
+                    ))
+                  )}
                 </select>
                 <p className="text-xs text-fg-dim font-mono m-0">
                   Key prefixes shown for reference. Use your full key value in the Authorization header.
