@@ -1,167 +1,76 @@
-import { useMemo } from 'react'
+import type { ApiModel } from '../../lib/schemas/model'
+import { isRealtimeAudioModel } from '../playground/playgroundRealtimeUtils'
+import { IMAGE_SNIPPETS } from './snippetsImage'
+import { REALTIME_SNIPPETS } from './snippetsRealtime'
+import { SPEECH_SNIPPETS } from './snippetsSpeech'
+import { TEXT_SNIPPETS } from './snippetsText'
+import { TRANSCRIBE_SNIPPETS } from './snippetsTranscribe'
 
-export type EndpointTab =
-  | 'curl'
-  | 'python'
-  | 'typescript'
-  | 'homeassistant'
-  | 'claudecode'
-  | 'opencode'
-  | 'continue'
-  | 'openwebui'
+export type EndpointModality = 'text' | 'image' | 'speech' | 'transcribe' | 'realtime'
 
-export const ENDPOINT_TABS: Array<{ id: EndpointTab; label: string }> = [
-  { id: 'curl', label: 'curl' },
-  { id: 'python', label: 'Python' },
-  { id: 'typescript', label: 'TypeScript' },
-  { id: 'homeassistant', label: 'Home Assistant' },
-  { id: 'claudecode', label: 'Claude Code' },
-  { id: 'opencode', label: 'opencode' },
-  { id: 'continue', label: 'Continue' },
-  { id: 'openwebui', label: 'Open WebUI' },
+export type EndpointClient = 'curl' | 'python' | 'typescript' | 'homeassistant' | 'claudecode' | 'opencode'
+
+export const ENDPOINT_MODALITIES: Array<{ id: EndpointModality; label: string }> = [
+  { id: 'text', label: 'Text' },
+  { id: 'image', label: 'Image' },
+  { id: 'speech', label: 'Speech' },
+  { id: 'transcribe', label: 'Transcribe' },
+  { id: 'realtime', label: 'Realtime' },
 ]
+
+const CLIENT_LABELS: Record<EndpointClient, string> = {
+  curl: 'curl',
+  python: 'Python',
+  typescript: 'TypeScript',
+  homeassistant: 'Home Assistant',
+  claudecode: 'Claude Code',
+  opencode: 'opencode',
+}
 
 export type EndpointSnippet = { code: string; filename: string; lang: string }
 
-export function useEndpointSnippet(tab: EndpointTab, baseUrl: string, apiKey: string, model: string): EndpointSnippet {
-  return useMemo(() => {
-    switch (tab) {
-      case 'curl':
-        return {
-          filename: 'terminal',
-          lang: 'bash',
-          code: `curl ${baseUrl}/v1/chat/completions \\
-  -H "Authorization: Bearer ${apiKey}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "model": "${model}",
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'`,
-        }
-      case 'python':
-        return {
-          filename: 'chat.py',
-          lang: 'python',
-          code: `from openai import OpenAI
+export type SnippetContext = { baseUrl: string; apiKey: string; model: string }
 
-client = OpenAI(
-    base_url="${baseUrl}/v1",
-    api_key="${apiKey}",
-)
+export type SnippetMap = Partial<Record<EndpointClient, (ctx: SnippetContext) => EndpointSnippet>>
 
-response = client.chat.completions.create(
-    model="${model}",
-    messages=[{"role": "user", "content": "Hello!"}],
-)
-print(response.choices[0].message.content)`,
-        }
-      case 'typescript':
-        return {
-          filename: 'chat.ts',
-          lang: 'typescript',
-          code: `import OpenAI from "openai";
+const SNIPPETS: Record<EndpointModality, SnippetMap> = {
+  text: TEXT_SNIPPETS,
+  image: IMAGE_SNIPPETS,
+  speech: SPEECH_SNIPPETS,
+  transcribe: TRANSCRIBE_SNIPPETS,
+  realtime: REALTIME_SNIPPETS,
+}
 
-const client = new OpenAI({
-  baseURL: "${baseUrl}/v1",
-  apiKey: "${apiKey}",
-});
+/** Clients that have an example for the modality, in the map's order. */
+export function clientsForModality(modality: EndpointModality): Array<{ id: EndpointClient; label: string }> {
+  return (Object.keys(SNIPPETS[modality]) as Array<EndpointClient>).map((id) => ({ id, label: CLIENT_LABELS[id] }))
+}
 
-const response = await client.chat.completions.create({
-  model: "${model}",
-  messages: [{ role: "user", content: "Hello!" }],
-});
-console.log(response.choices[0].message.content);`,
-        }
-      case 'homeassistant':
-        return {
-          filename: 'configuration.yaml',
-          lang: 'yaml',
-          code: `# Settings → Voice assistants → Add LLM conversation agent
-#
-# Or in configuration.yaml:
-rest_command:
-  llm_query:
-    url: "${baseUrl}/v1/chat/completions"
-    method: POST
-    headers:
-      Authorization: "Bearer ${apiKey}"
-      Content-Type: "application/json"
-    payload: >
-      {"model": "${model}", "messages": [{"role": "user", "content": "{{ prompt }}"}]}
+export function endpointSnippet(modality: EndpointModality, client: EndpointClient, ctx: SnippetContext) {
+  return SNIPPETS[modality][client]?.(ctx) ?? null
+}
 
-# For the OpenAI-compatible conversation agent,
-# install the "Extended OpenAI Conversation" integration:
-#   Base URL: ${baseUrl}/v1
-#   API Key:  ${apiKey}
-#   Model:    ${model}`,
-        }
-      case 'claudecode':
-        return {
-          filename: '~/.claude/settings.json',
-          lang: 'json',
-          code: `{
-  "env": {
-    "ANTHROPIC_BASE_URL": "${baseUrl}",
-    "ANTHROPIC_AUTH_TOKEN": "${apiKey}",
-    "ANTHROPIC_MODEL": "${model}"
-  }
-}`,
-        }
-      case 'opencode':
-        return {
-          filename: 'opencode.json',
-          lang: 'json',
-          code: `{
-  "$schema": "https://opencode.ai/config.json",
-  "provider": {
-    "llama-dash": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "llama-dash",
-      "options": {
-        "baseURL": "${baseUrl}/v1",
-        "headers": {
-          "Authorization": "Bearer ${apiKey}"
-        }
-      },
-      "models": {
-        "${model}": {
-          "name": "${model}"
-        }
-      }
-    }
-  },
-  "model": "llama-dash/${model}"
-}`,
-        }
-      case 'continue':
-        return {
-          filename: '~/.continue/config.json',
-          lang: 'json',
-          code: `{
-  "models": [
-    {
-      "provider": "openai",
-      "title": "${model}",
-      "model": "${model}",
-      "apiBase": "${baseUrl}/v1",
-      "apiKey": "${apiKey}"
-    }
-  ]
-}`,
-        }
-      case 'openwebui':
-        return {
-          filename: 'Open WebUI',
-          lang: 'bash',
-          code: `# Open WebUI → Admin → Settings → Connections
-#
-# 1. Add a new OpenAI-compatible connection:
-#    URL:     ${baseUrl}/v1
-#    API Key: ${apiKey}
-#
-# 2. Save and refresh — models from llama-dash
-#    will appear in the model selector.`,
-        }
-    }
-  }, [tab, baseUrl, apiKey, model])
+type ModelPredicate = (model: ApiModel) => boolean
+
+const hasInput = (model: ApiModel, modality: string) => model.capabilities.inputModalities.includes(modality)
+const hasOutput = (model: ApiModel, modality: string) => model.capabilities.outputModalities.includes(modality)
+
+const MODEL_MATCHERS: Record<EndpointModality, { matches: ModelPredicate; placeholder: string }> = {
+  text: { matches: () => true, placeholder: 'your-model' },
+  image: { matches: (m) => hasOutput(m, 'image'), placeholder: 'your-image-model' },
+  speech: { matches: (m) => hasOutput(m, 'audio') && !hasInput(m, 'audio'), placeholder: 'your-tts-model' },
+  transcribe: { matches: (m) => hasInput(m, 'audio') && !hasOutput(m, 'audio'), placeholder: 'your-stt-model' },
+  realtime: { matches: isRealtimeAudioModel, placeholder: 'your-realtime-model' },
+}
+
+/**
+ * Picks a local model that reports the modality, preferring a running one.
+ * Text keeps the old behaviour: only a running model, else a placeholder.
+ */
+export function exampleModelFor(models: ReadonlyArray<ApiModel> | undefined, modality: EndpointModality): string {
+  const { matches, placeholder } = MODEL_MATCHERS[modality]
+  const candidates = (models ?? []).filter((model) => model.kind === 'local' && matches(model))
+  const running = candidates.find((model) => model.running)
+  if (modality === 'text') return running?.id ?? placeholder
+  return (running ?? candidates[0])?.id ?? placeholder
 }

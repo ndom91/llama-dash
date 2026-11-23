@@ -61,7 +61,7 @@ src/
   features/               — route-owned UI, one component per file, grouped by feature
     auth/                  · login page
     dashboard/             · dashboard panels + metrics helpers
-    endpoints/             · endpoint examples + copy/highlight helpers
+    endpoints/             · endpoint examples (`snippets.ts` modality/client registry, one `snippets<Modality>.ts` per modality)
     keys/                  · keys list/detail panels and forms
     models/                · models list/detail panels and helpers
     playground/            · playground tabs, rails, and media tools
@@ -270,8 +270,9 @@ paths (proxy will grow middleware; admin will grow CRUD).
     per-key detail), Attribution (header mapping + client setup examples),
     Policies (request limits + persisted routing rule editor with rewrite,
     reject, auth passthrough, direct upstream target controls, credential vault
-    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (connection examples for curl, Python, TS,
-    Home Assistant, Claude Code, opencode, Continue, Open WebUI).
+    with dependency warnings, and MCP relay management with Claude Code snippets), Endpoints (modality tabs for text, image, speech,
+    transcribe, and realtime above client tabs for curl, Python, TS, Home Assistant, Claude Code,
+    and opencode; each modality lists only the clients it has examples for).
     Request details reuse list/recent summaries as observer-only placeholders
     while payloads load. Request-list hover and keyboard selection prefetch after
     a short intent delay; prefetch and detail fetching share `requestQueryOptions()`.

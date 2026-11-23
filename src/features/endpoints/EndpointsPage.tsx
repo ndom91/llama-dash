@@ -4,20 +4,32 @@ import { PageHeader } from '../../components/PageHeader'
 import { Tabs } from '../../components/Tabs'
 import { useApiKeys, useModels } from '../../lib/queries'
 import { CodeExample } from './CodeExample'
-import { ENDPOINT_TABS, type EndpointTab } from './snippets'
+import {
+  clientsForModality,
+  ENDPOINT_MODALITIES,
+  type EndpointClient,
+  type EndpointModality,
+  exampleModelFor,
+} from './snippets'
 import { cn } from '../../lib/cn'
 
 export function EndpointsPage() {
   const { data: keys } = useApiKeys()
   const { data: models } = useModels()
-  const [tab, setTab] = useState<EndpointTab>('curl')
+  const [modality, setModality] = useState<EndpointModality>('text')
+  const [preferredClient, setPreferredClient] = useState<EndpointClient>('curl')
   const [selectedKeyIdx, setSelectedKeyIdx] = useState(0)
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173'
   const activeKeys = useMemo(() => (keys ?? []).filter((k) => !k.disabledAt), [keys])
   const hasKeys = activeKeys.length > 0
   const keyDisplay = hasKeys ? `${activeKeys[selectedKeyIdx]?.keyPrefix}…` : 'sk-your-key-here'
-  const exampleModel = models?.find((model) => model.running && model.kind === 'local')?.id ?? 'your-model'
+  const exampleModel = useMemo(() => exampleModelFor(models, modality), [models, modality])
+  const clients = useMemo(() => clientsForModality(modality), [modality])
+  // Keep the picked client across modalities; fall back when a modality lacks it.
+  const client = clients.some((c) => c.id === preferredClient) ? preferredClient : clients[0].id
+  const modalityLabel = ENDPOINT_MODALITIES.find((m) => m.id === modality)?.label
+  const clientLabel = clients.find((c) => c.id === client)?.label
 
   return (
     <div className="content">
@@ -72,11 +84,26 @@ export function EndpointsPage() {
         <section className="panel flex min-h-0 flex-1 flex-col border-t !rounded-none !border-x-0 !bg-surface-1">
           <div className="panel-head bg-transparent px-6 max-md:px-3">
             <span className="panel-title">Code examples</span>
-            <span className="panel-sub">· {ENDPOINT_TABS.find((t) => t.id === tab)?.label}</span>
+            <span className="panel-sub">
+              · {modalityLabel} · {clientLabel}
+            </span>
           </div>
-          <Tabs items={ENDPOINT_TABS} value={tab} onChange={setTab} ariaLabel="Endpoint examples" />
+          <Tabs
+            items={ENDPOINT_MODALITIES}
+            value={modality}
+            onChange={setModality}
+            variant="accent"
+            ariaLabel="Endpoint modality"
+          />
+          <Tabs items={clients} value={client} onChange={setPreferredClient} ariaLabel="Endpoint client" />
           <div className="p-4">
-            <CodeExample tab={tab} baseUrl={baseUrl} apiKey={keyDisplay} model={exampleModel} />
+            <CodeExample
+              modality={modality}
+              client={client}
+              baseUrl={baseUrl}
+              apiKey={keyDisplay}
+              model={exampleModel}
+            />
           </div>
         </section>
       </div>

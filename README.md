@@ -171,7 +171,7 @@ See the [environment variables reference](https://llama-dash.dev/docs/reference/
 
 ## Client setup
 
-The **Endpoints** page has connection examples for curl, Python, TypeScript, Home Assistant, Claude Code, opencode, Continue, and Open WebUI.
+The **Endpoints** page has connection examples per modality (text, image, speech, transcribe, realtime) for curl, Python, and TypeScript, plus Home Assistant (text, speech, transcribe), Claude Code, and opencode (text).
 
 See the [Claude Code & Anthropic passthrough guide](https://llama-dash.dev/docs/clients/claude-code) for proxy setup.
 
