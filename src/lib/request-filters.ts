@@ -1,5 +1,45 @@
 export type StatusFilter = 'all' | 'ok' | 'err'
-export type RoutingFilter = 'all' | 'routed' | 'unrouted'
+export type RoutingValue = 'routed' | 'unrouted'
+export const ROUTING_VALUES: readonly RoutingValue[] = ['routed', 'unrouted']
+
+/**
+ * A multi-value filter stored as whichever side is smaller. Everything selected is an empty
+ * exclusion (the filter is off, so options created later are included); nothing selected is an
+ * empty inclusion.
+ */
+export type SetFilter = { mode: 'include' | 'exclude'; values: readonly string[] }
+export type RoutingFilter = SetFilter
+
+export const ALL_SET_FILTER: SetFilter = { mode: 'exclude', values: [] }
+
+export function isSetFilterActive(filter: SetFilter): boolean {
+  return filter.mode === 'include' || filter.values.length > 0
+}
+
+export function isSetFilterEmpty(filter: SetFilter): boolean {
+  return filter.mode === 'include' && filter.values.length === 0
+}
+
+export function setFilterIncludes(filter: SetFilter, value: string): boolean {
+  return filter.values.includes(value) === (filter.mode === 'include')
+}
+
+/** Whether a row passes `filter`, given a predicate for "the row matches this option value". */
+export function setFilterMatches(filter: SetFilter, matches: (value: string) => boolean): boolean {
+  if (!isSetFilterActive(filter)) return true
+  return filter.values.some(matches) === (filter.mode === 'include')
+}
+
+/**
+ * Builds the filter for `checked` out of `options`. Half or fewer unchecked is stored as an
+ * exclusion, more than half as an inclusion. Checked values missing from `options` are kept.
+ */
+export function setFilterFromChecked(options: readonly string[], checked: ReadonlySet<string>): SetFilter {
+  const unchecked = options.filter((o) => !checked.has(o))
+  if (unchecked.length === 0) return ALL_SET_FILTER
+  if (unchecked.length <= options.length / 2) return { mode: 'exclude', values: unchecked }
+  return { mode: 'include', values: options.filter((o) => checked.has(o)) }
+}
 
 export const REQUEST_KEY_FILTER_NONE = '__none__'
 export const REQUEST_KEY_FILTER_PROXY = '__proxy__'
@@ -23,6 +63,18 @@ export function requestKeyNameFilterValue(keyName: string): string {
   return `${REQUEST_KEY_FILTER_KEY_PREFIX}${encodeURIComponent(keyName)}`
 }
 
+/** Display label for a key filter value, used for values no longer in the key list. */
+export function requestKeyFilterLabel(value: string): string {
+  if (value === REQUEST_KEY_FILTER_PROXY) return 'proxy'
+  if (value === REQUEST_KEY_FILTER_NONE) return 'No key'
+  if (!value.startsWith(REQUEST_KEY_FILTER_KEY_PREFIX)) return value
+  try {
+    return decodeURIComponent(value.slice(REQUEST_KEY_FILTER_KEY_PREFIX.length))
+  } catch {
+    return value
+  }
+}
+
 export function requestMatchesKeyFilter(r: RequestKeySource, filter: string): boolean {
   if (filter === REQUEST_KEY_FILTER_PROXY) return isProxyRequestKey(r)
   if (filter === REQUEST_KEY_FILTER_NONE) return r.keyName == null && !isProxyRequestKey(r)
@@ -38,11 +90,11 @@ export function isMcpRelayRequest(row: { requestClass: string }): boolean {
 
 export type RequestListFilters = {
   statusFilter: StatusFilter
-  modelFilter: readonly string[]
-  keyFilter: readonly string[]
-  routingFilter: RoutingFilter
+  modelFilter: SetFilter
+  keyFilter: SetFilter
+  routingFilter: SetFilter
   clientFilter: string
-  hostFilter: readonly string[]
+  hostFilter: SetFilter
   endUserFilter: string
   sessionFilter: string
 }
@@ -74,20 +126,16 @@ export function applyRequestFilters<T extends RequestFilterRow>(
   if (filters.statusFilter === 'ok') out = out.filter((r) => r.statusCode >= 200 && r.statusCode < 400)
   else if (filters.statusFilter === 'err') out = out.filter((r) => r.statusCode >= 400)
 
-  if (filters.modelFilter.length > 0) out = out.filter((r) => r.model != null && filters.modelFilter.includes(r.model))
-
-  if (filters.keyFilter.length > 0) {
-    out = out.filter((r) => filters.keyFilter.some((f) => requestMatchesKeyFilter(r, f)))
-  }
-
-  if (filters.routingFilter === 'routed') out = out.filter((r) => r.routingActionType != null)
-  else if (filters.routingFilter === 'unrouted') out = out.filter((r) => r.routingActionType == null)
+  out = out.filter(
+    (r) =>
+      setFilterMatches(filters.modelFilter, (f) => r.model === f) &&
+      setFilterMatches(filters.keyFilter, (f) => requestMatchesKeyFilter(r, f)) &&
+      setFilterMatches(filters.routingFilter, (f) => f === (r.routingActionType == null ? 'unrouted' : 'routed')) &&
+      setFilterMatches(filters.hostFilter, (f) => f === (r.clientHost ?? REQUEST_HOST_FILTER_NONE)),
+  )
 
   if (client) {
     out = out.filter((r) => (r.clientName ?? '').toLowerCase().includes(client))
-  }
-  if (filters.hostFilter.length > 0) {
-    out = out.filter((r) => filters.hostFilter.includes(r.clientHost ?? REQUEST_HOST_FILTER_NONE))
   }
   if (endUser) {
     out = out.filter((r) => (r.endUserId ?? '').toLowerCase().includes(endUser))

@@ -24,6 +24,7 @@ import { isLeaderPending } from '../../lib/nav-leader'
 import {
   requestQueryOptions,
   useAttributionSettings,
+  useRequestFilterCounts,
   useRequestFilterOptions,
   useRequestHistogram,
   useRequestsList,
@@ -50,7 +51,6 @@ import {
   REQUESTS_ROW_HEIGHT,
   type RequestListFilters,
   type RequestsColKey,
-  type RoutingFilter,
   requestKeyLabel,
   requestKeyNameFilterValue,
   type SortDir,
@@ -59,7 +59,14 @@ import {
   toOption,
   withSelected,
 } from './requestsListUtils'
-import type { RequestsSearch } from './requestsSearch'
+import {
+  ALL_SET_FILTER,
+  isSetFilterActive,
+  isSetFilterEmpty,
+  requestKeyFilterLabel,
+  type SetFilter,
+} from '../../lib/request-filters'
+import { type RequestsSearch, setFilterFromSearch, setFilterSearchPatch } from './requestsSearch'
 import { useFreshRowIds } from './use-fresh-row-ids'
 
 const requestsRouteApi = getRouteApi('/requests/')
@@ -80,24 +87,36 @@ export function RequestsPage() {
   const filterOptions = filterOptionsQuery.data
 
   const search = routeSearch.q ?? ''
-  const modelFilter = routeSearch.model ?? NO_VALUES
+  const modelFilter = useMemo(
+    () => setFilterFromSearch({ model: routeSearch.model, model_not: routeSearch.model_not }, 'model'),
+    [routeSearch.model, routeSearch.model_not],
+  )
   const sortKey: SortKey = routeSearch.sortKey ?? 'startedAt'
   const sortDir: SortDir = routeSearch.sortDir ?? 'desc'
-  const keyFilter = routeSearch.key ?? NO_VALUES
-  const routingFilter: RoutingFilter = routeSearch.routing ?? 'all'
+  const keyFilter = useMemo(
+    () => setFilterFromSearch({ key: routeSearch.key, key_not: routeSearch.key_not }, 'key'),
+    [routeSearch.key, routeSearch.key_not],
+  )
+  const routingFilter = useMemo(
+    () => setFilterFromSearch({ routing: routeSearch.routing, routing_not: routeSearch.routing_not }, 'routing'),
+    [routeSearch.routing, routeSearch.routing_not],
+  )
   const clientFilter = routeSearch.client ?? ''
-  const hostFilter = routeSearch.host ?? NO_VALUES
+  const hostFilter = useMemo(
+    () => setFilterFromSearch({ host: routeSearch.host, host_not: routeSearch.host_not }, 'host'),
+    [routeSearch.host, routeSearch.host_not],
+  )
   const endUserFilter = routeSearch.endUser ?? ''
   const sessionFilter = routeSearch.session ?? ''
   const [searchDraft, setSearchDraft] = useState(search)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const hasLocalFilters =
     searchDraft !== '' ||
-    modelFilter.length > 0 ||
-    keyFilter.length > 0 ||
-    routingFilter !== 'all' ||
+    isSetFilterActive(modelFilter) ||
+    isSetFilterActive(keyFilter) ||
+    isSetFilterActive(routingFilter) ||
     clientFilter !== '' ||
-    hostFilter.length > 0 ||
+    isSetFilterActive(hostFilter) ||
     endUserFilter !== '' ||
     sessionFilter !== ''
 
@@ -163,13 +182,8 @@ export function RequestsPage() {
           const next: Record<string, unknown> = { ...prev, ...patch }
           for (const k of Object.keys(patch)) {
             const v = next[k]
-            if (
-              v === undefined ||
-              v === '' ||
-              (v === 'all' && k !== 'timeframe') ||
-              (Array.isArray(v) && v.length === 0)
-            )
-              delete next[k]
+            // Empty arrays stay: an empty inclusion list means "nothing selected".
+            if (v === undefined || v === '' || (v === 'all' && k !== 'timeframe')) delete next[k]
           }
           return next as RequestsSearch
         },
@@ -209,31 +223,44 @@ export function RequestsPage() {
   const keyNames = filterOptions?.keys ?? NO_VALUES
   const hosts = filterOptions?.hosts ?? NO_VALUES
 
-  const modelOptions = useMemo(() => withSelected(models.map(toOption), modelFilter), [models, modelFilter])
+  const systemKeys = filterOptions?.systemKeys ?? NO_VALUES
+
+  const modelOptions = useMemo(
+    () => withSelected(models.map(toOption), modelFilter.values),
+    [models, modelFilter.values],
+  )
   const keyOptions = useMemo(
     () =>
       withSelected(
         [
           { value: REQUEST_KEY_FILTER_PROXY, label: 'proxy' },
-          { value: REQUEST_KEY_FILTER_NONE, label: 'No key' },
-          ...keyNames.map((k) => ({ value: requestKeyNameFilterValue(k), label: k })),
+          { value: REQUEST_KEY_FILTER_NONE, label: 'No key', system: true },
+          ...keyNames.map((k) => ({ value: requestKeyNameFilterValue(k), label: k, system: systemKeys.includes(k) })),
         ],
-        keyFilter,
+        keyFilter.values,
+        (value) => ({ value, label: requestKeyFilterLabel(value) }),
       ),
-    [keyNames, keyFilter],
+    [keyNames, systemKeys, keyFilter.values],
   )
   const hostOptions = useMemo(
-    () => withSelected([{ value: REQUEST_HOST_FILTER_NONE, label: 'No host' }, ...hosts.map(toOption)], hostFilter),
-    [hosts, hostFilter],
+    () =>
+      withSelected(
+        [{ value: REQUEST_HOST_FILTER_NONE, label: 'No host', system: true }, ...hosts.map(toOption)],
+        hostFilter.values,
+      ),
+    [hosts, hostFilter.values],
   )
+  const { data: filterCounts } = useRequestFilterCounts({ timeframe, from, to, includeMcp: showMcpRelays })
 
   const displayed = allRows
 
   useEffect(() => {
-    if (modelFilter.length === 0 || models.length === 0) return
-    if (modelFilter.every((f) => models.includes(f))) return
-    const resolved = modelFilter.map((f) => models.find((m) => m === f || m.endsWith(`/${f}`)) ?? f)
-    if (resolved.some((m, i) => m !== modelFilter[i])) updateSearch({ model: resolved })
+    const values = modelFilter.values
+    if (values.length === 0 || models.length === 0) return
+    if (values.every((f) => models.includes(f))) return
+    const resolved = values.map((f) => models.find((m) => m === f || m.endsWith(`/${f}`)) ?? f)
+    if (resolved.some((m, i) => m !== values[i]))
+      updateSearch(setFilterSearchPatch('model', { mode: modelFilter.mode, values: resolved }))
   }, [models, modelFilter, updateSearch])
 
   const freshRowIds = useFreshRowIds(allRows, queryFilters)
@@ -400,16 +427,25 @@ export function RequestsPage() {
   const hasFilters =
     searchDraft !== '' ||
     statusFilter !== 'all' ||
-    modelFilter.length > 0 ||
-    keyFilter.length > 0 ||
-    routingFilter !== 'all' ||
+    isSetFilterActive(modelFilter) ||
+    isSetFilterActive(keyFilter) ||
+    isSetFilterActive(routingFilter) ||
     showMcpRelays ||
     clientFilter !== '' ||
-    hostFilter.length > 0 ||
+    isSetFilterActive(hostFilter) ||
     endUserFilter !== '' ||
     sessionFilter !== '' ||
     selectedRanges.length > 0 ||
     timeframe !== DEFAULT_REQUEST_TIMEFRAME
+
+  const emptySetFilters = (
+    [
+      { dim: 'model', noun: 'models', filter: modelFilter },
+      { dim: 'key', noun: 'keys', filter: keyFilter },
+      { dim: 'routing', noun: 'routing', filter: routingFilter },
+      { dim: 'host', noun: 'hosts', filter: hostFilter },
+    ] as const satisfies ReadonlyArray<{ dim: string; noun: string; filter: SetFilter }>
+  ).filter((f) => isSetFilterEmpty(f.filter))
 
   const clearFilters = () => {
     setSearchDraft('')
@@ -423,8 +459,12 @@ export function RequestsPage() {
       model: undefined,
       key: undefined,
       routing: undefined,
-      mcp: undefined,
       host: undefined,
+      model_not: undefined,
+      key_not: undefined,
+      routing_not: undefined,
+      host_not: undefined,
+      mcp: undefined,
       client: undefined,
       endUser: undefined,
       session: undefined,
@@ -482,6 +522,7 @@ export function RequestsPage() {
               modelOptions={modelOptions}
               keyOptions={keyOptions}
               hostOptions={hostOptions}
+              counts={filterCounts}
               attribution={attribution}
               updateSearch={updateSearch}
               hasFilters={hasFilters}
@@ -572,6 +613,21 @@ export function RequestsPage() {
                 </div>
                 {isLoading ? (
                   <div className="empty-state">Loading requests…</div>
+                ) : rows.length === 0 && emptySetFilters.length > 0 ? (
+                  <div className="empty-state">
+                    no {emptySetFilters.map((f) => f.noun).join(' or ')} selected.{' '}
+                    <button
+                      type="button"
+                      className="cursor-pointer bg-transparent p-0 text-accent hover:underline"
+                      onClick={() =>
+                        updateSearch(
+                          Object.assign({}, ...emptySetFilters.map((f) => setFilterSearchPatch(f.dim, ALL_SET_FILTER))),
+                        )
+                      }
+                    >
+                      select all
+                    </button>
+                  </div>
                 ) : rows.length === 0 ? (
                   <div className="empty-state">
                     {hasFilters || allRows.length > 0 ? (

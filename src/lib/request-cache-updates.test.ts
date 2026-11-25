@@ -3,6 +3,7 @@ import { expect, it } from 'vitest'
 import { qk, REQUESTS_PAGE_SIZE } from './queries'
 import { resyncLiveQueries, trimInactiveRequestPayloads, updateRequestsListCache } from './request-cache-updates'
 import type { ApiRequest } from './schemas/request'
+import { ALL_SET_FILTER } from './request-filters'
 
 const row = (n: number) => ({ id: `req_${String(n).padStart(6, '0')}`, requestClass: 'inference' }) as ApiRequest
 
@@ -76,11 +77,11 @@ it('only adds live rows that match the full server filter and MCP visibility', (
   const client = new QueryClient()
   const filters = {
     search: '',
-    modelFilter: ['target'],
-    keyFilter: [],
-    routingFilter: 'all',
+    modelFilter: { mode: 'include' as const, values: ['target'] },
+    keyFilter: ALL_SET_FILTER,
+    routingFilter: ALL_SET_FILTER,
     clientFilter: 'claude',
-    hostFilter: [],
+    hostFilter: ALL_SET_FILTER,
     endUserFilter: '',
     sessionFilter: '',
     includeMcp: false,
@@ -154,11 +155,11 @@ it('keeps live rows and cursors in the active global sort order', () => {
       ...sort,
       search: '',
       includeMcp: true,
-      modelFilter: [],
-      keyFilter: [],
-      routingFilter: 'all',
+      modelFilter: ALL_SET_FILTER,
+      keyFilter: ALL_SET_FILTER,
+      routingFilter: ALL_SET_FILTER,
       clientFilter: '',
-      hostFilter: [],
+      hostFilter: ALL_SET_FILTER,
       endUserFilter: '',
       sessionFilter: '',
     },
@@ -181,11 +182,11 @@ it('honors fixed timeframes and disjoint interval boundaries for live rows', () 
     {
       search: '',
       includeMcp: true,
-      modelFilter: [],
-      keyFilter: [],
-      routingFilter: 'all',
+      modelFilter: ALL_SET_FILTER,
+      keyFilter: ALL_SET_FILTER,
+      routingFilter: ALL_SET_FILTER,
       clientFilter: '',
-      hostFilter: [],
+      hostFilter: ALL_SET_FILTER,
       endUserFilter: '',
       sessionFilter: '',
       timeframe: 'custom',
@@ -216,11 +217,11 @@ it('expires rolling-window rows when a fresh matching request arrives', () => {
     {
       search: '',
       includeMcp: true,
-      modelFilter: [],
-      keyFilter: [],
-      routingFilter: 'all',
+      modelFilter: ALL_SET_FILTER,
+      keyFilter: ALL_SET_FILTER,
+      routingFilter: ALL_SET_FILTER,
       clientFilter: '',
-      hostFilter: [],
+      hostFilter: ALL_SET_FILTER,
       endUserFilter: '',
       sessionFilter: '',
       timeframe: '1h',

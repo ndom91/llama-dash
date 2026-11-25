@@ -42,7 +42,7 @@ export function usageRowRequestsSearch(dimension: UsageDimension, row: ApiUsageB
       if (value === '4xx' || value === '5xx') return { status: 'err' }
       return null
     case 'routing':
-      return { routing: value == null ? 'unrouted' : 'routed' }
+      return { routing: [value == null ? 'unrouted' : 'routed'] }
     case 'host':
       return { host: [value ?? '__none__'] }
     case 'key':

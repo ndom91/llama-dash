@@ -6,7 +6,20 @@ import {
   RequestSortDirSchema,
   RequestSortKeySchema,
 } from '../../lib/schemas/request-search.ts'
+import { ALL_SET_FILTER, ROUTING_VALUES, type SetFilter } from '../../lib/request-filters.ts'
 import type { RequestSearchOptions } from './requests.ts'
+
+/** Reads `name` (inclusion) or `name_not` (exclusion); a lone empty `name` selects nothing. */
+function parseSetFilter(params: URLSearchParams, name: string): SetFilter | null {
+  const include = params.getAll(name)
+  const exclude = params.getAll(`${name}_not`)
+  if (include.length && exclude.length) return null
+  const raw = include.length ? include : exclude
+  if (raw.length > 100 || raw.some((value) => value.length > 1024)) return null
+  const values = raw.filter((value) => value !== '')
+  if (include.length) return { mode: 'include', values }
+  return values.length ? { mode: 'exclude', values } : ALL_SET_FILTER
+}
 import { error } from './routes/types.ts'
 
 export function parseRequestSearch(params: URLSearchParams): RequestSearchOptions | Response {
@@ -32,13 +45,13 @@ export function parseRequestSearch(params: URLSearchParams): RequestSearchOption
   const includeMcp = params.get('includeMcp') === 'true'
   const status = params.get('status')
   if (status !== null && status !== 'ok' && status !== 'err') return error(400, 'Invalid status filter')
-  const routing = params.get('routing')
-  if (routing !== null && routing !== 'routed' && routing !== 'unrouted') return error(400, 'Invalid routing filter')
-  const models = params.getAll('model')
-  const keys = params.getAll('key')
-  const hosts = params.getAll('host')
-  if ([models, keys, hosts].some((values) => values.length > 100 || values.some((value) => value.length > 1024)))
-    return error(400, 'Invalid request filter')
+  const routing = parseSetFilter(params, 'routing')
+  if (!routing || routing.values.some((value) => !(ROUTING_VALUES as readonly string[]).includes(value)))
+    return error(400, 'Invalid routing filter')
+  const models = parseSetFilter(params, 'model')
+  const keys = parseSetFilter(params, 'key')
+  const hosts = parseSetFilter(params, 'host')
+  if (!models || !keys || !hosts) return error(400, 'Invalid request filter')
   const textFilter = (name: string) => params.get(name) || undefined
   if (['q', 'client', 'endUser', 'session'].some((name) => (params.get(name)?.length ?? 0) > 1024))
     return error(400, 'Invalid request filter')
@@ -61,7 +74,7 @@ export function parseRequestSearch(params: URLSearchParams): RequestSearchOption
     includeMcp,
     minutes,
     status: status ?? undefined,
-    routing: routing ?? undefined,
+    routing,
     models,
     keys,
     hosts,

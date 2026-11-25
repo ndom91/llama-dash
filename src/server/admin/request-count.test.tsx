@@ -7,6 +7,7 @@ import { expect, it, vi } from 'vitest'
 import type { RequestListQuery } from '../../lib/request-query-data'
 import * as schema from '../db/schema'
 import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
+import { ALL_SET_FILTER } from '../../lib/request-filters'
 
 it('counts all matches independently of loaded pages and sorting, and refreshes for arrivals', async () => {
   const sqlite = createMigratedTestDb()
@@ -35,11 +36,11 @@ it('counts all matches independently of loaded pages and sorting, and refreshes 
   const wrapper = ({ children }: { children: ReactNode }) => createElement(QueryClientProvider, { client }, children)
   const filters: RequestListQuery = {
     search: '',
-    modelFilter: ['target'],
-    keyFilter: [],
-    routingFilter: 'all',
+    modelFilter: { mode: 'include' as const, values: ['target'] },
+    keyFilter: ALL_SET_FILTER,
+    routingFilter: ALL_SET_FILTER,
     clientFilter: '',
-    hostFilter: [],
+    hostFilter: ALL_SET_FILTER,
     endUserFilter: '',
     sessionFilter: '',
     includeMcp: false,

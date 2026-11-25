@@ -7,7 +7,7 @@ import { api } from './api'
 import { useRequestFilterOptions } from './queries'
 
 it('retains loaded filter choices after a refresh failure and recovers on retry', async () => {
-  const previous = { models: ['model-a'], keys: ['key-a'], hosts: ['host-a'] }
+  const previous = { models: ['model-a'], keys: ['key-a'], hosts: ['host-a'], systemKeys: [] }
   const refreshed = { ...previous, models: ['model-a', 'model-b'] }
   const fetchOptions = vi
     .spyOn(api, 'requestFilterOptions')

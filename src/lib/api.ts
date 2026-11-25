@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { requestApiTimeFilter } from './request-timeframe'
+import { isSetFilterActive, type SetFilter } from './request-filters'
 import { clearShellContext } from './shell-context-cache'
 import { JsonValidatorCache } from './json-validator-cache'
 import type { BaseIssue, BaseSchema, InferOutput } from 'valibot'
@@ -50,6 +51,7 @@ import {
   HistogramResponseSchema,
   ApiRequestStatsSchema,
   RequestMetadataResponseSchema,
+  RequestFilterCountsSchema,
   RequestFilterOptionsSchema,
   RequestPayloadsSchema,
   RequestsListResponseSchema,
@@ -177,15 +179,27 @@ async function sendEmpty<T extends AnySchema>(url: string, schema: T, method: st
   return data
 }
 
+/**
+ * Inclusions go in `name`, exclusions in `name_not`. A lone empty `name` means nothing is selected;
+ * no param at all means the filter is off.
+ */
+function appendSetFilterParams(q: URLSearchParams, name: string, filter: SetFilter) {
+  if (!isSetFilterActive(filter)) return
+  const param = filter.mode === 'include' ? name : `${name}_not`
+  if (filter.values.length === 0) q.append(param, '')
+  for (const value of filter.values) q.append(param, value)
+}
+
 function requestFilterParams(f?: import('./request-query-data').RequestListQuery) {
   const q = new URLSearchParams()
   if (f) {
-    for (const [key, values] of [
+    for (const [key, filter] of [
       ['model', f.modelFilter],
       ['key', f.keyFilter],
       ['host', f.hostFilter],
+      ['routing', f.routingFilter],
     ] as const)
-      for (const value of values) q.append(key, value)
+      appendSetFilterParams(q, key, filter)
     for (const [key, value] of [
       ['q', f.search],
       ['client', f.clientFilter],
@@ -201,7 +215,6 @@ function requestFilterParams(f?: import('./request-query-data').RequestListQuery
     if (time.to !== undefined) q.set('to', String(time.to))
     if (f.sortKey) q.set('sortKey', f.sortKey)
     if (f.sortDir) q.set('sortDir', f.sortDir)
-    if (f.routingFilter !== 'all') q.set('routing', f.routingFilter)
     q.set('skipMcpCount', 'true')
   }
   return q
@@ -243,6 +256,18 @@ export const api = {
   },
   requestFilterOptions: (options: ApiFetchOptions = {}) =>
     getJson('/api/requests/filter-options', RequestFilterOptionsSchema, options),
+  requestFilterCounts: (
+    filters: import('./request-timeframe').RequestTimeFilter & { includeMcp: boolean },
+    options: ApiFetchOptions = {},
+  ) => {
+    const q = new URLSearchParams()
+    const time = requestApiTimeFilter(filters)
+    if (time.timeframe) q.set('timeframe', time.timeframe)
+    if (time.from !== undefined) q.set('from', String(time.from))
+    if (time.to !== undefined) q.set('to', String(time.to))
+    if (filters.includeMcp) q.set('includeMcp', 'true')
+    return getJson(`/api/requests/filter-counts?${q}`, RequestFilterCountsSchema, { priority: 'low', ...options })
+  },
   getRequestSession: (
     id: string,
     cursor?: string,

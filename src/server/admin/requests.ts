@@ -15,7 +15,15 @@ import {
   type SQLWrapper,
   sql,
 } from 'drizzle-orm'
-import { REQUEST_HOST_FILTER_NONE, requestMatchesKeyFilter } from '../../lib/request-filters.ts'
+import {
+  isSetFilterActive,
+  REQUEST_HOST_FILTER_NONE,
+  REQUEST_KEY_FILTER_NONE,
+  REQUEST_KEY_FILTER_PROXY,
+  requestKeyNameFilterValue,
+  requestMatchesKeyFilter,
+  type SetFilter,
+} from '../../lib/request-filters.ts'
 import { requestTimeBounds, type RequestTimeFilter, type RequestInterval } from '../../lib/request-timeframe.ts'
 import { parseRequestCursor, type RequestSort } from '../../lib/request-sort.ts'
 import type { ApiKeyStats } from '../../lib/schemas/api-key.ts'
@@ -23,6 +31,7 @@ import type { ApiHistogramBucket, ApiRequest, ApiRequestStats } from '../../lib/
 import { db, schema, sqliteDb } from '../db/index.ts'
 import { getRecentBodies } from '../proxy/recent-bodies.ts'
 import { getApiKeyName, getApiKeyNameMap } from './api-keys.ts'
+import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { requestSummaryColumns } from './request-summary-columns.ts'
 
 let caseFoldRegistered = false
@@ -168,14 +177,49 @@ export type RequestSearchOptions = RequestSort &
     minutes?: number[]
     status?: 'ok' | 'err'
     search?: string
-    models?: string[]
-    keys?: string[]
-    routing?: 'routed' | 'unrouted'
-    hosts?: string[]
+    models?: SetFilter
+    keys?: SetFilter
+    routing?: SetFilter
+    hosts?: SetFilter
     client?: string
     endUser?: string
     session?: string
   }
+
+/**
+ * SQL for one multi-select filter. `matchAny` builds "the row matches one of these values"; an
+ * exclusion negates it, treating NULL comparisons as non-matches so NULL columns are kept.
+ */
+function setFilterWhere(filter: SetFilter | undefined, matchAny: (values: string[]) => SQL | undefined) {
+  if (!filter || !isSetFilterActive(filter)) return undefined
+  if (filter.values.length === 0) return sql`0`
+  const match = matchAny([...filter.values]) ?? sql`0`
+  // Inclusions stay bare so SQLite can still use column indexes; NULL is falsy in WHERE anyway.
+  return filter.mode === 'include' ? match : sql`not coalesce(${match}, 0)`
+}
+
+function keyFilterSql(values: string[]) {
+  const keyMap = getApiKeyNameMap()
+  const keyIds = [...keyMap]
+    .filter(([, name]) => values.some((key) => requestMatchesKeyFilter({ keyName: name, routingAuthMode: null }, key)))
+    .map(([id]) => id)
+  const noKey = (mode: string | null) =>
+    values.some((key) => requestMatchesKeyFilter({ keyName: null, routingAuthMode: mode }, key))
+  const missingKey = keyMap.size
+    ? or(isNull(schema.requests.keyId), notInArray(schema.requests.keyId, [...keyMap.keys()]))
+    : sql`1 = 1`
+  return or(
+    keyIds.length ? inArray(schema.requests.keyId, keyIds) : undefined,
+    noKey('passthrough') ? and(missingKey, eq(schema.requests.routingAuthMode, 'passthrough')) : undefined,
+    noKey(null)
+      ? and(
+          missingKey,
+          or(isNull(schema.requests.routingAuthMode), sql`${schema.requests.routingAuthMode} != 'passthrough'`),
+        )
+      : undefined,
+    sql`0`,
+  )
+}
 
 function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'mcp_relay' | undefined) {
   if (!caseFoldRegistered && (opts.search || opts.client || opts.endUser || opts.session)) {
@@ -187,30 +231,6 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
   }
   const contains = (column: SQLWrapper, value: string) =>
     sql`instr(llama_dash_lower(${column}), ${value.toLowerCase()}) > 0`
-  const keyMap = getApiKeyNameMap()
-  const keyIds = [...keyMap]
-    .filter(([, name]) =>
-      opts.keys?.some((key) => requestMatchesKeyFilter({ keyName: name, routingAuthMode: null }, key)),
-    )
-    .map(([id]) => id)
-  const noKey = (mode: string | null) =>
-    opts.keys?.some((key) => requestMatchesKeyFilter({ keyName: null, routingAuthMode: mode }, key))
-  const missingKey = keyMap.size
-    ? or(isNull(schema.requests.keyId), notInArray(schema.requests.keyId, [...keyMap.keys()]))
-    : sql`1 = 1`
-  const keyFilter = opts.keys?.length
-    ? or(
-        keyIds.length ? inArray(schema.requests.keyId, keyIds) : undefined,
-        noKey('passthrough') ? and(missingKey, eq(schema.requests.routingAuthMode, 'passthrough')) : undefined,
-        noKey(null)
-          ? and(
-              missingKey,
-              or(isNull(schema.requests.routingAuthMode), sql`${schema.requests.routingAuthMode} != 'passthrough'`),
-            )
-          : undefined,
-        sql`0`,
-      )
-    : undefined
   const bounds = requestTimeBounds(opts)
   return and(
     bounds.from !== undefined ? gte(schema.requests.startedAt, new Date(bounds.from)) : undefined,
@@ -242,22 +262,23 @@ function requestWhere(opts: RequestSearchOptions, requestClass: 'inference' | 'm
           ),
         )
       : undefined,
-    opts.models?.length ? inArray(schema.requests.model, opts.models) : undefined,
-    keyFilter,
-    opts.routing === 'routed'
-      ? sql`${schema.requests.routingActionType} is not null`
-      : opts.routing === 'unrouted'
-        ? isNull(schema.requests.routingActionType)
-        : undefined,
-    opts.hosts?.length
-      ? or(
-          opts.hosts.includes(REQUEST_HOST_FILTER_NONE) ? isNull(schema.requests.clientHost) : undefined,
-          inArray(
-            schema.requests.clientHost,
-            opts.hosts.filter((v) => v !== REQUEST_HOST_FILTER_NONE),
-          ),
-        )
-      : undefined,
+    setFilterWhere(opts.models, (values) => inArray(schema.requests.model, values)),
+    setFilterWhere(opts.keys, keyFilterSql),
+    setFilterWhere(opts.routing, (values) =>
+      or(
+        values.includes('routed') ? sql`${schema.requests.routingActionType} is not null` : undefined,
+        values.includes('unrouted') ? isNull(schema.requests.routingActionType) : undefined,
+      ),
+    ),
+    setFilterWhere(opts.hosts, (values) =>
+      or(
+        values.includes(REQUEST_HOST_FILTER_NONE) ? isNull(schema.requests.clientHost) : undefined,
+        inArray(
+          schema.requests.clientHost,
+          values.filter((v) => v !== REQUEST_HOST_FILTER_NONE),
+        ),
+      ),
+    ),
     opts.client ? contains(schema.requests.clientName, opts.client) : undefined,
     opts.endUser ? contains(schema.requests.endUserId, opts.endUser) : undefined,
     opts.session ? contains(schema.requests.sessionId, opts.session) : undefined,
@@ -338,7 +359,60 @@ export function requestFilterOptions() {
     .map((r) => r.value)
     .filter((v): v is string => !!v)
   const keys = [...new Set(getApiKeyNameMap().values())].filter(Boolean)
-  return { models: models.sort(), hosts: hosts.sort(), keys: keys.sort() }
+  const systemKeys = db
+    .select({ name: schema.apiKeys.name })
+    .from(schema.apiKeys)
+    .where(eq(schema.apiKeys.system, true))
+    .all()
+    .map((r) => r.name)
+  return { models: models.sort(), hosts: hosts.sort(), keys: keys.sort(), systemKeys: systemKeys.sort() }
+}
+
+/** Per-option request counts for the filter popovers, scoped to the time range only. */
+export function requestFilterCounts(opts: RequestTimeFilter & { includeMcp?: boolean }) {
+  const bounds = requestTimeBounds(opts)
+  const where = and(
+    bounds.from !== undefined ? gte(schema.requests.startedAt, new Date(bounds.from)) : undefined,
+    bounds.to !== undefined ? lt(schema.requests.startedAt, new Date(bounds.to)) : undefined,
+    opts.includeMcp ? undefined : eq(schema.requests.requestClass, 'inference'),
+  )
+  const count = sql<number>`count(*)`
+  const grouped = <T>(column: SQL | AnySQLiteColumn) =>
+    db
+      .select({ value: sql<T>`${column}`, count })
+      .from(schema.requests)
+      .where(where)
+      .groupBy(column)
+      .all()
+  const tally = (out: Record<string, number>, value: string, n: number) => {
+    out[value] = (out[value] ?? 0) + n
+  }
+
+  const models: Record<string, number> = {}
+  for (const r of grouped<string | null>(schema.requests.model)) if (r.value) tally(models, r.value, r.count)
+  const hosts: Record<string, number> = {}
+  for (const r of grouped<string | null>(schema.requests.clientHost))
+    tally(hosts, r.value ?? REQUEST_HOST_FILTER_NONE, r.count)
+  const routing: Record<string, number> = {}
+  for (const r of grouped<number>(sql`${schema.requests.routingActionType} is null`))
+    tally(routing, r.value ? 'unrouted' : 'routed', r.count)
+
+  const keyMap = getApiKeyNameMap()
+  const passthrough = sql<number>`coalesce(${schema.requests.routingAuthMode} = 'passthrough', 0)`
+  const keys: Record<string, number> = {}
+  for (const r of db
+    .select({ keyId: schema.requests.keyId, passthrough, count })
+    .from(schema.requests)
+    .where(where)
+    .groupBy(schema.requests.keyId, passthrough)
+    .all()) {
+    const name = r.keyId ? keyMap.get(r.keyId) : undefined
+    let value = REQUEST_KEY_FILTER_NONE
+    if (name) value = requestKeyNameFilterValue(name)
+    else if (r.passthrough) value = REQUEST_KEY_FILTER_PROXY
+    tally(keys, value, r.count)
+  }
+  return { models, keys, hosts, routing }
 }
 
 export function countMatchingRequests(opts: RequestSearchOptions): number {

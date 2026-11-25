@@ -6,12 +6,14 @@ import {
   ResponsiveDisclosurePanel,
   ResponsiveDisclosureTrigger,
 } from '../../components/ResponsiveDisclosure'
+import { MultiSelectFilter, type MultiSelectFilterOption } from '../../components/MultiSelectFilter'
 import { Select, type SelectOption } from '../../components/Select'
 import type { AttributionSettings } from '../../lib/api'
+import type { RequestFilterCounts } from '../../lib/schemas/request'
 import { RequestsAttributionFilterInput } from './RequestsAttributionFilterInput'
 import { RequestsFilterField } from './RequestsFilterField'
-import type { RequestListFilters, RoutingFilter, StatusFilter } from './requestsListUtils'
-import type { RequestsSearch } from './requestsSearch'
+import type { RequestListFilters, StatusFilter } from './requestsListUtils'
+import { type RequestsSearch, setFilterSearchPatch } from './requestsSearch'
 
 type Props = {
   open: boolean
@@ -22,9 +24,10 @@ type Props = {
   filters: RequestListFilters
   showMcpRelays: boolean
   filterOptionsStatus: { failed: boolean; cached: boolean; pending: boolean; onRetry: () => void }
-  modelOptions: readonly SelectOption[]
-  keyOptions: readonly SelectOption[]
-  hostOptions: readonly SelectOption[]
+  modelOptions: readonly MultiSelectFilterOption[]
+  keyOptions: readonly MultiSelectFilterOption[]
+  hostOptions: readonly MultiSelectFilterOption[]
+  counts: RequestFilterCounts | undefined
   attribution: AttributionSettings | undefined
   updateSearch: (patch: Partial<RequestsSearch>) => void
   hasFilters: boolean
@@ -43,6 +46,7 @@ export function RequestsFilterSidebar({
   modelOptions,
   keyOptions,
   hostOptions,
+  counts,
   attribution,
   updateSearch,
   hasFilters,
@@ -130,33 +134,36 @@ export function RequestsFilterSidebar({
           </RequestsFilterField>
 
           <RequestsFilterField label="Model">
-            <Select
-              multiple
+            <MultiSelectFilter
               aria-label="Model"
-              placeholder="All models"
+              noun="models"
               value={filters.modelFilter}
-              onValueChange={(v) => updateSearch({ model: v })}
+              onChange={(v) => updateSearch(setFilterSearchPatch('model', v))}
               options={modelOptions}
+              counts={counts?.models}
             />
           </RequestsFilterField>
 
           <RequestsFilterField label="Key">
-            <Select
-              multiple
+            <MultiSelectFilter
               aria-label="Key"
-              placeholder="All keys"
+              noun="keys"
               value={filters.keyFilter}
-              onValueChange={(v) => updateSearch({ key: v })}
+              onChange={(v) => updateSearch(setFilterSearchPatch('key', v))}
               options={keyOptions}
+              counts={counts?.keys}
             />
           </RequestsFilterField>
 
           <RequestsFilterField label="Routing">
-            <Select
+            <MultiSelectFilter
               aria-label="Routing"
+              noun="routing"
+              allLabel="All requests"
               value={filters.routingFilter}
-              onValueChange={(v) => updateSearch({ routing: v as RoutingFilter })}
+              onChange={(v) => updateSearch(setFilterSearchPatch('routing', v))}
               options={ROUTING_OPTIONS}
+              counts={counts?.routing}
             />
           </RequestsFilterField>
 
@@ -171,13 +178,13 @@ export function RequestsFilterSidebar({
           </label>
 
           <RequestsFilterField label="Host">
-            <Select
-              multiple
+            <MultiSelectFilter
               aria-label="Host"
-              placeholder="All hosts"
+              noun="hosts"
               value={filters.hostFilter}
-              onValueChange={(v) => updateSearch({ host: v })}
+              onChange={(v) => updateSearch(setFilterSearchPatch('host', v))}
               options={hostOptions}
+              counts={counts?.hosts}
             />
           </RequestsFilterField>
 
@@ -220,8 +227,7 @@ const STATUS_OPTIONS: readonly SelectOption[] = [
   { value: 'err', label: 'Errors' },
 ]
 
-const ROUTING_OPTIONS: readonly SelectOption[] = [
-  { value: 'all', label: 'All requests' },
-  { value: 'routed', label: 'Routed only' },
-  { value: 'unrouted', label: 'Unrouted only' },
+const ROUTING_OPTIONS: readonly MultiSelectFilterOption[] = [
+  { value: 'routed', label: 'Routed' },
+  { value: 'unrouted', label: 'Unrouted' },
 ]

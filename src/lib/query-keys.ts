@@ -9,6 +9,7 @@ export const qk = {
   requestsFilteredList: ['requests', 'filtered-list'] as const,
   requestCount: ['requests', 'count'] as const,
   requestFilterOptions: ['requests', 'filter-options'] as const,
+  requestFilterCounts: ['requests', 'filter-counts'] as const,
   requestsRecentRoot: ['requests', 'recent'] as const,
   requestsRecent: (limit: number, includeMcp = false) => ['requests', 'recent', limit, includeMcp] as const,
   requestStats: ['requests', 'stats'] as const,

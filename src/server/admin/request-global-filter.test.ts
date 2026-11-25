@@ -1,11 +1,13 @@
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { expect, it, vi } from 'vitest'
 import {
+  ALL_SET_FILTER,
   applyRequestFilters,
   REQUEST_HOST_FILTER_NONE,
   REQUEST_KEY_FILTER_NONE,
   REQUEST_KEY_FILTER_PROXY,
   requestKeyNameFilterValue,
+  type SetFilter,
 } from '../../lib/request-filters'
 import * as schema from '../db/schema'
 import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
@@ -54,17 +56,26 @@ it('filters the full retained log with client-equivalent semantics and accurate 
   ])
   sqlite.prepare("update requests set routing_auth_mode = 'passthrough' where id = 'req_a1'").run()
   try {
-    const { listRecentRequests, requestFilterOptions, countMatchingRequests } = await import('./requests')
+    const { listRecentRequests, requestFilterOptions, requestFilterCounts, countMatchingRequests } = await import(
+      './requests'
+    )
     const { requestRoutes } = await import('./routes/requests')
     const all = listRecentRequests({ limit: 500, includeMcp: true })
-    expect(requestFilterOptions()).toEqual({ models: ['other', 'target'], hosts: ['host-a'], keys: ['voice'] })
+    expect(requestFilterOptions()).toEqual({
+      models: ['other', 'target'],
+      hosts: ['host-a'],
+      keys: ['voice'],
+      systemKeys: [],
+    })
+    const inc = (...values: string[]): SetFilter => ({ mode: 'include', values })
+    const exc = (...values: string[]): SetFilter => ({ mode: 'exclude', values })
     const defaults = {
       statusFilter: 'all' as const,
-      modelFilter: [] as string[],
-      keyFilter: [] as string[],
-      routingFilter: 'all' as const,
+      modelFilter: ALL_SET_FILTER,
+      keyFilter: ALL_SET_FILTER,
+      routingFilter: ALL_SET_FILTER,
       clientFilter: '',
-      hostFilter: [] as string[],
+      hostFilter: ALL_SET_FILTER,
       endUserFilter: '',
       sessionFilter: '',
       search: '',
@@ -72,46 +83,62 @@ it('filters the full retained log with client-equivalent semantics and accurate 
     const cases = [
       {
         filters: {
-          modelFilter: ['target'],
-          keyFilter: [requestKeyNameFilterValue('voice')],
+          modelFilter: inc('target'),
+          keyFilter: inc(requestKeyNameFilterValue('voice')),
           clientFilter: 'éxample%_',
-          hostFilter: ['host-a'],
+          hostFilter: inc('host-a'),
           endUserFilter: 'ALICE',
           sessionFilter: 'SESS',
         },
         sql: {
-          models: ['target'],
-          keys: [requestKeyNameFilterValue('voice')],
+          models: inc('target'),
+          keys: inc(requestKeyNameFilterValue('voice')),
           client: 'éxample%_',
-          hosts: ['host-a'],
+          hosts: inc('host-a'),
           endUser: 'ALICE',
           session: 'SESS',
         },
       },
       {
-        filters: { keyFilter: [REQUEST_KEY_FILTER_PROXY], hostFilter: [REQUEST_HOST_FILTER_NONE] },
-        sql: { keys: [REQUEST_KEY_FILTER_PROXY], hosts: [REQUEST_HOST_FILTER_NONE] },
+        filters: { keyFilter: inc(REQUEST_KEY_FILTER_PROXY), hostFilter: inc(REQUEST_HOST_FILTER_NONE) },
+        sql: { keys: inc(REQUEST_KEY_FILTER_PROXY), hosts: inc(REQUEST_HOST_FILTER_NONE) },
       },
-      { filters: { keyFilter: [REQUEST_KEY_FILTER_NONE] }, sql: { keys: [REQUEST_KEY_FILTER_NONE] } },
+      { filters: { keyFilter: inc(REQUEST_KEY_FILTER_NONE) }, sql: { keys: inc(REQUEST_KEY_FILTER_NONE) } },
       { filters: { search: 'ÉXAMPLE%_' }, sql: { search: 'ÉXAMPLE%_' } },
       { filters: { search: '404' }, sql: { search: '404' } },
       { filters: { search: 'POST' }, sql: { search: 'POST' } },
       {
-        filters: { modelFilter: ['target', 'other'], keyFilter: [REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY] },
-        sql: { models: ['target', 'other'], keys: [REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY] },
+        filters: {
+          modelFilter: inc('target', 'other'),
+          keyFilter: inc(REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY),
+        },
+        sql: { models: inc('target', 'other'), keys: inc(REQUEST_KEY_FILTER_NONE, REQUEST_KEY_FILTER_PROXY) },
       },
       {
-        filters: { hostFilter: [REQUEST_HOST_FILTER_NONE, 'host-a'] },
-        sql: { hosts: [REQUEST_HOST_FILTER_NONE, 'host-a'] },
+        filters: { hostFilter: inc(REQUEST_HOST_FILTER_NONE, 'host-a') },
+        sql: { hosts: inc(REQUEST_HOST_FILTER_NONE, 'host-a') },
       },
       {
-        filters: { routingFilter: 'unrouted' as const, statusFilter: 'ok' as const },
-        sql: { routing: 'unrouted' as const, status: 'ok' as const },
+        filters: { routingFilter: inc('unrouted'), statusFilter: 'ok' as const },
+        sql: { routing: inc('unrouted'), status: 'ok' as const },
       },
       {
-        filters: { routingFilter: 'routed' as const, statusFilter: 'err' as const },
-        sql: { routing: 'routed' as const, status: 'err' as const },
+        filters: { routingFilter: inc('routed'), statusFilter: 'err' as const },
+        sql: { routing: inc('routed'), status: 'err' as const },
       },
+      // Exclusions keep rows whose column is NULL (no model / no host) unless that bucket is excluded.
+      { filters: { modelFilter: exc('target') }, sql: { models: exc('target') } },
+      { filters: { hostFilter: exc('host-a') }, sql: { hosts: exc('host-a') } },
+      { filters: { hostFilter: exc(REQUEST_HOST_FILTER_NONE) }, sql: { hosts: exc(REQUEST_HOST_FILTER_NONE) } },
+      {
+        filters: { keyFilter: exc(requestKeyNameFilterValue('voice'), REQUEST_KEY_FILTER_PROXY) },
+        sql: { keys: exc(requestKeyNameFilterValue('voice'), REQUEST_KEY_FILTER_PROXY) },
+      },
+      { filters: { keyFilter: exc(REQUEST_KEY_FILTER_NONE) }, sql: { keys: exc(REQUEST_KEY_FILTER_NONE) } },
+      { filters: { routingFilter: exc('routed') }, sql: { routing: exc('routed') } },
+      // An empty inclusion selects nothing.
+      { filters: { keyFilter: inc() }, sql: { keys: inc() } },
+      { filters: { modelFilter: inc() }, sql: { models: inc() } },
     ]
     for (const { filters, sql } of cases) {
       expect(countMatchingRequests({ includeMcp: true, ...sql })).toBe(
@@ -133,6 +160,40 @@ it('filters the full retained log with client-equivalent semantics and accurate 
     )
     expect(second.requests.map((r: { id: string }) => r.id)).toEqual(['req_a2'])
     expect(second.nextCursor).toBeNull()
+
+    const ids = (rows: Array<{ id: string }>) => rows.map((r) => r.id)
+    const excluded = await get('http://dash.test/api/requests?limit=500&includeMcp=true&key_not=key%3Avoice')
+    expect(ids(excluded.requests)).toEqual(
+      ids(applyRequestFilters(all, { ...defaults, keyFilter: exc(requestKeyNameFilterValue('voice')) })),
+    )
+    expect(excluded.requests.length).toBeGreaterThan(0)
+    // A lone empty inclusion param means "nothing selected".
+    expect((await get('http://dash.test/api/requests?includeMcp=true&key=')).requests).toEqual([])
+    const both = await route.handler(
+      new Request('http://dash.test/api/requests?key=key%3Avoice&key_not=key%3Avoice'),
+      [] as unknown as RegExpMatchArray,
+    )
+    expect(both.status).toBe(400)
+    const badRouting = await route.handler(
+      new Request('http://dash.test/api/requests?routing_not=sideways'),
+      [] as unknown as RegExpMatchArray,
+    )
+    expect(badRouting.status).toBe(400)
+
+    const counts = requestFilterCounts({ includeMcp: true })
+    const total = all.length
+    const sum = (record: Record<string, number>) => Object.values(record).reduce((a, b) => a + b, 0)
+    expect(sum(counts.keys)).toBe(total)
+    expect(sum(counts.hosts)).toBe(total)
+    expect(sum(counts.routing)).toBe(total)
+    expect(counts.keys[requestKeyNameFilterValue('voice')]).toBe(
+      applyRequestFilters(all, { ...defaults, keyFilter: inc(requestKeyNameFilterValue('voice')) }).length,
+    )
+    expect(counts.keys[REQUEST_KEY_FILTER_PROXY]).toBe(1)
+    expect(counts.hosts[REQUEST_HOST_FILTER_NONE]).toBe(
+      applyRequestFilters(all, { ...defaults, hostFilter: inc(REQUEST_HOST_FILTER_NONE) }).length,
+    )
+    expect(counts.models.target).toBe(applyRequestFilters(all, { ...defaults, modelFilter: inc('target') }).length)
   } finally {
     vi.doUnmock('../db/index.ts')
     vi.doUnmock('./api-keys.ts')

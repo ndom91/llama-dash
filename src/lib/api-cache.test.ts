@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { api } from './api'
+import { ALL_SET_FILTER } from './request-filters'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -109,10 +110,10 @@ it('sends browser-resolved calendar-day bounds consistently to list, count and c
   vi.stubGlobal('fetch', fetch)
   const filters = {
     timeframe: 'yesterday' as const,
-    modelFilter: [],
-    keyFilter: [],
-    hostFilter: [],
-    routingFilter: 'all' as const,
+    modelFilter: ALL_SET_FILTER,
+    keyFilter: ALL_SET_FILTER,
+    hostFilter: ALL_SET_FILTER,
+    routingFilter: ALL_SET_FILTER,
     search: '',
     clientFilter: '',
     endUserFilter: '',

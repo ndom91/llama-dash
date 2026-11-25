@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner'
 import type { InferOutput } from 'valibot'
 import { qk } from './query-keys'
+import type { RequestTimeFilter } from './request-timeframe'
 import { invalidateRequestKeyNames } from './request-cache-updates'
 import { REQUESTS_PAGE_SIZE, type RequestListQuery, type RequestsList, type RequestsPage } from './request-query-data'
 
@@ -249,6 +250,16 @@ export function useRequestFilterOptions() {
     queryKey: qk.requestFilterOptions,
     queryFn: ({ signal }) => api.requestFilterOptions({ signal }),
     refetchInterval: FALLBACK_POLL_MS,
+  })
+}
+
+export function useRequestFilterCounts(filters: RequestTimeFilter & { includeMcp: boolean }) {
+  const { timeframe, from, to, includeMcp } = filters
+  return useQuery({
+    queryKey: [...qk.requestFilterCounts, { timeframe, from, to, includeMcp }],
+    queryFn: ({ signal }) => api.requestFilterCounts({ timeframe, from, to, includeMcp }, { signal }),
+    refetchInterval: FALLBACK_POLL_MS,
+    placeholderData: (prev) => prev,
   })
 }
 

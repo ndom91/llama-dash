@@ -27,7 +27,7 @@ it('bounds long-range charts and shares time, class and filter semantics with th
         timeframe: 'custom' as const,
         from: base,
         to: base + 1000 * 3_600_000,
-        models: ['target'],
+        models: { mode: 'include' as const, values: ['target'] },
         status: 'err' as const,
         includeMcp,
       }

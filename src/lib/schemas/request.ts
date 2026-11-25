@@ -77,7 +77,21 @@ export const RequestFilterOptionsSchema = v.object({
   models: v.array(v.string()),
   keys: v.array(v.string()),
   hosts: v.array(v.string()),
+  /** Names of built-in keys (e.g. the Playground key), shown as buckets rather than real keys. */
+  systemKeys: v.optional(v.array(v.string()), []),
 })
+
+const CountsSchema = v.record(v.string(), v.number())
+
+/** Requests per filter option value in the current time range. */
+export const RequestFilterCountsSchema = v.object({
+  models: CountsSchema,
+  keys: CountsSchema,
+  hosts: CountsSchema,
+  routing: CountsSchema,
+})
+
+export type RequestFilterCounts = v.InferOutput<typeof RequestFilterCountsSchema>
 
 export const RequestPayloadsSchema = v.pick(ApiRequestDetailSchema, [
   'requestHeaders',

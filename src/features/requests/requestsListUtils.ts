@@ -1,4 +1,4 @@
-import type { SelectOption } from '../../components/Select'
+import type { MultiSelectFilterOption } from '../../components/MultiSelectFilter'
 import { isProxyRequestKey } from '../../lib/request-filters'
 
 export const REQUESTS_ROW_HEIGHT = 37
@@ -78,7 +78,7 @@ export function formatWhen(iso: string): string {
   })
 }
 
-export function toOption(value: string): SelectOption {
+export function toOption(value: string): MultiSelectFilterOption {
   return { value, label: value }
 }
 
@@ -92,8 +92,13 @@ export function uniqueSorted<T>(rows: ReadonlyArray<T>, pick: (row: T) => string
 }
 
 /** Keeps selected values listed even when the loaded page no longer contains them. */
-export function withSelected(options: SelectOption[], selected: readonly string[]): SelectOption[] {
+/** Appends filter values the server no longer lists, so a stale URL still shows (and can clear) them. */
+export function withSelected(
+  options: MultiSelectFilterOption[],
+  selected: readonly string[],
+  toMissing: (value: string) => MultiSelectFilterOption = toOption,
+): MultiSelectFilterOption[] {
   const known = new Set(options.map((o) => o.value))
-  const missing = selected.filter((v) => !known.has(v)).map(toOption)
+  const missing = selected.filter((v) => !known.has(v)).map(toMissing)
   return missing.length > 0 ? [...options, ...missing] : options
 }
