@@ -30,15 +30,18 @@ export function trimInactiveRequestPayloads(client: QueryClient) {
 }
 
 export function updateRequestsListCache(client: QueryClient, request: ApiRequest) {
-  client.setQueryData<{ models: string[]; keys: string[]; hosts: string[] }>(qk.requestFilterOptions, (old) => {
-    if (!old) return old
-    const add = (values: string[], value: string | null) =>
-      value && !values.includes(value) ? [...values, value].sort() : values
-    const models = add(old.models, request.model)
-    const keys = add(old.keys, request.keyName)
-    const hosts = add(old.hosts, request.clientHost)
-    return models === old.models && keys === old.keys && hosts === old.hosts ? old : { models, keys, hosts }
-  })
+  client.setQueryData<{ models: string[]; keys: string[]; hosts: string[]; systemKeys: string[] }>(
+    qk.requestFilterOptions,
+    (old) => {
+      if (!old) return old
+      const add = (values: string[], value: string | null) =>
+        value && !values.includes(value) ? [...values, value].sort() : values
+      const models = add(old.models, request.model)
+      const keys = add(old.keys, request.keyName)
+      const hosts = add(old.hosts, request.clientHost)
+      return models === old.models && keys === old.keys && hosts === old.hosts ? old : { ...old, models, keys, hosts }
+    },
+  )
   const minute = Math.floor(Date.parse(request.startedAt) / 60_000) * 60_000
   const keys = [
     qk.requestsList,

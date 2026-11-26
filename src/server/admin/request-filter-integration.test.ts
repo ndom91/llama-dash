@@ -6,6 +6,7 @@ import { createElement, type ReactNode } from 'react'
 import { expect, it, vi } from 'vitest'
 import * as schema from '../db/schema'
 import { createMigratedTestDb, insertTestRequests } from '../db/test-db'
+import { ALL_SET_FILTER } from '../../lib/request-filters'
 
 it('sends status and selected minutes through the client and route before paginating', async () => {
   const sqlite = createMigratedTestDb()
@@ -43,11 +44,11 @@ it('sends status and selected minutes through the client and route before pagina
     unmount()
     const filters = {
       search: '',
-      modelFilter: ['target'],
-      keyFilter: [],
-      routingFilter: 'all' as const,
+      modelFilter: { mode: 'include' as const, values: ['target'] },
+      keyFilter: ALL_SET_FILTER,
+      routingFilter: ALL_SET_FILTER,
       clientFilter: 'claude',
-      hostFilter: [],
+      hostFilter: ALL_SET_FILTER,
       endUserFilter: '',
       sessionFilter: '',
       includeMcp: false,

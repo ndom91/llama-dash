@@ -77,7 +77,13 @@ it.skipIf(process.env.REQUEST_BENCHMARK !== '1')(
         ],
         [
           'model + time sort',
-          () => listRecentRequests({ limit: 51, models: ['model-1'], sortKey: 'startedAt', sortDir: 'desc' }),
+          () =>
+            listRecentRequests({
+              limit: 51,
+              models: { mode: 'include', values: ['model-1'] },
+              sortKey: 'startedAt',
+              sortDir: 'desc',
+            }),
         ],
         ['last hour', () => listRecentRequests({ limit: 51, timeframe: '1h', sortKey: 'startedAt', sortDir: 'desc' })],
         [

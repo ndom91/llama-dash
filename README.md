@@ -25,7 +25,7 @@ OpenAI SDK / Claude Code / Continue / Open WebUI
 ## What it does
 
 - Monitor traffic, token usage, cost estimates, and CPU/GPU health.
-- Inspect request history with filters, sorting, shareable time ranges, payloads, and timing details. Usage rollups outlive raw request logs.
+- Inspect request history with filters (all-selected-by-default multi-selects, so "every key except this one" is one click), sorting, shareable time ranges, payloads, and timing details. Usage rollups outlive raw request logs.
 - Load and unload models, inspect capabilities and history, pause inference (llama-swap v268+), and edit validated configuration.
 - Control access with dashboard login, API keys, rate limits, model permissions, and MCP relay allow-lists.
 - Route requests to local models, peers, or direct upstreams. Rewrite model names, reject requests, inject credentials or system prompts, and limit request sizes.

@@ -80,7 +80,8 @@ src/
     StatusDot.tsx           · animated status indicator (ok/warn/err/idle)
     StatusCell.tsx          · status code + stream badge
     PageHeader.tsx          · reusable kicker + title + subtitle + actions
-    Select.tsx              · base-ui select; single by default, `multiple` for multi-value filters
+    Select.tsx              · base-ui single-value select
+    MultiSelectFilter.tsx   · all-selected-by-default multi-select filter popover (search, all · none, only, per-option counts)
     ThemeToggle.tsx         · segmented light/dark/system theme control
     Checkbox.tsx            · native checkbox with animated tick (`CheckMark` for decorative boxes)
     TextSwap.tsx            · in-place cross-fade for pending button labels
@@ -213,7 +214,7 @@ paths (proxy will grow middleware; admin will grow CRUD).
    - `/api/models/:id/load`, `/api/models/:id/unload`, `/api/models/unload`
    - `/api/models/pause`, `/api/models/resume` — llama-swap v268+ pause (unload all, reject inference); state follows llama-swap's `/api/events` `pauseChanged` messages and is reported as `paused` on `/api/health`
    - `/api/models/:id/reasoning-effort` — llama-server `/props` reasoning effort levels; `null` unless the model is running, so it never triggers a load
-   - `/api/requests` — cursor-paginated list with server-side filters, global sorting with sort-value/ID cursors, URL-backed timeframe presets and fixed local-time custom ranges, and matching MCP hidden count (omitted when skipped); `/api/requests/filter-options` supplies model, key, and host choices
+   - `/api/requests` — cursor-paginated list with server-side filters, global sorting with sort-value/ID cursors, URL-backed timeframe presets and fixed local-time custom ranges, and matching MCP hidden count (omitted when skipped); `/api/requests/filter-options` supplies model, key, host, and system-key choices; `/api/requests/filter-counts` returns per-option request counts for the current time range. Model, key, host, and routing filters take inclusions as `name` and exclusions as `name_not`; a lone empty `name` selects nothing
    - `/api/requests/count` — separate count of all matches for the active filters/timeframe, excluding pagination and sorting
    - `/api/requests/stats` — req/s, tok/s, p50, error rate + sparklines
    - `/api/requests/histogram` — filtered, timeframe-aware request histogram (at most 240 epoch-aligned buckets; interval selections narrow the table)
@@ -363,8 +364,12 @@ paths (proxy will grow middleware; admin will grow CRUD).
     The request page defaults to the last 3 hours; its picker also offers other rolling presets, explicit all-history links, and custom local-time ranges in a unified Base UI popover with a DayPicker range calendar, compact date/time fields, keyboard preset navigation, and timezone tooltip. Custom edits stay in the draft until Apply; future/expired days, daylight-saving gaps and reversed ranges are rejected. Today/Yesterday resolve in the browser zone before API serialization.
     The request histogram selects absolute intervals, including disjoint selections;
     `/api/requests` applies these and all request-list filters before cursor pagination; live cache updates honor the same filters. Sorting applies across retained history with stable sort-value/ID cursors. The virtualized list loads pages incrementally, while a separate live count reports all matches.
-    Request list supports routing, attribution, and client-host filters (model, key, and host
-    are multi-select; legacy single-value URLs still parse), and session IDs
+    Request list supports routing, attribution, and client-host filters. Model, key, host, and routing
+    use the shared `MultiSelectFilter`: every option starts checked (filter off, nothing in the URL, so
+    later options are included), with all · none links, an `only` row action, and per-option counts.
+    A partial selection is stored as the smaller side: `?key_not=` while half or fewer are unchecked,
+    `?key=` otherwise (an empty `?key=` list means none). Legacy `?key=`/`?routing=routed` URLs still
+    parse. Session IDs
     deep-link back into the filtered request log. Request/response bodies are stored
     in full by default, with an optional byte limit and a byte-budget recent-body LRU.
     Request rows are classified as `inference` or `mcp_relay`; successful MCP relay

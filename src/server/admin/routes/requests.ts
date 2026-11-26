@@ -11,6 +11,7 @@ import {
   getRequestStats,
   listRecentRequests,
   listRequestSession,
+  requestFilterCounts,
   requestFilterOptions,
 } from '../requests.ts'
 import { clamp, error, json, type Route } from './types.ts'
@@ -29,6 +30,15 @@ export const requestRoutes: Route[] = [
     method: 'GET',
     pattern: /^\/api\/requests\/filter-options$/,
     handler: async () => json(200, requestFilterOptions()),
+  },
+  {
+    method: 'GET',
+    pattern: /^\/api\/requests\/filter-counts$/,
+    handler: async (request) => {
+      const filters = parseRequestSearch(new URL(request.url).searchParams)
+      if (filters instanceof Response) return filters
+      return json(200, requestFilterCounts(filters))
+    },
   },
   {
     method: 'GET',

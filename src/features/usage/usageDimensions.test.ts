@@ -24,8 +24,8 @@ describe('usage row links', () => {
   })
 
   it('maps routing actions onto routed/unrouted', () => {
-    expect(usageRowRequestsSearch('routing', row('rewrite_model'))).toEqual({ routing: 'routed' })
-    expect(usageRowRequestsSearch('routing', row(null))).toEqual({ routing: 'unrouted' })
+    expect(usageRowRequestsSearch('routing', row('rewrite_model'))).toEqual({ routing: ['routed'] })
+    expect(usageRowRequestsSearch('routing', row(null))).toEqual({ routing: ['unrouted'] })
   })
 
   it('links hosts including the no-host filter', () => {
