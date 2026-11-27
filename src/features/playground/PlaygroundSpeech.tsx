@@ -121,8 +121,8 @@ export function PlaygroundSpeech() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-border bg-surface-1/70 px-6 py-3">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="border-b border-border bg-surface-1/70">
+        <div className="flex flex-wrap items-center gap-4 px-6 py-3">
           <div className="flex min-w-[220px] items-center gap-3 border-r border-border pr-4">
             <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">model</div>
             <select
