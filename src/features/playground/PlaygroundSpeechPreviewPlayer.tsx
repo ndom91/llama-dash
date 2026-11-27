@@ -35,10 +35,11 @@ export function PlaygroundSpeechPreviewPlayer({
   const [buffer, setBuffer] = useState<AudioBuffer | null>(null)
   const [waveformWidth, setWaveformWidth] = useState(0)
 
+  // The hint often arrives after autoplay has started (duration is measured
+  // asynchronously), so only adopt it; playback state is owned by the <audio>
+  // events, and callers remount the player per src.
   useEffect(() => {
-    setDuration(durationHint ?? 0)
-    setCurrentTime(0)
-    setIsPlaying(false)
+    if (durationHint != null) setDuration(durationHint)
   }, [durationHint])
 
   useEffect(() => {
