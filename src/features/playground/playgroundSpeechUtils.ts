@@ -47,3 +47,11 @@ export function buildWaveformPeaks(buffer: AudioBuffer, bars: number) {
     value,
   }))
 }
+
+export function getUrlHost(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, '')
+  } catch {
+    return 'article'
+  }
+}

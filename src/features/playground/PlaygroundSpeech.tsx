@@ -1,13 +1,14 @@
-import { FileText, Link as LinkIcon, Loader2, Volume2, X } from 'lucide-react'
+import { FileText, Loader2, Volume2, X } from 'lucide-react'
 import { type FormEvent, type KeyboardEvent, useCallback, useState } from 'react'
 import { Tooltip } from '../../components/Tooltip'
-import { api, type ArticleExtractResponse } from '../../lib/api'
+import { type ArticleExtractResponse, api } from '../../lib/api'
 import { cn } from '../../lib/cn'
 import { useModels } from '../../lib/queries'
 import { type SpeechSegment, usePlaygroundSpeech } from '../../lib/use-playground-speech'
+import { PlaygroundSpeechArticleInput } from './PlaygroundSpeechArticleInput'
 import { PlaygroundSpeechPreviewPlayer } from './PlaygroundSpeechPreviewPlayer'
 import { PlaygroundSpeechSegmentedPlayer } from './PlaygroundSpeechSegmentedPlayer'
-import { buildSpeechFilename, formatSpeechClock } from './playgroundSpeechUtils'
+import { buildSpeechFilename, formatSpeechClock, getUrlHost } from './playgroundSpeechUtils'
 
 type SpeechMode = 'text' | 'article'
 
@@ -206,6 +207,21 @@ export function PlaygroundSpeech() {
             <div className="text-xs normal-case tracking-normal text-fg">server default</div>
           </div>
         </div>
+        {mode === 'article' ? (
+          <PlaygroundSpeechArticleInput
+            url={articleUrl}
+            onUrlChange={handleArticleUrlChange}
+            onExtract={handleExtractArticle}
+            extracting={articleLoading}
+            error={articleError}
+            article={article}
+            text={articleText}
+            onTextChange={setArticleText}
+            onSpeak={handleSpeakArticle}
+            canSpeak={Boolean(speech.model && articleReady)}
+            speaking={speech.loading}
+          />
+        ) : null}
       </div>
 
       <section className="panel !rounded-none !border-t-0 !bg-transparent flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -213,131 +229,6 @@ export function PlaygroundSpeech() {
           {speech.error ? (
             <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">
               {speech.error}
-            </div>
-          ) : null}
-
-          {mode === 'article' ? (
-            <div className="mx-auto flex w-full max-w-[920px] flex-col gap-3 rounded border border-border bg-surface-2 p-4">
-              <form className="flex flex-col gap-3" onSubmit={handleExtractArticle}>
-                <div className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint">
-                  <LinkIcon className="size-3.5" aria-hidden="true" />
-                  <label htmlFor="pg-speech-article-url">article url</label>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <input
-                    id="pg-speech-article-url"
-                    type="url"
-                    className="min-w-0 flex-1 rounded border border-border bg-surface-1 px-3 py-2 font-mono text-xs text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="https://example.com/article"
-                    value={articleUrl}
-                    onChange={(e) => handleArticleUrlChange(e.target.value)}
-                    disabled={articleLoading || speech.loading}
-                    aria-describedby="pg-speech-article-help"
-                  />
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <div className="flex flex-col gap-2 rounded border border-border bg-surface-1 p-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
-                          Step 1
-                        </span>
-                        <span className="font-mono text-[10px] text-fg-dim">Required first</span>
-                      </div>
-                      <button
-                        type="submit"
-                        className="btn btn-secondary btn-md w-full justify-center"
-                        disabled={!articleUrl.trim() || articleLoading || speech.loading}
-                      >
-                        {articleLoading ? (
-                          <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                        ) : (
-                          <FileText className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-                        )}
-                        <span>Extract text</span>
-                      </button>
-                      <p className="text-[11px] leading-4 text-fg-dim">
-                        Pull the readable article body into the editor. Make any necessary edits before initializing
-                        text-to-speech generation.
-                      </p>
-                    </div>
-
-                    <div
-                      className={cn(
-                        'flex flex-col gap-2 rounded border border-border bg-surface-1 p-2.5 transition-opacity duration-100',
-                        !articleReady && 'opacity-65',
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-fg-faint">
-                          Step 2
-                        </span>
-                        <span className="font-mono text-[10px] text-fg-dim">
-                          {articleReady ? 'Ready after review' : 'Extract text first'}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-primary btn-md w-full justify-center"
-                        disabled={!speech.model || !articleReady || speech.loading || articleLoading}
-                        onClick={handleSpeakArticle}
-                        aria-describedby="pg-speech-read-step-help"
-                      >
-                        {speech.loading ? (
-                          <Loader2 className="size-3.5 shrink-0 animate-spin" strokeWidth={2} aria-hidden="true" />
-                        ) : (
-                          <Volume2 className="size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-                        )}
-                        <span>Read aloud</span>
-                      </button>
-                      <p id="pg-speech-read-step-help" className="text-[11px] leading-4 text-fg-dim">
-                        Review or edit the extracted text, then generate chunked audio.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p id="pg-speech-article-help" className="text-[12px] leading-5 text-fg-dim">
-                  Fetches the page server-side, extracts the readable article body, then lets you edit the text before
-                  generating speech.
-                </p>
-              </form>
-
-              {articleError ? (
-                <div className="rounded border border-err bg-err-bg px-3.5 py-2.5 font-mono text-xs text-err">
-                  {articleError}
-                </div>
-              ) : null}
-
-              {article ? (
-                <div className="flex flex-col gap-3 rounded border border-border bg-surface-1 p-3">
-                  <div className="flex flex-col gap-1">
-                    <div className="text-sm font-semibold text-fg">{article.title ?? 'Untitled article'}</div>
-                    <div className="font-mono text-[11px] text-fg-dim">
-                      {[article.siteName ?? getUrlHost(article.finalUrl), article.byline, `${article.wordCount} words`]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </div>
-                    {article.truncated ? (
-                      <div className="rounded border border-warn bg-warn-bg px-2.5 py-1.5 font-mono text-[11px] text-warn">
-                        Extracted text was trimmed to {article.text.length.toLocaleString()} characters for this first
-                        pass.
-                      </div>
-                    ) : null}
-                  </div>
-                  <label
-                    htmlFor="pg-speech-article-text"
-                    className="font-mono text-[10px] font-semibold uppercase tracking-[0.06em] text-fg-faint"
-                  >
-                    extracted text
-                  </label>
-                  <textarea
-                    id="pg-speech-article-text"
-                    className="min-h-48 resize-y rounded border border-border bg-surface-0 px-3 py-2 text-[13px] leading-6 text-fg transition-[border-color,box-shadow] duration-100 ease-out focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                    value={articleText}
-                    onChange={(e) => setArticleText(e.target.value)}
-                    disabled={speech.loading}
-                    spellCheck={false}
-                  />
-                </div>
-              ) : null}
             </div>
           ) : null}
 
@@ -408,10 +299,10 @@ export function PlaygroundSpeech() {
                 )
               })}
             </div>
-          ) : !speech.loading && !speech.error && mode === 'text' ? (
+          ) : !speech.loading && !speech.error ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[13px] text-fg-faint">
               <Volume2 className="h-10 w-10 opacity-30" strokeWidth={1.25} />
-              <span>Convert text to speech</span>
+              <span>{mode === 'article' ? 'Read an article aloud' : 'Convert text to speech'}</span>
             </div>
           ) : null}
         </div>
@@ -452,14 +343,6 @@ export function PlaygroundSpeech() {
       </section>
     </div>
   )
-}
-
-function getUrlHost(value: string) {
-  try {
-    return new URL(value).hostname.replace(/^www\./, '')
-  } catch {
-    return 'article'
-  }
 }
 
 function previewSpeechInput(input: string, compact: boolean) {
